@@ -1,0 +1,62 @@
+# C pointers tests
+
+uni {
+    x:str="Hello world",
+    y=32,
+    z:byte=1B,
+    q=64,
+}
+
+# TODO: add object returns from other functions
+
+def main(){
+    print ("String:")
+    print (x)
+    print ("i32:")
+    print (y)
+
+    let t1 = c_obj_ref(x)
+    let t2 = c_obj_deref(t1)
+    print ("Deref of string ptr:")
+    let tx = 32
+    print (tx)
+    print (t2)
+
+    let t3 = c_ref(y)
+    let t4 = c_deref(t3)
+    print ("Deref of integer ptr y (32):")
+    print (t4)
+
+    print ("Address of string obj:")
+    print (c_addr(x))
+    print ("Address of y:i32 (32):")
+    print (c_addr(y))
+    print ("Pointer to string obj:")
+    print (c_addr(c_obj_ref(x)))
+    print ("Pointer to y:i32:")
+    let f1 = c_ref(y)
+    print (c_addr(f1))
+    print ("Pointer to pointer to y:i32:")
+    let f2 = c_ref(c_ref(y))
+    print (c_addr(f2))
+    print ("Size of pointer:")
+    let f3:ptr i8
+    print (c_size(f3))
+    print ("Size of string struct:")
+    print (c_size(x))
+    print ("Size of i32:")
+    print (c_size(y))
+    print ("Size of byte:")
+    print (c_size(z))
+    print ("Deref of string obj ptr:")
+    print (c_obj_deref(c_obj_ref(x)))
+    print ("Deref of i32 ptr:")
+    print (c_deref(c_ref(tx)))
+    
+    return 0
+
+    # Dangerous operations:
+    # deref a raw (void) pointer - we don't allow void pointers yet
+    # write a value to a pointer
+
+}

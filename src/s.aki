@@ -1,0 +1,43 @@
+# Class setting example
+
+class myclass{
+    q:i64,
+    b:i32,
+    x:i64,
+    a:i32,
+    d:str
+}
+
+uni {
+    q:myclass
+}
+
+def myfunc(s:myclass) {
+    s.a=64
+    s.d="Hello world"
+    0
+}
+
+def main(){
+
+    let aa:myclass
+
+    aa.a=32
+    print (aa.a)
+    myfunc(aa)
+    print (aa.d)
+
+    let c:myclass
+    c.b=64
+    c.a=32
+    c.q=64U
+    c.d="Hello world"
+    print (c.d)
+    loop (x=1, x<20) {
+        c.a=x
+        print (c.b)
+        print (c.a)
+    }
+    print (c.a)
+    0
+}

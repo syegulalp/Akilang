@@ -1,0 +1,62 @@
+# Simple Win32 window example (not working yet)
+
+class WINFUNCTYPE{
+    hwnd:u32,
+    msg:u32,
+    wParam:u32,
+    lParam:u32
+}
+
+class WNDCLASSEX {
+    cbSize:u32,
+    style:u32,
+    lpfnWndProc: ptr u8,
+    # func u8
+    # func(u8):u8
+    # func / func() -- void pointer
+
+    # is the fptr a different size depending on the call?
+    # or is the size demand b/c of pointer lengths on diff machines?
+
+    cbClsExtra:i32,
+    cbWndExtra:i32,
+    hInstance:i32,
+    hIcon:i32,
+    hCursor:i32,
+    hbrBackground:i32,
+    lpszMenuName:ptr i8,
+    lpszClassName:ptr i8,
+    hIconSm:i32
+}
+
+extern CreateWindowExA(exstyle:i32, classname:ptr WNDCLASSEX, windowname:ptr i8,
+    params:i32, x:i32 , y:i32 ,w:i32, h:i32,
+    parent:i32, menu:i32,instance:i32,lparam:i32):i32
+
+extern GetModuleHandleA(n:i32):i32
+
+def main() 
+    var 
+        handle:i32 = 0,
+        x:i32=0,
+        wndclass:WNDCLASSEX,
+        s:ptr WNDCLASSEX
+
+    in {
+        
+        #print(cast(c_size(wndclass),u64))
+        #print('\n')
+        s = c_ptr(wndclass)
+
+        wndclass.cbSize=c_size(wndclass)
+        wndclass.style = 3
+
+        handle = GetModuleHandleA(0)
+
+        print(handle)
+        print(wndclass.cbSize) 
+        x=CreateWindowExA(0,s,c_data('Hi'), 282001408,0,0,600,800,0,0,handle,0)
+        print(x)
+        inkey()
+        0
+    }

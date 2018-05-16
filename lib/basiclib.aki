@@ -1,0 +1,97 @@
+# Win32-specific -- this will be eventually moved into its own platform-specific sublib
+
+extern _getch() :byte
+extern SetConsoleOutputCP(codepage :u32) :bool
+extern GetConsoleOutputCP() :u32
+extern printf(str_fmt :ptr i8, int_data :u64) :i32
+# We don't yet have the ability to encode variable arguments
+
+# implementations of above
+
+def inkey() :byte
+    _getch()
+
+def set_codepage(codepage :u32) :bool
+    SetConsoleOutputCP(codepage)
+
+def get_codepage() :u32
+    GetConsoleOutputCP()
+
+# general cross-platform functions
+
+def print(number :bool) :i32
+    printf(c_data('%i\n'), convert(number,u64))
+
+def print(number :byte) :i32
+    printf(c_data('%c\n'), convert(number,u64))
+
+def print(number :u32) :i32
+    printf(c_data('%i\n'), cast(number,u64))
+
+def print(number :i32) :i32
+    printf(c_data('%i\n'), cast(number,u64))
+
+def print(number :i8) :i32
+    printf(c_data('%i\n'), cast(number,u64))
+
+def print(number :u64) :i32
+    printf(c_data('%llu\n'), number)
+
+def print(number :i64) :i32
+    printf(c_data('%llu\n'), cast(number,u64))
+
+def print(number :f64) :i32
+    printf(c_data('%f\n'), cast(number, u64))
+
+def print(string :str) :i32
+    printf(c_data('%s\n'), cast(c_data(string), u64))
+
+def print(data :ptr u8) :i32
+    # This is unsafe, and we should find some way of segregating unsafe operations
+    printf(c_data('%s\n'), cast(data, u64))
+
+# This is also unsafe, and is being disabled for now
+# def print(ptri32 :ptr i32) :i32
+#     printf(c_data('%i\n'),cast(c_deref(ptri32),u64))
+
+# in time we'll make these builtins too, as I think they are supported by way of LLVM intrinsics - it'll also be easier to provide support for multiple types that way
+
+def max(a, b)
+    if a < b then b else a
+
+def min(a, b)
+    if a < b then a else b
+
+def abs(a)
+    if a < 0 then -a else a
+
+def factorial(n) 
+    if n < 2 then 1 else n * factorial(n-1)
+  
+# from c <math.h>
+# we'll move these into a math library when we have a formal way to do libraries.
+
+# extern fabs(x)
+# extern fmod(number, modulo)
+# extern fmax(x, y)
+# extern fmin(x, y)
+# extern exp(exponent_of_e)
+# extern exp2(exponent_of_2)
+# extern log(power_of_e)
+# extern log2(power_of_2)
+# extern log10(power_of_10)
+# extern sqrt(square)
+# extern cbrt(cube)
+# extern hypot(a, b)
+# extern pow(base, exponent)
+# extern sin(angle_in_radian)
+# extern cos(angle_in_radian)
+# extern tan(angle_in_radian)
+# extern asin(sin)
+# extern acos(cos)
+# extern atan(tan)
+# extern ceil(x)
+# extern floor(x)
+# extern trunc(x)
+# extern round(x)
+# extern rand() :i32

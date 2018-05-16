@@ -1,0 +1,7 @@
+# Simple Win32 MessageBox call example
+
+extern MessageBoxA(hwnd:i32, msg:ptr i8, caption:ptr i8, type: i8):i32
+
+def main(){
+    MessageBoxA(0,c_data('Hi'),c_data('Yo there'),0B)
+}

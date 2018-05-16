@@ -1,0 +1,49 @@
+# Mandelbrot - adapted from the original Kaleidoscope demo
+# not currently working yet, need to refactor
+
+def printdensity(d:f64) {
+    if d > 8. then
+        putchar(32) # ' '
+        #print(' ')
+    else if d > 4. then
+        putchar(46) # '.'
+        #print ('.')
+    else if d > 2. then
+        putchar(43) # '+'
+        #print ('+')
+    else
+        putchar(42) # '*'
+        #print ('*')
+    0.    
+}
+
+def mandelconverger(real, imag, iters, creal, cimag)
+    if iters > 255. | (real*real + imag*imag > 4.) then
+        iters
+    else
+        mandelconverger(
+            real*real - imag*imag + creal,
+            2.*real*imag + cimag,
+            iters+1., creal, cimag)
+
+def mandelconverge(real, imag)
+    mandelconverger(real, imag, 0., real, imag)
+
+def mandelhelp(xmin, xmax, xstep, ymin, ymax, ystep)
+    for y = ymin, y < ymax, y + ystep in
+        do (
+            for x = xmin, x < xmax, x + xstep in 
+                printdensity(mandelconverge(x, y))
+            putchar(10)
+        )
+
+def mandel(realstart, imagstart, realmag, imagmag)
+    mandelhelp(realstart, realstart+realmag*78., realmag,
+                imagstart, imagstart+imagmag*48., imagmag)
+
+def main() {
+    var y = 0.05, x = 0.07 in mandel(-2.3, -1.3, y, x)
+    print("Press any key to continue > ")
+    inkey()
+    0.
+}

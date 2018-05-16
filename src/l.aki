@@ -1,0 +1,133 @@
+# Conway's Game Of Life in Akilang
+
+const {
+    WIDTH=79,
+    HEIGHT=33
+}
+
+uni {
+    field:byte[2,HEIGHT,WIDTH],
+    
+    # output:byte[(WIDTH+1)*(HEIGHT+1)],
+    # no constant folding yet, so this doesn't work
+    # constants should be AST-substituted
+    # wait, what about constant arrays?
+    # how does clang handle constant array references?
+    # that's undefined behavior, isn't it?
+    
+    output:byte[4001],
+    divider:byte[81],
+    world=0,
+    gen:u64,
+    pop:i32
+}
+
+extern rand():i32
+
+def rnd(max:i32):i32
+    rand()/(32767/max)
+
+def binary mod 10 (lhs, rhs)
+    if lhs<0 then
+        rhs+lhs
+    elif lhs==rhs then
+        0
+    elif lhs>rhs then
+        lhs-rhs
+    else
+        lhs
+
+def reset() {
+    gen=0U
+    loop (y=0, y<HEIGHT)
+        loop (x=0, x<WIDTH)
+            field[world,y,x] = (if rnd(20)<4 then 1B else 0B)
+}
+
+def randomize(){
+    loop (y=0, y<HEIGHT)
+        loop (x=0, x<WIDTH)
+            field[world,y,x] = (if rnd(20)<1 then 1B else field[world,y,x])
+}
+
+def show() {
+    pop = 0
+    let z=0, s=0B
+    loop (y=0, y<HEIGHT) {
+        loop (x=0, x<WIDTH) {
+            s = (if field[world,y,x]>0B then 219B else 32B)
+            output[z] = s
+            pop = pop + (if s<33B then 0i else 1i)
+            z=z+1
+        }
+        output[z]=10B
+        z=z+1
+    }
+    output[z]=0B
+    
+    # TODO: replace with f-strings
+    # print ($'Generation: {gen} -- Population: {pop}')
+    # rendered as call to printf directly with multiple parameters
+    # interpolated strings are compile time only
+
+    printf(c_data('Generation: %i -- '), gen)
+    printf(c_data('Population: %i\n'), cast(pop,u64))
+    
+    # TODO: replace with `print(str(divider)?)`
+
+    print(c_array_ptr(divider))
+    print(c_array_ptr(output))
+    print(c_array_ptr(divider))
+       
+}
+
+def life() {
+    let sum:byte, t:byte, w2=1-world
+    loop (y=0, y<HEIGHT)
+        loop (x=0, x<WIDTH) {
+            sum=0B
+            t=0B
+            loop (j=y-1,j<y+2, j+1) 
+                loop (k=x-1, k<x+2, k+1)
+                    sum=sum+field[world,j mod HEIGHT, k mod WIDTH]
+            t = field[world,y,x]
+            sum=sum-t
+            field[w2,y,x]={
+                if sum == 3B then 1B
+                    elif sum == 2B then t
+                    else 0B
+            }
+        }
+    gen=gen+1U
+    world=w2
+}
+
+def setup(){
+    let x=0
+    loop (x=0, x<80)
+        divider[x]=177B
+    divider[x]=0B
+    reset()
+    print ("Conway's Game Of Life
+
+r - randomize
+q - quit
+Any other key will evolve the pattern")
+}
+
+def main(){
+    setup()
+    loop {
+        show()
+        life()
+        match inkey() {            
+            113B, 81B: break
+            114B, 82B: {
+                print("Randomize!\n\n")
+                randomize()                
+            }
+            default: print("Next gen")            
+        }
+    }
+    return 0
+}

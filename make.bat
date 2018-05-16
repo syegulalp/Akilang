@@ -1,0 +1,1 @@
+pyinstaller -y --workpath=_build --distpath=_dist aki.spec

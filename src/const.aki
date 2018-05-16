@@ -1,0 +1,15 @@
+# Constants and constant folding test
+# This currently crashes the compiler
+
+const {
+    s=1
+    t:byte[5]
+    # we can't perform assignments on array constants yet
+}
+
+def main(){
+    t[0]=1B
+    s=2    
+    print(s)
+    0
+}

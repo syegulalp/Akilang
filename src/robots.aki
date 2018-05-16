@@ -1,0 +1,121 @@
+class Player {
+    x:i32
+    y:i32
+}
+
+class Robot{
+    x:i32
+    y:i32
+}
+
+uni {
+    WIDTH=40,
+    HEIGHT=20,
+    field:byte[WIDTH,HEIGHT],
+    #display:byte[(WIDTH+1)*HEIGHT], # can't do this yet
+    display:byte[2000],
+    player:Player,
+    robots:Robot[10]
+}
+
+extern rand():i32
+
+def rnd(max:i32):i32
+    rand()/(32767/max)
+
+def show(){
+    let z=0
+    loop(y=0, y<HEIGHT){
+        loop(x=0, x<WIDTH){
+            display[z]=(
+                if field[x,y]==0B
+                    then 32B
+                    else field[x,y]
+            )
+            z=z+1
+        }
+        display[z]=10B
+        z=z+1
+    }
+
+    display[z]=0B
+
+    loop (x=0, x<9){
+        display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
+    }
+
+    print(c_array_ptr(display))
+}
+
+def setup(){
+
+    let nx=0, ny=0
+
+    loop (x=0, x<HEIGHT){
+        field[0,x]=219B
+        field[WIDTH-1,x]=219B
+    }
+    loop (x=0, x<WIDTH){
+        field[x,0]=219B
+        field[x,HEIGHT-1]=219B
+    }
+
+    #Place electrodes
+
+    loop (x=0, x<20){
+        loop {
+            nx = rnd(WIDTH-4)+2
+            ny = rnd(HEIGHT-4)+2
+            if field[nx,ny]==0B then break
+        }
+        field[nx,ny]=177B
+    }
+
+    # Place robots    
+    loop (x=0, x<9) {
+        loop {
+            nx = rnd(WIDTH-4)+2
+            ny = rnd(HEIGHT-4)+2
+            if field[nx,ny]==0B then break
+        }
+        robots[x].x=nx
+        robots[x].y=ny
+    }    
+
+    # Place human
+
+    let p:Player
+    # this is because there's no actual object
+    # allocation to player in uni yet
+    # we need to do that when we create there
+
+    player = p
+    
+    player.x=20
+    player.y=10
+
+    field[player.x,player.y]=144B
+
+    0
+}
+
+def main(){
+
+    setup()
+    let key:byte
+    loop {
+        show()
+        key=inkey()
+        if key==224B then {
+            print ("2nd")
+            key=inkey()
+
+        }
+        print (key)
+        match key {
+            113B, 81B: break
+        }
+    }
+    print ("Goodbye!")
+    return 0
+}
