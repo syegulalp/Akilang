@@ -993,12 +993,6 @@ class LLVMCodeGenerator(object):
             return self.builder.call(func, [operand], 'unop')
 
     def _codegen_Let(self, node):
-        # TODO: refactor this to use VarDef
-        # get the type and value, then work on it 
-        # pass flags to indicate scope of checks, etc.
-        # we might also be able to merge this with Var itself
-        # but only if it makes sense
-
         for name, type, expr, position in node.vars:
 
             # if expr:
