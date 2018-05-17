@@ -993,35 +993,48 @@ class LLVMCodeGenerator(object):
             return self.builder.call(func, [operand], 'unop')
 
     def _codegen_Let(self, node):
-        # TODO: refactor this so we're not duplicating effort with other functions, if possible
+        # TODO: refactor this to use VarDef
+        # get the type and value, then work on it 
+        # pass flags to indicate scope of checks, etc.
+        # we might also be able to merge this with Var itself
+        # but only if it makes sense
 
         for name, type, expr, position in node.vars:
-            if expr:
-                val = self._codegen(expr)
-                if type is None:
-                    type = val.type
-                else:
-                    if type != val.type:
-                        raise CodegenError(
-                            f'mismatched types in "let" assignment ("{type.descr()}" and "{val.type.descr()}")',
-                            position)
-            else:
-                if isinstance(type, Array):
-                    s = type.element_type
-                    for n in type.elements.elements:
-                        s = VarTypes.array(s, int(n.val))
-                    type = s
+
+            # if expr:
+            #     val = self._codegen(expr)
+            #     if type is None:
+            #         type = val.type
+            #     else:
+            #         if type != val.type:
+            #             raise CodegenError(
+            #                 f'mismatched types in "let" assignment ("{type.descr()}" and "{val.type.descr()}")',
+            #                 position)
+            # else:
+            #     if type is None:
+            #         type = DEFAULT_TYPE
+            #     if isinstance(type, Array):
+            #         s = type.element_type
+            #         for n in type.elements.elements:
+            #             s = VarTypes.array(s, int(n.val))
+            #         type = s
+
+            val, type = self._codegen_VarDef(expr, type)
 
             var_ref = self.func_symtab.get(name)
-            if var_ref is None:
-                var_ref = self.module.globals.get(name, None)
-                if var_ref is not None:
-                    raise CodegenError(
-                        f'"let" expressions cannot be used on universals: "{name}"',
-                        position)
-                else:
-                    var_ref = self._alloca(name, type)
-                    self.func_symtab[name] = var_ref
+            if var_ref is not None:
+                raise CodegenError(
+                    f'"{name}" already defined in local scope',
+                    position)
+
+            var_ref = self.module.globals.get(name, None)
+            if var_ref is not None:
+                raise CodegenError(
+                    f'"{name}" already defined in universal scope',
+                    position)
+            
+            var_ref = self._alloca(name, type)
+            self.func_symtab[name] = var_ref
 
             if expr:
                 self.builder.store(val, var_ref)
