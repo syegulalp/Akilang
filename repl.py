@@ -144,7 +144,7 @@ def print_eval(ak, code, options = dict()):
 
 def run_tests():
     import unittest
-    tests = unittest.defaultTestLoader.discover(".", "*.py")    
+    tests = unittest.defaultTestLoader.discover("tests", "*.py")
     unittest.TextTestRunner().run(tests)
 
 
