@@ -1,0 +1,14 @@
+# Tests for checking "let" scope
+
+uni {
+    y:u64
+}
+
+def main(){
+    let x:i32[32]
+    #let x:i64
+    let y:i32
+    x[1]=64
+    print(x[1])
+    0
+}
