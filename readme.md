@@ -15,9 +15,9 @@ The language's syntax and goals are in heavy flux, but this is the basic idea I 
 
 (A more detailed features-in-progress list is [here](mvp.md).)
 
-Even if any of these features are only implemented in miniature, the idea would be to polish the implementations as completely as possible. For instance, if the standard library only had a proof-of-concept number of modules, the *way* they worked would be refined so that the practices around them could support a larger standard library.
+Even if any of these features are only implemented in miniature, the idea would be to polish the implementations as completely as possible, so they could set the best possible example. For instance, if the standard library only had a proof-of-concept number of modules, the *way* they worked would be refined so that the practices around them could support a larger standard library.
 
-By deliberately keeping the scope of the implementation at PoC level (or, rather, by accepting such a scope as a by-product of the fact that this is a hobby project for now), it ought to be easier to keep a conceptual grasp on the basics, and to avoid conceptual problems that could bite us later.
+By deliberately keeping the scope of the implementation at PoC level (or, rather, by accepting such a scope as a by-product of the fact that this is a hobby project for now), it ought to be easier to keep a good grasp on the basics, and to avoid conceptual problems that could bite us later.
 
 Another likely goal would be to make this a language that encourages quick interactive development by way of its workflow. For instance, invoking the compiler with a certain set of command-line switches would fire up an editor for a new or existing project, and preconfigure the REPL to reload-and-run that project whenever you input the `.rlr` command.
 
