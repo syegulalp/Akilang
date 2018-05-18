@@ -1,3 +1,4 @@
+
 **Aki** is a compiler for a simple language, built with Python 3.6 and the [LLVM framework](https://www.llvm.org) by way of the [llvmlite](http://llvmlite.pydata.org/en/latest/) library.
 
 Eventually, this might become something useful for production. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
@@ -94,8 +95,11 @@ There's also going to be a standalone binary version of the compiler, most likel
 
 A few built-in code examples are available and can be run from the compiler's REPL:
 
+* [Your basic Fibonacci sequence](src/fib.aki)
+* [FizzBuzz](src/fb.aki) (after all, why not?)
 * [Conway's Game Of Life](src/l.aki)
 * [Robots](src/robots.aki) (incomplete)
+* [A rudimentary invocation of a message box on Win32](src/msg.aki)
 
 The idea would be to provide a slew of fun examples that could be run out of the box, eventually including demos that use GUIs.
 

@@ -1,3 +1,7 @@
+from importlib import reload
+
+from aki import repl
+
 def run(**options):
     from aki import repl    
     from importlib import reload

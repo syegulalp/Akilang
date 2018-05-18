@@ -36,8 +36,8 @@ class LLVMCodeGenerator(object):
         # Current IR builder.
         self.builder = None
 
-        # Manages a symbol table while a function is being codegen'd. Maps var
-        # names to ir.Value.
+        # Manages a symbol table while a function is being codegen'd.
+        # Maps var names to ir.Value.
         self.func_symtab = {}
 
         # Decorator stack for whatever function is currently in context.
@@ -46,8 +46,8 @@ class LLVMCodeGenerator(object):
         # Holds class definitions for codegen.
         self.class_symtab = {}
 
-        # Holds a stack of loop exits, used to track where to
-        # break out of a loop.
+        # Holds a stack of loop exits.
+        # Used to track where to break out of a loop.
         self.loop_exit = []
 
         # Set up pointer size and ptr_size vartype for current hardware.

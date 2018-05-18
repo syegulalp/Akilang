@@ -27,16 +27,6 @@ extern rand():i32
 def rnd(max:i32):i32
     rand()/(32767/max)
 
-def binary mod 10 (lhs, rhs)
-    if lhs<0 then
-        rhs+lhs
-    elif lhs==rhs then
-        0
-    elif lhs>rhs then
-        lhs-rhs
-    else
-        lhs
-
 def reset() {
     gen=0U
     let y,x
