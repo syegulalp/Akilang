@@ -19,19 +19,13 @@ uni {
     divider:byte[81],
     world=0,
     gen:u64,
-    pop:i32
 }
-
-extern rand():i32
-
-def rnd(max:i32):i32
-    rand()/(32767/max)
 
 def reset() {
     gen=0U
     let y,x
     # this preallocates those variables as i32, the default
-    # otherwise they're allocated repatedly within the loop
+    # otherwise they're allocated repeatedly within the loop
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH)
             field[world,y,x] = (if rnd(20)<4 then 1B else 0B)
@@ -45,8 +39,7 @@ def randomize(){
 }
 
 def show() {
-    pop = 0
-    let z=0, s=0B, y, x
+    let pop = 0, z=0, s=0B, y, x
     loop (y=0, y<HEIGHT) {
         loop (x=0, x<WIDTH) {
             s = (if field[world,y,x]>0B then 219B else 32B)
@@ -98,7 +91,7 @@ def life() {
 }
 
 def setup(){
-    let x=0
+    let x
     loop (x=0, x<80)
         divider[x]=177B
     divider[x]=0B

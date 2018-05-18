@@ -4,6 +4,8 @@ extern _getch() :byte
 extern SetConsoleOutputCP(codepage :u32) :bool
 extern GetConsoleOutputCP() :u32
 extern printf(str_fmt :ptr i8, int_data :u64) :i32
+extern rand():i32
+
 # We don't yet have the ability to encode variable arguments
 
 # implementations of above
@@ -16,6 +18,9 @@ def set_codepage(codepage :u32) :bool
 
 def get_codepage() :u32
     GetConsoleOutputCP()
+
+def rnd(max:i32):i32
+    rand()/(32767/max)
 
 # general cross-platform functions
 

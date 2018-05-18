@@ -18,8 +18,6 @@ def main(){
     let t1 = c_obj_ref(x)
     let t2 = c_obj_deref(t1)
     print ("Deref of string ptr:")
-    let tx = 32
-    print (tx)
     print (t2)
 
     let t3 = c_ref(y)
@@ -50,6 +48,9 @@ def main(){
     print (c_size(z))
     print ("Deref of string obj ptr:")
     print (c_obj_deref(c_obj_ref(x)))
+    let tx = 32
+    print ("i32 (32):")
+    print (tx)
     print ("Deref of i32 ptr:")
     print (c_deref(c_ref(tx)))
     
