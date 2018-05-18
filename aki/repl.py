@@ -34,7 +34,7 @@ from termcolor import colored, cprint
 colorama.init()
 
 from aki import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
-from aki.constants import PRODUCT, VERSION
+from aki.constants import PRODUCT, VERSION, COPYRIGHT
 
 class ReloadException(Exception): pass
 
@@ -56,16 +56,11 @@ preceded by a dot sign:
     .compile|.cp  : Compile current module to executable.
     .dump|.dp     : Dump current module to console.
     .dumpfile|.df : Dump current module to .ll file.
-    .ed <filename>: Create/open an .aki file (do not specify extension) in
-                    the src directory, using the system default editor for
-                    .aki files. The resulting file can then be loaded and
-                    run by way of the .rl command.
     .example      : Run some code examples.
     .exit|quit|stop|q
                   : Stop and exit the program.
     .export <filename>
                   : Dump current module to file in LLVM assembler format.
-    .launch|.ll   : Compile current module to executable and launch it.
     .list|.l      : List all available language functions and operators.
     .help|.       : Show this message.
     .options|opts|op
@@ -96,9 +91,11 @@ On the command line, the initial dot sign can be replaced with a double dash:
 
 ABOUT = f'''
 {PRODUCT} v.{VERSION}
-© 2018 Serdar Yegulalp
+© {COPYRIGHT} Serdar Yegulalp
 
-Based on code created by Frédéric Guérin (https://github.com/frederickjeanguerin/pykaleidoscope)
+Based on code created by:
+- Frédéric Guérin (https://github.com/frederickjeanguerin/pykaleidoscope)
+- Eli Bendersky (https://github.com/eliben/pykaleidoscope)
 '''    
 
 history = []
@@ -195,7 +192,7 @@ def run_repl_command(k, command, options):
             filename = command.split(' ')[1]
             if '.' not in filename:
                 filename+=".ll"
-        except:
+        except IndexError:
             import os
             filename = f'output{os.sep}output.ll'
 
@@ -214,10 +211,6 @@ def run_repl_command(k, command, options):
     elif command in ('quit', 'exit', 'stop','q'):
         sys.exit()
     elif command in ('rerun', '.'):
-        # The order of these is very important
-        # for n in (errors, llvmlite_custom, vartypes, ast_module, 
-        #     operators, lexer, parsing, codegen, codexec, compiler):
-        #     reload(n)
         raise ReloadException()
     elif command in ('reset','~'):
         reload(parsing)
@@ -242,7 +235,6 @@ def run_repl_command(k, command, options):
         print('Python :', sys.version)
         print('LLVM   :', '.'.join((str(n) for n in llvmlite.binding.llvm_version_info)))
         print('pyaki  :', VERSION)
-        cprint('\nFree software by Frederic Guerin', 'magenta')
     elif command:
         load_command(command, k, options)
 
@@ -300,7 +292,9 @@ def run(*a, optimize = True, llvmdump = False, noexec = False, parseonly = False
             print("A> ", end="")
             command = input().strip()
 
-# if __name__ == '__main__':
-
-#     import aki
-#     aki.run()
+# to add:
+# .ed <filename>: Create/open an .aki file (do not specify extension) in
+#                 the src directory, using the system default editor for
+#                 .aki files. The resulting file can then be loaded and
+#                 run by way of the .rl command.
+# .launch|.ll   : Compile current module to executable and launch it.

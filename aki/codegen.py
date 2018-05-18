@@ -185,7 +185,7 @@ class LLVMCodeGenerator(object):
 
                     try:
                         oo = latest0.type.pointee
-                    except:
+                    except AttributeError:
                         raise CodegenError(f'not a pointer or object',
                                            child.position)
 
@@ -1084,7 +1084,7 @@ class LLVMCodeGenerator(object):
                     else:
                         try:
                             dim = int(n.val)
-                        except:
+                        except ValueError:
                             raise CodegenError(
                                 f'Array sizes must be integer constants',
                                 vartype.position)

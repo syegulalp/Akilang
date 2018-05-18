@@ -9,14 +9,14 @@ class MyType():
     def is_obj_ptr(self):
         try:
             is_obj = self.pointee.is_obj
-        except:
+        except AttributeError:
             is_obj = False
         return is_obj
 
     def is_original_obj(self):
         try:
             is_original_obj = self.pointee.original_obj
-        except:
+        except AttributeError:
             is_original_obj = None
         return is_original_obj
 
