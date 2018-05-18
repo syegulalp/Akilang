@@ -1,5 +1,6 @@
 PRODUCT = "Aki"
-VERSION = "0.0.1"
+VERSION = "0.0.2018.05.18"
+COPYRIGHT = "2018"
 
 compilers = {
     'nt':'msvc_console.bat'
