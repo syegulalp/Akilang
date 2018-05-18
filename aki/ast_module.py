@@ -1,10 +1,9 @@
 from collections import namedtuple
 import llvmlite.ir as ir
-from vartypes import DEFAULT_TYPE, VarTypes
+
+from aki.vartypes import DEFAULT_TYPE, VarTypes
 
 # AST hierarchy
-
-_default = lambda vartype: vartype if vartype is not None else DEFAULT_TYPE
 
 
 class Node(object):
@@ -30,14 +29,14 @@ class Return(Expr):
 
 class Break(Expr):
     def __init__(self, position):
-        super().__init__(position)        
+        super().__init__(position)
 
 
 class Number(Expr):
     def __init__(self, position, val, vartype=None):
         super().__init__(position)
         self.val = val
-        self.vartype = _default(vartype)
+        self.vartype = vartype
         self.name = f'{self.val}'
 
     def flatten(self):
@@ -59,7 +58,9 @@ class Array(Expr):
         self.name = f'{self.val}'
 
     def flatten(self):
-        return [self.__class__.__name__, self.elements, self.val, self.element_type]
+        return [
+            self.__class__.__name__, self.elements, self.val, self.element_type
+        ]
 
     def __eq__(self, other):
         return self.element_type == other.element_type and self.elements == other.elements and self.val == other.val
@@ -90,7 +91,6 @@ class String(Expr):
         super().__init__(position)
         self.val = val
         self.vartype = VarTypes.str
-        #self.vartype = ir.ArrayType(ir.IntType(8), len(val))
         self.anonymous = True
 
     def flatten(self):
@@ -108,7 +108,6 @@ class Variable(Expr):
         super().__init__(position)
         self.name = name
         self.vartype = vartype
-        # _default(vartype)
         self.child = None
 
     def flatten(self):
@@ -126,7 +125,6 @@ class Unary(Expr):
         super().__init__(position)
         self.op = op
         self.rhs = rhs
-        #self.vartype = rhs.vartype
 
     def flatten(self):
         return [self.__class__.__name__, self.op, self.rhs.flatten()]
@@ -138,7 +136,6 @@ class Binary(Expr):
         self.op = op
         self.lhs = lhs
         self.rhs = rhs
-        #self.vartype = getattr(lhs,'vartype', None)
 
     def flatten(self):
         return [
@@ -153,7 +150,7 @@ class Call(Expr):
         super().__init__(position)
         self.name = callee
         self.args = args
-        self.vartype = _default(vartype)
+        self.vartype = vartype
 
     def flatten(self):
         return [
@@ -163,22 +160,17 @@ class Call(Expr):
 
     def __str__(self):
         return f'{self.args} {self.name}'
-        # ({[x for x in self.args]}
 
 
 class Let(Expr):
     def __init__(self, position, vars):
         super().__init__(position)
         self.vars = vars
-        #self.var = var_identifier
-        #self.expr = var_expr
-        #self.vartype = _default()
-        # TODO: what does it yield?
 
     def flatten(self):
         return [
-            self.__class__.__name__, self.vars, #self.vartype,
-            #self.expr.flatten()
+            self.__class__.__name__,
+            self.vars,
         ]
 
 
@@ -202,7 +194,6 @@ class If(Expr):
         self.cond_expr = cond_expr
         self.then_expr = then_expr
         self.else_expr = else_expr
-        #self.vartype = then_expr.vartype
 
     def flatten(self):
         return [
@@ -219,7 +210,6 @@ class When(Expr):
         self.cond_expr = cond_expr
         self.then_expr = then_expr
         self.else_expr = else_expr
-        #self.vartype = cond_expr.vartype
 
     def flatten(self):
         return [
@@ -235,7 +225,6 @@ class While(Expr):
         super().__init__(position)
         self.cond_expr = cond_expr
         self.body = body
-        #self.vartype = body.vartype
 
     def flatten(self):
         return [
@@ -249,7 +238,6 @@ class Do(Expr):
     def __init__(self, position, expr_list):
         super().__init__(position)
         self.expr_list = expr_list
-        #self.vartype = _default()
 
     def flatten(self):
         return [self.__class__.__name__, [x.flatten() for x in self.expr_list]]
@@ -264,7 +252,6 @@ class Loop(Expr):
         self.end_expr = end_expr
         self.step_expr = step_expr
         self.body = body
-        #self.vartype = start_expr.vartype if start_expr else None
 
     def flatten(self):
         return [
@@ -282,7 +269,6 @@ class VarIn(Expr):
         super().__init__(position)
         self.vars = vars
         self.body = body
-        #self.vartype = _default()
 
     def flatten(self):
         return [
@@ -298,7 +284,6 @@ class Uni(Expr):
         # vars is a sequence of (name, expr) pairs
         super().__init__(position)
         self.vars = vars
-        #self.vartype = _default()
 
     def flatten(self):
         return [
@@ -342,7 +327,7 @@ class Prototype(Node):
         self.argnames = argnames
         self.isoperator = isoperator
         self.prec = prec
-        self.vartype = _default(vartype)
+        self.vartype = vartype
         self.extern = extern
 
     def is_unary_op(self):
@@ -363,7 +348,7 @@ class Prototype(Node):
         return Prototype(
             position,
             _ANONYMOUS + str(klass._anonymous_count), [],
-            vartype=_default(vartype))
+            vartype=vartype)
 
     def is_anonymous(self):
         return self.name.startswith(_ANONYMOUS)
@@ -389,8 +374,7 @@ class Function(Node):
     @staticmethod
     def Anonymous(position, body, vartype=None):
         return Function(position,
-                        Prototype.Anonymous(
-                            position, vartype=_default(vartype)), body)
+                        Prototype.Anonymous(position, vartype=vartype), body)
 
     def flatten(self):
         return [
@@ -404,7 +388,7 @@ class Pointer(Expr):
     def __init__(self, position, name, vartype=None):
         super().__init__(position)
         self.name = name
-        self.vartype = _default(vartype)
+        self.vartype = vartype
 
     def flatten(self):
         return [self.__class__.__name__, self.name, self.vartype]
@@ -427,8 +411,3 @@ def dump(flattened, indent=0):
             s += str(elem)
         starting = False
     return s
-
-
-if __name__ == '__main__':
-
-    print("Run the parsing module to test the AST stuff!")

@@ -1,5 +1,6 @@
 import llvmlite.ir as ir
-from llvmlite_custom import Map, _PointerType, MyType
+
+from aki.llvmlite_custom import Map, _PointerType, MyType
 
 # Singleton types (these do not require an invocation, they're only created once)
 

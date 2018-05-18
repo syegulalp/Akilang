@@ -1,9 +1,10 @@
 from enum import Enum, unique
 from collections import namedtuple
 import llvmlite.ir as ir
-from vartypes import VarTypes
-from errors import AkiSyntaxError
-from operators import BUILTIN_OP, BUILTIN_UNARY_OP
+
+from aki.vartypes import VarTypes
+from aki.errors import AkiSyntaxError
+from aki.operators import BUILTIN_OP, BUILTIN_UNARY_OP
 
 from functools import lru_cache
 
@@ -140,7 +141,7 @@ class Lexer(object):
                 self._advance()
 
             pos = self.position.copy
-            
+
             if not self.lastchar:
                 break
 
@@ -199,7 +200,7 @@ class Lexer(object):
             # we should attempt to match these against our list of operators
 
             # Number
-            elif self.lastchar.isdigit(): # or self.lastchar == '.':
+            elif self.lastchar.isdigit():  # or self.lastchar == '.':
                 num_str = []
                 while self.lastchar and (self.lastchar.isdigit()
                                          or self.lastchar in '.bBiIUu'):
@@ -269,14 +270,13 @@ class Lexer(object):
 
 #---- Typical example use ----#
 
-if __name__ == '__main__':
-
-    import sys
-    program = 'uni (x=1, f:int32 int32 y=1, z=u"Hello world", i8[1,1] q=[1]) def ptr int32 bina(a b) a + b >= 1 convert(32,u64) ?? == != <= if a and b < 0. then not a else a [1,2,3,4]'
-    if len(sys.argv) > 1:
-        program = ' '.join(sys.argv[1:])
-    print("\nPROGRAM: ", program)
-    print("\nTOKENS: ")
-    lexer = Lexer(program)
-    for token in lexer.tokens():
-        print("  ", token.kind.name, token.value)
+# if __name__ == '__main__':
+#     import sys
+#     program = 'uni (x=1, f:int32 int32 y=1, z=u"Hello world", i8[1,1] q=[1]) def ptr int32 bina(a b) a + b >= 1 convert(32,u64) ?? == != <= if a and b < 0. then not a else a [1,2,3,4]'
+#     if len(sys.argv) > 1:
+#         program = ' '.join(sys.argv[1:])
+#     print("\nPROGRAM: ", program)
+#     print("\nTOKENS: ")
+#     lexer = Lexer(program)
+#     for token in lexer.tokens():
+#         print("  ", token.kind.name, token.value)

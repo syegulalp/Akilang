@@ -1,10 +1,6 @@
-from importlib import reload
-
-import llvmlite_custom
-
-import repl
-
 def run(**options):
+    from aki import repl    
+    from importlib import reload
     while(True):
         try:
             repl.run(options)

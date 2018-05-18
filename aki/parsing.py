@@ -1,9 +1,12 @@
-from lexer import *
-from ast_module import *
 from collections import namedtuple
-from vartypes import DEFAULT_TYPE, CustomClass
-from errors import ParseError
-from operators import *
+
+from aki.lexer import Lexer, TokenKind
+from aki.ast_module import (
+    Variable, Call, Number, Break, Return, String, Match, Do, Let, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function
+)
+from aki.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
+from aki.errors import ParseError
+from aki.operators import binop_info, Associativity, set_binop_info
 
 
 class Parser(object):
@@ -107,11 +110,12 @@ class Parser(object):
                             break
                         self._match(TokenKind.PUNCTUATOR, ',')
 
-                if toplevel==current:
+                if toplevel == current:
                     current = Call(start, id_name, args, self.cur_tok.vartype)
                     toplevel = current
                 else:
-                    current.child = Call(start, id_name, args, self.cur_tok.vartype)
+                    current.child = Call(start, id_name, args,
+                                         self.cur_tok.vartype)
                     current = current.child
                 continue
 
@@ -399,9 +403,9 @@ class Parser(object):
             vars.append((name, vartype, init, pos))
             if not self._cur_tok_is_punctuator(','):
                 break
-            
+
             self._match(TokenKind.PUNCTUATOR, ',')
-            #self._get_next_token()
+            # self._get_next_token()
 
         return Let(let_pos, vars)
 
@@ -537,9 +541,9 @@ class Parser(object):
 
             # if this is a pointer, go down one level
 
-            oo=getattr(vartype,'pointee',None)
+            oo = getattr(vartype, 'pointee', None)
             if oo is not None:
-                vartype=oo
+                vartype = oo
 
             vartype = Array(arr_start, elements, vartype)
             self._get_next_token()
@@ -653,7 +657,8 @@ class Parser(object):
             # 4) if the next token isn't an operator, fail
             # 5) get the association for the completed token
 
-            cur_prec, cur_assoc = binop_info(self.cur_tok)
+            cur_prec, _ = binop_info(self.cur_tok)
+            # _ = cur_assoc
             # If this is a binary operator with precedence lower than the
             # currently parsed sub-expression, bail out. If it binds at least
             # as tightly, keep going.
@@ -836,13 +841,6 @@ Builtins = {
     'cast', 'convert', 'c_addr'
 }
 
-#---- Some unit tests ----#
-
-
-if __name__ == '__main__':
-
-    ast = Parser().parse_toplevel('def foo(x) 1 + bar(x)')
-    print(ast.flatten())
-
-    # import aki
-    # aki.run(parseonly=True)
+# if __name__ == '__main__':
+#     ast = Parser().parse_toplevel('def foo(x) 1 + bar(x)')
+#     print(ast.flatten())

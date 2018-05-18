@@ -1,6 +1,8 @@
-from parsing import *
-
 import unittest
+
+from aki.parsing import Parser
+from aki.ast_module import Function, Number, DEFAULT_TYPE, DEFAULT_PREC, Prototype
+from aki.vartypes import VarTypes
 
 class TestParser(unittest.TestCase):
 

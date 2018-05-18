@@ -2,10 +2,10 @@ def stdlib(self, module):
 
     # TODO: emit all this as bitcode
 
-    import os
     import llvmlite.ir as ir
-    from vartypes import VarTypes
-    from mangling import mangle_function
+    
+    from aki.vartypes import VarTypes
+    from aki.mangling import mangle_function
 
     # PLATFORM CONSTANTS
 

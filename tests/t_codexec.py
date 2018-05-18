@@ -1,6 +1,9 @@
-from codexec import *
-
 import unittest
+from ctypes import c_double
+
+from aki.codexec import AkilangEvaluator
+from aki.vartypes import VarTypes
+
 
 eval_opts = {'return_type': c_double, 'anon_vartype': VarTypes.f64}
 
@@ -18,7 +21,6 @@ class TestEvaluator(unittest.TestCase):
 
     def test_use_libc(self):
         e = AkilangEvaluator()
-        eval_opts = {'return_type': c_double, 'anon_vartype': VarTypes.f64}
         self.assertIsNone(e.evaluate('extern ceil(x:f64):f64'))
         self.assertEqual(e.evaluate('ceil(4.5)', eval_opts), 5.0)
         self.assertIsNone(e.evaluate('extern floor(x:f64):f64'))

@@ -1,7 +1,11 @@
 from llvmlite.ir.types import PointerType, Type
 import llvmlite.ir as ir
 
-class MyType():    
+
+class MyType():
+    pointee = None
+    v_id = None
+
     def is_obj_ptr(self):
         try:
             is_obj = self.pointee.is_obj
@@ -15,19 +19,21 @@ class MyType():
         except:
             is_original_obj = None
         return is_original_obj
-    
+
     def descr(self):
         if self.is_obj_ptr():
-            return self.pointee.v_id.replace('_',' ')
-        return self.v_id.replace('_',' ')
-        
+            return self.pointee.v_id.replace('_', ' ')
+        return self.v_id.replace('_', ' ')
+
+
 # now, how to use this to patch v_id behaviors globally?
-# for now I'm OK with using underscores 
+# for now I'm OK with using underscores
 # getter/setter behavior on descr would probably help
 
 ir.types.Type.descr = MyType.descr
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_original_obj = MyType.is_original_obj
+
 
 class _PointerType(PointerType):
     def __init__(self, *a, **ka):
@@ -38,7 +44,8 @@ class _PointerType(PointerType):
         self.signed = signed
 
     def as_pointer(self, addrspace=0):
-        return _PointerType(self, addrspace, v_id=self.v_id, signed=self.signed)
+        return _PointerType(
+            self, addrspace, v_id=self.v_id, signed=self.signed)
 
 
 class _IntType(ir.types.Type):

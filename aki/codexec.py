@@ -3,12 +3,13 @@ from collections import namedtuple
 import colorama
 colorama.init()
 from termcolor import colored, cprint
-from ast_module import *
-from parsing import *
-from codegen import *
-from errors import *
-from repl import paths
-from vartypes import Str
+
+from aki.parsing import Parser
+from aki.codegen import llvm, LLVMCodeGenerator
+from aki.errors import CodegenError, ParseError
+from aki.repl import paths
+from aki.vartypes import Str, DEFAULT_TYPE
+from aki.ast_module import Function
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
 
@@ -52,7 +53,7 @@ class AkilangEvaluator(object):
             # Load basic language library
             try:
                 with open(self.basiclib_file) as file:
-                    for result in self.eval_generator(file.read()):
+                    for _ in self.eval_generator(file.read()):
                         pass
             except (FileNotFoundError, ParseError, CodegenError) as err:
                 print(
@@ -165,9 +166,9 @@ class AkilangEvaluator(object):
 
         # Optimize the module
         if optimize:
-            from compiler import optimize
+            from aki.compiler import optimize
             llvmmod, _ = optimize(llvmmod)
-            
+
             if llvmdump:
                 dump(
                     str(llvmmod), f'{paths["dump_dir"]}\\__dump__optimized.ll')
@@ -205,21 +206,11 @@ class AkilangEvaluator(object):
             try:
                 result = fptr()
             except OSError as e:
-                print (colored(f'OS error: {e}','red'))
+                print(colored(f'OS error: {e}', 'red'))
                 return Result(-1, ast, rawIR, optIR)
             return Result(result, ast, rawIR, optIR)
 
     def _add_builtins(self, module):
         import os, importlib
-        builtins = importlib.import_module(f'stdlib.{os.name}')
+        builtins = importlib.import_module(f'aki.stdlib.{os.name}')
         builtins.stdlib(self, module)
-
-
-#---- Some unit tests ----#
-
-
-
-if __name__ == '__main__':
-
-    import aki
-    aki.run()

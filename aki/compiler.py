@@ -1,9 +1,11 @@
 #OUTPUT_DIR = 'output'
 
-from repl import paths
-from constants import compiler_path
 import subprocess
 import pathlib
+
+from aki.repl import paths
+from aki.constants import compiler_path
+
 
 def optimize(llvm_module):
     import llvmlite.binding as llvm
@@ -17,6 +19,7 @@ def optimize(llvm_module):
     pm.run(llvm_module)
 
     return llvm_module, pm
+
 
 def compile(module, filename):
 
@@ -37,24 +40,30 @@ def compile(module, filename):
         if e.errno != errno.EEXIST:
             raise
 
-    with open(f'{paths["output_dir"]}{os.sep}{filename}.opt.llvm', 'w') as file:
+    with open(f'{paths["output_dir"]}{os.sep}{filename}.opt.llvm',
+              'w') as file:
         file.write(str(llvm_module))
 
     tm2 = llvm.Target.from_default_triple()
     tm = tm2.create_target_machine(opt=3, codemodel='large')
-    tm.add_analysis_passes(pm)    
+    tm.add_analysis_passes(pm)
 
     with llvm.create_mcjit_compiler(llvm_module, tm) as ee:
         ee.finalize_object()
-        with open(f'{paths["output_dir"]}{os.sep}{filename}.obj', 'wb') as file:
+        with open(f'{paths["output_dir"]}{os.sep}{filename}.obj',
+                  'wb') as file:
             file.write(tm.emit_object(llvm_module))
 
     # TODO: ditch using batch file, use subprocess exclusively
-    
-    try:
-        subprocess.run(f'{paths["compiler_dir"]}{os.sep}{compiler_path} {paths["output_dir"]}\\{filename}', shell=True, check=True)
-    except subprocess.CalledProcessError as e:
-        print (f'Build failed with the following error:\n{e}')
-    else:
-        print (f'Build successful for {paths["output_dir"]}{os.sep}{filename}.exe')
 
+    try:
+        subprocess.run(
+            f'{paths["compiler_dir"]}{os.sep}{compiler_path} {paths["output_dir"]}\\{filename}',
+            shell=True,
+            check=True)
+    except subprocess.CalledProcessError as e:
+        print(f'Build failed with the following error:\n{e}')
+    else:
+        print(
+            f'Build successful for {paths["output_dir"]}{os.sep}{filename}.exe'
+        )

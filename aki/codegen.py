@@ -1,13 +1,16 @@
-from ast_module import Binary, Variable, Prototype, Function, Uni, Class,\
-    Array, If, Number, ArrayAccessor, Call
 import warnings
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
-from vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
-from errors import MessageError, ParseError, CodegenError, CodegenWarning
-from parsing import Builtins
-from operators import BUILTIN_UNARY_OP
-from mangling import mangle_args, mangle_types, mangle_funcname
+
+from aki.ast_module import (
+    Binary, Variable, Prototype, Function, Uni, Class,
+    Array, If, Number, ArrayAccessor, Call
+)
+from aki.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
+from aki.errors import MessageError, ParseError, CodegenError, CodegenWarning
+from aki.parsing import Builtins
+from aki.operators import BUILTIN_UNARY_OP
+from aki.mangling import mangle_args, mangle_types, mangle_funcname
 
 
 def _int(pyval):
@@ -51,7 +54,7 @@ class LLVMCodeGenerator(object):
         self.pointer_size = (ir.PointerType(VarTypes.u8).get_abi_size(
             llvm.create_target_data(self.module.data_layout)))
 
-        from vartypes import UnsignedInt
+        from aki.vartypes import UnsignedInt
         VarTypes['ptr_size'] = UnsignedInt(self.pointer_size * 8)
 
     def _isize(self, pyval):
@@ -196,7 +199,7 @@ class LLVMCodeGenerator(object):
                         latest0, index, True,
                         current_node.name + '.' + child.name)
 
-                    #if getattr(oo, 'is_obj', False):
+                    # if getattr(oo, 'is_obj', False):
                     if oo.is_obj:
                         load = True
 
@@ -830,6 +833,9 @@ class LLVMCodeGenerator(object):
                 s = x[1]
             vartypes.append(s)
 
+        if node.vartype is None:
+            node.vartype = DEFAULT_TYPE
+
         functype = ir.FunctionType(node.vartype, vartypes)
 
         public_name = funcname
@@ -862,6 +868,7 @@ class LLVMCodeGenerator(object):
                     node.position)
         else:
             # Otherwise create a new function
+
             func = ir.Function(self.module, functype, funcname)
 
             # Name the arguments
@@ -1017,16 +1024,14 @@ class LLVMCodeGenerator(object):
 
             var_ref = self.func_symtab.get(name)
             if var_ref is not None:
-                raise CodegenError(
-                    f'"{name}" already defined in local scope',
-                    position)
+                raise CodegenError(f'"{name}" already defined in local scope',
+                                   position)
 
             var_ref = self.module.globals.get(name, None)
             if var_ref is not None:
                 raise CodegenError(
-                    f'"{name}" already defined in universal scope',
-                    position)
-            
+                    f'"{name}" already defined in universal scope', position)
+
             var_ref = self._alloca(name, type)
             self.func_symtab[name] = var_ref
 
@@ -1283,7 +1288,7 @@ class LLVMCodeGenerator(object):
 
         expr = self.codegen_noload(node)
 
-        #if hasattr(expr.type.pointee, 'original_obj'):
+        # if hasattr(expr.type.pointee, 'original_obj'):
         if expr.type.is_original_obj():
             raise CodegenError(
                 f'"{node.args[0].name}" is not a scalar (use c_obj_ref for references to objects instead of scalars)',
@@ -1392,7 +1397,3 @@ class LLVMCodeGenerator(object):
         result = op(convert_from, convert_to)
         result.type = convert_to
         return result
-
-if __name__ == '__main__':
-    import aki
-    aki.run(noexec=True)

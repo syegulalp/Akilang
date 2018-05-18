@@ -33,8 +33,8 @@ from importlib import reload
 from termcolor import colored, cprint
 colorama.init()
 
-import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
-from constants import PRODUCT, VERSION
+from aki import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
+from aki.constants import PRODUCT, VERSION
 
 class ReloadException(Exception): pass
 
@@ -161,7 +161,7 @@ def print_funlist(funlist):
 
 def print_functions(k):
     # Operators
-    print(colored('\nBuiltin operators:', 'green'), *parsing.builtin_operators())
+    print(colored('\nBuiltin operators:', 'green'), *operators.builtin_operators())
 
     # User vs extern functions
     sorted_functions = sorted(k.codegen.module.functions, key=lambda fun: fun.name)
@@ -215,9 +215,9 @@ def run_repl_command(k, command, options):
         sys.exit()
     elif command in ('rerun', '.'):
         # The order of these is very important
-        for n in (errors, vartypes, lexer, operators,
-            ast_module, parsing, codegen, codexec, compiler):
-            reload(n)
+        # for n in (errors, llvmlite_custom, vartypes, ast_module, 
+        #     operators, lexer, parsing, codegen, codexec, compiler):
+        #     reload(n)
         raise ReloadException()
     elif command in ('reset','~'):
         reload(parsing)
@@ -300,8 +300,7 @@ def run(*a, optimize = True, llvmdump = False, noexec = False, parseonly = False
             print("A> ", end="")
             command = input().strip()
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    import aki
-    aki.run()
-
+#     import aki
+#     aki.run()
