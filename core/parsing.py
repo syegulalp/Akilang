@@ -235,6 +235,8 @@ class Parser(object):
             raise ParseError(f'expected a variable type',
                              self.cur_tok.position)
 
+        self._get_next_token()
+        
         if self._cur_tok_is_punctuator('['):
             accessor = self._parse_array_accessor()
             for n in accessor.elements:
@@ -281,7 +283,7 @@ class Parser(object):
         convert_from = self._parse_expression()
         self._get_next_token()
         convert_to = self._parse_vartype_expr()
-        self._get_next_token()
+        #self._get_next_token()
         self._match(TokenKind.PUNCTUATOR, ')')
         return Call(start, callee, [convert_from, convert_to])
 
@@ -518,7 +520,7 @@ class Parser(object):
         if self._cur_tok_is_punctuator(':'):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
-            self._get_next_token()
+            #self._get_next_token()
 
         else:
             vartype = None
@@ -737,7 +739,7 @@ class Parser(object):
         if self._cur_tok_is_punctuator(':'):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
-            self._get_next_token()
+            #self._get_next_token()
 
         if name.startswith('binary') and len(argnames) != 2:
             raise ParseError('Expected binary operator to have 2 operands',
