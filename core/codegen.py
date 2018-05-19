@@ -146,7 +146,17 @@ class LLVMCodeGenerator(object):
             _int(0),
         ] + [self._codegen(n) for n in node.elements]
 
-        ptr = self.builder.gep(arr, accessor, True, 'arrayaccessor')
+        # FIXME: This is intended to trap wrongly sized array accessors
+        # but we should find a more elegant way to do it in the parsing
+        # phase if possible
+
+        try:
+            ptr = self.builder.gep(arr, accessor, True, f'{source.name}')
+        except AttributeError:
+            raise CodegenError(
+                f'invalid array accessor for "{source.name}" (maybe wrong number of dimensions?)',
+                node.position
+            )
 
         return ptr
 

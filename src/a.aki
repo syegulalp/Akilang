@@ -10,7 +10,7 @@ uni {
 }
 
 def main(){
-    field[0,0]=64B
+    field[0,0,0,0,0]=64B
     print (field[0,0])
     0
 }
