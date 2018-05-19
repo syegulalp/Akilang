@@ -1,4 +1,4 @@
-# Simple Win32 window example (not working yet)
+# Simple Win32 window example (not working yet, needs refactor)
 
 class WINFUNCTYPE{
     hwnd:u32,

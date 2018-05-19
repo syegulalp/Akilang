@@ -20,14 +20,14 @@ def myfunc(s:myclass) {
 
 def main(){
 
-    let aa:myclass
+    var aa:myclass
 
     aa.a=32
     print (aa.a)
     myfunc(aa)
     print (aa.d)
 
-    let c:myclass
+    var c:myclass
     c.b=64
     c.a=32
     c.q=64U

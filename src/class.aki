@@ -16,7 +16,7 @@ def fn2(x:myClass, x1:i32, s1:str): myClass{
 }
 
 def main(){
-    let c1:myClass
+    var c1:myClass
     c1 = fn2(c1, 64, "Hi you")
     print (c1.x)
     print (c1.string)

@@ -15,13 +15,13 @@ def main(){
     print ("i32:")
     print (y)
 
-    let t1 = c_obj_ref(x)
-    let t2 = c_obj_deref(t1)
+    var t1 = c_obj_ref(x)
+    var t2 = c_obj_deref(t1)
     print ("Deref of string ptr:")
     print (t2)
 
-    let t3 = c_ref(y)
-    let t4 = c_deref(t3)
+    var t3 = c_ref(y)
+    var t4 = c_deref(t3)
     print ("Deref of integer ptr y (32):")
     print (t4)
 
@@ -32,13 +32,13 @@ def main(){
     print ("Pointer to string obj:")
     print (c_addr(c_obj_ref(x)))
     print ("Pointer to y:i32:")
-    let f1 = c_ref(y)
+    var f1 = c_ref(y)
     print (c_addr(f1))
     print ("Pointer to pointer to y:i32:")
-    let f2 = c_ref(c_ref(y))
+    var f2 = c_ref(c_ref(y))
     print (c_addr(f2))
     print ("Size of pointer:")
-    let f3:ptr i8
+    var f3:ptr i8
     print (c_size(f3))
     print ("Size of string struct:")
     print (c_size(x))
@@ -48,7 +48,7 @@ def main(){
     print (c_size(z))
     print ("Deref of string obj ptr:")
     print (c_obj_deref(c_obj_ref(x)))
-    let tx = 32
+    var tx = 32
     print ("i32 (32):")
     print (tx)
     print ("Deref of i32 ptr:")

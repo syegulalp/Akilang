@@ -18,13 +18,8 @@ uni {
     robots:Robot[10]
 }
 
-extern rand():i32
-
-def rnd(max:i32):i32
-    rand()/(32767/max)
-
 def show(){
-    let z=0
+    var z=0
     loop(y=0, y<HEIGHT){
         loop(x=0, x<WIDTH){
             display[z]=(
@@ -49,7 +44,7 @@ def show(){
 
 def setup(){
 
-    let nx=0, ny=0
+    var nx=0, ny=0
 
     loop (x=0, x<HEIGHT){
         field[0,x]=219B
@@ -84,7 +79,7 @@ def setup(){
 
     # Place human
 
-    let p:Player
+    var p:Player
     # this is because there's no actual object
     # allocation to player in uni yet
     # we need to do that when we create there
@@ -102,7 +97,7 @@ def setup(){
 def main(){
 
     setup()
-    let key:byte
+    var key:byte
     loop {
         show()
         key=inkey()
