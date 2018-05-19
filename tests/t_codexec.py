@@ -1,8 +1,8 @@
 import unittest
 from ctypes import c_double
 
-from aki.codexec import AkilangEvaluator
-from aki.vartypes import VarTypes
+from core.codexec import AkilangEvaluator
+from core.vartypes import VarTypes
 
 
 eval_opts = {'return_type': c_double, 'anon_vartype': VarTypes.f64}

@@ -1,12 +1,12 @@
 from collections import namedtuple
 
-from aki.lexer import Lexer, TokenKind
-from aki.ast_module import (
+from core.lexer import Lexer, TokenKind
+from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match, Do, Let, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function
 )
-from aki.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
-from aki.errors import ParseError
-from aki.operators import binop_info, Associativity, set_binop_info
+from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
+from core.errors import ParseError
+from core.operators import binop_info, Associativity, set_binop_info
 
 
 class Parser(object):

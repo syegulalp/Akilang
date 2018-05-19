@@ -2,9 +2,9 @@ from enum import Enum, unique
 from collections import namedtuple
 import llvmlite.ir as ir
 
-from aki.vartypes import VarTypes
-from aki.errors import AkiSyntaxError
-from aki.operators import BUILTIN_OP, BUILTIN_UNARY_OP
+from core.vartypes import VarTypes
+from core.errors import AkiSyntaxError
+from core.operators import BUILTIN_OP, BUILTIN_UNARY_OP
 
 from functools import lru_cache
 
@@ -78,7 +78,7 @@ class Position():
             self.lineposition = self.absposition
         else:
             self.col += 1
-            self.absposition += 1
+            self.absposition += 1            
 
     @property
     def copy(self):
@@ -261,6 +261,8 @@ class Lexer(object):
                 while True:
                     op.append(self.lastchar)
                     self._advance()
+                    if not self.lastchar:
+                        break
                     if ''.join(op) + self.lastchar not in BUILTIN_OP:
                         break
                 yield Token(TokenKind.OPERATOR, ''.join(op), None, pos)

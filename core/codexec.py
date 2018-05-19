@@ -4,12 +4,12 @@ import colorama
 colorama.init()
 from termcolor import colored, cprint
 
-from aki.parsing import Parser
-from aki.codegen import llvm, LLVMCodeGenerator
-from aki.errors import CodegenError, ParseError
-from aki.repl import paths
-from aki.vartypes import Str, DEFAULT_TYPE
-from aki.ast_module import Function
+from core.parsing import Parser
+from core.codegen import llvm, LLVMCodeGenerator
+from core.errors import CodegenError, ParseError
+from core.repl import paths
+from core.vartypes import Str, DEFAULT_TYPE
+from core.ast_module import Function
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
 
@@ -166,7 +166,7 @@ class AkilangEvaluator(object):
 
         # Optimize the module
         if optimize:
-            from aki.compiler import optimize
+            from core.compiler import optimize
             llvmmod, _ = optimize(llvmmod)
 
             if llvmdump:
@@ -212,5 +212,5 @@ class AkilangEvaluator(object):
 
     def _add_builtins(self, module):
         import os, importlib
-        builtins = importlib.import_module(f'aki.stdlib.{os.name}')
+        builtins = importlib.import_module(f'core.stdlib.{os.name}')
         builtins.stdlib(self, module)

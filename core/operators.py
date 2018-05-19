@@ -2,7 +2,7 @@ from collections import namedtuple
 from enum import Enum, unique
 from functools import lru_cache
 
-from aki.errors import ParseError
+from core.errors import ParseError
 
 @unique
 class Associativity(Enum):
@@ -46,7 +46,7 @@ def binop_info(tok):
     try:
         return _binop_map[value]
     except KeyError:
-        from aki.lexer import TokenKind, PUNCTUATORS
+        from core.lexer import TokenKind, PUNCTUATORS
         if kind == TokenKind.PUNCTUATOR and value not in PUNCTUATORS:
             raise ParseError(f'Undefined operator: "{value}"', position)
         # Return a false binop info that has no precedence

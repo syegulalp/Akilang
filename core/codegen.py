@@ -2,15 +2,15 @@ import warnings
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
-from aki.ast_module import (
+from core.ast_module import (
     Binary, Variable, Prototype, Function, Uni, Class,
     Array, If, Number, ArrayAccessor, Call
 )
-from aki.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
-from aki.errors import MessageError, ParseError, CodegenError, CodegenWarning
-from aki.parsing import Builtins
-from aki.operators import BUILTIN_UNARY_OP
-from aki.mangling import mangle_args, mangle_types, mangle_funcname
+from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
+from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
+from core.parsing import Builtins
+from core.operators import BUILTIN_UNARY_OP
+from core.mangling import mangle_args, mangle_types, mangle_funcname
 
 
 def _int(pyval):
@@ -54,7 +54,7 @@ class LLVMCodeGenerator(object):
         self.pointer_size = (ir.PointerType(VarTypes.u8).get_abi_size(
             llvm.create_target_data(self.module.data_layout)))
 
-        from aki.vartypes import UnsignedInt
+        from core.vartypes import UnsignedInt
         VarTypes['ptr_size'] = UnsignedInt(self.pointer_size * 8)
 
     def _isize(self, pyval):
@@ -306,7 +306,7 @@ class LLVMCodeGenerator(object):
 
         if lhs.type != rhs.type:
             raise CodegenError(
-                f'"{lhs.type} {node.lhs.name}" and "{rhs.type} {node.rhs.name}" are incompatible types for operation',
+                f'"{lhs.type.descr()}" ({node.lhs.name}) and "{rhs.type.descr()}" ({node.rhs.name}) are incompatible types for operation',
                 node.position)
         else:
             vartype = lhs.type

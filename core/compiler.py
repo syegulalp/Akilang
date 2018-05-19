@@ -3,8 +3,8 @@
 import subprocess
 import pathlib
 
-from aki.repl import paths
-from aki.constants import compiler_path
+from core.repl import paths
+from core.constants import compiler_path
 
 
 def optimize(llvm_module):

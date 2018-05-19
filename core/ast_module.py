@@ -1,7 +1,7 @@
 from collections import namedtuple
 import llvmlite.ir as ir
 
-from aki.vartypes import DEFAULT_TYPE, VarTypes
+from core.vartypes import DEFAULT_TYPE, VarTypes
 
 # AST hierarchy
 
@@ -89,6 +89,7 @@ class ArrayAccessor(Expr):
 class String(Expr):
     def __init__(self, position, val):
         super().__init__(position)
+        self.name = f"'{val[:32]}...'"
         self.val = val
         self.vartype = VarTypes.str
         self.anonymous = True

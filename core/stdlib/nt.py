@@ -4,8 +4,8 @@ def stdlib(self, module):
 
     import llvmlite.ir as ir
     
-    from aki.vartypes import VarTypes
-    from aki.mangling import mangle_function
+    from core.vartypes import VarTypes
+    from core.mangling import mangle_function
 
     # PLATFORM CONSTANTS
 

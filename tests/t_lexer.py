@@ -1,7 +1,7 @@
 import unittest
 
-from aki.lexer import Position, Lexer, Token, TokenKind
-from aki.vartypes import VarTypes
+from core.lexer import Position, Lexer, Token, TokenKind
+from core.vartypes import VarTypes
 
 class TestLexer(unittest.TestCase):
 
