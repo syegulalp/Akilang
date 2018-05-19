@@ -1,0 +1,12 @@
+# typdef experiment
+
+def a():byte[32] {
+    var b:byte[32]
+    b[0]=72B
+    return b
+}
+
+def main(){
+    var c=a()
+    print (c[0]) #"H"
+}

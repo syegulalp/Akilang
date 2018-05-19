@@ -10,15 +10,27 @@ class myClass {
 def fn2(x:myClass, x1:i32, s1:str): myClass{
     x.string=s1
     x.x=x1
-    print (x.x)
-    print (x.string)
+    return x
+}
+
+# This returns garbage or crashes
+def fn3(x1:i32, s1:str): myClass{
+    var x:myClass
+    x.string=s1
+    x.x=x1
     return x
 }
 
 def main(){
     var c1:myClass
-    c1 = fn2(c1, 64, "Hi you")
+    c1 = fn2(c1, 64, 'Hi you')
     print (c1.x)
     print (c1.string)
+
+    # var c2=fn3(64,'Hi you')
+    # print (c2.x)
+    # print (c2.string)
+
     return 0
+
 }
