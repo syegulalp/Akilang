@@ -15,7 +15,7 @@
         - [ ] Comparisons.
         - [ ] `len()` of strings.
         - [ ] `str()` for creating strings from other types.
-- [ ] Constants
+- [ ] Constants.
     - [X] Constant definitions.
     - [ ] Constant folding/lowering.
 - [ ] Support for basic logic and keywords:
@@ -24,14 +24,15 @@
     - [x] `if / then / else`
     - [ ] `when / then / else`
     - [ ] `while`
-    - [x] `var` (scoped variable declaration)
-    - [x] `let` (unscoped)
+    - [x] `var` (unscoped variable declaration)
+    - [ ] `with` (context mgr)
+        - [x] `with var` (scoped variable declaration)
     - [x] `return` (including early return)
     - [x] `loop`
     - [x] `break`
     - [x] `match` (for scalar types only)
-- [x] Global and local variables.    
-- [ ] Type definitions / aliases, apart from object types.
+- [x] Global and local variables (`var`, `uni`).
+- [ ] Type definitions / aliases, apart from object types. (`alias`?)
 - [ ] Variable length arguments for functions.
 - [ ] Default arguments.
 - [x] Compiling to standalone binaries.
@@ -45,7 +46,7 @@
     - [x] Get raw data from complex object (right now only strings)
     - [ ] Function pointers.
 - [ ] Object type.
-    - [x] Object definitions.
+    - [x] Object definitions (`class`).
     - [ ] Bound functions / "dunder" methods for objects.
 - [ ] Overflow detection for math, and minimal error handling.
 - [ ] Integers of abritrary length, for bignum support.
