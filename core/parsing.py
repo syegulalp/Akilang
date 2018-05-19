@@ -86,6 +86,10 @@ class Parser(object):
         if id_name in Builtins:
             return self._parse_builtin(id_name)
 
+        if id_name in self.consts:
+            self._get_next_token()
+            return self.consts[id_name]
+
         current = Variable(start, id_name, self.cur_tok.vartype)
         toplevel = current
 
@@ -124,7 +128,7 @@ class Parser(object):
 
             else:
                 break
-        
+
         return toplevel
 
     def _parse_number_expr(self):
@@ -237,21 +241,11 @@ class Parser(object):
                              self.cur_tok.position)
 
         self._get_next_token()
-        
+
         if self._cur_tok_is_punctuator('['):
             accessor = self._parse_array_accessor()
             for n in accessor.elements:
-                if isinstance(n, Variable):
-                    try:
-                        _val = self.consts[n.name].val.val
-                    except:
-                        raise ParseError(
-                            f'fixed-size array can only be initialized with constants',
-                            n.position
-                        )
-                else:
-                    _val = n.val                
-                vartype = VarTypes.array(vartype, int(_val))
+                vartype = VarTypes.array(vartype, int(n.val))
             self._get_next_token()
 
         if vartype.is_obj:
@@ -294,7 +288,7 @@ class Parser(object):
         convert_from = self._parse_expression()
         self._get_next_token()
         convert_to = self._parse_vartype_expr()
-        #self._get_next_token()
+        # self._get_next_token()
         self._match(TokenKind.PUNCTUATOR, ')')
         return Call(start, callee, [convert_from, convert_to])
 
@@ -495,7 +489,7 @@ class Parser(object):
 
         self._get_next_token()
 
-        while True:            
+        while True:
             dimension = self._parse_expression()
             elements.append(dimension)
             if self._cur_tok_is_punctuator(','):
@@ -532,7 +526,7 @@ class Parser(object):
         if self._cur_tok_is_punctuator(':'):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
-            #self._get_next_token()
+            # self._get_next_token()
 
         else:
             vartype = None
@@ -594,8 +588,7 @@ class Parser(object):
             vars.append((name, vartype, init, start))
 
             if const and init:
-                print ("INIT", init.__dict__)
-                self.consts[name]=Number(start,init, vartype)
+                self.consts[name] = Number(start, init.val, vartype)
 
             if self._cur_tok_is_punctuator(','):
                 self._get_next_token()
@@ -611,8 +604,6 @@ class Parser(object):
                 raise ParseError(
                     f'expected variable declaration, not "{self.cur_tok.value}"',
                     self.cur_tok.position)
-
-        
 
     def _parse_binop_rhs(self, expr_prec, lhs):
         """Parse the right-hand-side of a binary expression.
@@ -757,7 +748,7 @@ class Parser(object):
         if self._cur_tok_is_punctuator(':'):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
-            #self._get_next_token()
+            # self._get_next_token()
 
         if name.startswith('binary') and len(argnames) != 2:
             raise ParseError('Expected binary operator to have 2 operands',
