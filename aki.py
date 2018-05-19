@@ -1,12 +1,16 @@
 def run(**options):
-    from aki import repl    
-    from importlib import reload
-    while(True):
+    import sys
+    init_modules = list(sys.modules.keys())
+    from core import repl
+    while True:
         try:
             repl.run(options)
             break
         except repl.ReloadException:
-            reload(repl)
+            for m in list(sys.modules.keys()):
+                if m not in init_modules:
+                    del (sys.modules[m])
+            from core import repl
             continue
 
 if __name__ == '__main__':
