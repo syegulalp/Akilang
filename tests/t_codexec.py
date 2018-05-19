@@ -101,9 +101,10 @@ class TestEvaluator(unittest.TestCase):
     def test_var_expr1(self):
         e = AkilangEvaluator()
         e.evaluate('''
-            def foo(x, y, z)
-                var s1 = x + y, s2 = z + y in
-                    s1 * s2
+            def foo(x, y, z){
+                var s1 = x + y, s2 = z + y
+                s1 * s2
+            }
             ''')
         self.assertEqual(e.evaluate('foo(1, 2, 3)'), 15)
 
@@ -112,7 +113,7 @@ class TestEvaluator(unittest.TestCase):
         e.evaluate('def binary ; 1 (x, y) y')
         e.evaluate('''
             def foo(step) {
-                let accum=0
+                var accum=0
                 loop (i = 0, i < 10, i + step)
                     accum = accum + i
                 accum
@@ -123,10 +124,13 @@ class TestEvaluator(unittest.TestCase):
     def test_nested_var_exprs(self):
         e = AkilangEvaluator()
         e.evaluate('''
-            def foo(x y z)
-                var s1 = x + y, s2 = z + y in
-                    var s3 = s1 * s2 in
+            def foo(x y z) {
+                with var s1 = x + y, s2 = z + y {
+                    with var s3 = s1 * s2 {
                         s3 * 100
+                    }
+                }
+            }
             ''')
         self.assertEqual(e.evaluate('foo(1, 2, 3)'), 1500)
 
@@ -134,12 +138,13 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('def binary ; 1 (x, y) y')
         e.evaluate('''
-            def foo(a b)
-                var s, p, r in
-                   s = a + b ;
-                   p = a * b ;
-                   r = s + 100 * p :
-                   r
+            def foo(a b) {
+                var s, p, r
+                s = a + b ;
+                p = a * b ;
+                r = s + 100 * p
+                r
+            }
             ''')
         self.assertEqual(e.evaluate('foo(2, 3)'), 605)
         self.assertEqual(e.evaluate('foo(10, 20)'), 20030)
@@ -148,11 +153,11 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('def binary ; 1 (x, y) y')
         e.evaluate('''
-            def foo(a)
-                var x, y, z in {
-                   x = y = z = a
-                   ; x + 2 * y + 3 * z
-                }
+            def foo(a) {
+                var x, y, z
+                x = y = z = a
+                ; x + 2 * y + 3 * z
+            }
             ''')
         self.assertEqual(e.evaluate('foo(5)'), 30)
 
@@ -160,9 +165,9 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def ref(){
-                let a=32
-                let b=c_ref(a)
-                let c=c_deref(b)
+                var a=32
+                var b=c_ref(a)
+                var c=c_deref(b)
                 if a==c then 1 else 0
                 }
             ''')
@@ -172,9 +177,9 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def ref(){
-                    let a="Hello world"
-                    let c=c_obj_ref(a)
-                    let d=c_obj_deref(c)
+                    var a="Hello world"
+                    var c=c_obj_ref(a)
+                    var d=c_obj_deref(c)
                     if cast(c_data(a),u64) == cast(c_data(d),u64)
                         then 1 else 0
                 }

@@ -36,10 +36,10 @@ class TestLexer(unittest.TestCase):
                                pos))
 
     def test_token_kinds(self):
-        l = Lexer('10.1 def der extern foo let (')
+        l = Lexer('10.1 def der extern foo var (')
         self._assert_toks(
             list(l.tokens()), [
-                'NUMBER', 'DEF', 'IDENTIFIER', 'EXTERN', 'IDENTIFIER', 'LET',
+                'NUMBER', 'DEF', 'IDENTIFIER', 'EXTERN', 'IDENTIFIER', 'VAR',
                 'PUNCTUATOR', 'EOF'
             ])
 
