@@ -6,7 +6,7 @@ def config():
             with open('config.ini') as file:
                 cfg.read_file(file)
         except FileNotFoundError:
-            defaults='''[paths]
+            defaults = '''[paths]
 lib_dir=lib
 basiclib=basiclib
 source_dir=src
@@ -15,7 +15,7 @@ output_dir=output
 dump_dir=.
 editor=notepad.exe
 '''
-            with open('config.ini','w') as file:
+            with open('config.ini', 'w') as file:
                 file.write(defaults)
         else:
             break
@@ -24,11 +24,15 @@ editor=notepad.exe
         # as needed here
 
     return cfg
-    
-cfg=config()
+
+
+cfg = config()
 paths = cfg['paths']
 
-import copy, colorama, llvmlite, sys
+import copy
+import colorama
+import llvmlite
+import sys
 from importlib import reload
 from termcolor import colored, cprint
 colorama.init()
@@ -36,20 +40,25 @@ colorama.init()
 from aki import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
 from aki.constants import PRODUCT, VERSION, COPYRIGHT
 
-class ReloadException(Exception): pass
+
+class ReloadException(Exception):
+    pass
+
 
 EXAMPLES = [
     'def add(a, b) a + b',
     'add(1, 2)',
     'add(add(1,2), add(3,4))',
-    'max(1,2)',        
+    'max(1,2)',
     'max(max(1,2), max(3,4))',
     'factorial(5)',
     #'def i32 alphabet(i32 a i32 b) for x = 64 + a, x < 64 + b +1,x  + 1 in putchar(x) ',
-    #'alphabet(1.,26.)-65.'
+    # 'alphabet(1.,26.)-65.'
 ]
 
-USAGE = """From the A> prompt, type Aki code or enter special commands
+PROMPT = 'A>'
+
+USAGE = f"""From the {PROMPT} prompt, type Aki code or enter special commands
 preceded by a dot sign:
 
     .about|.ab    : About this program.
@@ -96,41 +105,42 @@ ABOUT = f'''
 Based on code created by:
 - Frédéric Guérin (https://github.com/frederickjeanguerin/pykaleidoscope)
 - Eli Bendersky (https://github.com/eliben/pykaleidoscope)
-'''    
+'''
 
 history = []
 
 last_file = None
 
+
 def errprint(msg):
     cprint(msg, 'red', file=sys.stderr)
 
-def print_eval(ak, code, options = dict()):
+
+def print_eval(ak, code, options=dict()):
     """Evaluate the given code with evaluator engine ak using the given options.
     Print the evaluation results. """
     results = ak.eval_generator(code, options)
     try:
-        for result in results :
+        for result in results:
             if not result.value is None:
                 cprint(result.value, 'green')
             else:
                 history.append(result.ast)
-                    
+
             if options.get('verbose'):
-                print()
-                # print(colored(result.ast.dump(), 'blue'), '\n')
+                print('\n>>> Raw IR >>>\n')
                 cprint(result.rawIR, 'green')
-                print()
+                print('\n>>> Optimized IR >>>\n')
                 cprint(result.optIR, 'magenta')
                 print()
     except lexer.AkiSyntaxError as err:
         errprint(f'Syntax error: {err}')
+        ak.reset(history)
     except parsing.ParseError as err:
-        errprint(f'Parse error: {err}')  
-        #k.reset(history)
+        errprint(f'Parse error: {err}')
+        ak.reset(history)
     except codegen.CodegenError as err:
         errprint(f'Eval error: {err}')
-        # Reset the interpreter because codegen is now corrupted.
         ak.reset(history)
     except RuntimeError as err:
         errprint(f'LLVM error: {err}')
@@ -138,6 +148,7 @@ def print_eval(ak, code, options = dict()):
         errprint(str(type(err)) + ' : ' + str(err))
         print(' Aborting.')
         raise
+
 
 def run_tests():
     import unittest
@@ -150,20 +161,23 @@ def print_funlist(funlist):
         description = "{:>6} {:<20} ({})".format(
             'extern' if func.is_declaration else '   def',
             func.public_name,
-            # XXX: v_id should not be used as a representation of a type
-            ', '.join((f'{arg.name}:{arg.type.descr()}' for arg in func.args)) 
+            ', '.join((f'{arg.name}:{arg.type.descr()}' for arg in func.args))
         )
         cprint(description, 'yellow')
 
 
-def print_functions(k):
+def print_functions(ak):
     # Operators
-    print(colored('\nBuiltin operators:', 'green'), *operators.builtin_operators())
+    print(colored('\nBuiltin operators:', 'green'),
+          *operators.builtin_operators())
 
     # User vs extern functions
-    sorted_functions = sorted(k.codegen.module.functions, key=lambda fun: fun.name)
-    user_functions = filter(lambda f : not f.is_declaration and getattr(f,'_local_visibility',True), sorted_functions)
-    extern_functions = filter(lambda f : f.is_declaration and getattr(f,'_local_visibility',True) is not False, sorted_functions)
+    sorted_functions = sorted(
+        ak.codegen.module.functions, key=lambda fun: fun.name)
+    user_functions = filter(lambda f: not f.is_declaration and getattr(
+        f, '_local_visibility', True), sorted_functions)
+    extern_functions = filter(lambda f: f.is_declaration and getattr(
+        f, '_local_visibility', True) is not False, sorted_functions)
 
     cprint('\nUser defined functions and operators:\n', 'green')
     print_funlist(user_functions)
@@ -171,125 +185,133 @@ def print_functions(k):
     cprint('\nExtern functions:\n', 'green')
     print_funlist(extern_functions)
 
-def run_repl_command(k, command, options):
+
+def run_repl_command(ak, command, options):
     if command in options:
         options[command] = not options[command]
         print(command, '=', options[command])
     elif command in ('example', 'examples'):
-        run_examples(k, EXAMPLES, options)
-    elif command in ('dump','dp'):
-        print(k.codegen.module)
-    elif command in ('dumpfile','df'):
-        output =str(k.codegen.module)
+        run_examples(ak, EXAMPLES, options)
+    elif command in ('dump', 'dp'):
+        print(ak.codegen.module)
+    elif command in ('dumpfile', 'df'):
+        output = str(ak.codegen.module)
         filename = f'{paths["dump_dir"]}\\dump.ll'
-        with open(filename,'w') as file:
+        with open(filename, 'w') as file:
             file.write(output)
-        print (f'{len(output)} bytes written to {filename}')
-    elif command in ('compile','cp'):
-        compiler.compile(k.codegen.module, 'output')
+        print(f'{len(output)} bytes written to {filename}')
+    elif command in ('compile', 'cp'):
+        compiler.compile(ak.codegen.module, 'output')
     elif command in ('export',) or command.startswith('export '):
         try:
             filename = command.split(' ')[1]
             if '.' not in filename:
-                filename+=".ll"
+                filename += ".ll"
         except IndexError:
             import os
             filename = f'output{os.sep}output.ll'
 
-        with open(filename,'w') as file:
-            output = str(k.codegen.module)
+        with open(filename, 'w') as file:
+            output = str(ak.codegen.module)
             file.write(output)
-        print (f'{len(output)} bytes written to {filename}')
-    elif command in ('list','l'):
-        print_functions(k)                  
+        print(f'{len(output)} bytes written to {filename}')
+    elif command in ('list', 'l'):
+        print_functions(ak)
     elif command in ('help', '?', ''):
         print(USAGE)
-    elif command in ('about','ab'):
+    elif command in ('about', 'ab'):
         print(ABOUT)
-    elif command in ('options','opts','op'):
-        print(options)                  
-    elif command in ('quit', 'exit', 'stop','q'):
+    elif command in ('options', 'opts', 'op'):
+        print(options)
+    elif command in ('quit', 'exit', 'stop', 'q'):
         sys.exit()
     elif command in ('rerun', '.'):
         raise ReloadException()
-    elif command in ('reset','~'):
+    elif command in ('reset', '~'):
         reload(parsing)
-        k.reset()
+        ak.reset()
+        global history
         history = []
-    elif command in ('run','r'):
-        print_eval(k, 'main()', options)
-    elif command in ('rl','rlc','rlr'):
+    elif command in ('run', 'r'):
+        print_eval(ak, 'main()', options)
+    elif command in ('rl', 'rlc', 'rlr'):
         if last_file is None:
             errprint('No previous command to reload')
         else:
             reload(parsing)
-            k.reset()
-            load_command(last_file, k, options)
-        if command=='rlr':
-            print_eval(k, 'main()', options)
-        elif command=='rlc':
-            compiler.compile(k.codegen.module, 'output')
+            ak.reset()
+            load_command(last_file, ak, options)
+        if command == 'rlr':
+            print_eval(ak, 'main()', options)
+        elif command == 'rlc':
+            compiler.compile(ak.codegen.module, 'output')
     elif command in ('test', 'tests'):
         run_tests()
     elif command in ('version', 'ver'):
         print('Python :', sys.version)
-        print('LLVM   :', '.'.join((str(n) for n in llvmlite.binding.llvm_version_info)))
+        print('LLVM   :', '.'.join(
+            (str(n) for n in llvmlite.binding.llvm_version_info))
+        )
         print('pyaki  :', VERSION)
     elif command:
-        load_command(command, k, options)
-
-def load_command(command, k, options):
-        # Here the command should be a filename, open it and run its content  
-        
-        if command[-1]=='.':
-            command+='aki'
-        try: 
-            with open(f'{paths["source_dir"]}\\{command}', encoding='utf8') as file:
-                f=file.read()
-                print(f'{command} read in ({len(f)} bytes)')
-                global last_file
-                last_file = command
-                print_eval(k, f, options)
-                
-        except FileNotFoundError:
-            errprint("File or command not found: " + command)
+        load_command(command, ak, options)
 
 
-def run_command(k, command, options):
+def load_command(command, ak, options):
+        # Here the command should be a filename, open it and run its content
+
+    if command[-1] == '.':
+        command += 'aki'
+    try:
+        with open(f'{paths["source_dir"]}\\{command}', encoding='utf8') as file:
+            f = file.read()
+            print(f'{command} read in ({len(f)} bytes)')
+            global last_file
+            last_file = command
+            print_eval(ak, f, options)
+
+    except FileNotFoundError:
+        errprint("File or command not found: " + command)
+
+
+def run_command(ak, command, options):
     print(colorama.Fore.YELLOW, end='')
     if not command:
         pass
     elif command in ['help', 'quit', 'exit', 'stop', 'test']:
-        run_repl_command(k, command, options)
+        run_repl_command(ak, command, options)
     elif command[0] == '.':
-        run_repl_command(k, command[1:], options)
+        run_repl_command(ak, command[1:], options)
     else:
         # command is an akilang code snippet so run it
-        print_eval(k, command, options)
+        print_eval(ak, command, options)
     print(colorama.Style.RESET_ALL, end='')
 
-def run_examples(k, commands, options):
-    for command in commands:
-        print('A>', command)
-        print_eval(k, command, options)    
 
-def run(*a, optimize = True, llvmdump = False, noexec = False, parseonly = False, verbose = False):
+def run_examples(ak, commands, options):
+    for command in commands:
+        print(PROMPT, command)
+        print_eval(ak, command, options)
+
+
+def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbose=False):
     options = locals()
     options.pop('a')
-    k = codexec.AkilangEvaluator(f'{paths["lib_dir"]}\\{paths["basiclib"]}.aki')
+    k = codexec.AkilangEvaluator(
+        f'{paths["lib_dir"]}\\{paths["basiclib"]}.aki')
 
-    # If some arguments passed in, run that command then exit        
-    if len(sys.argv) >= 2 :
+    # If some arguments passed in, run that command then exit
+    if len(sys.argv) >= 2:
         command = ' '.join(sys.argv[1:]).replace('--', '.')
         run_command(k, command, options)
-    else:    
+    else:
         # Enter a REPL loop
-        cprint (f'{PRODUCT} v.{VERSION}','yellow')
+        cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
         cprint('Type help or a command to be interpreted', 'green')
         command = ""
         while not command in ['exit', 'quit']:
             run_command(k, command, options)
-            print("A> ", end="")
+            print(PROMPT, end="")
             command = input().strip()
 
 # to add:
