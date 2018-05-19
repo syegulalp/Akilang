@@ -1,6 +1,6 @@
 def run(**options):
     import sys
-    init_modules = list(sys.modules.keys())
+    init_modules = set(sys.modules.keys())
     from core import repl
     while True:
         try:
