@@ -1,8 +1,8 @@
 from collections import namedtuple
 
-from core.lexer import Lexer, TokenKind
+from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
-    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function
+    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
 from core.errors import ParseError
@@ -19,6 +19,7 @@ class Parser(object):
         self.token_generator = None
         self.cur_tok = None
         self.local_types = {}
+        self.consts = {}
         self.anon_vartype = anon_vartype
         self.level = 0
         self.top_return = False
@@ -123,7 +124,7 @@ class Parser(object):
 
             else:
                 break
-
+        
         return toplevel
 
     def _parse_number_expr(self):
@@ -240,7 +241,17 @@ class Parser(object):
         if self._cur_tok_is_punctuator('['):
             accessor = self._parse_array_accessor()
             for n in accessor.elements:
-                vartype = VarTypes.array(vartype, int(n.val))
+                if isinstance(n, Variable):
+                    try:
+                        _val = self.consts[n.name].val.val
+                    except:
+                        raise ParseError(
+                            f'fixed-size array can only be initialized with constants',
+                            n.position
+                        )
+                else:
+                    _val = n.val                
+                vartype = VarTypes.array(vartype, int(_val))
             self._get_next_token()
 
         if vartype.is_obj:
@@ -482,13 +493,14 @@ class Parser(object):
         start = self.cur_tok.position
         elements = []
 
-        while True:
-            self._get_next_token()
+        self._get_next_token()
+
+        while True:            
             dimension = self._parse_expression()
             elements.append(dimension)
             if self._cur_tok_is_punctuator(','):
+                self._get_next_token()
                 continue
-
             elif self._cur_tok_is_punctuator(']'):
                 break
             else:
@@ -581,6 +593,10 @@ class Parser(object):
 
             vars.append((name, vartype, init, start))
 
+            if const and init:
+                print ("INIT", init.__dict__)
+                self.consts[name]=Number(start,init, vartype)
+
             if self._cur_tok_is_punctuator(','):
                 self._get_next_token()
 
@@ -595,6 +611,8 @@ class Parser(object):
                 raise ParseError(
                     f'expected variable declaration, not "{self.cur_tok.value}"',
                     self.cur_tok.position)
+
+        
 
     def _parse_binop_rhs(self, expr_prec, lhs):
         """Parse the right-hand-side of a binary expression.

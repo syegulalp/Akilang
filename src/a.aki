@@ -1,12 +1,26 @@
 # typdef experiment
 
-def a():byte[32] {
-    var b:byte[32]
-    b[0]=72B
-    return b
+const {
+    WIDTH=79,
+    HEIGHT=33
+}
+
+uni {
+    field:byte[2,HEIGHT]
 }
 
 def main(){
-    var c=a()
-    print (c[0]) #"H"
+    field[0,0,0]=1B
+    0
 }
+
+# def a():byte[32] {
+#     var b:byte[32]
+#     b[0]=72B
+#     return b
+# }
+
+# def main(){
+#     var c=a()
+#     print (c[0]) #"H"
+# }
