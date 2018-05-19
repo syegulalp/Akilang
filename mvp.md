@@ -2,6 +2,7 @@
 
 - [x] REPL.
 - [x] Scalar types: `int(8, 32, 64), float, boolean`
+    - [x] Signed and unsigned scalar types.
     - [x] `cast` and `convert` operations for primitive numerical types.
     - [x] Type checking for basic assignment operations.
     - [ ] Type checking for math. (I think we did this)
@@ -47,6 +48,7 @@
     - [ ] Bound functions / "dunder" methods for objects.
 - [ ] Overflow detection for math, and minimal error handling.
 - [ ] Integers of abritrary length, for bignum support.
+- [ ] Documentation
 
 # Next phase
 - [ ] Ports to other platforms, mainly Linux.
