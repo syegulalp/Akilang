@@ -1,14 +1,39 @@
-# Tests for checking "let" scope
-
-uni {
-    y:u64
-}
+def f1() 32
 
 def main(){
-    let x:i32[32]
-    #let x:i64
-    let y:i32
-    x[1]=64
-    print(x[1])
-    0
+    var x=1
+    print (x)
+
+    with var y=1 in {
+        print (y)
+    }
+
+    # with [vardec] in [expr]
+    # with [expr] as [vardec] in [expr]
+
+    # if [expr] in [expr] then ...
+
+    with {f1()} as v in {
+        print (v)
+    }
+
+    # this should also work
+
+    with f1() as v in {
+        print (v)
+    }
+
+    # the `with` returns the expression result from the following expr
+    # so x = {with f() as y in {y+=1}} would return y+=1 as the value
+
+    # this should not compile
+    print (v)
+
+    # this also should not compile
+    # because we don't permit shadowing of names, ever
+    with var x=2 in {
+        print (x)
+    }
+
+    return 0
 }
