@@ -163,7 +163,7 @@ class Call(Expr):
         return f'{self.args} {self.name}'
 
 
-class Let(Expr):
+class Var(Expr):
     def __init__(self, position, vars):
         super().__init__(position)
         self.vars = vars
@@ -266,7 +266,8 @@ class Loop(Expr):
 
 class VarIn(Expr):
     def __init__(self, position, vars, body):
-        # vars is a sequence of (name, expr) pairs
+        # vars is a Var object
+        # we preserve the whole object so we can keep its position
         super().__init__(position)
         self.vars = vars
         self.body = body
@@ -275,7 +276,7 @@ class VarIn(Expr):
         return [
             self.__class__.__name__,
             [[var[0], var[1].flatten() if var[1] else None]
-             for var in self.vars],
+             for var in self.vars.vars],
             self.body.flatten()
         ]
 

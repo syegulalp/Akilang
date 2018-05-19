@@ -23,7 +23,7 @@ uni {
 
 def reset() {
     gen=0U
-    let y,x
+    var y,x
     # this preallocates those variables as i32, the default
     # otherwise they're allocated repeatedly within the loop
     loop (y=0, y<HEIGHT)
@@ -32,14 +32,14 @@ def reset() {
 }
 
 def randomize(){
-    let y,x
+    var y,x
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH)
             field[world,y,x] = (if rnd(20)<1 then 1B else field[world,y,x])
 }
 
 def show() {
-    let pop = 0, z=0, s=0B, y, x
+    var pop = 0, z=0, s=0B, y, x
     loop (y=0, y<HEIGHT) {
         loop (x=0, x<WIDTH) {
             s = (if field[world,y,x]>0B then 219B else 32B)
@@ -69,8 +69,8 @@ def show() {
 }
 
 def life() {
-    let sum:byte, t:byte, w2=1-world
-    let x,y,j,k
+    var sum:byte, t:byte, w2=1-world
+    var x,y,j,k
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH) {
             sum=0B
@@ -91,7 +91,7 @@ def life() {
 }
 
 def setup(){
-    let x
+    var x
     loop (x=0, x<80)
         divider[x]=177B
     divider[x]=0B

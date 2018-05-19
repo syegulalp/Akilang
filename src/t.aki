@@ -1,39 +1,43 @@
 def f1() 32
 
 def main(){
-    var x=1
+    var x=f1()
     print (x)
 
-    with var y=1 in {
+    with var y=2 {
         print (y)
-    }
-
-    # with [vardec] in [expr]
-    # with [expr] as [vardec] in [expr]
-
-    # if [expr] in [expr] then ...
-
-    with {f1()} as v in {
-        print (v)
-    }
-
-    # this should also work
-
-    with f1() as v in {
-        print (v)
-    }
-
-    # the `with` returns the expression result from the following expr
-    # so x = {with f() as y in {y+=1}} would return y+=1 as the value
-
-    # this should not compile
-    print (v)
-
-    # this also should not compile
-    # because we don't permit shadowing of names, ever
-    with var x=2 in {
         print (x)
     }
+
+    # # with var [vardec] {expr}
+    # # with {expr} as [vardec] {expr}
+    # # with {expr} {expr} <- should not compile
+
+    # # not using `in` b/c we don't do that with loops, etc.
+    # # and `in` should be reserved for membership testing:
+    # # if [expr] in [expr] then ...
+
+    # with {f1()} as v {
+    #     print (v)
+    # }
+
+    # # this should also work
+
+    # with f1() as v {
+    #     print (v)
+    # }
+
+    # # the `with` returns the expression result from the following expr
+    # # so x = {with f() as y {y+=1}} would return y+=1 as the value
+
+    # # this should not compile
+    # print (v)
+
+    # # this also should not compile
+    # # because we don't permit shadowing of names, ever
+    # with var x=2 in {
+    #     print (x)
+    # }
 
     return 0
 }

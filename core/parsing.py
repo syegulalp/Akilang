@@ -2,7 +2,7 @@ from collections import namedtuple
 
 from core.lexer import Lexer, TokenKind
 from core.ast_module import (
-    Variable, Call, Number, Break, Return, String, Match, Do, Let, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function
+    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
 from core.errors import ParseError
@@ -77,10 +77,6 @@ class Parser(object):
         return (self.cur_tok.kind == TokenKind.OPERATOR
                 and self.cur_tok.value == op)
 
-    # identifierexpr
-    #   ::= identifier
-    #   ::= identifier '(' expression* ')'
-    #   ::= identifier '[' accessor ']'
     def _parse_identifier_expr(self):
         start = self.cur_tok.position
         id_name = self.cur_tok.value
@@ -130,31 +126,17 @@ class Parser(object):
 
         return toplevel
 
-    # numberexpr ::= number
-
     def _parse_number_expr(self):
         result = Number(self.cur_tok.position, self.cur_tok.value,
                         self.cur_tok.vartype)
         self._get_next_token()  # consume the number
         return result
 
-    # parenexpr ::= '(' expression ')'
-
     def _parse_paren_expr(self):
         self._get_next_token()  # consume the '('
         expr = self._parse_expression()
         self._match(TokenKind.PUNCTUATOR, ')')
         return expr
-
-    # primary
-    #   ::= identifierexpr
-    #   ::= numberexpr
-    #   ::= parenexpr
-    #   ::= ifexpr
-    #   ::= forexpr
-    #   ::= unaryexpr
-
-    PUNCTUATORS = '()[]{};,:'
 
     def _parse_primary(self):
 
@@ -187,8 +169,8 @@ class Parser(object):
             return self._parse_loop_expr()
         elif self.cur_tok.kind == TokenKind.VAR:
             return self._parse_var_expr()
-        elif self.cur_tok.kind == TokenKind.LET:
-            return self._parse_let_expr()
+        elif self.cur_tok.kind == TokenKind.WITH:
+            return self._parse_with_expr()
         elif self.cur_tok.kind == TokenKind.MATCH:
             return self._parse_match_expr()
         elif self.cur_tok.kind == TokenKind.BREAK:
@@ -201,6 +183,19 @@ class Parser(object):
             raise ParseError(
                 f'Expression expected but met unknown token: "{self.cur_tok.value}"',
                 self.cur_tok.position)
+
+    def _parse_with_expr(self):
+        cur = self.cur_tok
+        self._get_next_token()  # consume `with`
+
+        if self.cur_tok.kind != TokenKind.VAR:
+            raise ParseError(
+                f'invalid "with" expression', self.cur_tok.position
+            )
+
+        vars = self._parse_var_expr()
+        body = self._parse_expression()
+        return VarIn(cur, vars, body)
 
     def _parse_break_expr(self):
         cur = self.cur_tok
@@ -379,15 +374,14 @@ class Parser(object):
 
         return new_class
 
-    # letexpr ::= 'let' ( identifier ('=' expr)? )
-    def _parse_let_expr(self):
-        self._get_next_token()  # consume the 'let'
-        let_pos = self.cur_tok.position
+    def _parse_var_expr(self):
+        self._get_next_token()  # consume the 'var'
+        var_pos = self.cur_tok.position
         vars = []
 
         if self.cur_tok.kind != TokenKind.IDENTIFIER:
             raise ParseError(
-                f'expected identifier after "let", not "{self.cur_tok.value}"',
+                f'expected identifier after "var", not "{self.cur_tok.value}"',
                 self.cur_tok.position)
 
         while True:
@@ -400,6 +394,9 @@ class Parser(object):
                 self._get_next_token()
                 init = self._parse_expression()
 
+            if isinstance(init, String):
+                init.anonymous = False
+
             vars.append((name, vartype, init, pos))
             if not self._cur_tok_is_punctuator(','):
                 break
@@ -407,9 +404,8 @@ class Parser(object):
             self._match(TokenKind.PUNCTUATOR, ',')
             # self._get_next_token()
 
-        return Let(let_pos, vars)
+        return Var(var_pos, vars)
 
-    # whileexpr :: = 'while' expr (expr)
     def _parse_while_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'while'
@@ -417,17 +413,14 @@ class Parser(object):
         body = self._parse_expression()
         return While(start, cond_expr, body)
 
-    # ifexpr ::= 'if' expr 'then' expr 'else' expr
     def _parse_if_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'if'
         cond_expr = self._parse_expression()
-        #self._match(TokenKind.PUNCTUATOR, ':')
         self._match(TokenKind.THEN)
         then_expr = self._parse_expression()
         if self.cur_tok.kind == TokenKind.ELSE:
             self._get_next_token()
-            #self._match(TokenKind.PUNCTUATOR, ':')
             else_expr = self._parse_expression()
         elif self.cur_tok.kind == TokenKind.ELIF:
             else_expr = self._parse_if_expr()
@@ -436,7 +429,6 @@ class Parser(object):
 
         return If(start, cond_expr, then_expr, else_expr)
 
-    # whenexpr ::= 'when' expr 'then' expr ('else' expr)?
     def _parse_when_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'when'
@@ -450,8 +442,6 @@ class Parser(object):
         else:
             else_expr = None
         return When(start, cond_expr, then_expr, else_expr)
-
-    # loopexpr ::= 'loop' ('(' identifier '=' expr ',' expr (',' expr)? ')')? expr
 
     def _parse_loop_expr(self):
         start = self.cur_tok.position
@@ -567,8 +557,9 @@ class Parser(object):
         self._get_next_token()  # consume the '('
         vars = []
 
-        # TODO: all of this should be moved into its own function
-        # so it can be code-shared with var if possible
+        # TODO: merge this code with parse_var eventually
+        # right now we can't do this because of some subtle differences
+        # between how const/uni and regular vars are processed
 
         while True:
 
@@ -603,44 +594,6 @@ class Parser(object):
                     f'expected variable declaration, not "{self.cur_tok.value}"',
                     self.cur_tok.position)
 
-    # varexpr ::= 'var' ( identifier ('=' expr)? )+ 'in' expr
-    def _parse_var_expr(self):
-        self._get_next_token()  # consume the 'var'
-        vars = []
-
-        while True:
-
-            start = self.cur_tok.position
-
-            name, vartype = self._parse_var_declaration()
-
-            # Parse the optional initializer
-            if self._cur_tok_is_operator('='):
-                self._get_next_token()  # consume the '='
-                init = self._parse_expression()
-            else:
-                init = None
-
-            if isinstance(init, String):
-                init.anonymous = False
-
-            vars.append((name, vartype, init, start))
-
-            if self._cur_tok_is_punctuator(','):
-                self._get_next_token()
-                continue
-
-            if self.cur_tok.kind == TokenKind.IN:
-                self._get_next_token()
-                body = self._parse_expression()
-                return VarIn(self.cur_tok.position, vars, body)
-
-            else:
-                raise ParseError(
-                    'expected variable declaration, "in" expression, or parenthetical "do" expression after "var"',
-                    self.cur_tok.position)
-
-    # binoprhs ::= (<binop> primary)*
     def _parse_binop_rhs(self, expr_prec, lhs):
         """Parse the right-hand-side of a binary expression.
         expr_prec: minimal precedence to keep going (precedence climbing).
@@ -693,7 +646,6 @@ class Parser(object):
             # Merge lhs/rhs
             lhs = Binary(start, op, lhs, rhs)
 
-    # expression ::= primary binoprhs
     def _parse_expression(self):
         self.level += 1
         lhs = self._parse_primary()
@@ -711,7 +663,6 @@ class Parser(object):
 
         return self._parse_binop_rhs(0, lhs)
 
-    # unary ::= op primary
     def _parse_unaryop_expr(self):
         start = self.cur_tok.position
         op = self.cur_tok.value
@@ -719,15 +670,10 @@ class Parser(object):
         rhs = self._parse_primary()
         return Unary(start, op, rhs)
 
-    # prototype
-    #   ::= id '(' id* ')'
-    #   ::= 'binary' LETTER number? '(' id id ')'
-    #   ::= 'unary' LETTER '(' id id ')'
     def _parse_prototype(self, extern=False):
         start = self.cur_tok.position
         prec = DEFAULT_PREC
-        vartype = None  # DEFAULT_TYPE
-        #is_ptr = False
+        vartype = None
 
         if self.cur_tok.kind == TokenKind.IDENTIFIER:
             if self.cur_tok.value in VarTypes:
@@ -777,7 +723,6 @@ class Parser(object):
         argnames = []
 
         while not self._cur_tok_is_punctuator(')'):
-            #is_ptr = False
             identifier, avartype = self._parse_var_declaration()
             argnames.append((identifier, avartype
                              if avartype is not None else DEFAULT_TYPE))
@@ -805,12 +750,10 @@ class Parser(object):
                          name.startswith(('unary', 'binary')), prec, vartype,
                          extern)
 
-    # external ::= 'extern' prototype
     def _parse_external(self):
         self._get_next_token()  # consume 'extern'
         return self._parse_prototype(extern=True)
 
-    # definition ::= 'def' prototype expression
     def _parse_definition(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume 'def'
@@ -823,7 +766,6 @@ class Parser(object):
 
         return Function(start, proto, expr)
 
-    # toplevel ::= expression
     def _parse_toplevel_expression(self):
         start = self.cur_tok.position
         expr = self._parse_expression()

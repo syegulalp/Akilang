@@ -999,26 +999,8 @@ class LLVMCodeGenerator(object):
                     node.position)
             return self.builder.call(func, [operand], 'unop')
 
-    def _codegen_Let(self, node):
+    def _codegen_Var(self, node):
         for name, type, expr, position in node.vars:
-
-            # if expr:
-            #     val = self._codegen(expr)
-            #     if type is None:
-            #         type = val.type
-            #     else:
-            #         if type != val.type:
-            #             raise CodegenError(
-            #                 f'mismatched types in "let" assignment ("{type.descr()}" and "{val.type.descr()}")',
-            #                 position)
-            # else:
-            #     if type is None:
-            #         type = DEFAULT_TYPE
-            #     if isinstance(type, Array):
-            #         s = type.element_type
-            #         for n in type.elements.elements:
-            #             s = VarTypes.array(s, int(n.val))
-            #         type = s
 
             val, type = self._codegen_VarDef(expr, type)
 
@@ -1161,7 +1143,7 @@ class LLVMCodeGenerator(object):
     def _codegen_VarIn(self, node):
         old_bindings = []
 
-        for name, type, init, position in node.vars:
+        for name, type, init, position in node.vars.vars:
             # Emit the initializer before adding the variable to scope. This
             # prevents the initializer from referencing the variable itself.
 
@@ -1185,7 +1167,7 @@ class LLVMCodeGenerator(object):
         body_val = self._codegen(node.body)
 
         # Restore the old bindings.
-        for i, x in enumerate(node.vars):
+        for i, x in enumerate(node.vars.vars):
             name = x[0]
             if old_bindings[i] is not None:
                 self.func_symtab[name] = old_bindings[i]

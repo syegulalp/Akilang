@@ -36,7 +36,7 @@ class TokenKind(Enum):
     RETURN = -1047
     BREAK = -1048
     VAR = -1050
-    LET = -1060
+    #LET = -1060
     WITH = -1110
     LOOP = -1115
     IF = -1200
@@ -78,7 +78,7 @@ class Position():
             self.lineposition = self.absposition
         else:
             self.col += 1
-            self.absposition += 1            
+            self.absposition += 1
 
     @property
     def copy(self):
@@ -253,8 +253,8 @@ class Lexer(object):
                 yield Token(TokenKind.PUNCTUATOR, self.lastchar, None, pos)
                 self._advance()
 
-            #finally, we attempt to match operators that don't have the same
-            #naming convention as user symbols
+            # finally, we attempt to match operators that don't have the same
+            # naming convention as user symbols
 
             elif self.lastchar:
                 op = []
