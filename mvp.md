@@ -31,6 +31,7 @@
     - [x] `break`
     - [x] `match` (for scalar types only)
 - [x] Global and local variables.    
+- [ ] Type definitions / aliases, apart from object types.
 - [ ] Variable length arguments for functions.
 - [ ] Default arguments.
 - [x] Compiling to standalone binaries.
