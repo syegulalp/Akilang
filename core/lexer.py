@@ -258,11 +258,9 @@ class Lexer(object):
 
             elif self.lastchar:
                 op = []
-                while True:
+                while self.lastchar:
                     op.append(self.lastchar)
                     self._advance()
-                    if not self.lastchar:
-                        break
                     if ''.join(op) + self.lastchar not in BUILTIN_OP:
                         break
                 yield Token(TokenKind.OPERATOR, ''.join(op), None, pos)
