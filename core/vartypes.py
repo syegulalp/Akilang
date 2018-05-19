@@ -47,7 +47,7 @@ class Array(ir.ArrayType):
     def __new__(cls, type, len):
         t = ir.ArrayType(type, len)
         t.v_id = 'array_' + type.v_id
-
+        t.signed = type.signed
         t.as_pointer = make_type_as_ptr(t)
 
         return t
