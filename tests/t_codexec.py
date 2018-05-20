@@ -168,10 +168,10 @@ class TestEvaluator(unittest.TestCase):
                 var a=32
                 var b=c_ref(a)
                 var c=c_deref(b)
-                if a==c then 1 else 0
+                if a==c then 0 else 1
                 }
             ''')
-        self.assertEqual(e.evaluate('ref()'), 1)
+        self.assertEqual(e.evaluate('ref()'), 0)
 
     def test_c_objref(self):
         e = AkilangEvaluator()
@@ -181,10 +181,32 @@ class TestEvaluator(unittest.TestCase):
                     var c=c_obj_ref(a)
                     var d=c_obj_deref(c)
                     if cast(c_data(a),u64) == cast(c_data(d),u64)
-                        then 1 else 0
+                        then 0 else 1
                 }
             ''')
-        self.assertEqual(e.evaluate('ref()'), 1)
+        self.assertEqual(e.evaluate('ref()'), 0)
+    
+    def test_c_cast(self):
+        e = AkilangEvaluator()
+        e.evaluate('''
+            def test_cast(){
+                var a=128U
+                var b = cast(a,i32)
+                if b==128 then 0 else 1
+            }            
+        ''')
+        self.assertEqual(e.evaluate('test_cast()'), 0)
+
+    def test_c_convert(self):
+        e = AkilangEvaluator()
+        e.evaluate('''
+            def test_convert(){
+                var a=128
+                var b = convert(a,i64)
+                if b==128I then 0 else 1
+            }            
+        ''')
+        self.assertEqual(e.evaluate('test_convert()'), 0)            
 
     def test_array_assignment(self):
         e = AkilangEvaluator()
@@ -219,3 +241,5 @@ class TestEvaluator(unittest.TestCase):
             
         ''')
         self.assertEqual(list(results)[-1].value, 39)
+
+    
