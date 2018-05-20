@@ -6,12 +6,13 @@ const {
 }
 
 uni {
-    field:byte[2,HEIGHT]
+    field:byte[2,HEIGHT, WIDTH]
 }
 
 def main(){
-    field[0,0,0,0,0]=64B
-    print (field[0,0])
+    var x=1
+    field[x,16,32]=64B
+    print (field[x,16,32])
     0
 }
 
