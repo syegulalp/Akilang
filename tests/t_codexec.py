@@ -165,9 +165,9 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def ref(){
-                var a=32
-                var b=c_ref(a)
-                var c=c_deref(b)
+                var a=32,
+                    b=c_ref(a),
+                    c=c_deref(b)
                 if a==c then 0 else 1
                 }
             ''')
@@ -177,9 +177,9 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def ref(){
-                    var a="Hello world"
-                    var c=c_obj_ref(a)
-                    var d=c_obj_deref(c)
+                    var a="Hello world", 
+                        c=c_obj_ref(a),
+                        d=c_obj_deref(c)
                     if cast(c_data(a),u64) == cast(c_data(d),u64)
                         then 0 else 1
                 }
@@ -190,8 +190,7 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def test_cast(){
-                var a=128U
-                var b = cast(a,i32)
+                var a=128U, b = cast(a,i32)
                 if b==128 then 0 else 1
             }            
         ''')
@@ -201,8 +200,7 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def test_convert(){
-                var a=128
-                var b = convert(a,i64)
+                var a=128, b = convert(a,i64)
                 if b==128I then 0 else 1
             }            
         ''')
@@ -225,7 +223,7 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         results = e.eval_generator('''
             uni {
-                a:i32[2,32,32]
+                a:i32[2,32,32],
                 b:i32
             }
 
