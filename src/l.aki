@@ -15,7 +15,7 @@ uni {
     output:byte[4001],
     divider:byte[81],
     world=0,
-    gen:u64,
+    gen:u64
 }
 
 def reset() {
