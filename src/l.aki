@@ -11,9 +11,6 @@ uni {
     # output:byte[(WIDTH+1)*(HEIGHT+1)],
     # no constant folding yet, so this doesn't work
     # constants should be AST-substituted
-    # wait, what about constant arrays?
-    # how does clang handle constant array references?
-    # that's undefined behavior, isn't it?
     
     output:byte[4001],
     divider:byte[81],
