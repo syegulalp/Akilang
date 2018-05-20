@@ -171,7 +171,7 @@ class TestEvaluator(unittest.TestCase):
                 if a==c then 1 else 0
                 }
             ''')
-        self.assertEqual(e.evaluate('ref()'),1)
+        self.assertEqual(e.evaluate('ref()'), 1)
 
     def test_c_objref(self):
         e = AkilangEvaluator()
@@ -184,4 +184,38 @@ class TestEvaluator(unittest.TestCase):
                         then 1 else 0
                 }
             ''')
-        self.assertEqual(e.evaluate('ref()'),1)
+        self.assertEqual(e.evaluate('ref()'), 1)
+
+    def test_array_assignment(self):
+        e = AkilangEvaluator()
+        e.evaluate('''
+            def main(){
+                var a:i32[2,32,32]
+                a[0,8,16]=1
+                a[1,32,16]=2
+                a[2,0,0]=4
+                return a[0,8,16]+a[1,32,16]+a[2,0,0]
+            }
+        ''')
+        self.assertEqual(e.evaluate('main()'), 7)
+
+    def test_uni_assignment(self):
+        e = AkilangEvaluator()
+        results = e.eval_generator('''
+            uni {
+                a:i32[2,32,32]
+                b:i32
+            }
+
+            def main(){
+                b=32
+                a[0,8,16]=1
+                a[1,32,16]=2
+                a[2,0,0]=4
+                return a[0,8,16]+a[1,32,16]+a[2,0,0]+b
+            }
+
+            main()
+            
+        ''')
+        self.assertEqual(list(results)[-1].value, 39)
