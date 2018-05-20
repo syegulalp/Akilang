@@ -560,7 +560,7 @@ class Parser(object):
 
         if not self._cur_tok_is_punctuator('{'):
             raise ParseError(
-                f'expected "(" block declaration, not "{self.cur_tok.value}"',
+                f'expected "{{}}" block declaration, not "{self.cur_tok.value}"',
                 self.cur_tok.position)
 
         self._get_next_token()  # consume the '('
