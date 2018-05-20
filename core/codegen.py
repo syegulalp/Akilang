@@ -1052,10 +1052,8 @@ class LLVMCodeGenerator(object):
             elif isinstance(vartype, Array):
                 t = vartype.element_type
 
-                # TODO: insert in the correct order
-                # not sure why it's inserted backwards
                 dims = []
-                for n in reversed(vartype.elements.elements):
+                for n in (vartype.elements.elements):
                     if isinstance(n, Variable):
                         v = self.module.globals.get(n.name, None)
                         if not v:
@@ -1080,7 +1078,7 @@ class LLVMCodeGenerator(object):
                             raise CodegenError(
                                 f'Array sizes must be integer constants',
                                 vartype.position)
-                    dims.insert(0, dim)
+                    dims.append(dim)
                     t = VarTypes.array(t, dim)
 
                 final_type = t

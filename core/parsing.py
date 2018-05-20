@@ -244,7 +244,8 @@ class Parser(object):
 
         if self._cur_tok_is_punctuator('['):
             accessor = self._parse_array_accessor()
-            for n in accessor.elements:
+            # the array has to be built from the inside out
+            for n in reversed(accessor.elements):
                 vartype = VarTypes.array(vartype, int(n.val))
             self._get_next_token()
 
