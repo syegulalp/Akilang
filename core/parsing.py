@@ -588,7 +588,7 @@ class Parser(object):
             vars.append((name, vartype, init, start))
 
             if const and init:
-                self.consts[name] = Number(start, init.val, vartype)
+                self.consts[name] = Number(start, init.val, init.vartype)
 
             if self._cur_tok_is_punctuator(','):
                 self._get_next_token()
