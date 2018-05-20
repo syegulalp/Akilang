@@ -226,8 +226,6 @@ def run_repl_command(ak, command, options):
     elif command in ('quit', 'exit', 'stop', 'q'):
         sys.exit()
     elif command in ('rerun', '.'):
-        # for n in reversed([errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler]):
-        #     del n
         raise ReloadException()
     elif command in ('reset', '~'):
         reload(parsing)
