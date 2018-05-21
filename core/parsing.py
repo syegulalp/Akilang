@@ -5,7 +5,7 @@ from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
-from core.errors import ParseError
+from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info
 
 
@@ -23,6 +23,7 @@ class Parser(object):
         self.anon_vartype = anon_vartype
         self.level = 0
         self.top_return = False
+        self.expr_stack = [None,]
 
     # toplevel ::= definition | external | expression
     def parse_toplevel(self, buf):
@@ -63,8 +64,9 @@ class Parser(object):
         """
         if self.cur_tok.kind != expected_kind or (
                 expected_value and self.cur_tok.value != expected_value):
+            val = expected_value if expected_value is not None else expected_kind
             raise ParseError(
-                f'Expected "{expected_value}" but got "{self.cur_tok.value}"',
+                f'Expected "{val}" but got "{self.cur_tok.value}"',
                 self.cur_tok.position)
 
         self._get_next_token()
@@ -417,14 +419,22 @@ class Parser(object):
     def _parse_while_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'while'
+        
+        self.expr_stack.append(self._parse_while_expr)
         cond_expr = self._parse_expression()
+        self.expr_stack.pop()
+
         body = self._parse_expression()
         return While(start, cond_expr, body)
 
     def _parse_if_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'if'
+
+        self.expr_stack.append(self._parse_if_expr)
         cond_expr = self._parse_expression()
+        self.expr_stack.pop()
+        
         self._match(TokenKind.THEN)
         then_expr = self._parse_expression()
         if self.cur_tok.kind == TokenKind.ELSE:
@@ -437,18 +447,26 @@ class Parser(object):
 
         return If(start, cond_expr, then_expr, else_expr)
 
+    # TODO: merge with _parse_if_expr
+    
     def _parse_when_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'when'
+        
+        self.expr_stack.append(self._parse_when_expr)
         cond_expr = self._parse_expression()
-        self._match(TokenKind.PUNCTUATOR, ':')
+        self.expr_stack.pop()
+
+        self._match(TokenKind.THEN)
         then_expr = self._parse_expression()
         if self.cur_tok.kind == TokenKind.ELSE:
             self._get_next_token()
-            self._match(TokenKind.PUNCTUATOR, ':')
             else_expr = self._parse_expression()
+        elif self.cur_tok.kind == TokenKind.ELIF:
+            else_expr = self._parse_when_expr()
         else:
             else_expr = None
+
         return When(start, cond_expr, then_expr, else_expr)
 
     def _parse_loop_expr(self):
@@ -655,6 +673,21 @@ class Parser(object):
             if cur_prec == next_prec and next_assoc == Associativity.RIGHT:
                 rhs = self._parse_binop_rhs(cur_prec, rhs)
 
+            # If we're currently in an `if` or `while` clause
+            # warn if we're using `=` in the clause instead of `==`
+
+            if op=='=':
+                try:
+                    _ = self.expr_stack[-1]
+                except:
+                    continue
+                else:
+                    if _ in self._if_eq_checks:
+
+                        print(CodegenWarning(
+                        f'possible confusion of assignment operator ("=") and equality test ("==") detected',
+                            start))
+
             # Merge lhs/rhs
             lhs = Binary(start, op, lhs, rhs)
 
@@ -784,6 +817,12 @@ class Parser(object):
 
         # Anonymous function
         return Function.Anonymous(start, expr, vartype=self.anon_vartype)
+
+    _if_eq_checks = (
+        _parse_if_expr,
+        _parse_while_expr,
+        _parse_when_expr
+    )
 
 
 # Maps builtins to functions. Builtins do not have their own tokens,

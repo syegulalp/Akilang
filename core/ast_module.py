@@ -126,6 +126,7 @@ class Unary(Expr):
         super().__init__(position)
         self.op = op
         self.rhs = rhs
+        self.name = f'{op} {rhs}'
 
     def flatten(self):
         return [self.__class__.__name__, self.op, self.rhs.flatten()]
@@ -137,6 +138,7 @@ class Binary(Expr):
         self.op = op
         self.lhs = lhs
         self.rhs = rhs
+        self.name = f'{lhs} {op} {rhs}'
 
     def flatten(self):
         return [

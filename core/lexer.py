@@ -197,10 +197,8 @@ class Lexer(object):
                 else:
                     yield Token(TokenKind.IDENTIFIER, id_str, vartype, pos)
 
-            # we should attempt to match these against our list of operators
-
             # Number
-            elif self.lastchar.isdigit():  # or self.lastchar == '.':
+            elif self.lastchar.isdigit():
                 num_str = []
                 while self.lastchar and (self.lastchar.isdigit()
                                          or self.lastchar in '.bBiIUu'):

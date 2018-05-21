@@ -484,9 +484,10 @@ class LLVMCodeGenerator(object):
         return cond_item
 
     def _codegen_When(self, node):
-        raise Exception('"when" not supported yet')
+        return self._codegen_If(node, True)
+        # we're going to modify If to support both If and When
 
-    def _codegen_If(self, node):
+    def _codegen_If(self, node, codegen_when = False):
         # Emit comparison value
 
         cond_val = self._codegen(node.cond_expr)
@@ -556,17 +557,20 @@ class LLVMCodeGenerator(object):
         elif not then_val:
             # return present in 2nd branch only
             return else_val.type
+        # otherwise no returns in any branch
+       
+        if codegen_when:
+            return cond_val
 
-        # no returns in any branch
-        # make sure then/else are in agreement so we're returning consistent types
+        # make sure then/else are in agreement
+        # so we're returning consistent types
+
         if then_val.type != else_val.type:
             raise CodegenError(
                 f'then/else expression return types must be the same',
                 node.position)
-        else:
-            result_type = then_val.type
 
-        phi = self.builder.phi(result_type, 'ifval')
+        phi = self.builder.phi(then_val.type, 'ifval')
         phi.add_incoming(then_val, then_bb)
         phi.add_incoming(else_val, else_bb)
         return phi
