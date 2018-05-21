@@ -14,6 +14,8 @@ def fn2(x:myClass, x1:i32, s1:str): myClass{
 }
 
 # This returns garbage or crashes
+# because the object itself is dereferenced
+
 def fn3(x1:i32, s1:str): myClass{
     var x:myClass
     x.string=s1

@@ -1,7 +1,8 @@
-
 **Aki** is a compiler for a simple language, built with Python 3.6 and the [LLVM framework](https://www.llvm.org) by way of the [llvmlite](http://llvmlite.pydata.org/en/latest/) library.
 
 Eventually, this might become something useful for production. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
+
+> ⚠ This project is currently very  unstable and may break between updates.
 
 # Goals and ideals
 
