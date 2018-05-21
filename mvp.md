@@ -1,5 +1,7 @@
 # Features for a Minimum Viable Aki
 
+(in, very roughly, order of importance/implementation)
+
 - [x] REPL.
 - [x] Scalar types: `int(8, 32, 64), float, boolean`
     - [x] Signed and unsigned scalar types.
@@ -32,6 +34,15 @@
     - [x] `break`
     - [x] `match` (for scalar types only)
 - [x] Global and local variables (`var`, `uni`).
+- [ ] Object type.
+    - [x] Object definitions (`class`).
+    - [ ] Bound functions / "dunder" methods for objects.
+- [ ] Pointer syntax for interfacing with C.
+    - [x] Get pointer
+    - [x] Dereference pointer
+    - [x] Get raw data from complex object (right now only strings)
+    - [ ] Function pointers.
+- [ ] Heap-based memory management for things that need it (e.g., `class` objects returned from a function).
 - [ ] Type definitions / aliases, apart from object types. (`alias`?)
 - [ ] Variable length arguments for functions.
 - [ ] Default arguments.
@@ -40,14 +51,6 @@
 - [x] Print statement that supports scalar types, and strings too.
     - [ ] Variable argument printing.
     - [ ] F-string style syntaxing.
-- [ ] Pointer syntax for interfacing with C.
-    - [x] Get pointer
-    - [x] Dereference pointer
-    - [x] Get raw data from complex object (right now only strings)
-    - [ ] Function pointers.
-- [ ] Object type.
-    - [x] Object definitions (`class`).
-    - [ ] Bound functions / "dunder" methods for objects.
 - [ ] Overflow detection for math, and minimal error handling.
 - [ ] Integers of abritrary length, for bignum support.
 - [ ] Documentation
