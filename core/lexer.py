@@ -148,6 +148,7 @@ class Lexer(object):
             # String
             if self.lastchar in ('"\''):
                 opening_quote = self.lastchar
+                opening_quote_position = self.position.copy
                 str = []
                 self._advance()
                 while self.lastchar and self.lastchar != opening_quote:
@@ -174,6 +175,11 @@ class Lexer(object):
                     else:
                         str.append(self.lastchar)
                     self._advance()
+                    if not self.lastchar:
+                        raise AkiSyntaxError(
+                            f'unclosed quote (missing {opening_quote})',
+                            opening_quote_position
+                        )
                 str = ''.join(str)
                 self._advance()
                 yield Token(TokenKind.STRING, str, VarTypes.str, pos)
