@@ -104,7 +104,6 @@ def main(){
     setup()
     loop {
         show()
-        life()
         match inkey() {            
             113B, 81B: break
             114B, 82B: {
@@ -113,6 +112,7 @@ def main(){
             }
             default: print("Next gen")            
         }
+        life()
     }
     return 0
 }

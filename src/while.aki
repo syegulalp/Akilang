@@ -1,12 +1,10 @@
 def main() {
-    var y=32
-    
-    when (y==32) then 128i else 255U
-    # the return value from this is u1, the value of the 
-    # conditional expression
-    # the then/else clauses do not have to be the same type
-
-    if (y==32) then print ('OK') else print ("No")    
-    # the return value from this is the value of either the
-    # then or else expressions, which must be the same type
+    var x:i32[2]
+    #loop (z:i32(0,100) = 0, z < 20){
+    loop (z:i32(0,100) = 0, z < 20){
+        x[z]=z
+    }
+    loop (z=0, z<20){
+        print (x[z])
+    }
 }
