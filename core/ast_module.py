@@ -105,11 +105,12 @@ class String(Expr):
 
 
 class Variable(Expr):
-    def __init__(self, position, name, vartype=None, child=None):
+    def __init__(self, position, name, vartype=None, child=None, initializer=None):
         super().__init__(position)
         self.name = name
         self.vartype = vartype
         self.child = None
+        self.initializer = initializer
 
     def flatten(self):
         return [

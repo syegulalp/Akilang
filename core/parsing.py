@@ -384,8 +384,10 @@ class Parser(object):
 
         return new_class
 
-    def _parse_var_expr(self):
-        self._get_next_token()  # consume the 'var'
+    def _parse_var_expr(self, consume_var=True):
+        if consume_var:
+            self._get_next_token()  # consume the 'var'
+
         var_pos = self.cur_tok.position
         vars = []
 
@@ -407,12 +409,17 @@ class Parser(object):
             if isinstance(init, String):
                 init.anonymous = False
 
-            vars.append((name, vartype, init, pos))
+            vars.append(
+                Variable(pos, name, vartype, None, init)
+            )
+
+            if not consume_var:
+                break
+
             if not self._cur_tok_is_punctuator(','):
                 break
 
             self._match(TokenKind.PUNCTUATOR, ',')
-            # self._get_next_token()
 
         return Var(var_pos, vars)
 
@@ -479,11 +486,22 @@ class Parser(object):
             return Loop(start, None, None, None, None, body)
 
         self._match(TokenKind.PUNCTUATOR, '(')
-        id_name = self.cur_tok.value
+        
+        id_name = self.cur_tok.value        
         self._match(TokenKind.IDENTIFIER)
+
+        # TODO: loop expressions need to be parsed by way of the
+        # parse_var_expr function
+
+        #id_name = None
+        #start_expr = self._parse_var_expr(False)
+        #print (start_expr.__dict__)
+
         self._match(TokenKind.OPERATOR, '=')
         start_expr = self._parse_expression()
+        
         self._match(TokenKind.PUNCTUATOR, ',')
+
         end_expr = self._parse_expression()
 
         # The step part is optional
