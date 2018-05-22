@@ -57,7 +57,7 @@ class LLVMCodeGenerator(object):
         from core.vartypes import UnsignedInt
         VarTypes['ptr_size'] = UnsignedInt(self.pointer_size * 8)
 
-    def _isize(self, pyval):
+    def _isize(self):
         '''
         Returns a constant of the pointer size for the currently configured architecture.
         The size is obtained from the LLVMCodeGenerator object, and is set when
@@ -84,7 +84,7 @@ class LLVMCodeGenerator(object):
         """
         method = '_codegen_' + node.__class__.__name__
         result = getattr(self, method)(node)
-
+        
         if check_for_type and not hasattr(result, 'type'):
             raise CodegenError(
                 f'expression does not return a value along all code paths',
@@ -190,9 +190,6 @@ class LLVMCodeGenerator(object):
                     else:
                         latest0 = latest
 
-                    # oo = getattr(latest0.type.pointee, 'original_obj',
-                    #              latest0.type.pointee)
-
                     try:
                         oo = latest0.type.pointee
                     except AttributeError:
@@ -209,7 +206,6 @@ class LLVMCodeGenerator(object):
                         latest0, index, True,
                         current_node.name + '.' + child.name)
 
-                    # if getattr(oo, 'is_obj', False):
                     if oo.is_obj:
                         load = True
 
@@ -266,9 +262,9 @@ class LLVMCodeGenerator(object):
         return value
 
     def _codegen_String(self, node):
-        return self.codegen_string_base(node.val)
+        return self._string_base(node.val)
 
-    def codegen_string_base(self, string, global_constant=True):
+    def _string_base(self, string, global_constant=True):
         '''
         Core function for code generation for strings. This will also be called when we create strings dynamically in the course of a function, or statically during compilation.
         '''
@@ -487,7 +483,7 @@ class LLVMCodeGenerator(object):
         return self._codegen_If(node, True)
         # we're going to modify If to support both If and When
 
-    def _codegen_If(self, node, codegen_when = False):
+    def _codegen_If(self, node, codegen_when=False):
         # Emit comparison value
 
         cond_val = self._codegen(node.cond_expr)
@@ -558,7 +554,7 @@ class LLVMCodeGenerator(object):
             # return present in 2nd branch only
             return else_val.type
         # otherwise no returns in any branch
-       
+
         if codegen_when:
             return cond_val
 
@@ -776,10 +772,17 @@ class LLVMCodeGenerator(object):
         self.builder.position_at_start(loopbody_bb)
 
         # Emit the body of the loop.
-        # Note that we ignore the value computed by the body.
         body_val = self._codegen(node.body, False)
 
+        # The value of the body has to be placed into a special
+        # return variable so it's valid across all code paths
+        self.builder.position_at_start(loopcond_bb)
+        return_var = self.builder.alloca(
+            body_val.type, size=None, name='%_while_loop_return')
+
         # Goto loop cond
+        self.builder.position_at_end(loopbody_bb)
+        self.builder.store(body_val, return_var)
         self.builder.branch(loopcond_bb)
 
         #############
@@ -791,8 +794,7 @@ class LLVMCodeGenerator(object):
         self.builder.position_at_start(loopafter_bb)
 
         # The 'while' expression returns the value of the body
-        # return self.builder.load(body_val)
-        return body_val
+        return self.builder.load(return_var)
 
     def _codegen_Call(self, node):
         if node.name in Builtins:
@@ -1192,12 +1194,12 @@ class LLVMCodeGenerator(object):
 # Builtins
 ###########
 
-    def check_pointer(self, obj, node):
+    def _check_pointer(self, obj, node):
         if not isinstance(obj.type, ir.PointerType):
             raise CodegenError('parameter must be a pointer or object',
                                node.args[0].position)
 
-    def codegen_noload(self, node, ptr_check=True):
+    def _get_obj_noload(self, node, ptr_check=True):
         '''
         Returns a pointer to a codegenned object
         without a `load` instruction.
@@ -1208,14 +1210,14 @@ class LLVMCodeGenerator(object):
         else:
             codegen = self._codegen(arg)
         if ptr_check:
-            self.check_pointer(codegen, node)
+            self._check_pointer(codegen, node)
         return codegen
 
     def _codegen_Builtins_c_obj_ref(self, node):
         '''
         Returns a typed pointer to the object.
         '''
-        expr = self.codegen_noload(node)
+        expr = self._get_obj_noload(node)
         s1 = self._alloca('obj_ref', expr.type)
         self.builder.store(expr, s1)
         return s1
@@ -1242,7 +1244,7 @@ class LLVMCodeGenerator(object):
         '''
         Returns a raw u8 pointer to the start of an array or structure.
         '''
-        convert_from = self.codegen_noload(node)
+        convert_from = self._get_obj_noload(node)
         gep = self.builder.gep(convert_from, [_int(0)])
         bc = self.builder.bitcast(gep, VarTypes.u8.as_pointer())
         return bc
@@ -1251,7 +1253,7 @@ class LLVMCodeGenerator(object):
         '''
         Returns an unsigned value that is the address of the object in memory.
         '''
-        address_of = self.codegen_noload(node)
+        address_of = self._get_obj_noload(node)
         return self.builder.ptrtoint(address_of, VarTypes.ptr_size)
 
         # perhaps we should also have a way to cast
@@ -1262,7 +1264,7 @@ class LLVMCodeGenerator(object):
         Dereferences a pointer to a primitive, like an int.
         '''
 
-        ptr = self.codegen_noload(node)
+        ptr = self._get_obj_noload(node)
         ptr2 = self.builder.load(ptr)
 
         if hasattr(ptr2.type, 'pointee'):
@@ -1280,7 +1282,7 @@ class LLVMCodeGenerator(object):
         Returns a typed pointer to a primitive, like an int.
         '''
 
-        expr = self.codegen_noload(node)
+        expr = self._get_obj_noload(node)
 
         # if hasattr(expr.type.pointee, 'original_obj'):
         if expr.type.is_original_obj():
@@ -1298,7 +1300,7 @@ class LLVMCodeGenerator(object):
 
         ptr = self._codegen(node.args[0])
         ptr2 = self.builder.load(ptr)
-        self.check_pointer(ptr2, node)
+        self._check_pointer(ptr2, node)
         ptr3 = self.builder.load(ptr2)
         return ptr3
 
