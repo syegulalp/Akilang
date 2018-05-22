@@ -23,7 +23,7 @@ class Parser(object):
         self.anon_vartype = anon_vartype
         self.level = 0
         self.top_return = False
-        self.expr_stack = [None,]
+        self.expr_stack = []
 
     # toplevel ::= definition | external | expression
     def parse_toplevel(self, buf):
@@ -419,7 +419,7 @@ class Parser(object):
     def _parse_while_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'while'
-        
+
         self.expr_stack.append(self._parse_while_expr)
         cond_expr = self._parse_expression()
         self.expr_stack.pop()
@@ -434,7 +434,7 @@ class Parser(object):
         self.expr_stack.append(self._parse_if_expr)
         cond_expr = self._parse_expression()
         self.expr_stack.pop()
-        
+
         self._match(TokenKind.THEN)
         then_expr = self._parse_expression()
         if self.cur_tok.kind == TokenKind.ELSE:
@@ -448,11 +448,11 @@ class Parser(object):
         return If(start, cond_expr, then_expr, else_expr)
 
     # TODO: merge with _parse_if_expr
-    
+
     def _parse_when_expr(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume the 'when'
-        
+
         self.expr_stack.append(self._parse_when_expr)
         cond_expr = self._parse_expression()
         self.expr_stack.pop()
@@ -676,16 +676,15 @@ class Parser(object):
             # If we're currently in an `if` or `while` clause
             # warn if we're using `=` in the clause instead of `==`
 
-            if op=='=':
+            if op == '=':
                 try:
-                    _ = self.expr_stack[-1]
+                    _ = self.expr_stack[-1].__func__
                 except:
                     continue
                 else:
                     if _ in self._if_eq_checks:
-
                         print(CodegenWarning(
-                        f'possible confusion of assignment operator ("=") and equality test ("==") detected',
+                            f'possible confusion of assignment operator ("=") and equality test ("==") detected',
                             start))
 
             # Merge lhs/rhs
