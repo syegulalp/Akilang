@@ -67,13 +67,14 @@ world!") # so are multi-line strings, as linebreaks are arbitrary
 
 ```
 def main() {
-    var a=0U, b=1U, c=0U
+    var a = 0U, b = 1U, c = 0U
     # U = unsigned 64-bit integer
-    loop (x=0, x<50, x+1) {
+    loop (x = 0, x < 50) {
+        # by default loops increment by one
         print (a)
-        c=a+b
-        a=b
-        b=c
+        c = a + b
+        a = b
+        b = c
     }
     return 0
 }
