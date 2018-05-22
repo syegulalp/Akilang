@@ -679,13 +679,13 @@ class Parser(object):
             if op == '=':
                 try:
                     _ = self.expr_stack[-1].__func__
-                except:
-                    continue
+                except IndexError:
+                    pass
                 else:
                     if _ in self._if_eq_checks:
                         print(CodegenWarning(
-                            f'possible confusion of assignment operator ("=") and equality test ("==") detected',
-                            start))
+                        f'possible confusion of assignment operator ("=") and equality test ("==") detected',
+                        start))
 
             # Merge lhs/rhs
             lhs = Binary(start, op, lhs, rhs)
