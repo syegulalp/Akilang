@@ -8,7 +8,7 @@ def config():
         except FileNotFoundError:
             defaults = '''[paths]
 lib_dir=lib
-basiclib=basiclib
+basiclib=basiclib.aki
 source_dir=src
 compiler_dir=compile
 output_dir=output
@@ -298,7 +298,10 @@ def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbos
     options = locals()
     options.pop('a')
     k = codexec.AkilangEvaluator(
-        f'{paths["lib_dir"]}\\{paths["basiclib"]}.aki')
+        #f'{paths["lib_dir"]}\\{paths["basiclib"]}.aki')
+        f'{paths["lib_dir"]}',
+        f'{paths["basiclib"]}',
+        )
 
     # If some arguments passed in, run that command then exit
     if len(sys.argv) >= 2:

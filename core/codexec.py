@@ -34,7 +34,7 @@ class AkilangEvaluator(object):
     module is JITed and the result of the expression is returned.
     """
 
-    def __init__(self, basiclib_file=None):
+    def __init__(self, basiclib_dir=None, basiclib_file=None):
         llvm.initialize()
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
@@ -42,25 +42,38 @@ class AkilangEvaluator(object):
         #llvm.load_library_permanently('freeglut.dll')
         #llvm.load_library_permanently('ucrtbase.dll')
 
+        self.basiclib_dir = basiclib_dir
         self.basiclib_file = basiclib_file
         self.target = llvm.Target.from_default_triple()
         self.reset()
 
     def reset(self, history=[]):
+        import os
         self._reset_base()
 
-        if self.basiclib_file:
-            # Load basic language library
-            try:
-                with open(self.basiclib_file) as file:
-                    for _ in self.eval_generator(file.read()):
-                        pass
-            except (FileNotFoundError, ParseError, CodegenError) as err:
-                print(
-                    colored(f"Could not load basic library: {err}", 'red'),
-                    self.basiclib_file)
-                self._reset_base()
-                raise
+        if self.basiclib_dir:
+            # Load basic language library,
+            # first loading its arch-specific sublib
+            files = [
+                os.path.join(
+                    self.basiclib_dir,'arch',os.name,self.basiclib_file
+                ),
+                os.path.join(
+                    self.basiclib_dir, self.basiclib_file
+                )
+            ]
+            
+            for f in files:
+                try:
+                    with open(f) as file:
+                        for _ in self.eval_generator(file.read()):
+                            pass
+                except (FileNotFoundError, ParseError, CodegenError) as err:
+                    print(
+                        colored(f"Could not load basic library: {err}", 'red'),
+                        f)
+                    self._reset_base()
+                    raise err
 
         #with open('llvmlib.ll') as file:
         #self.eval_llasm(file.read())

@@ -1,0 +1,36 @@
+# Microsoft Win32/NT library interfaces
+
+extern _getch() :byte
+extern SetConsoleOutputCP(codepage :u32) :bool
+extern GetConsoleOutputCP() :u32
+# We don't yet have the ability to encode variable arguments
+# so printf is just one for now
+extern printf(str_fmt :ptr i8, int_data :u64) :i32
+extern rand():i32
+
+extern GetProcessHeap():ptr_size
+extern HeapAlloc(handle:ptr_size, flags:u32, bytes:ptr_size):ptr ptr_size
+
+#extern malloc(size:ptr_size):ptr ptr_size
+
+# implementations of above
+
+def c_alloc(bytes:ptr_size):ptr ptr_size
+    HeapAlloc(GetProcessHeap(), 8u, bytes)
+
+def c_alloc(bytes:i32):ptr ptr_size
+    #c_alloc(cast(bytes, ptr_size))
+    # eventually we can use that when we support inlining
+    HeapAlloc(GetProcessHeap(), 8u, cast(bytes, ptr_size))
+
+def inkey() :byte
+    _getch()
+
+def set_codepage(codepage :u32) :bool
+    SetConsoleOutputCP(codepage)
+
+def get_codepage() :u32
+    GetConsoleOutputCP()
+
+def rnd(max:i32):i32
+    rand()/(32767/max)

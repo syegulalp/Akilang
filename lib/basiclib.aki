@@ -1,27 +1,3 @@
-# Win32-specific -- this will be eventually moved into its own platform-specific sublib
-
-extern _getch() :byte
-extern SetConsoleOutputCP(codepage :u32) :bool
-extern GetConsoleOutputCP() :u32
-extern printf(str_fmt :ptr i8, int_data :u64) :i32
-extern rand():i32
-
-# We don't yet have the ability to encode variable arguments
-
-# implementations of above
-
-def inkey() :byte
-    _getch()
-
-def set_codepage(codepage :u32) :bool
-    SetConsoleOutputCP(codepage)
-
-def get_codepage() :u32
-    GetConsoleOutputCP()
-
-def rnd(max:i32):i32
-    rand()/(32767/max)
-
 # general cross-platform functions
 
 def print(number :bool) :i32
@@ -102,4 +78,3 @@ def binary mod 10 (lhs, rhs)
 # extern floor(x)
 # extern trunc(x)
 # extern round(x)
-# extern rand() :i32
