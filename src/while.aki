@@ -1,10 +1,8 @@
+def s(z:i32){
+    var x=0U
+    return x
+}
+
 def main() {
-    var x:i32[2]
-    #loop (z:i32(0,100) = 0, z < 20){
-    loop (z:i32(0,100) = 0, z < 20){
-        x[z]=z
-    }
-    loop (z=0, z<20){
-        print (x[z])
-    }
+    s(1)
 }

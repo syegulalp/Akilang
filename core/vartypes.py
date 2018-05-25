@@ -160,6 +160,7 @@ VarTypes = Map({
     'u64': UnsignedInt(64),
     'f64': Float64(),
     'ptr_size': None,
+    # ptr_size is set on init
 
     # non-singleton
     'array': Array,

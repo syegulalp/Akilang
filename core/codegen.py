@@ -4,7 +4,7 @@ import llvmlite.binding as llvm
 
 from core.ast_module import (
     Binary, Variable, Prototype, Function, Uni, Class,
-    Array, If, Number, ArrayAccessor, Call
+    Array, If, Number, ArrayAccessor, Call, Var
 )
 from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
@@ -615,28 +615,19 @@ class LLVMCodeGenerator(object):
         # loop header
         #############
 
-        # Evaluate the starting value for the counter and store it
-        start_val = self._codegen(node.start_expr)
-
-        type = start_val.type
-
-        var_addr = self._varaddr(node.id_name, False)
+        var_addr = self._varaddr(node.start_expr.name, False)
         if var_addr is None:
-            var_addr = self._alloca(node.id_name, type)
-        if var_addr.type.pointee != type:
-            raise CodegenError(
-                f'type mismatch in loop variable (expected "{type.descr()}", got "{var_addr.type.pointee.descr()}")',
-                node.start_expr.position)
+            self._codegen_Var(
+                Var(node.start_expr.position, [node.start_expr])
+            )
+            var_addr = self._varaddr(node.start_expr.name, False)
+        else:
+            self._codegen_Assignment(
+                node.start_expr,
+                node.start_expr.initializer
+            )
 
-        self.builder.store(start_val, var_addr)
-
-        # Allocate the variable on the stack
-        #var_addr = self._alloca(node.id_name, type)
-        #self.builder.store(start_val, var_addr)
-
-        # Save the current block to tell the loop cond where we are coming from
-        # no longer required, I think
-        # loopheader_bb = self.builder.block
+        loop_ctr_type = var_addr.type.pointee
 
         # Jump to loop cond
         self.builder.branch(loopcond_bb)
@@ -650,8 +641,8 @@ class LLVMCodeGenerator(object):
 
         # Set the symbol table to to reach de local counting variable.
         # If it shadows an existing variable, save it before and restore it later.
-        oldval = self.func_symtab.get(node.id_name)
-        self.func_symtab[node.id_name] = var_addr
+        oldval = self.func_symtab.get(node.start_expr.name)
+        self.func_symtab[node.start_expr.name] = var_addr
 
         # Compute the end condition
         endcond = self._codegen(node.end_expr)
@@ -660,12 +651,12 @@ class LLVMCodeGenerator(object):
         # based on the type of the loop object - int vs. float, chiefly
         # this is a pattern we may repeat too often
 
-        cond = ('!=', endcond, ir.Constant(type, 0), 'loopifcond')
+        cond = ('!=', endcond, ir.Constant(loop_ctr_type, 0), 'loopifcond')
 
-        if isinstance(type, (ir.FloatType, ir.DoubleType)):
+        if isinstance(loop_ctr_type, (ir.FloatType, ir.DoubleType)):
             cmp = self.builder.fcmp_unordered(*cond)
-        elif isinstance(type, ir.IntType):
-            if getattr(type, 'v_signed', None):
+        elif isinstance(loop_ctr_type, ir.IntType):
+            if getattr(loop_ctr_type, 'v_signed', None):
                 cmp = self.builder.icmp_signed(*cond)
             else:
                 cmp = self.builder.icmp_unsigned(*cond)
@@ -681,15 +672,14 @@ class LLVMCodeGenerator(object):
         self.builder.position_at_start(loopbody_bb)
 
         # Emit the body of the loop.
-        # Note that we ignore the value computed by the body.
-        # body_val = self._codegen(node.body, False)
+        # Note that we ignore the value computed by the body.        
         self._codegen(node.body, False)
 
         # If the step is unknown, make it increment by 1
         if node.step_expr is None:
             node.step_expr = Binary(node.position, "+",
-                                    Variable(node.position, node.id_name),
-                                    Number(None, 1, type))
+                                    Variable(node.position, node.start_expr.name),
+                                    Number(None, 1, loop_ctr_type))
 
         # Evaluate the step and update the counter
         nextval = self._codegen(node.step_expr)
@@ -709,11 +699,11 @@ class LLVMCodeGenerator(object):
         # Remove the loop variable from the symbol table;
         # if it shadowed an existing variable, restore that.
         if oldval is None:
-            del self.func_symtab[node.id_name]
+            del self.func_symtab[node.start_expr.name]
         else:
-            self.func_symtab[node.id_name] = oldval
+            self.func_symtab[node.start_expr.name] = oldval
 
-        # The 'for' expression returns the last value of the counter
+        # The 'loop' expression returns the last value of the counter
         return self.builder.load(var_addr)
 
     def _codegen_While(self, node):
@@ -839,8 +829,6 @@ class LLVMCodeGenerator(object):
         # Create a function type
         vartypes = []
         for x in node.argnames:
-            # why did we do this?
-            # ah, this is to preserve the array structure
             if isinstance(x[1], Array):
                 s = x[1].element_type
                 for n in x[1].elements.elements:
@@ -848,6 +836,12 @@ class LLVMCodeGenerator(object):
             else:
                 s = x[1]
             vartypes.append(s)
+
+        # TODO: it isn't yet possible to have an implicitly
+        # typed function that just uses the return type of the body
+        # we might be able to do this by way of a special call
+        # to this function
+        # note that Extern functions MUST be typed
 
         if node.vartype is None:
             node.vartype = DEFAULT_TYPE
@@ -857,6 +851,9 @@ class LLVMCodeGenerator(object):
         public_name = funcname
 
         linkage = None
+
+        # TODO: identify anonymous functions with a property
+        # not by way of their nomenclature
 
         if node.extern is False and not funcname.startswith(
                 '_ANONYMOUS.') and funcname != 'main':
@@ -1033,7 +1030,7 @@ class LLVMCodeGenerator(object):
             var_ref = self.module.globals.get(name, None)
             if var_ref is not None:
                 raise CodegenError(
-                    f'"{name}" already defined in universal scope', position)
+                    f'"{name}" already defined in universal scope', position)            
 
             var_ref = self._alloca(name, type)
             self.func_symtab[name] = var_ref
@@ -1042,10 +1039,11 @@ class LLVMCodeGenerator(object):
                 self.builder.store(val, var_ref)
             else:
                 if type.is_obj_ptr():
+                    # allocate the actual object, not just a pointer to it
+                    # beacuse it doesn't actually exist yet!
                     obj = self._alloca('obj', type.pointee)
                     self.builder.store(obj, var_ref)
-                # else:
-                #     var_ref = self.builder.load(var_ref)
+
 
     def _codegen_VarDef(self, expr, vartype):
         if expr is None:
@@ -1224,6 +1222,16 @@ class LLVMCodeGenerator(object):
             self._check_pointer(codegen, node)
         return codegen
 
+    # We might not have to do these as builtins
+    # actually, we do if we want to allocate to the size of
+    # an obect of unknown type, at least for now
+    
+    # def _codegen_Builtins_c_alloc(self, node):
+    #     pass
+
+    # def _codegen_Builtins_c_free(self, node):
+    #     pass
+    
     def _codegen_Builtins_c_obj_ref(self, node):
         '''
         Returns a typed pointer to the object.

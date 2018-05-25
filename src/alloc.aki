@@ -1,0 +1,19 @@
+def main(){
+    var x=c_alloc({with var z:i32[8] c_size(z)})
+    print (cast(x,u64))
+    
+    # codegen this as:
+    # generate the type information
+    # get the size of the defined type from LLVM
+    # c_alloc that much memory
+    # store newly created object at pointer
+    # assign name y to that pointer
+
+    # do we want to store that in a separate object space, too?
+    # globals, but not immutables?
+
+    # next step:
+    # if object is     
+
+    0
+}

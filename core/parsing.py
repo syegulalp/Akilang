@@ -384,10 +384,8 @@ class Parser(object):
 
         return new_class
 
-    def _parse_var_expr(self, consume_var=True):
-        if consume_var:
-            self._get_next_token()  # consume the 'var'
-
+    def _parse_var_expr(self):
+        self._get_next_token()
         var_pos = self.cur_tok.position
         vars = []
 
@@ -412,9 +410,6 @@ class Parser(object):
             vars.append(
                 Variable(pos, name, vartype, None, init)
             )
-
-            if not consume_var:
-                break
 
             if not self._cur_tok_is_punctuator(','):
                 break
@@ -487,15 +482,9 @@ class Parser(object):
 
         self._match(TokenKind.PUNCTUATOR, '(')
         
-        id_name = self.cur_tok.value        
-        self._match(TokenKind.IDENTIFIER)
+        var_pos = self.cur_tok.position
 
-        # TODO: loop expressions need to be parsed by way of the
-        # parse_var_expr function
-
-        #id_name = None
-        #start_expr = self._parse_var_expr(False)
-        #print (start_expr.__dict__)
+        id_name, vartype = self._parse_var_declaration()
 
         self._match(TokenKind.OPERATOR, '=')
         start_expr = self._parse_expression()
@@ -514,7 +503,10 @@ class Parser(object):
         self._match(TokenKind.PUNCTUATOR, ')')
 
         body = self._parse_expression()
-        return Loop(start, id_name, start_expr, end_expr, step_expr, body)
+
+        loop_var = Variable(var_pos, id_name, vartype, None, start_expr)
+
+        return Loop(start, id_name, loop_var, end_expr, step_expr, body)
 
     def _parse_array_accessor(self):
         # TODO: replace "accessor" with "elements" or "dimensions"
