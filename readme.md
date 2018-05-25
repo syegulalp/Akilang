@@ -2,7 +2,9 @@
 
 Eventually, this might become something useful for production. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
 
-> ⚠ This project is currently very  unstable and may break between updates.
+> ⚠ This project is currently very unstable and may break between updates.
+
+[This document](whats-next.md) gives you an idea of what's being worked on right now and in the near future.
 
 # Goals and ideals
 
