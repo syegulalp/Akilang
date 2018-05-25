@@ -840,7 +840,7 @@ class Parser(object):
 
 Builtins = {
     'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
-    'cast', 'convert', 'c_addr'
+    'cast', 'convert', 'c_addr','c_obj_alloc'
 }
 
 # if __name__ == '__main__':

@@ -1,6 +1,22 @@
 def main(){
-    var x=c_alloc({with var z:i32[8] c_size(z)})
-    print (cast(x,u64))
+    var x=c_obj_alloc({with var z:u64[4] z})
+    x[0]=c_addr(x)
+    x[1]=c_addr(x[0])
+    x[2]=c_addr(x[1])
+    print (x[0])
+    print (x[1])
+    print (x[2])
+    
+    # interim:
+    # c_obj_alloc(x,i32[8])
+    # this allows us to override the process
+    # it returns a pointer which we could just set directly
+    
+    # var x=c_obj_alloc(i32[8])
+    # but the actual pointer to x is lost,
+    # so we need to preserve and track it somewhere.
+    # or we could say c_obj_dealloc(x) to look up the address of x
+    # and call dealloc ourselves for now
     
     # codegen this as:
     # generate the type information
@@ -11,9 +27,6 @@ def main(){
 
     # do we want to store that in a separate object space, too?
     # globals, but not immutables?
-
-    # next step:
-    # if object is     
 
     0
 }

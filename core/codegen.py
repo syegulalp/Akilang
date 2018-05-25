@@ -66,15 +66,21 @@ class LLVMCodeGenerator(object):
         '''
         return ir.Constant(VarTypes.i32, self.pointer_size)
 
+    def _obj_size_type(self, obj=None):
+        return obj.get_abi_size(llvm.create_target_data(self.module.data_layout))
+
+    def _obj_size(self, obj):
+        return self._obj_size_type(obj.type)
+
     def generate_code(self, node):
         assert isinstance(node, (Prototype, Function, Uni, Class))
         return self._codegen(node, False)
 
-    def _alloca(self, name, type=None):
+    def _alloca(self, name, type=None, size=None):
         """Create an alloca in the entry BB of the current function."""
         assert type is not None
         with self.builder.goto_entry_block():
-            alloca = self.builder.alloca(type, size=None, name=name)
+            alloca = self.builder.alloca(type, size=size, name=name)
         return alloca
 
     def _codegen(self, node, check_for_type=True):
@@ -84,7 +90,7 @@ class LLVMCodeGenerator(object):
         """
         method = '_codegen_' + node.__class__.__name__
         result = getattr(self, method)(node)
-        
+
         if check_for_type and not hasattr(result, 'type'):
             raise CodegenError(
                 f'expression does not return a value along all code paths',
@@ -672,13 +678,14 @@ class LLVMCodeGenerator(object):
         self.builder.position_at_start(loopbody_bb)
 
         # Emit the body of the loop.
-        # Note that we ignore the value computed by the body.        
+        # Note that we ignore the value computed by the body.
         self._codegen(node.body, False)
 
         # If the step is unknown, make it increment by 1
         if node.step_expr is None:
             node.step_expr = Binary(node.position, "+",
-                                    Variable(node.position, node.start_expr.name),
+                                    Variable(node.position,
+                                             node.start_expr.name),
                                     Number(None, 1, loop_ctr_type))
 
         # Evaluate the step and update the counter
@@ -1030,13 +1037,21 @@ class LLVMCodeGenerator(object):
             var_ref = self.module.globals.get(name, None)
             if var_ref is not None:
                 raise CodegenError(
-                    f'"{name}" already defined in universal scope', position)            
+                    f'"{name}" already defined in universal scope', position)
 
             var_ref = self._alloca(name, type)
             self.func_symtab[name] = var_ref
 
-            if expr:
-                self.builder.store(val, var_ref)
+            if expr:    
+
+                # if _no_alloca is set, we've already preallocated space
+                # for the object, so all we have to do is set the name
+                # to its existing pointer
+
+                if getattr(val,'_no_alloca',False):
+                    self.func_symtab[name] = val
+                else:
+                    self.builder.store(val, var_ref)
             else:
                 if type.is_obj_ptr():
                     # allocate the actual object, not just a pointer to it
@@ -1044,13 +1059,9 @@ class LLVMCodeGenerator(object):
                     obj = self._alloca('obj', type.pointee)
                     self.builder.store(obj, var_ref)
 
-
     def _codegen_VarDef(self, expr, vartype):
         if expr is None:
             val = None
-
-            # if isinstance(vartype, ir.types.IdentifiedStructType):
-            #     final_type = vartype
 
             if isinstance(vartype, Class):
                 # XXX: using .v_id may not be the smart way
@@ -1166,7 +1177,7 @@ class LLVMCodeGenerator(object):
             type = v.vartype
             init = v.initializer
             position = v.position
-        
+
             # Emit the initializer before adding the variable to scope. This
             # prevents the initializer from referencing the variable itself.
 
@@ -1222,16 +1233,32 @@ class LLVMCodeGenerator(object):
             self._check_pointer(codegen, node)
         return codegen
 
-    # We might not have to do these as builtins
-    # actually, we do if we want to allocate to the size of
-    # an obect of unknown type, at least for now
-    
-    # def _codegen_Builtins_c_alloc(self, node):
-    #     pass
+    def _codegen_Builtins_c_obj_alloc(self, node):
+        '''
+        Allocates bytes for an object of the type submitted.
+        Eventually we will be able to submit a type directly.
+        For now, use a throwaway closure
+        E.g., for an i32[8]:
+        var x=c_obj_alloc({with var z:i32[8] z})
+        '''
 
-    # def _codegen_Builtins_c_free(self, node):
-    #     pass
-    
+        expr = self._codegen(node.args[0])
+        sizeof = self._obj_size(expr)
+
+        call = self._codegen_Call(
+            Call(
+                node.position, 'c_alloc',
+                [
+                    Number(node.position, sizeof, VarTypes.ptr_size)
+                ]
+            )
+        )
+
+        bc = self.builder.bitcast(call, expr.type.as_pointer())
+        setattr(bc,'_no_alloca',True)
+
+        return bc
+
     def _codegen_Builtins_c_obj_ref(self, node):
         '''
         Returns a typed pointer to the object.
@@ -1255,7 +1282,8 @@ class LLVMCodeGenerator(object):
         else:
             s1 = expr.type
 
-        s2 = s1.get_abi_size(llvm.create_target_data(self.module.data_layout))
+        s2 = self._obj_size_type(s1)
+        # s1.get_abi_size(llvm.create_target_data(self.module.data_layout))
 
         return ir.Constant(VarTypes.ptr_size, s2)
 
