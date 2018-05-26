@@ -67,7 +67,8 @@ class LLVMCodeGenerator(object):
         return ir.Constant(VarTypes.i32, self.pointer_size)
 
     def _obj_size_type(self, obj=None):
-        return obj.get_abi_size(llvm.create_target_data(self.module.data_layout))
+        return obj.get_abi_size(
+            llvm.create_target_data(self.module.data_layout))
 
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
@@ -161,8 +162,7 @@ class LLVMCodeGenerator(object):
         except AttributeError:
             raise CodegenError(
                 f'invalid array accessor for "{source.name}" (maybe wrong number of dimensions?)',
-                node.position
-            )
+                node.position)
 
         return ptr
 
@@ -236,8 +236,13 @@ class LLVMCodeGenerator(object):
             raise CodegenError(f'lhs of "=" ({lhs}) must be a variable',
                                lhs.position)
 
-        value = self._codegen(rhs)
         ptr = self._codegen_Variable(lhs, noload=True)
+        if getattr(ptr, 'global_constant', None):
+            raise CodegenError(
+                f'universal constant "{lhs.name}" cannot be reassigned',
+                lhs.position)
+
+        value = self._codegen(rhs)
 
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
@@ -249,21 +254,6 @@ class LLVMCodeGenerator(object):
                     f'cannot assign value of type "{value.type.descr()}" to variable "{ptr.name}" of type "{ptr.type.pointee.descr()}"',
                     rhs.position)
 
-        # if value.type != ptr.type.pointee:
-        #     raise CodegenError(
-        #         f'Type declaration and variable assignment type do not match (expected "{ptr.type.pointee.descr()}", got "{value.type.descr()}"',
-        #         rhs.position)
-
-        # if value.type.signed != ptr.type.pointee.signed:
-        #     raise CodegenError(
-        #         f'cannot assign value of type "{value.type.descr()}" to variable "{ptr.name}" of type "{ptr.type.pointee.descr()}"',
-        #         rhs.position)
-
-        if getattr(ptr, 'global_constant', None):
-            raise CodegenError(
-                f'universal constant "{lhs.name}" cannot be reassigned',
-                lhs.position)
-
         self.builder.store(value, ptr)
         return value
 
@@ -272,7 +262,9 @@ class LLVMCodeGenerator(object):
 
     def _string_base(self, string, global_constant=True):
         '''
-        Core function for code generation for strings. This will also be called when we create strings dynamically in the course of a function, or statically during compilation.
+        Core function for code generation for strings.
+        This will also be called when we create strings dynamically
+        in the course of a function, or statically during compilation.
         '''
         # only strings codegenned from source should be stored as LLVM globals
         module = self.module
@@ -287,8 +279,8 @@ class LLVMCodeGenerator(object):
         str_const.storage_class = 'private'
         str_const.global_constant = True
         # str_const.align = 8 # Not sure we need this anymore
-        str_const.initializer = ir.Constant(
-            type, bytearray(string, 'utf8') + b'\x00')
+        str_const.initializer = ir.Constant(type,
+                                            bytearray(string, 'utf8') + b'\x00')
 
         # Get pointer to first element in string's byte array
         # and bitcast it to a ptr i8.
@@ -325,7 +317,7 @@ class LLVMCodeGenerator(object):
             v_type = getattr(lhs.type, 'v_type', None)
 
         try:
-            # For non-primitive types we need to look up the  property
+            # For non-primitive types we need to look up the property
 
             if v_type is not None:
                 if v_type == Str:
@@ -623,15 +615,11 @@ class LLVMCodeGenerator(object):
 
         var_addr = self._varaddr(node.start_expr.name, False)
         if var_addr is None:
-            self._codegen_Var(
-                Var(node.start_expr.position, [node.start_expr])
-            )
+            self._codegen_Var(Var(node.start_expr.position, [node.start_expr]))
             var_addr = self._varaddr(node.start_expr.name, False)
         else:
-            self._codegen_Assignment(
-                node.start_expr,
-                node.start_expr.initializer
-            )
+            self._codegen_Assignment(node.start_expr,
+                                     node.start_expr.initializer)
 
         loop_ctr_type = var_addr.type.pointee
 
@@ -798,6 +786,7 @@ class LLVMCodeGenerator(object):
             return getattr(self, '_codegen_Builtins_' + node.name)(node)
 
         call_args = [self._codegen(arg) for arg in node.args]
+        
         mangled_name = mangle_types(node.name, call_args)
 
         callee_func = self.module.globals.get(mangled_name, None)
@@ -876,12 +865,11 @@ class LLVMCodeGenerator(object):
             func = existing_func = self.module.globals[funcname]
 
             if not isinstance(existing_func, ir.Function):
-                raise CodegenError(
-                    f'Function/Global name collision {funcname}',
-                    node.position)
-            if not existing_func.is_declaration:
-                raise CodegenError(f'Redefinition of {funcname}',
+                raise CodegenError(f'Function/Global name collision {funcname}',
                                    node.position)
+            if not existing_func.is_declaration:
+                raise CodegenError(
+                    f'Redefinition of {funcname}', node.position)
             if len(existing_func.function_type.args) != len(functype.args):
                 raise CodegenError(
                     f'Redefinition of {funcname} with different number of arguments',
@@ -1042,13 +1030,13 @@ class LLVMCodeGenerator(object):
             var_ref = self._alloca(name, type)
             self.func_symtab[name] = var_ref
 
-            if expr:    
+            if expr:
 
                 # if _no_alloca is set, we've already preallocated space
                 # for the object, so all we have to do is set the name
                 # to its existing pointer
 
-                if getattr(val,'_no_alloca',False):
+                if getattr(val, '_no_alloca', False):
                     self.func_symtab[name] = val
                 else:
                     self.builder.store(val, var_ref)
@@ -1183,7 +1171,7 @@ class LLVMCodeGenerator(object):
 
             if self._varaddr(name, False) is not None:
                 raise CodegenError(
-                    f'variable shadowing is not permitted in "var" scope; "{name}" is used in other scopes',
+                    f'variable shadowing is not permitted; "{name}" is used in other scopes',
                     position)
 
             val, final_type = self._codegen_VarDef(init, type)
@@ -1246,18 +1234,26 @@ class LLVMCodeGenerator(object):
         sizeof = self._obj_size(expr)
 
         call = self._codegen_Call(
-            Call(
-                node.position, 'c_alloc',
-                [
-                    Number(node.position, sizeof, VarTypes.ptr_size)
-                ]
-            )
-        )
+            Call(node.position, 'c_alloc',
+                 [Number(node.position, sizeof, VarTypes.ptr_size)]))
 
         bc = self.builder.bitcast(call, expr.type.as_pointer())
-        setattr(bc,'_no_alloca',True)
+        setattr(bc, '_no_alloca', True)
 
         return bc
+
+    def _codegen_Builtins_c_obj_free(self, node):
+        '''
+        Deallocates memory for an object created with c_obj_alloc.
+        '''
+        expr = self._get_obj_noload(node)
+        addr = self.builder.ptrtoint(expr, VarTypes.ptr_size)
+
+        call = self._codegen_Call(
+            Call(node.position, 'c_free',
+                 [Number(node.position, addr.get_reference(), VarTypes.ptr_size)]))
+
+        return call
 
     def _codegen_Builtins_c_obj_ref(self, node):
         '''

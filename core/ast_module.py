@@ -121,7 +121,6 @@ class Variable(Expr):
     def __str__(self):
         return f"{self.vartype} {self.name}"
 
-
 class Unary(Expr):
     def __init__(self, position, op, rhs):
         super().__init__(position)

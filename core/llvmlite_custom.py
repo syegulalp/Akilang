@@ -21,6 +21,9 @@ class MyType():
         return is_original_obj
 
     def descr(self):
+        '''
+        Provides a human readable description of the type, for errors.
+        '''
         if self.is_obj_ptr():
             return self.pointee.v_id.replace('_', ' ')
         return self.v_id.replace('_', ' ')

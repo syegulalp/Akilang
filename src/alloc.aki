@@ -6,6 +6,8 @@ def main(){
     print (x[0])
     print (x[1])
     print (x[2])
+
+    if c_obj_free(x) then print("OK") else print ("No")
     
     # interim:
     # c_obj_alloc(x,i32[8])
