@@ -221,23 +221,43 @@ class TestEvaluator(unittest.TestCase):
 
     def test_uni_assignment(self):
         e = AkilangEvaluator()
-        results = e.eval_generator('''
+        e.evaluate('''
             uni {
                 a:i32[2,32,32],
                 b:i32
             }
-
+        ''')
+        e.evaluate('''
             def main(){
                 b=32
                 a[0,8,16]=1
                 a[1,32,16]=2
                 a[2,0,0]=4
                 return a[0,8,16]+a[1,32,16]+a[2,0,0]+b
-            }
-
-            main()
-            
+            }            
         ''')
-        self.assertEqual(list(results)[-1].value, 39)
+        self.assertEqual(e.evaluate('main()'), 39)
 
-    
+    def test_alloc_free(self):
+        from core.repl import config
+        cfg = config()
+        paths = cfg['paths']
+        e = AkilangEvaluator(paths['lib_dir'], paths['basiclib'])
+        e.reset()
+
+        e.evaluate('''
+        def main(){
+            var
+                x=c_obj_alloc({with var z:u64[64] z}),
+                y=0U,
+                z=0
+            x[0]=c_addr(x)
+            x[1]=64U
+            x[64]=64U
+            y=x[1]+x[64]
+            z=z+(if y==128U then 0 else 1)
+            z=z+(if c_obj_free(x) then 0 else 1)
+            z
+        }
+        ''')
+        self.assertEqual(e.evaluate('main()'), 0)
