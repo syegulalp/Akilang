@@ -80,6 +80,16 @@ class Parser(object):
         return (self.cur_tok.kind == TokenKind.OPERATOR
                 and self.cur_tok.value == op)
 
+    def _check_builtins(self):
+        if self.cur_tok.value in Builtins:
+            raise ParseError(
+                f'"{self.cur_tok.value}" cannot be used as an identifier (builtin)',
+                self.cur_tok.position)
+        if self.cur_tok.value in VarTypes:
+            raise ParseError(
+                f'"{self.cur_tok.value}" cannot be used as an identifier (variable type)',
+                self.cur_tok.position)
+
     def _parse_identifier_expr(self):
         start = self.cur_tok.position
         id_name = self.cur_tok.value
@@ -352,6 +362,8 @@ class Parser(object):
                 f'expected identifier after "let", not "{self.cur_tok.value}"',
                 self.cur_tok.position)
 
+        self._check_builtins()
+        
         class_name = self.cur_tok.value
         self._get_next_token()
 
@@ -546,6 +558,8 @@ class Parser(object):
                 f'expected variable identifier, got "{self.cur_tok.value}" instead',
                 self.cur_tok.position)
 
+        self._check_builtins()
+        
         name = self.cur_tok.value
 
         self._get_next_token()
@@ -730,10 +744,7 @@ class Parser(object):
         vartype = None
 
         if self.cur_tok.kind == TokenKind.IDENTIFIER:
-            if self.cur_tok.value in VarTypes:
-                raise ParseError(
-                    f'"{self.cur_tok.value}" is a reserved word and cannot be used as an identifier',
-                    self.cur_tok.position)
+            self._check_builtins()
             name = self.cur_tok.value
             r_name = name
             self._get_next_token()
@@ -808,6 +819,12 @@ class Parser(object):
         self._get_next_token()  # consume 'extern'
         return self._parse_prototype(extern=True)
 
+        # TODO: how do we deal with externals that might have a namespace collision
+        # with a builtin?
+        # possibility: 
+        # extern "alias" convert()
+        # or prefix external calls with $?
+
     def _parse_definition(self):
         start = self.cur_tok.position
         self._get_next_token()  # consume 'def'
@@ -840,7 +857,7 @@ class Parser(object):
 
 Builtins = {
     'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
-    'cast', 'convert', 'c_addr','c_obj_alloc', 'c_obj_free'
+    'cast', 'convert', 'c_addr','c_obj_alloc', 'c_obj_free', 'dummy'
 }
 
 # if __name__ == '__main__':
