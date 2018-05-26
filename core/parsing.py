@@ -2,7 +2,7 @@ from collections import namedtuple
 
 from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
-    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number
+    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
 from core.errors import ParseError, CodegenWarning
@@ -94,7 +94,6 @@ class Parser(object):
         start = self.cur_tok.position
         id_name = self.cur_tok.value
 
-        # TODO: builtins will also need to be reworked
         if id_name in Builtins:
             return self._parse_builtin(id_name)
 
@@ -167,7 +166,7 @@ class Parser(object):
         elif self._cur_tok_is_punctuator('{'):
             return self._parse_do_expr()
         elif self.cur_tok.kind == TokenKind.RETURN:
-            return self._parse_return_expr()
+            return self._parse_return_expr()        
         elif self.cur_tok.kind == TokenKind.IDENTIFIER:
             return self._parse_identifier_expr()
         elif self.cur_tok.kind == TokenKind.OPERATOR:
@@ -192,6 +191,8 @@ class Parser(object):
             return self._parse_match_expr()
         elif self.cur_tok.kind == TokenKind.BREAK:
             return self._parse_break_expr()
+        elif self.cur_tok.kind == TokenKind.VARTYPE:
+            return self._parse_standalone_vartype_expr()            
 
         elif self.cur_tok.kind == TokenKind.EOF:
             raise ParseError('Expression expected but reached end of code',
@@ -201,6 +202,12 @@ class Parser(object):
                 f'Expression expected but met unknown token: "{self.cur_tok.value}"',
                 self.cur_tok.position)
 
+    def _parse_standalone_vartype_expr(self):
+        id_name = self.cur_tok.value
+        pos = self.cur_tok.position
+        self._get_next_token()
+        return VariableType(pos, id_name)
+    
     def _parse_with_expr(self):
         cur = self.cur_tok
         self._get_next_token()  # consume `with`

@@ -121,6 +121,19 @@ class Variable(Expr):
     def __str__(self):
         return f"{self.vartype} {self.name}"
 
+class VariableType(Expr):
+    def __init__(self, position, name):
+        super().__init__(position)
+        self.name = name
+
+    def flatten(self):
+        return [
+            self.__class__.__name__, self.name
+        ]
+
+    def __str__(self):
+        return f"type {self.name}"
+
 class Unary(Expr):
     def __init__(self, position, op, rhs):
         super().__init__(position)
