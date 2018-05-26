@@ -119,9 +119,10 @@ class Lexer(object):
 
     def _advance(self):
         try:
+            self.prevchar = self.buf[self.pos]
             self.pos += 1
             self.lastchar = self.buf[self.pos]
-            self.position.advance(self.lastchar == '\n')
+            self.position.advance(self.prevchar in '\r\n')
 
         except IndexError:
             self.lastchar = ''
