@@ -277,10 +277,12 @@ class LLVMCodeGenerator(object):
 
         str_const = ir.GlobalVariable(module, type, str_name + '.dat')
         str_const.storage_class = 'private'
+        str_const.unnamed_addr = True
         str_const.global_constant = True
-        # str_const.align = 8 # Not sure we need this anymore
-        str_const.initializer = ir.Constant(type,
-                                            bytearray(string, 'utf8') + b'\x00')
+
+        str_const.initializer = ir.Constant(
+            type,
+            bytearray(string, 'utf8') + b'\x00')
 
         # Get pointer to first element in string's byte array
         # and bitcast it to a ptr i8.
@@ -290,8 +292,9 @@ class LLVMCodeGenerator(object):
         # Create the string object that points to the constant.
 
         str_val = ir.GlobalVariable(module, VarTypes.str, str_name)
-        str_val.global_constant = True
         str_val.storage_class = 'private'
+        str_val.unnamed_addr = True
+        str_val.global_constant = True
 
         str_val.initializer = VarTypes.str(
             [spt, ir.Constant(VarTypes.ptr_size, string_length)])
@@ -786,7 +789,7 @@ class LLVMCodeGenerator(object):
             return getattr(self, '_codegen_Builtins_' + node.name)(node)
 
         call_args = [self._codegen(arg) for arg in node.args]
-        
+
         mangled_name = mangle_types(node.name, call_args)
 
         callee_func = self.module.globals.get(mangled_name, None)
