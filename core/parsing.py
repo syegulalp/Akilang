@@ -265,6 +265,10 @@ class Parser(object):
             accessor = self._parse_array_accessor()
             # the array has to be built from the inside out
             for n in reversed(accessor.elements):
+                # TODO: arrays are declared only statically
+                # what we might want to do is codegen each,
+                # and then assign dynamically
+                # but that will NOT work with a uni dec...
                 vartype = VarTypes.array(vartype, int(n.val))
             self._get_next_token()
 

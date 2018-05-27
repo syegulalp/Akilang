@@ -193,8 +193,6 @@ class Lexer(object):
                     self._advance()
                 id_str = ''.join(id_str)
 
-                # TODO: We may want to move this to the parsing phase
-
                 if id_str in BUILTIN_OP:
                     yield Token(TokenKind.OPERATOR, id_str, None, pos)
                 elif id_str in BUILTIN_UNARY_OP:

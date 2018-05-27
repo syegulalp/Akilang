@@ -1,3 +1,5 @@
 def main(){
-    var x=i32
+    var x=32
+    var y=c_array_ptr(x)
+    print (y)
 }
