@@ -2,8 +2,6 @@
 
 This is a short list of things I'm going to be working on, in rough order of attempt.
 
-* Types should be transformed into their own AST nodes so they can be manipulated more readily. This will be a prelude to functions accepting abstract types, among many other things.
-
 * Some form of tracing of object scopes, so that heap allocated objects can be passed freely around and deallocated intelligently
 
 * Constant folding in the parser.
