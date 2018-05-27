@@ -366,7 +366,7 @@ class Parser(object):
 
         if self.cur_tok.kind != TokenKind.IDENTIFIER:
             raise ParseError(
-                f'expected identifier after "let", not "{self.cur_tok.value}"',
+                f'expected identifier after "class", not "{self.cur_tok.value}"',
                 self.cur_tok.position)
 
         self._check_builtins()
@@ -405,13 +405,14 @@ class Parser(object):
 
     def _parse_var_expr(self):
         self._get_next_token()
-        var_pos = self.cur_tok.position
-        vars = []
 
         if self.cur_tok.kind != TokenKind.IDENTIFIER:
             raise ParseError(
                 f'expected identifier after "var", not "{self.cur_tok.value}"',
                 self.cur_tok.position)
+        
+        var_pos = self.cur_tok.position
+        vars = []
 
         while True:
             init = None
