@@ -264,7 +264,14 @@ class Parser(object):
         if self._cur_tok_is_punctuator('['):
             accessor = self._parse_array_accessor()
             # the array has to be built from the inside out
+            for n in accessor.elements:
+                if isinstance(n,Variable):
+                    raise ParseError(
+                        f'array size cannot be set dynamically with a variable; use a constant',
+                        n.position
+                    )
             for n in reversed(accessor.elements):
+                
                 # TODO: arrays are declared only statically
                 # what we might want to do is codegen each,
                 # and then assign dynamically
