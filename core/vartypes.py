@@ -64,6 +64,7 @@ class CustomClass():
         new_class.elements = types
         new_class.v_types = v_types
         new_class.v_id = name
+        new_class.signed = False
         new_class.is_obj = True
 
         # def type_as_ptr(addrspace=0):
