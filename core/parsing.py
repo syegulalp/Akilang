@@ -58,7 +58,7 @@ class Parser(object):
     def _get_next_token(self):
         self.cur_tok = next(self.token_generator)
 
-    def _match(self, expected_kind, expected_value=None):
+    def _match(self, expected_kind, expected_value=None, consume=True):
         """Consume the current token; verify that it's of the expected kind.
         If expected_kind == TokenKind.OPERATOR, verify the operator's value.
         """
@@ -69,7 +69,11 @@ class Parser(object):
                 f'Expected "{val}" but got "{self.cur_tok.value}"',
                 self.cur_tok.position)
 
-        self._get_next_token()
+        if consume:
+            self._get_next_token()
+
+    def _compare(self, expected_kind, expected_value=None):
+        return self._match(expected_kind, expected_value, consume=False)
 
     def _cur_tok_is_punctuator(self, punc):
         return (self.cur_tok.kind == TokenKind.PUNCTUATOR
@@ -166,7 +170,7 @@ class Parser(object):
         elif self._cur_tok_is_punctuator('{'):
             return self._parse_do_expr()
         elif self.cur_tok.kind == TokenKind.RETURN:
-            return self._parse_return_expr()        
+            return self._parse_return_expr()
         elif self.cur_tok.kind == TokenKind.IDENTIFIER:
             return self._parse_identifier_expr()
         elif self.cur_tok.kind == TokenKind.OPERATOR:
@@ -192,7 +196,7 @@ class Parser(object):
         elif self.cur_tok.kind == TokenKind.BREAK:
             return self._parse_break_expr()
         elif self.cur_tok.kind == TokenKind.VARTYPE:
-            return self._parse_standalone_vartype_expr()            
+            return self._parse_standalone_vartype_expr()
 
         elif self.cur_tok.kind == TokenKind.EOF:
             raise ParseError('Expression expected but reached end of code',
@@ -207,7 +211,7 @@ class Parser(object):
         pos = self.cur_tok.position
         self._get_next_token()
         return VariableType(pos, id_name)
-    
+
     def _parse_with_expr(self):
         cur = self.cur_tok
         self._get_next_token()  # consume `with`
@@ -265,13 +269,13 @@ class Parser(object):
             accessor = self._parse_array_accessor()
             # the array has to be built from the inside out
             for n in accessor.elements:
-                if isinstance(n,Variable):
+                if isinstance(n, Variable):
                     raise ParseError(
                         f'array size cannot be set dynamically with a variable; use a constant',
                         n.position
                     )
             for n in reversed(accessor.elements):
-                
+
                 # TODO: arrays are declared only statically
                 # what we might want to do is codegen each,
                 # and then assign dynamically
@@ -317,9 +321,8 @@ class Parser(object):
         self._get_next_token()
         self._match(TokenKind.PUNCTUATOR, '(')
         convert_from = self._parse_expression()
-        self._get_next_token()
+        self._match(TokenKind.PUNCTUATOR, ',')
         convert_to = self._parse_vartype_expr()
-        # self._get_next_token()
         self._match(TokenKind.PUNCTUATOR, ')')
         return Call(start, callee, [convert_from, convert_to])
 
@@ -374,14 +377,9 @@ class Parser(object):
 
     def _parse_class_expr(self):
         self._get_next_token()
-
-        if self.cur_tok.kind != TokenKind.IDENTIFIER:
-            raise ParseError(
-                f'expected identifier after "class", not "{self.cur_tok.value}"',
-                self.cur_tok.position)
-
+        self._compare(TokenKind.IDENTIFIER)
         self._check_builtins()
-        
+
         class_name = self.cur_tok.value
         self._get_next_token()
 
@@ -416,12 +414,8 @@ class Parser(object):
 
     def _parse_var_expr(self):
         self._get_next_token()
+        self._compare(TokenKind.IDENTIFIER)
 
-        if self.cur_tok.kind != TokenKind.IDENTIFIER:
-            raise ParseError(
-                f'expected identifier after "var", not "{self.cur_tok.value}"',
-                self.cur_tok.position)
-        
         var_pos = self.cur_tok.position
         vars = []
 
@@ -512,14 +506,14 @@ class Parser(object):
             return Loop(start, None, None, None, None, body)
 
         self._match(TokenKind.PUNCTUATOR, '(')
-        
+
         var_pos = self.cur_tok.position
 
         id_name, vartype = self._parse_var_declaration()
 
         self._match(TokenKind.OPERATOR, '=')
         start_expr = self._parse_expression()
-        
+
         self._match(TokenKind.PUNCTUATOR, ',')
 
         end_expr = self._parse_expression()
@@ -540,14 +534,10 @@ class Parser(object):
         return Loop(start, id_name, loop_var, end_expr, step_expr, body)
 
     def _parse_array_accessor(self):
-        # TODO: replace "accessor" with "elements" or "dimensions"
-        if not self._cur_tok_is_punctuator('['):
-            raise ParseError('Improper array accessor', self.cur_tok.position)
+        self._match(TokenKind.PUNCTUATOR, '[')
 
         start = self.cur_tok.position
         elements = []
-
-        self._get_next_token()
 
         while True:
             dimension = self._parse_expression()
@@ -572,13 +562,10 @@ class Parser(object):
 
         # first, consume the name of the identifier
 
-        if not self.cur_tok.kind in (TokenKind.IDENTIFIER, ):
-            raise ParseError(
-                f'expected variable identifier, got "{self.cur_tok.value}" instead',
-                self.cur_tok.position)
+        self._compare(TokenKind.IDENTIFIER)
 
         self._check_builtins()
-        
+
         name = self.cur_tok.value
 
         self._get_next_token()
@@ -588,7 +575,6 @@ class Parser(object):
         if self._cur_tok_is_punctuator(':'):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
-            # self._get_next_token()
 
         else:
             vartype = None
@@ -619,12 +605,8 @@ class Parser(object):
 
         self._get_next_token()  # consume the 'uni'
 
-        if not self._cur_tok_is_punctuator('{'):
-            raise ParseError(
-                f'expected "{{}}" block declaration, not "{self.cur_tok.value}"',
-                self.cur_tok.position)
+        self._match(TokenKind.PUNCTUATOR, '{')
 
-        self._get_next_token()  # consume the '('
         vars = []
 
         # TODO: merge this code with parse_var eventually
@@ -727,8 +709,8 @@ class Parser(object):
                 else:
                     if _ in self._if_eq_checks:
                         print(CodegenWarning(
-                        f'possible confusion of assignment operator ("=") and equality test ("==") detected',
-                        start))
+                            f'possible confusion of assignment operator ("=") and equality test ("==") detected',
+                            start))
 
             # Merge lhs/rhs
             lhs = Binary(start, op, lhs, rhs)
@@ -793,7 +775,7 @@ class Parser(object):
             if self.cur_tok.kind == TokenKind.NUMBER:
                 prec = int(self.cur_tok.value)
                 if not (0 < prec < 101):
-                    raise ParseError(f'Invalid precedence: {prec}',
+                    raise ParseError(f'Invalid precedence: {prec} (valid values are 1-100)',
                                      self.cur_tok.position)
                 self._get_next_token()
 
@@ -824,7 +806,7 @@ class Parser(object):
             # self._get_next_token()
 
         if name.startswith('binary') and len(argnames) != 2:
-            raise ParseError('Expected binary operator to have 2 operands',
+            raise ParseError('Expected binary operator to have two operands',
                              self.cur_tok.position)
         elif name.startswith('unary') and len(argnames) != 1:
             raise ParseError('Expected unary operator to have one operand',
@@ -840,7 +822,7 @@ class Parser(object):
 
         # TODO: how do we deal with externals that might have a namespace collision
         # with a builtin?
-        # possibility: 
+        # possibility:
         # extern "alias" convert()
         # or prefix external calls with $?
 
@@ -876,7 +858,7 @@ class Parser(object):
 
 Builtins = {
     'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
-    'cast', 'convert', 'c_addr','c_obj_alloc', 'c_obj_free', 'dummy'
+    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'dummy'
 }
 
 # if __name__ == '__main__':

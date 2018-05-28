@@ -14,7 +14,6 @@ const {
 }
 
 uni {
-
     field:byte[WIDTH,HEIGHT],
     #display:byte[(WIDTH+1)*HEIGHT], # can't do this yet
     display:byte[2000],
