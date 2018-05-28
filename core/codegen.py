@@ -1362,36 +1362,36 @@ class LLVMCodeGenerator(object):
     def _codegen_Builtins_cast(self, node):
         '''
         Cast one data type as another, such as a pointer to a u64,
-        or an i8 to a u32. Ignores signing and truncates bitwidths.
+        or an i8 to a u32.
+        Ignores signing.
+        Does not truncate bitwidths, however.
         '''
         cast_from = self._codegen(node.args[0])
-        #cast_to = self._codegen_VariableType(node.args[1])
         cast_to = self._codegen(node.args[1], False)
 
         cast_exception = CodegenError(
-            f'Casting from type "{cast_from.type.descr()}" to type "{cast_to.descr()}" is not yet supported',
+            f'Casting from type "{cast_from.type.descr()}" to type "{cast_to.descr()}" is not supported',
             node.args[0].position)
 
-        if isinstance(cast_from.type, ir.IntType):
-            if isinstance(cast_to, ir.IntType):
-                if cast_from.type.width > cast_to.width:
-                    op = self.builder.trunc
-                else:
-                    op = self.builder.zext
+        while True:
+            if isinstance(cast_from.type, ir.PointerType):
+                if cast_from.type.is_obj_ptr():
+                    raise cast_exception
+                op = self.builder.ptrtoint
+                break
+                
+            if cast_from.type.width == cast_to.width:
+                op = self.builder.bitcast
+                break
+
+            if cast_from.type.width < cast_to.width:
+                op = self.builder.zext
+                break
             else:
+                cast_exception.msg+=' (data would be truncated)'
                 raise cast_exception
 
-        elif isinstance(cast_from.type, ir.PointerType):
-            if cast_from.type.is_obj_ptr():
-                raise cast_exception
-            op = self.builder.ptrtoint
-
-        elif (isinstance(cast_from.type, VarTypes.f64.__class__)
-              and isinstance(cast_to, VarTypes.u64.__class__)):
-            return self.builder.bitcast(cast_from, cast_to)
-
-        else:
-            raise cast_exception
+            raise cast_exception                
 
         result = op(cast_from, cast_to)
         result.type = cast_to
@@ -1403,17 +1403,21 @@ class LLVMCodeGenerator(object):
         Checks for signing and bitwidth.
         '''
         convert_from = self._codegen(node.args[0])
-        #convert_to = self._codegen_VariableType(node.args[1])
         convert_to = self._codegen(node.args[1], False)
 
         convert_exception = CodegenError(
                 f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not yet supported',
                 node.args[0].position)
 
-        if isinstance(convert_from.type, ir.IntType):
+        while True:
+        
+            if not isinstance(convert_from.type, ir.IntType):
+                raise convert_exception
 
             if isinstance(convert_to, ir.IntType):
-
+                # TODO: allow signed to unsigned if the target
+                # type has a bitwidth that allows such conversions?
+                
                 if convert_from.type.signed and not convert_to.signed:
                     raise CodegenError(
                         f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
@@ -1423,31 +1427,30 @@ class LLVMCodeGenerator(object):
                     raise CodegenError(
                         f'Type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
                         node.args[0].position)
-                # sext for signed!
+
                 if convert_from.type.signed:
                     op = self.builder.sext
                 else:
                     op = self.builder.zext
+                break
 
-            elif isinstance(convert_to, ir.DoubleType):
+            if isinstance(convert_to, ir.DoubleType):
 
                 print(
                     CodegenWarning(
                         f'Integer to float conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
                         node.args[0].position))
+
                 if convert_from.type.signed:
                     op = self.builder.sitofp
                 else:
                     op = self.builder.uitofp
+                break
 
-            else:
-                explanation = ''
-                if convert_to.v_id == 'str':
-                    explanation = '\n(Converting numeric types to strings will be added later.)'
-                convert_exception.msg +=explanation
-                raise convert_exception
-
-        else:
+            explanation = ''
+            if convert_to.v_id == 'str':
+                explanation = '\n(Converting numeric types to strings will be added later.)'
+            convert_exception.msg +=explanation
             raise convert_exception
 
         result = op(convert_from, convert_to)

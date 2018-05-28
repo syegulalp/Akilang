@@ -37,9 +37,8 @@ class Float64(ir.DoubleType):
         t = super().__new__(cls)
         t.signed = True
         t.v_id = 'f64'
-
+        t.width=64
         return t
-
 
 # Non-singleton types (these require an invocation)
 
