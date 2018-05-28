@@ -32,7 +32,7 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def test_cast(){
-                var a=128U, b = cast(a,i32)
+                var a=128u, b = cast(a,i32)
                 if b==128 then 0 else 1
             }            
         ''')
