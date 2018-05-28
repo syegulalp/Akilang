@@ -112,9 +112,9 @@ class LLVMCodeGenerator(object):
             v = self.class_symtab.get(node.vartype)
         if v is None:
             raise ParseError(
-                    f'Type expected but got "{node.vartype}" instead',
-                    node.position
-                )
+                f'Type expected but got "{node.vartype}" instead',
+                node.position
+            )
         return v
 
     def _varaddr(self, node, report=True):
@@ -903,14 +903,15 @@ class LLVMCodeGenerator(object):
         func.calling_convention = 'fastcc'
 
         # Linkage.
-        # Default is 'private' if it's not extern, or an anonymous function,
-        # or main
+        # Default is 'private' if it's not extern, an anonymous function, or main
 
         if linkage:
             func.linkage = linkage
 
-        # Inlining. Operator functions are inlined by default.
+        # Address is not relevant by default
+        func.unnamed_addr = True
 
+        # Inlining. Operator functions are inlined by default.
         if node.isoperator:
             func.attributes.add('alwaysinline')
         else:
@@ -918,8 +919,15 @@ class LLVMCodeGenerator(object):
 
         # Attributes.
 
+        # External calls, by default, no recursion
+        if node.extern:
+            func.attributes.add('norecurse')
+
+        # By default, no lazy binding
+        func.attributes.add('nonlazybind')
+
+        # By default, no stack unwinding
         func.attributes.add('nounwind')
-        # func.attributes.add('norecurse')
 
         # Reset the decorator list now that we're done with it
         self.func_decorators = []
@@ -1379,7 +1387,7 @@ class LLVMCodeGenerator(object):
                     raise cast_exception
                 op = self.builder.ptrtoint
                 break
-                
+
             if cast_from.type.width == cast_to.width:
                 op = self.builder.bitcast
                 break
@@ -1388,10 +1396,10 @@ class LLVMCodeGenerator(object):
                 op = self.builder.zext
                 break
             else:
-                cast_exception.msg+=' (data would be truncated)'
+                cast_exception.msg += ' (data would be truncated)'
                 raise cast_exception
 
-            raise cast_exception                
+            raise cast_exception
 
         result = op(cast_from, cast_to)
         result.type = cast_to
@@ -1406,18 +1414,18 @@ class LLVMCodeGenerator(object):
         convert_to = self._codegen(node.args[1], False)
 
         convert_exception = CodegenError(
-                f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not yet supported',
-                node.args[0].position)
+            f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not yet supported',
+            node.args[0].position)
 
         while True:
-        
+
             if not isinstance(convert_from.type, ir.IntType):
                 raise convert_exception
 
             if isinstance(convert_to, ir.IntType):
                 # TODO: allow signed to unsigned if the target
                 # type has a bitwidth that allows such conversions?
-                
+
                 if convert_from.type.signed and not convert_to.signed:
                     raise CodegenError(
                         f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
@@ -1450,7 +1458,7 @@ class LLVMCodeGenerator(object):
             explanation = ''
             if convert_to.v_id == 'str':
                 explanation = '\n(Converting numeric types to strings will be added later.)'
-            convert_exception.msg +=explanation
+            convert_exception.msg += explanation
             raise convert_exception
 
         result = op(convert_from, convert_to)
