@@ -167,63 +167,66 @@ class LLVMCodeGenerator(object):
         return ptr
 
     def _codegen_Variable(self, node, noload=False):
-        load = False
-        latest = None
 
-        child = getattr(node, 'child', None)
         current_node = node
+        previous_node = None
 
-        if child is None:
-            latest = self._varaddr(node)
-            if latest.type.is_obj_ptr() is False:
-                load = True
-        else:
-            while 1:
-                if isinstance(child, ArrayAccessor):
-                    latest = self._codegen_ArrayElement(child, current_node)
-                    load = True
-                elif isinstance(child, Call):
-                    # TODO: this is where we check for dunder methods
-                    # and, eventually, overloading of same
-                    latest = self._codegen_Call(child)
-                    load = False
-                elif isinstance(child, Variable):
-                    if latest is None:
-                        latest0 = self._varaddr(current_node)
-                        if latest0.type.is_original_obj():
-                            latest0 = self.builder.load(
-                                latest0, current_node.name + '.accessor')
-                    else:
-                        latest0 = latest
+        while True:
+            current_load = False
+            # this is the load state for the *current* node, not the final node
 
-                    try:
-                        oo = latest0.type.pointee
-                    except AttributeError:
-                        raise CodegenError(f'not a pointer or object',
-                                           child.position)
+            if isinstance(current_node, Variable) and previous_node is None:
+                latest = self._varaddr(current_node)
+                current_load = not latest.type.is_obj_ptr()
 
-                    _latest_vid = oo.v_id
-                    _cls = self.class_symtab[_latest_vid]
-                    _pos = _cls.v_types[child.name]['pos']
+            elif isinstance(current_node, ArrayAccessor):
+                latest = self._codegen_ArrayElement(current_node, previous_node)
+                current_load = True
 
-                    index = [_int(0), _int(_pos)]
+            elif isinstance(current_node, Call):
+                latest = self._codegen_Call(current_node)
+                current_load = False            
 
-                    latest = self.builder.gep(
-                        latest0, index, True,
-                        current_node.name + '.' + child.name)
+            elif isinstance(current_node, Variable):
+                try:
+                    oo = latest.type.pointee
+                except AttributeError:
+                    raise CodegenError(f'not a pointer or object',
+                                        current_node.position)
 
-                    if oo.is_obj:
-                        load = True
+                _latest_vid = oo.v_id
+                _cls = self.class_symtab[_latest_vid]
+                _pos = _cls.v_types[current_node.name]['pos']
 
-                else:
-                    latest = self._varaddr(node)
+                index = [_int(0), _int(_pos)]
 
-                current_node = child
-                child = getattr(child, 'child', None)
-                if child is None:
-                    break
+                latest = self.builder.gep(
+                    latest, index, True,
+                    previous_node.name + '.' + current_node.name)
 
-        if (load) and (noload is False):
+                if oo.is_obj:
+                    current_load = True
+            
+            # pathological case
+            else: 
+                raise CodegenError(
+                    f'unknownn variable instance', current_node.position
+                )               
+
+            child = getattr(current_node, 'child', None)
+            if child is None:
+                break
+            
+            if current_load:
+                latest = self.builder.load(latest, node.name+'.accessor')
+            
+            previous_node = current_node
+            current_node = child
+        
+        if noload is True:
+            return latest
+
+        if current_load:
             return self.builder.load(latest, node.name)
         else:
             return latest
