@@ -207,10 +207,15 @@ class Parser(object):
                 self.cur_tok.position)
 
     def _parse_standalone_vartype_expr(self):
-        id_name = self.cur_tok.value
+        '''
+        Currently used for parsing variable types that are passed
+        as an argument to a function. This is an exceptional case
+        that will in time be eliminated.
+        '''
         pos = self.cur_tok.position
+        vartype = self.cur_tok.value
         self._get_next_token()
-        return VariableType(pos, id_name)
+        return VariableType(pos, vartype)
 
     def _parse_with_expr(self):
         cur = self.cur_tok
@@ -322,7 +327,10 @@ class Parser(object):
         self._match(TokenKind.PUNCTUATOR, '(')
         convert_from = self._parse_expression()
         self._match(TokenKind.PUNCTUATOR, ',')
-        convert_to = self._parse_vartype_expr()
+        # For builtins that take a vartype as an argument,
+        # we need to use this for now
+        convert_to = self._parse_standalone_vartype_expr()
+        #convert_to = self._parse_expression()
         self._match(TokenKind.PUNCTUATOR, ')')
         return Call(start, callee, [convert_from, convert_to])
 

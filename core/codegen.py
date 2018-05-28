@@ -106,6 +106,17 @@ class LLVMCodeGenerator(object):
         num = ir.Constant(node.vartype, node.val)
         return num
 
+    def _codegen_VariableType(self, node):
+        v = VarTypes.get(node.vartype)
+        if v is None:
+            v = self.class_symtab.get(node.vartype)
+        if v is None:
+            raise ParseError(
+                    f'Type expected but got "{node.vartype}" instead',
+                    node.position
+                )
+        return v
+
     def _varaddr(self, node, report=True):
         if report:
             name = node.name
@@ -177,7 +188,8 @@ class LLVMCodeGenerator(object):
                 latest = self._varaddr(current_node)
 
             elif isinstance(current_node, ArrayAccessor):
-                latest = self._codegen_ArrayElement(current_node, previous_node)
+                latest = self._codegen_ArrayElement(
+                    current_node, previous_node)
 
             elif isinstance(current_node, Call):
                 latest = self._codegen_Call(current_node)
@@ -187,8 +199,8 @@ class LLVMCodeGenerator(object):
                     oo = latest.type.pointee
                 except AttributeError:
                     raise CodegenError(f'not a pointer or object',
-                                        current_node.position)
-                
+                                       current_node.position)
+
                 _latest_vid = oo.v_id
                 _cls = self.class_symtab[_latest_vid]
                 _pos = _cls.v_types[current_node.name]['pos']
@@ -198,25 +210,25 @@ class LLVMCodeGenerator(object):
                 latest = self.builder.gep(
                     latest, index, True,
                     previous_node.name + '.' + current_node.name)
-            
+
             # pathological case
-            else: 
+            else:
                 raise CodegenError(
                     f'unknown variable instance', current_node.position
-                )               
+                )
 
             current_load = not latest.type.is_obj_ptr()
 
             child = getattr(current_node, 'child', None)
             if child is None:
                 break
-            
+
             if current_load:
                 latest = self.builder.load(latest, node.name+'.accessor')
-            
+
             previous_node = current_node
             current_node = child
-        
+
         if noload is True:
             return latest
 
@@ -1353,7 +1365,8 @@ class LLVMCodeGenerator(object):
         or an i8 to a u32. Ignores signing and truncates bitwidths.
         '''
         cast_from = self._codegen(node.args[0])
-        cast_to = node.args[1]
+        #cast_to = self._codegen_VariableType(node.args[1])
+        cast_to = self._codegen(node.args[1], False)
 
         cast_exception = CodegenError(
             f'casting from type "{cast_from.type.descr()}" to type "{cast_to.descr()}" is not yet supported',
@@ -1390,7 +1403,8 @@ class LLVMCodeGenerator(object):
         Checks for signing and bitwidth.
         '''
         convert_from = self._codegen(node.args[0])
-        convert_to = node.args[1]
+        #convert_to = self._codegen_VariableType(node.args[1])
+        convert_to = self._codegen(node.args[1], False)
 
         if convert_from.type.signed and not convert_to.signed:
             raise CodegenError(
