@@ -50,7 +50,7 @@ def factorial(n)
     if n < 2 then 1 else n * factorial(n-1)
 
 def binary mod 10 (lhs, rhs)
-    lhs - rhs * (lhs/rhs)
+    lhs - (lhs/rhs) * rhs
   
 # from c <math.h>
 # we'll move these into a math library when we have a formal way to do libraries.
