@@ -1,5 +1,6 @@
 def main(){
     var x:i32=32
     var y:i64=0I
-    print (cast(x,print))
+    var z="hello"
+    print (convert(x,str))
 }

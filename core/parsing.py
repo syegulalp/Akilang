@@ -66,7 +66,7 @@ class Parser(object):
                 expected_value and self.cur_tok.value != expected_value):
             val = expected_value if expected_value is not None else expected_kind
             raise ParseError(
-                f'Expected "{val}" but got "{self.cur_tok.value}"',
+                f'Expected "{val}" but got "{self.cur_tok.value}" instead',
                 self.cur_tok.position)
 
         if consume:
@@ -223,7 +223,7 @@ class Parser(object):
 
         if self.cur_tok.kind != TokenKind.VAR:
             raise ParseError(
-                f'invalid "with" expression', self.cur_tok.position
+                f'Invalid "with" expression', self.cur_tok.position
             )
 
         vars = self._parse_var_expr()
@@ -265,7 +265,7 @@ class Parser(object):
             vartype = self.local_types[self.cur_tok.value].vartype
 
         else:
-            raise ParseError(f'expected a variable type',
+            raise ParseError(f'Expected a variable type but got {vartype} instead',
                              self.cur_tok.position)
 
         self._get_next_token()
@@ -276,7 +276,7 @@ class Parser(object):
             for n in accessor.elements:
                 if isinstance(n, Variable):
                     raise ParseError(
-                        f'array size cannot be set dynamically with a variable; use a constant',
+                        f'Array size cannot be set dynamically with a variable; use a constant',
                         n.position
                     )
             for n in reversed(accessor.elements):
@@ -654,7 +654,7 @@ class Parser(object):
 
             else:
                 raise ParseError(
-                    f'expected variable declaration, not "{self.cur_tok.value}"',
+                    f'Expected variable declaration but got "{self.cur_tok.value}" instead',
                     self.cur_tok.position)
 
     def _parse_binop_rhs(self, expr_prec, lhs):
@@ -763,7 +763,7 @@ class Parser(object):
             if self.cur_tok.kind not in (TokenKind.IDENTIFIER,
                                          TokenKind.OPERATOR):
                 raise ParseError(
-                    'Expected identifier or unassigned operator after "unary"',
+                    f'Expected identifier or unassigned operator after "unary", got {self.cur_tok.value} instead',
                     self.cur_tok.position)
             name = f'unary.{self.cur_tok.value}'
             r_name = self.cur_tok.value
@@ -773,7 +773,7 @@ class Parser(object):
             if self.cur_tok.kind not in (TokenKind.IDENTIFIER,
                                          TokenKind.OPERATOR):
                 raise ParseError(
-                    'Expected identifier or unassigned operator after "binary"',
+                    f'Expected identifier or unassigned operator after "binary", got {self.cur_tok.value} instead',
                     self.cur_tok.position)
             name = f'binary.{self.cur_tok.value}'
             r_name = self.cur_tok.value
@@ -814,10 +814,10 @@ class Parser(object):
             # self._get_next_token()
 
         if name.startswith('binary') and len(argnames) != 2:
-            raise ParseError('Expected binary operator to have two operands',
+            raise ParseError(f'Expected binary operator to have two operands, got {len(argnames)} instead',
                              self.cur_tok.position)
         elif name.startswith('unary') and len(argnames) != 1:
-            raise ParseError('Expected unary operator to have one operand',
+            raise ParseError(f'Expected unary operator to have one operand, got {len(argnames)} instead',
                              self.cur_tok.position)
 
         return Prototype(start, name, argnames,

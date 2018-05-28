@@ -94,7 +94,7 @@ class LLVMCodeGenerator(object):
 
         if check_for_type and not hasattr(result, 'type'):
             raise CodegenError(
-                f'expression does not return a value along all code paths',
+                f'Expression does not return a value along all code paths, or expression returns an untyped value',
                 node.position)
 
         return result
@@ -141,12 +141,12 @@ class LLVMCodeGenerator(object):
 
         retval = self._codegen(node.val)
         if self.func_returntype is None:
-            raise CodegenError(f'unknown return declaration error',
+            raise CodegenError(f'Unknown return declaration error',
                                node.position)
 
         if retval.type != self.func_returntype:
             raise CodegenError(
-                f'returned type "{retval.type.descr()}" does not match function return type "{self.func_returntype.descr()}"',
+                f'Expected return type "{self.func_returntype.descr()}" but got "{retval.type.descr()}" instead',
                 node.val.position)
 
         self.builder.store(retval, self.func_returnarg)
@@ -172,7 +172,7 @@ class LLVMCodeGenerator(object):
             ptr = self.builder.gep(arr, accessor, True, f'{source.name}')
         except AttributeError:
             raise CodegenError(
-                f'invalid array accessor for "{source.name}" (maybe wrong number of dimensions?)',
+                f'Invalid array accessor for "{source.name}" (maybe wrong number of dimensions?)',
                 node.position)
 
         return ptr
@@ -198,7 +198,7 @@ class LLVMCodeGenerator(object):
                 try:
                     oo = latest.type.pointee
                 except AttributeError:
-                    raise CodegenError(f'not a pointer or object',
+                    raise CodegenError(f'Not a pointer or object',
                                        current_node.position)
 
                 _latest_vid = oo.v_id
@@ -214,7 +214,7 @@ class LLVMCodeGenerator(object):
             # pathological case
             else:
                 raise CodegenError(
-                    f'unknown variable instance', current_node.position
+                    f'Unknown variable instance', current_node.position
                 )
 
             current_load = not latest.type.is_obj_ptr()
@@ -248,7 +248,7 @@ class LLVMCodeGenerator(object):
         ptr = self._codegen_Variable(lhs, noload=True)
         if getattr(ptr, 'global_constant', None):
             raise CodegenError(
-                f'universal constant "{lhs.name}" cannot be reassigned',
+                f'Universal constant "{lhs.name}" cannot be reassigned',
                 lhs.position)
 
         value = self._codegen(rhs)
@@ -256,11 +256,11 @@ class LLVMCodeGenerator(object):
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
                 raise CodegenError(
-                    f'cannot assign value of type "{value.type.descr()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.descr()}"',
+                    f'Cannot assign value of type "{value.type.descr()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.descr()}"',
                     rhs.position)
             else:
                 raise CodegenError(
-                    f'cannot assign value of type "{value.type.descr()}" to variable "{ptr.name}" of type "{ptr.type.pointee.descr()}"',
+                    f'Cannot assign value of type "{value.type.descr()}" to variable "{ptr.name}" of type "{ptr.type.pointee.descr()}"',
                     rhs.position)
 
         self.builder.store(value, ptr)
@@ -379,7 +379,7 @@ class LLVMCodeGenerator(object):
                     return x
                 elif node.op == '/':
                     if int(getattr(rhs, 'constant', 1)) == 0:
-                        raise CodegenError('integer division by zero',
+                        raise CodegenError('Integer division by zero',
                                            node.rhs.position)
                     return self.builder.sdiv(lhs, rhs, 'divop')
                 elif node.op == 'and':
@@ -430,7 +430,7 @@ class LLVMCodeGenerator(object):
                     return x
                 elif node.op in ('and', 'or'):
                     raise CodegenError(
-                        'operator not supported for "float" or "double" types',
+                        'Operator not supported for "float" or "double" types',
                         node.lhs.position)
                 else:
                     # Not one of the predefined operators,
@@ -461,11 +461,11 @@ class LLVMCodeGenerator(object):
             val_codegen = self._codegen(value)
             if not isinstance(val_codegen, ir.values.Constant):
                 raise CodegenError(
-                    f'match parameter must be a constant, not an expression',
+                    f'Match parameter must be a constant, not an expression',
                     value.position)
             if val_codegen.type != cond_item.type:
                 raise CodegenError(
-                    f'type of match object ("{cond_item.type.descr()}") and match parameter ("{val_codegen.type.descr()}") must be consistent)',
+                    f'Type of match object ("{cond_item.type.descr()}") and match parameter ("{val_codegen.type.descr()}") must be consistent)',
                     value.position)
             if expr in exprs:
                 switch_instr.add_case(val_codegen, exprs[expr])
@@ -573,7 +573,7 @@ class LLVMCodeGenerator(object):
 
         if then_val.type != else_val.type:
             raise CodegenError(
-                f'then/else expression return types must be the same',
+                f'"then/else" expression return types must be the same ("{then_val.type.descr()}" does not match "{else_val.type.descr()}"',
                 node.position)
 
         phi = self.builder.phi(then_val.type, 'ifval')
@@ -1183,7 +1183,7 @@ class LLVMCodeGenerator(object):
 
             if self._varaddr(name, False) is not None:
                 raise CodegenError(
-                    f'variable shadowing is not permitted; "{name}" is used in other scopes',
+                    f'Variable shadowing is not permitted; "{name}" is used in other scopes',
                     position)
 
             val, final_type = self._codegen_VarDef(init, type)
@@ -1216,7 +1216,7 @@ class LLVMCodeGenerator(object):
 
     def _check_pointer(self, obj, node):
         if not isinstance(obj.type, ir.PointerType):
-            raise CodegenError('parameter must be a pointer or object',
+            raise CodegenError('Parameter must be a pointer or object',
                                node.args[0].position)
 
     def _get_obj_noload(self, node, ptr_check=True):
@@ -1369,7 +1369,7 @@ class LLVMCodeGenerator(object):
         cast_to = self._codegen(node.args[1], False)
 
         cast_exception = CodegenError(
-            f'casting from type "{cast_from.type.descr()}" to type "{cast_to.descr()}" is not yet supported',
+            f'Casting from type "{cast_from.type.descr()}" to type "{cast_to.descr()}" is not yet supported',
             node.args[0].position)
 
         if isinstance(cast_from.type, ir.IntType):
@@ -1406,17 +1406,22 @@ class LLVMCodeGenerator(object):
         #convert_to = self._codegen_VariableType(node.args[1])
         convert_to = self._codegen(node.args[1], False)
 
-        if convert_from.type.signed and not convert_to.signed:
-            raise CodegenError(
-                f'signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
+        convert_exception = CodegenError(
+                f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not yet supported',
                 node.args[0].position)
 
         if isinstance(convert_from.type, ir.IntType):
 
             if isinstance(convert_to, ir.IntType):
+
+                if convert_from.type.signed and not convert_to.signed:
+                    raise CodegenError(
+                        f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
+                        node.args[0].position)
+
                 if convert_from.type.width > convert_to.width:
                     raise CodegenError(
-                        f'type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
+                        f'Type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
                         node.args[0].position)
                 # sext for signed!
                 if convert_from.type.signed:
@@ -1425,9 +1430,10 @@ class LLVMCodeGenerator(object):
                     op = self.builder.zext
 
             elif isinstance(convert_to, ir.DoubleType):
+
                 print(
                     CodegenWarning(
-                        f'integer to float conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
+                        f'Integer to float conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
                         node.args[0].position))
                 if convert_from.type.signed:
                     op = self.builder.sitofp
@@ -1437,15 +1443,12 @@ class LLVMCodeGenerator(object):
             else:
                 explanation = ''
                 if convert_to.v_id == 'str':
-                    explanation = ' ("str(num_type)" to convert numeric types to strings will be added later)'
-                raise CodegenError(
-                    f'converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not supported{explanation}',
-                    node.args[0].position)
+                    explanation = '\n(Converting numeric types to strings will be added later.)'
+                convert_exception.msg +=explanation
+                raise convert_exception
 
         else:
-            raise CodegenError(
-                f'converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not yet supported',
-                node.args[0].position)
+            raise convert_exception
 
         result = op(convert_from, convert_to)
         result.type = convert_to

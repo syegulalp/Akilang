@@ -37,6 +37,7 @@ class Float64(ir.DoubleType):
         t = super().__new__(cls)
         t.signed = True
         t.v_id = 'f64'
+
         return t
 
 
@@ -66,10 +67,6 @@ class CustomClass():
         new_class.v_id = name
         new_class.signed = False
         new_class.is_obj = True
-
-        # def type_as_ptr(addrspace=0):
-        #     return _PointerType(new_class, addrspace, v_id=new_class.name)
-
         new_class.as_pointer = make_type_as_ptr(new_class)
 
         return new_class
@@ -81,6 +78,7 @@ Ptr = ir.global_context.get_identified_type('.object.ptr')
 Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
 Ptr.v_id = "ptrobj"
 Ptr.is_obj = True
+Ptr.signed = False
 Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
 
 # create String type manually, for now
@@ -89,6 +87,7 @@ Str = ir.global_context.get_identified_type('.object.str')
 Str.elements = (ir.IntType(8).as_pointer(), ir.IntType(64), )
 Str.v_id = 'str'
 Str.is_obj = True
+Str.signed = False
 # type signature for external (C-library) stuff
 Str.ext_ptr = UnsignedInt(8, True).as_pointer()
 
@@ -111,6 +110,7 @@ NoneType = ir.global_context.get_identified_type('.object.none')
 NoneType.elements = (ir.IntType(1), )
 NoneType.v_id = 'none'
 NoneType.is_obj = True
+NoneType.signed = False
 NoneType.ext_ptr = ir.IntType(8).as_pointer()
 # don't know if we need this, placeholder for now
 
