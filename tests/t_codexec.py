@@ -3,6 +3,7 @@ from ctypes import c_double
 
 from core.codexec import AkilangEvaluator
 from core.vartypes import VarTypes
+from core.errors import ParseError
 
 
 eval_opts = {'return_type': c_double, 'anon_vartype': VarTypes.f64}
@@ -192,3 +193,11 @@ class TestEvaluator(unittest.TestCase):
             }            
         ''')
         self.assertEqual(e.evaluate('main()'), 39)
+
+    def test_type_value_trapping(self):
+        e = AkilangEvaluator()
+        try:
+            e.evaluate('cast(32,print)')
+        except ParseError as e:
+            pass
+        
