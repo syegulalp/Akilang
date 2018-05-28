@@ -172,20 +172,15 @@ class LLVMCodeGenerator(object):
         previous_node = None
 
         while True:
-            current_load = False
-            # this is the load state for the *current* node, not the final node
 
-            if isinstance(current_node, Variable) and previous_node is None:
+            if previous_node is None and isinstance(current_node, Variable):
                 latest = self._varaddr(current_node)
-                current_load = not latest.type.is_obj_ptr()
 
             elif isinstance(current_node, ArrayAccessor):
                 latest = self._codegen_ArrayElement(current_node, previous_node)
-                current_load = True
 
             elif isinstance(current_node, Call):
                 latest = self._codegen_Call(current_node)
-                current_load = False            
 
             elif isinstance(current_node, Variable):
                 try:
@@ -193,7 +188,7 @@ class LLVMCodeGenerator(object):
                 except AttributeError:
                     raise CodegenError(f'not a pointer or object',
                                         current_node.position)
-
+                
                 _latest_vid = oo.v_id
                 _cls = self.class_symtab[_latest_vid]
                 _pos = _cls.v_types[current_node.name]['pos']
@@ -203,15 +198,14 @@ class LLVMCodeGenerator(object):
                 latest = self.builder.gep(
                     latest, index, True,
                     previous_node.name + '.' + current_node.name)
-
-                if oo.is_obj:
-                    current_load = True
             
             # pathological case
             else: 
                 raise CodegenError(
-                    f'unknownn variable instance', current_node.position
+                    f'unknown variable instance', current_node.position
                 )               
+
+            current_load = not latest.type.is_obj_ptr()
 
             child = getattr(current_node, 'child', None)
             if child is None:

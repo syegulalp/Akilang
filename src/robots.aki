@@ -8,9 +8,13 @@ class Robot{
     y:i32
 }
 
-uni {
+const {
     WIDTH=40,
     HEIGHT=20,
+}
+
+uni {
+
     field:byte[WIDTH,HEIGHT],
     #display:byte[(WIDTH+1)*HEIGHT], # can't do this yet
     display:byte[2000],
