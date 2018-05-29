@@ -1,8 +1,8 @@
 # Conway's Game Of Life in Akilang
 
 const {
-    WIDTH=79,
-    HEIGHT=33
+    WIDTH=80,
+    HEIGHT=32,
 }
 
 uni {
@@ -72,9 +72,11 @@ def life() {
         loop (x=0, x<WIDTH) {
             sum=0B
             t=0B
-            loop (j=y-1,j<y+2, j+1) 
-                loop (k=x-1, k<x+2, k+1)
-                    sum=sum+field[world,j mod HEIGHT, k mod WIDTH]
+            loop (j=y-1,j<y+2) 
+                loop (k=x-1, k<x+2)
+                    sum=sum+field[world,
+                        (j+HEIGHT) mod HEIGHT,
+                        (k+WIDTH) mod WIDTH]
             t = field[world,y,x]
             sum=sum-t
             field[w2,y,x]={
