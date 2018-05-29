@@ -1,5 +1,5 @@
 PRODUCT = "Aki"
-VERSION = "0.0.2018.05.18"
+VERSION = "0.0.2018.05.29"
 COPYRIGHT = "2018"
 
 compilers = {
