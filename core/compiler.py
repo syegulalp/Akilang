@@ -54,16 +54,44 @@ def compile(module, filename):
                   'wb') as file:
             file.write(tm.emit_object(llvm_module))
 
-    # TODO: ditch using batch file, use subprocess exclusively
+    if os.name=='nt':
+
+        extension = 'exe'
+    
+        cmds = [
+        r'call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64',
+        f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
+        r'EXIT /B %ERRORLEVEL%',
+        ''
+        ]
+
+        shell = 'cmd.exe'        
 
     try:
-        subprocess.run(
-            f'{paths["compiler_dir"]}{os.sep}{compiler_path} {paths["output_dir"]}\\{filename}',
-            shell=True,
-            check=True)
-    except subprocess.CalledProcessError as e:
+        p = subprocess.Popen(shell, 
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+
+        for cmd in cmds:
+            while True:
+                p.poll()
+                r=p.returncode
+                if r is not None:
+                    break
+                t=p.stdout.readline().decode('utf-8')
+                print(t.strip())
+                if t in ('\r\n','\n','\r'):
+                    break
+            p.stdin.write(bytes(cmd+'\n','utf-8'))
+            p.stdin.flush()
+
+    except Exception as e:
         print(f'Build failed with the following error:\n{e}')
+
     else:
         print(
-            f'Build successful for {paths["output_dir"]}{os.sep}{filename}.exe'
+            f'Build successful for {paths["output_dir"]}{os.sep}{filename}.{extension}'
         )
+
+    p.terminate()
