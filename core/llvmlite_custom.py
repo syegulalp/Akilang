@@ -7,18 +7,26 @@ class MyType():
     v_id = None
 
     def is_obj_ptr(self):
-        try:
-            is_obj = self.pointee.is_obj
-        except AttributeError:
-            is_obj = False
-        return is_obj
+        '''
+        Reports whether or not a given type
+        points directly to an object.
+        '''
 
-    def is_original_obj(self):
         try:
-            is_original_obj = self.pointee.original_obj
+            return self.pointee.is_obj
         except AttributeError:
-            is_original_obj = None
-        return is_original_obj
+            return False
+        
+    # def underlying_obj(self):
+    #     '''
+    #     Returns the original object, if any,
+    #     underyling a particular pointer.
+    #     '''
+    #     try:
+    #         obj = self.original_obj
+    #     except AttributeError:
+    #         obj = None
+    #     return obj
 
     def descr(self):
         '''
@@ -35,7 +43,7 @@ class MyType():
 
 ir.types.Type.descr = MyType.descr
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
-ir.types.Type.is_original_obj = MyType.is_original_obj
+#ir.types.Type.underlying_obj = MyType.underlying_obj
 
 
 class _PointerType(PointerType):

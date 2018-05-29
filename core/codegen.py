@@ -1344,8 +1344,7 @@ class LLVMCodeGenerator(object):
 
         expr = self._get_obj_noload(node)
 
-        # if hasattr(expr.type.pointee, 'original_obj'):
-        if expr.type.is_original_obj():
+        if expr.type.is_obj_ptr():
             raise CodegenError(
                 f'"{node.args[0].name}" is not a scalar (use c_obj_ref for references to objects instead of scalars)',
                 node.args[0].position)
@@ -1436,32 +1435,53 @@ class LLVMCodeGenerator(object):
         '''
         Converts data between primitive value types, such as i8 to i32.
         Checks for signing and bitwidth.
+        Conversions from or to pointers are not supported here.
         '''
         convert_from = self._codegen(node.args[0])
         convert_to = self._codegen(node.args[1], False)
 
         convert_exception = CodegenError(
-            f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not yet supported',
+            f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not supported',
             node.args[0].position)
-
+        
         while True:
+
+            # Converts from anything other than an int not yet allowed
 
             if not isinstance(convert_from.type, ir.IntType):
                 raise convert_exception
+            
+            # Conversions to an object are not allowed
+            
+            if convert_to.is_obj_ptr():
+                explanation = f'\n(Converting numeric types to object type "{convert_to.descr()}" will be added later.)'
+                convert_exception.msg += explanation
+                raise convert_exception
+
+            # Convert from/to a pointer is not allowed
+
+            if isinstance(convert_from.type, ir.PointerType) or isinstance(convert_to, ir.PointerType):
+                convert_exception.msg += '\n(Converting from or to pointers is not allowed; use "cast" instead)'
+                raise convert_exception
+
 
             if isinstance(convert_to, ir.IntType):
-                # TODO: allow signed to unsigned if the target
-                # type has a bitwidth that allows such conversions?
+
+                # Don't allow mixing signed/unsigned
 
                 if convert_from.type.signed and not convert_to.signed:
                     raise CodegenError(
                         f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
                         node.args[0].position)
 
+                # Don't allow converting to a smallet bitwidth
+                
                 if convert_from.type.width > convert_to.width:
                     raise CodegenError(
                         f'Type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
                         node.args[0].position)
+
+                # otherwise, extend bitwidth to convert
 
                 if convert_from.type.signed:
                     op = self.builder.sext
@@ -1482,10 +1502,7 @@ class LLVMCodeGenerator(object):
                     op = self.builder.uitofp
                 break
 
-            explanation = ''
-            if convert_to.v_id == 'str':
-                explanation = '\n(Converting numeric types to strings will be added later.)'
-            convert_exception.msg += explanation
+            
             raise convert_exception
 
         result = op(convert_from, convert_to)

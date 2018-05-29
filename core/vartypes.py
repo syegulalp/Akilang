@@ -8,10 +8,10 @@ from core.llvmlite_custom import Map, _PointerType, MyType
 def make_type_as_ptr(type):
     def type_as_ptr(addrspace=0):
         t = _PointerType(type, addrspace, v_id=type.v_id)
-        if not type.is_original_obj():
-            t.original_obj = type
-        else:
-            t.original_obj = type.original_obj
+        # if  type.underlying_obj() is None:
+        #     t.original_obj = type
+        # else:
+        #     t.original_obj = type.original_obj
         return t
 
     return type_as_ptr
