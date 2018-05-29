@@ -54,8 +54,13 @@ class LLVMCodeGenerator(object):
         self.pointer_size = (ir.PointerType(VarTypes.u8).get_abi_size(
             llvm.create_target_data(self.module.data_layout)))
 
+        self.pointer_bitwidth = self.pointer_size * 8
+
         from core.vartypes import UnsignedInt
-        VarTypes['ptr_size'] = UnsignedInt(self.pointer_size * 8)
+        VarTypes['ptr_size'] = UnsignedInt(self.pointer_bitwidth)
+
+        # from core.llvmlite_custom import _PointerType
+        # _PointerType.width = self.pointer_size * 8
 
     def _isize(self):
         '''
@@ -107,15 +112,7 @@ class LLVMCodeGenerator(object):
         return num
 
     def _codegen_VariableType(self, node):
-        v = VarTypes.get(node.vartype)
-        if v is None:
-            v = self.class_symtab.get(node.vartype)
-        if v is None:
-            raise ParseError(
-                f'Type expected but got "{node.vartype}" instead',
-                node.position
-            )
-        return v
+        return node.vartype
 
     def _varaddr(self, node, report=True):
         if report:
@@ -1374,6 +1371,7 @@ class LLVMCodeGenerator(object):
         Ignores signing.
         Does not truncate bitwidths, however.
         '''
+
         cast_from = self._codegen(node.args[0])
         cast_to = self._codegen(node.args[1], False)
 
@@ -1382,10 +1380,39 @@ class LLVMCodeGenerator(object):
             node.args[0].position)
 
         while True:
+
+            # If we're casting FROM a pointer...
+
             if isinstance(cast_from.type, ir.PointerType):
+                
+                # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr():
                     raise cast_exception
+
+                # and it can't be anything other than an int
+                if not isinstance(cast_to, ir.IntType):
+                    raise cast_exception
+
+                # and it has to be the same bitwidth
+                if self.pointer_bitwidth != cast_to.width:
+                    raise cast_exception
+                
                 op = self.builder.ptrtoint
+                break
+
+            # If we're casting TO a pointer ...
+
+            if isinstance(cast_to, ir.PointerType):
+
+                # it can't be from anything other than an int
+                if not isinstance(cast_from.type, ir.IntType):
+                    raise cast_exception
+
+                # and it has to be the same bitwidth
+                if cast_from.type.width != self.pointer_bitwidth:
+                    raise cast_exception
+                
+                op = self.builder.inttoptr
                 break
 
             if cast_from.type.width == cast_to.width:

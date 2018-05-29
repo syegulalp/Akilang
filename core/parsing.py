@@ -213,8 +213,7 @@ class Parser(object):
         that will in time be eliminated.
         '''
         pos = self.cur_tok.position
-        vartype = self.cur_tok.value
-        self._get_next_token()
+        vartype = self._parse_vartype_expr()
         return VariableType(pos, vartype)
 
     def _parse_with_expr(self):
@@ -265,7 +264,7 @@ class Parser(object):
             vartype = self.local_types[self.cur_tok.value].vartype
 
         else:
-            raise ParseError(f'Expected a variable type but got {vartype} instead',
+            raise ParseError(f'Expected a variable type but got {self.cur_tok.value} instead',
                              self.cur_tok.position)
 
         self._get_next_token()

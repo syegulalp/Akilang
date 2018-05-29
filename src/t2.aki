@@ -1,5 +1,5 @@
 def main(){
-    var x="Hello"
-    var y=c_ref(x)
-    0
+    var x=32
+    var y=cast(x,ptr i64)
+    print (x)
 }
