@@ -43,8 +43,6 @@ class MyType():
 
 ir.types.Type.descr = MyType.descr
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
-#ir.types.Type.underlying_obj = MyType.underlying_obj
-
 
 class _PointerType(PointerType):
     def __init__(self, *a, **ka):
@@ -127,6 +125,23 @@ class _IntType(ir.types.Type):
 
 ir.types.IntType = _IntType
 ir.IntType = _IntType
+
+old_NamedValue_init = ir.values.NamedValue.__init__
+
+def NamedValue_init(self, parent, type, name):
+    old_NamedValue_init(self, parent, type, name)
+    self.heap_alloc = False
+    self.no_alloca = False
+
+ir.values.NamedValue.__init__ = NamedValue_init
+
+old_Constant_init = ir.values.Constant.__init__
+
+def Constant_init(self, typ, constant):
+    old_Constant_init(self,typ,constant)
+    self.no_alloca = False
+
+ir.values.Constant.__init__ = Constant_init
 
 
 class Map(dict):

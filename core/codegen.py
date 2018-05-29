@@ -1053,7 +1053,7 @@ class LLVMCodeGenerator(object):
                 # for the object, so all we have to do is set the name
                 # to its existing pointer
 
-                if getattr(val, '_no_alloca', False):
+                if val.no_alloca:
                     self.func_symtab[name] = val
                 else:
                     self.builder.store(val, var_ref)
@@ -1255,8 +1255,10 @@ class LLVMCodeGenerator(object):
                  [Number(node.position, sizeof, VarTypes.ptr_size)]))
 
         bc = self.builder.bitcast(call, expr.type.as_pointer())
-        setattr(bc, '_no_alloca', True)
 
+        bc.no_alloca = True
+        bc.heap_alloc = True
+        
         return bc
 
     def _codegen_Builtins_c_obj_free(self, node):
@@ -1414,17 +1416,32 @@ class LLVMCodeGenerator(object):
                 op = self.builder.inttoptr
                 break
 
+            # If we're casting non-pointers of the same bitwidth,
+            # just use bitcast
+
             if cast_from.type.width == cast_to.width:
                 op = self.builder.bitcast
                 break
 
+            # If we're going from a smaller to a larger bitwidth,
+            # we need to use the right instruction
+
             if cast_from.type.width < cast_to.width:
-                op = self.builder.zext
-                break
-            else:
+                if isinstance(cast_from.type, ir.IntType):
+                    if isinstance(cast_to, ir.IntType):
+                        op = self.builder.zext
+                        break
+                    if isinstance(cast_to, ir.DoubleType):
+                        if cast_from.type.signed:
+                            op = self.builder.sitofp
+                            break
+                        else:
+                            op = self.builder.uitofp
+                            break
+            else:    
                 cast_exception.msg += ' (data would be truncated)'
                 raise cast_exception
-
+            
             raise cast_exception
 
         result = op(cast_from, cast_to)
@@ -1446,13 +1463,8 @@ class LLVMCodeGenerator(object):
         
         while True:
 
-            # Converts from anything other than an int not yet allowed
-
-            if not isinstance(convert_from.type, ir.IntType):
-                raise convert_exception
-            
             # Conversions to an object are not allowed
-            
+
             if convert_to.is_obj_ptr():
                 explanation = f'\n(Converting numeric types to object type "{convert_to.descr()}" will be added later.)'
                 convert_exception.msg += explanation
@@ -1462,47 +1474,71 @@ class LLVMCodeGenerator(object):
 
             if isinstance(convert_from.type, ir.PointerType) or isinstance(convert_to, ir.PointerType):
                 convert_exception.msg += '\n(Converting from or to pointers is not allowed; use "cast" instead)'
-                raise convert_exception
+                raise convert_exception                
 
+            # Convert from float to int is OK, but warn
 
-            if isinstance(convert_to, ir.IntType):
-
-                # Don't allow mixing signed/unsigned
-
-                if convert_from.type.signed and not convert_to.signed:
-                    raise CodegenError(
-                        f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
-                        node.args[0].position)
-
-                # Don't allow converting to a smallet bitwidth
+            if isinstance(convert_from.type, ir.DoubleType):
                 
-                if convert_from.type.width > convert_to.width:
-                    raise CodegenError(
-                        f'Type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
-                        node.args[0].position)
-
-                # otherwise, extend bitwidth to convert
-
-                if convert_from.type.signed:
-                    op = self.builder.sext
-                else:
-                    op = self.builder.zext
-                break
-
-            if isinstance(convert_to, ir.DoubleType):
+                if not isinstance(convert_to, ir.IntType):
+                    raise convert_exception
 
                 print(
                     CodegenWarning(
-                        f'Integer to float conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
+                        f'Float to integer conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
                         node.args[0].position))
 
                 if convert_from.type.signed:
-                    op = self.builder.sitofp
+                    op = self.builder.fptosi
                 else:
-                    op = self.builder.uitofp
+                    op = self.builder.fptoui
                 break
 
-            
+            # Convert from ints            
+
+            if isinstance(convert_from.type, ir.IntType):
+
+                # int to float
+
+                if isinstance(convert_to, ir.DoubleType):
+                    print(
+                        CodegenWarning(
+                            f'Integer to float conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
+                            node.args[0].position))
+
+                    if convert_from.type.signed:
+                        op = self.builder.sitofp
+                    else:
+                        op = self.builder.uitofp
+                    break    
+                    
+                # int to int
+
+                if isinstance(convert_to, ir.IntType):
+
+                    # Don't allow mixing signed/unsigned
+
+                    if convert_from.type.signed and not convert_to.signed:
+                        raise CodegenError(
+                            f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
+                            node.args[0].position)
+
+
+                    # Don't allow converting to a smaller bitwidth
+                    
+                    if convert_from.type.width > convert_to.width:
+                        raise CodegenError(
+                            f'Type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
+                            node.args[0].position)
+
+                    # otherwise, extend bitwidth to convert
+
+                    if convert_from.type.signed:
+                        op = self.builder.sext
+                    else:
+                        op = self.builder.zext
+                    break
+
             raise convert_exception
 
         result = op(convert_from, convert_to)
