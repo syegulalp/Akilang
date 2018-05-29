@@ -48,6 +48,26 @@ class TestEvaluator(unittest.TestCase):
         ''')
         self.assertEqual(e.evaluate('test_convert()'), 0)  
 
+    def test_c_cast_int_float(self):
+        e = AkilangEvaluator()
+        e.evaluate('''
+            def test_cast(){
+                var a=128, b = cast(a,f64)
+                if b==128.0 then 0 else 1
+            }            
+        ''')
+        self.assertEqual(e.evaluate('test_cast()'), 0)
+
+    def test_c_convert_int_float(self):
+        e = AkilangEvaluator()
+        e.evaluate('''
+            def test_convert(){
+                var a=128, b = convert(a,f64)
+                if b==128.0 then 0 else 1
+            }            
+        ''')
+        self.assertEqual(e.evaluate('test_convert()'), 0)
+
     def test_alloc_free(self):
         from core.repl import config
         cfg = config()
