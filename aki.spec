@@ -18,7 +18,7 @@ a = Analysis(['aki.py'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[
-                 'bz2','hashlib','lzma','socket','ssl', 'pyexpat'
+                 'bz2','hashlib','lzma','socket','ssl', 'pyexpat','select'
              ],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
