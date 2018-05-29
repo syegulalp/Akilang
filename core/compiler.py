@@ -4,7 +4,6 @@ import subprocess
 import pathlib
 
 from core.repl import paths
-from core.constants import compiler_path
 
 
 def optimize(llvm_module):
