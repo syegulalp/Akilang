@@ -7,7 +7,6 @@ class MessageError(Exception):
         if end == -1:
             end = len(position.buffer)
         self.excerpt = position.buffer[position.lineposition:end]
-        #self.caret = "-"* (position.absposition-position.lineposition-1)+'^'
         self.caret = "-" * (position.col) + '^'
 
     def __str__(self):
@@ -25,4 +24,4 @@ class CodegenError(MessageError):
 class CodegenWarning(CodegenError):
     def __init__(self, msg, position):
         super().__init__(msg, position)
-        self.msg = ">>> warning >>>\n"+self.msg
+        self.msg = ">>> warning >>> "+self.msg
