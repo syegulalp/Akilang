@@ -75,6 +75,9 @@ def compile(module, filename):
         ]
 
         shell = 'cmd.exe'        
+    
+    else:
+        raise Exception('Non-Win32 OSes not yet supported')
 
     try:
         p = subprocess.Popen(shell, 

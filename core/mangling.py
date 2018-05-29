@@ -1,8 +1,6 @@
 # These functions convert a function name into its "mangled" eqivalent
 # based on its type signature, to allow for multiple dispatch.
 
-# TODO: All of the codexec functions should also go through here
-
 # new mangle type:
 # ! for separator, v_id for id (i32, etc.), and commas to separate each v_id
 # this allows custom typedefs as well
