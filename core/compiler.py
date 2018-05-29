@@ -23,6 +23,8 @@ def optimize(llvm_module):
 
 def compile(module, filename):
 
+    print ('Parsing source.')
+    
     import llvmlite.binding as llvm
 
     llvm.initialize()
@@ -44,15 +46,22 @@ def compile(module, filename):
               'w') as file:
         file.write(str(llvm_module))
 
+    print ('Creating object file.')
+
+
     tm2 = llvm.Target.from_default_triple()
     tm = tm2.create_target_machine(opt=3, codemodel='large')
     tm.add_analysis_passes(pm)
 
     with llvm.create_mcjit_compiler(llvm_module, tm) as ee:
         ee.finalize_object()
+        output_file = tm.emit_object(llvm_module)
         with open(f'{paths["output_dir"]}{os.sep}{filename}.obj',
                   'wb') as file:
-            file.write(tm.emit_object(llvm_module))
+            file.write(output_file)
+
+    print (f'{len(output_file)} bytes written.')
+    print ('Linking object file.')
 
     if os.name=='nt':
 
@@ -91,7 +100,7 @@ def compile(module, filename):
 
     else:
         print(
-            f'Build successful for {paths["output_dir"]}{os.sep}{filename}.{extension}'
+            f'Build successful for {paths["output_dir"]}{os.sep}{filename}.{extension}.'
         )
 
     p.terminate()
