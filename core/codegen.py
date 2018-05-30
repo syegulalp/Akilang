@@ -966,6 +966,8 @@ class LLVMCodeGenerator(object):
         retval = self._codegen(node.body, False)
 
         if retval is None and self.func_returncalled is True:
+            # we don't need to check for a final returned value,
+            # because it's implied that there's an early return
             pass
         else:
             if not hasattr(retval, 'type'):
@@ -1298,7 +1300,6 @@ class LLVMCodeGenerator(object):
             s1 = expr.type
 
         s2 = self._obj_size_type(s1)
-        # s1.get_abi_size(llvm.create_target_data(self.module.data_layout))
 
         return ir.Constant(VarTypes.ptr_size, s2)
 
@@ -1463,10 +1464,10 @@ class LLVMCodeGenerator(object):
         
         while True:
 
-            # Conversions to an object are not allowed
+            # Conversions from/to an object are not allowed
 
-            if convert_to.is_obj_ptr():
-                explanation = f'\n(Converting numeric types to object type "{convert_to.descr()}" will be added later.)'
+            if convert_from.type.is_obj_ptr() or convert_to.is_obj_ptr():
+                explanation = f'\n(Converting from/to object types will be added later.)'
                 convert_exception.msg += explanation
                 raise convert_exception
 
