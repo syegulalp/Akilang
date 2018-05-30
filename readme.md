@@ -6,6 +6,8 @@ Eventually, this might become something useful for production. Right now, it's s
 
 [This document](whats-next.md) gives you an idea of what's being worked on right now and in the near future.
 
+[This document](language.md) is a work-in-progress tour of the language's syntax.
+
 # Goals and ideals
 
 The language's syntax and goals are in heavy flux, but this is the basic idea I want to aim for:
