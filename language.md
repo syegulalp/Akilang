@@ -1,9 +1,11 @@
 # Aki language basics
 
-This is an incomplete work-in-progress document of Aki syntax.
+This is a document of Aki syntax.
+
+> ⚠ This document is incomplete and is being revised continuously.
 
 - [Aki language basics](#aki-language-basics)
-- [Language basics](#language-basics)
+- [Introduction](#introduction)
     - [Expressions](#expressions)
     - [Variables and variable typing](#variables-and-variable-typing)
     - [Symbols](#symbols)
@@ -50,9 +52,7 @@ This is an incomplete work-in-progress document of Aki syntax.
     - [str](#str)
     - [ptr](#ptr)
 
-# Language basics
-
-> ⚠ This document is incomplete and is being revised continuously.
+# Introduction
 
 ## Expressions
 
