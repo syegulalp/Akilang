@@ -201,3 +201,31 @@ class TestEvaluator(unittest.TestCase):
         except ParseError as e:
             pass
         
+    def test_class_assignment(self):
+        e = AkilangEvaluator()
+
+        n='''class myClass {
+                x:i32
+                prop:u32
+                other:u32
+                string:str
+            }
+            def fn2(x:myClass, x1:i32, s1:str): myClass{
+                x.string=s1
+                x.x=x1
+                return x
+            }
+            def main(){
+                var c1:myClass
+                var z=0
+                var c2="Hi you"
+                c1 = fn2(c1, 64, c2)
+                z = z + (if c1.x == 64 then 0 else 1)
+                z = z + (if c_data(c1.string)==c_data(c2) then 0 else 1)
+                return z
+            }
+            main()
+            '''
+        for _ in e.eval_generator(n):
+            pass
+        self.assertEqual(_.value, 0)
