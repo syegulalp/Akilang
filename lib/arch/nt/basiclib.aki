@@ -13,6 +13,8 @@ extern GetProcessHeap():ptr_size
 extern HeapAlloc(handle:ptr_size, flags:u32, bytes:ptr_size):ptr ptr_size
 extern HeapFree(handle:ptr_size, flags:u32, mem:ptr_size): bool
 
+extern _getwch():i32
+
 # extern gets() :i32
 
 # extern gets_s(ptr i8, bytes:ptr_size)
