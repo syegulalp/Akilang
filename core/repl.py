@@ -234,6 +234,7 @@ def run_repl_command(ak, command, options):
         history = []
     elif command in ('run', 'r'):
         print_eval(ak, 'main()', options)
+        #del ak.codegen.module.globals['_ANONYMOUS.1']
     elif command in ('rl', 'rlc', 'rlr'):
         if last_file is None:
             errprint('No previous command to reload')
