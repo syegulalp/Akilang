@@ -26,6 +26,10 @@ class TokenKind(Enum):
     # Keywords are less than -100
 
     DEF = -1010
+
+    BINARY = -1011
+    UNARY = -1012
+    
     EXTERN = -1020
     CONST = -1030
     UNI = -1040
@@ -50,8 +54,7 @@ class TokenKind(Enum):
     MATCH = -1660
     DEFAULT = -1665
 
-    BINARY = -1700
-    UNARY = -1800
+    
 
 
 ESCAPES = {'n': 10, 'r': 13, "'": ord("'"), '"': ord('"')}
