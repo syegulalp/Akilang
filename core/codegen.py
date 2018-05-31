@@ -8,7 +8,7 @@ from core.ast_module import (
 )
 from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
-from core.parsing import Builtins
+from core.parsing import Builtins, Dunders
 from core.operators import BUILTIN_UNARY_OP
 from core.mangling import mangle_args, mangle_types, mangle_funcname
 
@@ -205,8 +205,7 @@ class LLVMCodeGenerator(object):
                 # we handle ArrayAccessors above
                 
                 latest = self._codegen_Call(current_node)
-                current_load = latest.type.is_obj_ptr()
-                
+                current_load = False
                 # TODO: why is a call the exception?
 
             elif isinstance(current_node, Variable):
@@ -321,14 +320,22 @@ class LLVMCodeGenerator(object):
         str_val.global_constant = True
 
         str_val.initializer = VarTypes.str(
-            [spt, ir.Constant(VarTypes.ptr_size, string_length)])
+            [spt, ir.Constant(VarTypes.u32, string_length)])
 
         return str_val
 
-    def _codegen_Binary(self, node):
+    def _codegen_methodcall(self, node, lhs, rhs):
+        func = self.module.globals.get(
+            f'binary.{node.op}{mangle_args((lhs.type,rhs.type))}')
+        if func is None:
+            raise NotImplementedError
+        return self.builder.call(func, [lhs, rhs], 'userbinop')
 
+    
+    def _codegen_Binary(self, node):
         # Assignment is handled specially because it doesn't follow the general
         # recipe of binary ops.
+
         if node.op == '=':
             return self._codegen_Assignment(node.lhs, node.rhs)
 
@@ -354,6 +361,8 @@ class LLVMCodeGenerator(object):
             # we have to add that when we have exceptions, etc.
             # with fcmp_ordered this is assuming we are strictly comparing
             # float to float in all cases.
+
+            # Integer operations
 
             if isinstance(vartype, ir.IntType):
 
@@ -406,13 +415,10 @@ class LLVMCodeGenerator(object):
                     x.type = VarTypes.bool
                     return x
                 else:
-                    func = self.module.globals.get(
-                        f'binary.{node.op}{mangle_args((lhs.type,rhs.type))}')
+                    return self._codegen_methodcall(node, lhs, rhs)
 
-                    if func is None:
-                        raise NotImplementedError
-                    return self.builder.call(func, [lhs, rhs], 'userbinop')
-
+            # floating-point operations
+            
             elif isinstance(vartype, (ir.DoubleType, ir.FloatType)):
 
                 if node.op == '+':
@@ -448,17 +454,21 @@ class LLVMCodeGenerator(object):
                         'Operator not supported for "float" or "double" types',
                         node.lhs.position)
                 else:
-                    # Not one of the predefined operators,
-                    # so it must be a user-defined one.
-                    # Emit a call to it.
-                    func = self.module.get_global(
-                        f'binary.{node.op}{mangle_args((lhs.type,rhs.type))}')
+                    return self._codegen_methodcall(node, lhs, rhs)
+            
+            # Pointer equality
 
-                    if func is None:
-                        raise NotImplementedError
-                    return self.builder.call(func, [lhs, rhs], 'userbinop')
+            elif isinstance(vartype, ir.PointerType):
+                # LATER: use vartype.is_obj_ptr() to determine if this is a complex object that needs to invoke its __eq__ method, but this is fine for now
+                signed_op = self.builder.icmp_unsigned
+                if isinstance(rhs.type, ir.PointerType):
+                    if node.op == '==':
+                        x = signed_op('==', lhs, rhs, 'eqptrop')
+                        x.type = VarTypes.bool
+                        return x
+                        
             else:
-                raise NotImplementedError
+                return self._codegen_methodcall(node, lhs, rhs)
 
         except NotImplementedError:
             raise CodegenError(
@@ -808,11 +818,17 @@ class LLVMCodeGenerator(object):
         # The 'while' expression returns the value of the body
         return self.builder.load(return_var)
 
-    def _codegen_Call(self, node):
-        if node.name in Builtins:
-            return getattr(self, '_codegen_Builtins_' + node.name)(node)
+    def _codegen_Call(self, node, obj_method = False):
+        if not obj_method:
+            if node.name in Builtins:
+                return getattr(self, '_codegen_Builtins_' + node.name)(node)
+            if node.name in Dunders:
+                return self._codegen_dunder_methods(node)
 
         call_args = [self._codegen(arg) for arg in node.args]
+
+        if obj_method:
+            node.name = f'{call_args[0].type.pointee.name}.__{node.name}__'
 
         mangled_name = mangle_types(node.name, call_args)
 
@@ -1234,6 +1250,15 @@ class LLVMCodeGenerator(object):
                 del self.func_symtab[name]
 
         return body_val
+
+    def _codegen_dunder_methods(self, node):
+        call = self._codegen_Call(
+            Call(node.position, node.name,
+            node.args,
+            ),
+            obj_method = True
+        )
+        return call
 
 ###########
 # Builtins

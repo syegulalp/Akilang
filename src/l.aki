@@ -106,9 +106,9 @@ def main(){
     setup()
     loop {
         show()
-        match inkey()[1] {
-            113B, 81B: break
-            114B, 82B: {
+        match inkey() {
+            113, 81: break
+            114, 82: {
                 print("Randomize!\n\n")
                 randomize()                
             }

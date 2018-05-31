@@ -98,7 +98,7 @@ class Parser(object):
         start = self.cur_tok.position
         id_name = self.cur_tok.value
 
-        if id_name in Builtins:
+        if id_name in Builtins or id_name in Dunders:
             return self._parse_builtin(id_name)
 
         if id_name in self.consts:
@@ -309,7 +309,7 @@ class Parser(object):
                 self._get_next_token()
                 break
         return Call(start, name, args)
-
+    
     # TODO: eventually we will be able to recognize
     # vartypes as args without this kind of hackery
 
@@ -861,7 +861,11 @@ class Parser(object):
 
 Builtins = {
     'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
-    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'dummy'
+    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'dummy',    
+}
+
+Dunders= {
+    'len'
 }
 
 # if __name__ == '__main__':

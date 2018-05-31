@@ -1,18 +1,21 @@
 # Microsoft Win32/NT library interfaces
 
-extern _getch() :byte
 extern SetConsoleOutputCP(codepage :u32) :bool
 extern GetConsoleOutputCP() :u32
+
 # We don't yet have the ability to encode variable arguments
 # so printf is just one for now
 extern printf(str_fmt :ptr i8, int_data :u64) :i32
+
 extern rand():i32
 
 extern GetProcessHeap():ptr_size
 extern HeapAlloc(handle:ptr_size, flags:u32, bytes:ptr_size):ptr ptr_size
 extern HeapFree(handle:ptr_size, flags:u32, mem:ptr_size): bool
 
-#extern malloc(size:ptr_size):ptr ptr_size
+# extern gets() :i32
+
+# extern gets_s(ptr i8, bytes:ptr_size)
 
 # implementations of above
 
@@ -27,18 +30,11 @@ def c_alloc(bytes:i32):ptr ptr_size
 def c_free(mem:ptr_size):bool
     HeapFree(GetProcessHeap(), 0u, mem)
 
-def inkey():byte[2] {
-    var keys:byte[2]
-    keys[0]=_getch()
-    if (keys[0]==0B or keys[0]==224B) then {
-        keys[1]=_getch()
-    }
-    else
-    {
-        keys[1]=keys[0]
-    }
-      
-    return keys
+def inkey():i32 {
+    var key:i32
+    key=_getwch()
+    if (key==0 or key==224) then key=_getwch()
+    return key
 }
 
 def set_codepage(codepage :u32) :bool
@@ -49,3 +45,13 @@ def get_codepage() :u32
 
 def rnd(max:i32):i32
     rand()/(32767/max)
+
+# def readln():str {
+    # create a string that has a 1K buffer attached to it (1k by default)
+    # call gets_s with a pointer to that buffer
+    # set the string object size with the return value
+    # maybe we can get wide and then convert it to UTF-8?
+    # save us a step? would that give us the length automatically?
+    # https://msdn.microsoft.com/en-us/library/windows/desktop/dd319072(v=vs.85).aspx
+    # return the string object
+# }

@@ -83,27 +83,14 @@ Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
 # create String type manually, for now
 
 Str = ir.global_context.get_identified_type('.object.str')
-Str.elements = (ir.IntType(8).as_pointer(), ir.IntType(64), )
+Str.elements = (ir.IntType(8).as_pointer(), ir.IntType(32), )
 Str.v_id = 'str'
 Str.is_obj = True
 Str.signed = False
 # type signature for external (C-library) stuff
 Str.ext_ptr = UnsignedInt(8, True).as_pointer()
-
-# def str_as_pointer(addrspace=0):
-#     return _PointerType(Str, addrspace, v_id=Str.v_id)
-
 Str.as_pointer = make_type_as_ptr(Str)
 
-# StrType = ir.global_context.get_identified_type('.object.strtype')
-# StrType.elements = (Str.as_pointer(),)
-# StrType.v_id = 'str'
-# StrType.ext_ptr = UnsignedInt(8, True).as_pointer()
-# # don't know if we need this, placeholder for now
-
-# def strtype_as_pointer(addrspace=0):
-#     return _PointerType(StrType, addrspace, v_id=StrType.v_id)
-# StrType.as_pointer = strtype_as_pointer
 
 NoneType = ir.global_context.get_identified_type('.object.none')
 NoneType.elements = (ir.IntType(1), )

@@ -1,4 +1,4 @@
 def main(){
-    var x=inkey()[1]
-    print(x)
+    var x1="Hello"
+    print (len(x1))
 }

@@ -100,12 +100,10 @@ def setup(){
 def main(){
 
     setup()
-    var key:byte[2]
     loop {
         show()
-        key=inkey()
-        match key[1] {
-            113B, 81B: break
+        match inkey() {
+            113, 81: break
         }
     }
     print ("Goodbye!")
