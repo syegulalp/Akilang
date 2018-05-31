@@ -186,7 +186,7 @@ class Var(Expr):
     def flatten(self):
         return [
             self.__class__.__name__,
-            self.vars,
+            [var.flatten() for var in self.vars]
         ]
 
 
