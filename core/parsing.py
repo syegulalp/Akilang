@@ -126,13 +126,9 @@ class Parser(object):
                             break
                         self._match(TokenKind.PUNCTUATOR, ',')
 
-                if toplevel == current:
-                    current = Call(start, id_name, args, self.cur_tok.vartype)
-                    toplevel = current
-                else:
-                    current.child = Call(start, id_name, args,
-                                         self.cur_tok.vartype)
-                    current = current.child
+                current.child = Call(start, id_name, args,
+                                        self.cur_tok.vartype)
+                current = current.child
                 continue
 
             elif self.cur_tok.value == '.':

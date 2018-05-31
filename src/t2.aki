@@ -1,5 +1,4 @@
 def main(){
-    var x=32
-    var y=convert(x,str)
-    print (x)
+    var k=inkey()[1]
+    0
 }

@@ -150,12 +150,10 @@ class LLVMCodeGenerator(object):
         self.builder.branch(self.func_returnblock)
         self.func_returncalled = True
 
-    def _codegen_ArrayElement(self, node, source):
+    def _codegen_ArrayElement(self, node, array):
         '''
         Returns a pointer to the requested element of an array.
         '''
-
-        arr = self._varaddr(source)
 
         accessor = [
             _int(0),
@@ -166,10 +164,10 @@ class LLVMCodeGenerator(object):
         # phase if possible
 
         try:
-            ptr = self.builder.gep(arr, accessor, True, f'{source.name}')
+            ptr = self.builder.gep(array, accessor, True, f'{array.name}')
         except AttributeError:
             raise CodegenError(
-                f'Invalid array accessor for "{source.name}" (maybe wrong number of dimensions?)',
+                f'Invalid array accessor for "{array.name}" (maybe wrong number of dimensions?)',
                 node.position)
 
         return ptr
@@ -182,14 +180,28 @@ class LLVMCodeGenerator(object):
         while True:
 
             if previous_node is None and isinstance(current_node, Variable):
+                if isinstance(getattr(current_node, 'child', None), Call):
+                    previous_node = current_node
+                    current_node = current_node.child
+                    continue
+
                 latest = self._varaddr(current_node)
+                current_load = not latest.type.is_obj_ptr()
 
             elif isinstance(current_node, ArrayAccessor):
+                if not isinstance(latest, ir.instructions.LoadInstr):
+                    array_element = self.builder.alloca(latest.type)
+                    self.builder.store(latest, array_element)
+                else:
+                    array_element = self._varaddr(previous_node)
+
                 latest = self._codegen_ArrayElement(
-                    current_node, previous_node)
+                    current_node, array_element)
+                current_load = not latest.type.is_obj_ptr()
 
             elif isinstance(current_node, Call):
                 latest = self._codegen_Call(current_node)
+                current_load = latest.type.is_obj_ptr()
 
             elif isinstance(current_node, Variable):
                 try:
@@ -208,13 +220,13 @@ class LLVMCodeGenerator(object):
                     latest, index, True,
                     previous_node.name + '.' + current_node.name)
 
+                current_load = not latest.type.is_obj_ptr()
+
             # pathological case
             else:
                 raise CodegenError(
                     f'Unknown variable instance', current_node.position
                 )
-
-            current_load = not latest.type.is_obj_ptr()
 
             child = getattr(current_node, 'child', None)
             if child is None:
@@ -1260,7 +1272,7 @@ class LLVMCodeGenerator(object):
 
         bc.no_alloca = True
         bc.heap_alloc = True
-        
+
         return bc
 
     def _codegen_Builtins_c_obj_free(self, node):
@@ -1386,7 +1398,7 @@ class LLVMCodeGenerator(object):
             # If we're casting FROM a pointer...
 
             if isinstance(cast_from.type, ir.PointerType):
-                
+
                 # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr():
                     raise cast_exception
@@ -1398,7 +1410,7 @@ class LLVMCodeGenerator(object):
                 # and it has to be the same bitwidth
                 if self.pointer_bitwidth != cast_to.width:
                     raise cast_exception
-                
+
                 op = self.builder.ptrtoint
                 break
 
@@ -1413,7 +1425,7 @@ class LLVMCodeGenerator(object):
                 # and it has to be the same bitwidth
                 if cast_from.type.width != self.pointer_bitwidth:
                     raise cast_exception
-                
+
                 op = self.builder.inttoptr
                 break
 
@@ -1439,10 +1451,10 @@ class LLVMCodeGenerator(object):
                         else:
                             op = self.builder.uitofp
                             break
-            else:    
+            else:
                 cast_exception.msg += ' (data would be truncated)'
                 raise cast_exception
-            
+
             raise cast_exception
 
         result = op(cast_from, cast_to)
@@ -1461,7 +1473,7 @@ class LLVMCodeGenerator(object):
         convert_exception = CodegenError(
             f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not supported',
             node.args[0].position)
-        
+
         while True:
 
             # Conversions from/to an object are not allowed
@@ -1475,12 +1487,12 @@ class LLVMCodeGenerator(object):
 
             if isinstance(convert_from.type, ir.PointerType) or isinstance(convert_to, ir.PointerType):
                 convert_exception.msg += '\n(Converting from or to pointers is not allowed; use "cast" instead)'
-                raise convert_exception                
+                raise convert_exception
 
             # Convert from float to int is OK, but warn
 
             if isinstance(convert_from.type, ir.DoubleType):
-                
+
                 if not isinstance(convert_to, ir.IntType):
                     raise convert_exception
 
@@ -1495,7 +1507,7 @@ class LLVMCodeGenerator(object):
                     op = self.builder.fptoui
                 break
 
-            # Convert from ints            
+            # Convert from ints
 
             if isinstance(convert_from.type, ir.IntType):
 
@@ -1511,8 +1523,8 @@ class LLVMCodeGenerator(object):
                         op = self.builder.sitofp
                     else:
                         op = self.builder.uitofp
-                    break    
-                    
+                    break
+
                 # int to int
 
                 if isinstance(convert_to, ir.IntType):
@@ -1524,9 +1536,8 @@ class LLVMCodeGenerator(object):
                             f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
                             node.args[0].position)
 
-
                     # Don't allow converting to a smaller bitwidth
-                    
+
                     if convert_from.type.width > convert_to.width:
                         raise CodegenError(
                             f'Type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
