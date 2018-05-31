@@ -27,8 +27,19 @@ def c_alloc(bytes:i32):ptr ptr_size
 def c_free(mem:ptr_size):bool
     HeapFree(GetProcessHeap(), 0u, mem)
 
-def inkey() :byte
-    _getch()
+def inkey():byte[2] {
+    var keys:byte[2]
+    keys[0]=_getch()
+    if (keys[0]==0B or keys[0]==224B) then {
+        keys[1]=_getch()
+    }
+    else
+    {
+        keys[1]=keys[0]
+    }
+      
+    return keys
+}
 
 def set_codepage(codepage :u32) :bool
     SetConsoleOutputCP(codepage)
