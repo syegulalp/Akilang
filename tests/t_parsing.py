@@ -71,12 +71,13 @@ class TestParser(unittest.TestCase):
 
         self.assertEqual(ast.flatten(), [
             'Function', ['Prototype', 'foo', 'i32 x'], [
-                'Binary', '+', ['Number', '1', DEFAULT_TYPE], [
-                    'Call', 'bar', None,
-                    [['Variable', 'x', None, None]]
+                'Binary', '+', ['Number', '1', DEFAULT_TYPE],
+                    ['Variable','bar',None,
+                        ['Call', 'bar', None,
+                            [['Variable', 'x', None, None]]
                 ]
             ]
-        ]
+        ]]
         )
 
     def test_unary(self):
