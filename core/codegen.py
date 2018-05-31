@@ -200,6 +200,9 @@ class LLVMCodeGenerator(object):
                 current_load = not latest.type.is_obj_ptr()
 
             elif isinstance(current_node, Call):
+                # eventually, when we have function pointers,
+                # we'll need to have a pattern here similar to how 
+                # we handle ArrayAccessors above
                 latest = self._codegen_Call(current_node)
                 current_load = latest.type.is_obj_ptr()
 
