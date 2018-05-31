@@ -100,17 +100,11 @@ def setup(){
 def main(){
 
     setup()
-    var key:byte
+    var key:byte[2]
     loop {
         show()
         key=inkey()
-        if key==224B then {
-            print ("2nd")
-            key=inkey()
-
-        }
-        print (key)
-        match key {
+        match key[1] {
             113B, 81B: break
         }
     }
