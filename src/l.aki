@@ -104,11 +104,9 @@ Any other key will evolve the pattern")
 
 def main(){
     setup()
-    var k:byte[2]
     loop {
         show()
-        k=inkey()
-        match k[1] {
+        match inkey()[1] {
             113B, 81B: break
             114B, 82B: {
                 print("Randomize!\n\n")
