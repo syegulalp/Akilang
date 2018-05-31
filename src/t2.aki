@@ -1,4 +1,4 @@
 def main(){
-    var k=inkey()[1]
-    0
+    var x=inkey()[1]
+    print(x)
 }
