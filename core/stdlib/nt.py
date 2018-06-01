@@ -24,27 +24,27 @@ def stdlib(self, module):
     # Add atoi
     # TODO:untested
 
-    atoi_s = ir.FunctionType(VarTypes.i32, [VarTypes.str.ext_ptr])
-    atoi_f = ir.Function(module, atoi_s, 'atoi')
-    atoi_f._local_visibility = False
-    atoi_f.args[0]._name = "s"
+    # atoi_s = ir.FunctionType(VarTypes.i32, [VarTypes.str.ext_ptr])
+    # atoi_f = ir.Function(module, atoi_s, 'atoi')
+    # atoi_f._local_visibility = False
+    # atoi_f.args[0]._name = "s"
 
     # print for win32
     # TODO: to be replaced with a call to plain old snprintf
 
-    llvm_stdout_s = ir.FunctionType(VarTypes.i64, [VarTypes.i32])
-    llvm_stdout = ir.Function(module, llvm_stdout_s, 'GetStdHandle')
-    llvm_stdout._local_visibility = False
+    # llvm_stdout_s = ir.FunctionType(VarTypes.i64, [VarTypes.i32])
+    # llvm_stdout = ir.Function(module, llvm_stdout_s, 'GetStdHandle')
+    # llvm_stdout._local_visibility = False
 
-    llvm_writefile_s = ir.FunctionType(VarTypes.i32, [
-        VarTypes.i64,
-        VarTypes.i8.as_pointer(), VarTypes.i32,
-        VarTypes.i32.as_pointer(),
-        VarTypes.i8.as_pointer()
-    ])
+    # llvm_writefile_s = ir.FunctionType(VarTypes.i32, [
+    #     VarTypes.i64,
+    #     VarTypes.i8.as_pointer(), VarTypes.i32,
+    #     VarTypes.i32.as_pointer(),
+    #     VarTypes.i8.as_pointer()
+    # ])
 
-    llvm_writefile = ir.Function(module, llvm_writefile_s, 'WriteFile')
-    llvm_writefile._local_visibility = False
+    # llvm_writefile = ir.Function(module, llvm_writefile_s, 'WriteFile')
+    # llvm_writefile._local_visibility = False
 
     # c_data for string
 
@@ -79,6 +79,16 @@ def stdlib(self, module):
     s3 = irbuilder.load(s2)
 
     irbuilder.ret(s3)
+
+    # string deletion
+
+    # strdel_s = ir.FunctionType(VarTypes.u32, [VarTypes.str.as_pointer()])
+    # we need to delete TWO things:
+    # the memory we allocated for the underlying array,
+    # and the memory we allocated for the controlling object
+
+
+    # we also need to eventually rewrite the string creator as __new__
 
     # strcmp and string equality
     # TODO:untested
