@@ -544,6 +544,8 @@ class Parser(object):
 
         while True:
             dimension = self._parse_expression()
+            if hasattr(dimension, 'val'):
+                dimension.val = int(dimension.val)
             elements.append(dimension)
             if self._cur_tok_is_punctuator(','):
                 self._get_next_token()
@@ -566,11 +568,8 @@ class Parser(object):
         # first, consume the name of the identifier
 
         self._compare(TokenKind.IDENTIFIER)
-
         self._check_builtins()
-
         name = self.cur_tok.value
-
         self._get_next_token()
 
         # check for a vartype
@@ -588,11 +587,12 @@ class Parser(object):
             arr_start = self.cur_tok.position
             elements = self._parse_array_accessor()
 
-            # if this is a pointer, go down one level
+            # I don't think we need to extract a pointer type here
 
-            oo = getattr(vartype, 'pointee', None)
-            if oo is not None:
-                vartype = oo
+            # oo = getattr(vartype, 'pointee', None)
+            # if oo is not None:
+            #     print (oo)
+            #     vartype = oo
 
             vartype = Array(arr_start, elements, vartype)
             self._get_next_token()

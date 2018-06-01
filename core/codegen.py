@@ -165,7 +165,7 @@ class LLVMCodeGenerator(object):
 
         try:
             ptr = self.builder.gep(array, accessor, True, f'{array.name}')
-        except AttributeError:
+        except (AttributeError, IndexError):
             raise CodegenError(
                 f'Invalid array accessor for "{array.name}" (maybe wrong number of dimensions?)',
                 node.position)
@@ -177,10 +177,13 @@ class LLVMCodeGenerator(object):
         current_node = node
         previous_node = None
 
+        # At the bottom of each iteration of the loop,
+        # we should return a DIRECT pointer to an object
+
         while True:
 
             if previous_node is None and isinstance(current_node, Variable):
-                if isinstance(getattr(current_node, 'child', None), Call):
+                if isinstance(getattr(current_node, 'child', None), (Call,)):
                     previous_node = current_node
                     current_node = current_node.child
                     continue
@@ -189,11 +192,17 @@ class LLVMCodeGenerator(object):
                 current_load = not latest.type.is_obj_ptr()
 
             elif isinstance(current_node, ArrayAccessor):
+                # eventually this will be coded as a call
+                # to __index__ method of the element in question
+                # 
                 if not isinstance(latest, ir.instructions.LoadInstr):
                     array_element = self.builder.alloca(latest.type)
                     self.builder.store(latest, array_element)
                 else:
-                    array_element = self._varaddr(previous_node)
+                    if latest.type.is_obj_ptr():
+                        array_element = latest
+                    else:
+                        array_element = self._varaddr(previous_node)
 
                 latest = self._codegen_ArrayElement(
                     current_node, array_element)
@@ -1022,6 +1031,11 @@ class LLVMCodeGenerator(object):
             self.builder.store(retval, self.func_returnarg)
             self.builder.branch(self.func_returnblock)
 
+        # for n in self.func_symtab.values():
+        #     if n.heap_alloc:
+        #         call obj destructor
+        #         each obj in turn calls any destructors it might have
+        
         self.builder = ir.IRBuilder(self.func_returnblock)
 
         self.builder.ret(self.builder.load(self.func_returnarg))
