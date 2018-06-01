@@ -17,7 +17,9 @@ extern _getwch():i32
 
 # extern gets() :i32
 
-# extern gets_s(ptr i8, bytes:ptr_size)
+extern gets_s(input:ptr i8, bytes:ptr_size)
+
+extern _get_errno(errno:ptr i32) :i32
 
 # implementations of above
 
@@ -48,12 +50,28 @@ def get_codepage() :u32
 def rnd(max:i32):i32
     rand()/(32767/max)
 
-# def readln():str {
-    # create a string that has a 1K buffer attached to it (1k by default)
-    # call gets_s with a pointer to that buffer
+ def input():ptr u8{
+    var buf=c_obj_alloc({var x:byte[1024] x})
+    var err:i32=0
+    
+    gets_s(
+        c_array_ptr(buf),
+        1024U
+    )
+    
+    # we don't do anything with this yet,
+    # but in time we will
+    err = _get_errno(c_ref(err))
+
+    return c_array_ptr(buf)
+
+    # str() method
+    # takes in a ptr to i8
+    # returns a dynamically created string object
+
     # set the string object size with the return value
     # maybe we can get wide and then convert it to UTF-8?
     # save us a step? would that give us the length automatically?
     # https://msdn.microsoft.com/en-us/library/windows/desktop/dd319072(v=vs.85).aspx
     # return the string object
-# }
+}

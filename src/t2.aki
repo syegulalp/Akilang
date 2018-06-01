@@ -1,4 +1,7 @@
 def main(){
-    var x1="Hello"
-    print (len(x1))
+    print ("Hello, what's your name?")
+    var x=input()
+    print ("Hello,")
+    print (x)
+    0
 }
