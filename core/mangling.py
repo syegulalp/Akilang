@@ -23,17 +23,18 @@ def mangle_function(func):
 def mangle_funcname(name, type):
     return mangle_call(name, type.args)
 
+# Mangle a function call based on its name and a list of types.
+
+
+def mangle_call(name, args):
+    return f'{name}{mangle_args(args)}'
+
 # Mangle only the arguments for a function
 
 
 def mangle_args(args):
     return _mangle_args(args, mangle_delineator)
 
-# Mangle a function call based on its name and a list of types.
-
-
-def mangle_call(name, args):
-    return f'{name}{mangle_args(args)}'
 
 # Mangle only the optional arguments for a function
 
