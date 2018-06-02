@@ -200,6 +200,12 @@ class TestEvaluator(unittest.TestCase):
             e.evaluate('cast(32,print)')
         except ParseError as e:
             pass
+
+    def test_optargs(self):
+        e = AkilangEvaluator()
+        e.evaluate('def f1(x:i32, y:i32=32, z:byte=1B) y')
+        e.evaluate('def main(){f1(1,2)}')
+        self.assertEqual(e.evaluate('main()'), 2)
         
     def test_class_assignment(self):
         e = AkilangEvaluator()
