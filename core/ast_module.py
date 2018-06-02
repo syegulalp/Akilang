@@ -371,7 +371,7 @@ class Prototype(Node):
         return self.name.startswith(_ANONYMOUS)
 
     def flatten(self):
-        args = [f'{x[1]} {x[0]}' for x in self.argnames]
+        args = [f'{x.vartype} {x.name}' for x in self.argnames]
         flattened = [self.__class__.__name__, self.name, ', '.join(args)]
         if self.prec != DEFAULT_PREC:
             return flattened + [self.prec]
