@@ -12,6 +12,4 @@ This is a short list of things I'm going to be working on, in rough order of att
 
 * Function pointers, for better compatibility with C libraries.
 
-* Variadic functions.
-
 [Everything after that](mvp.md) is too far down the road to talk about, but I am at least thinking about it.
