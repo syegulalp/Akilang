@@ -847,6 +847,8 @@ class LLVMCodeGenerator(object):
             if _ in self.opt_args_funcs:
                 possible_opt_args_funcs.append(self.opt_args_funcs[_])
 
+        # XXX: we might need to move this BEFORE vararg checking
+
         if obj_method:
             node.name = f'{call_args[0].type.pointee.name}.__{node.name}__'
 
@@ -885,18 +887,10 @@ class LLVMCodeGenerator(object):
                 f'Call to unknown function "{node.name}" with signature "{[n.type.descr() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
                 node.position)
 
-        # iterate through callee_func.args and replace any optionals with
-        # their defaults
-        # keyword-style arguments would require a dictionary implementation
-        # so we can't do that yet
-
-        # if len(callee_func.args) != len(node.args):
         if len(callee_func.args) != len(call_args):
             raise CodegenError(
                 f'Call argument length mismatch for "{callee_func.public_name}" (expected {len(callee_func.args)}, got {len(node.args)})',
                 node.position)
-
-        # We can use opt_args when we store funcs as builtins in codexec
 
         for x, n in enumerate(zip(call_args, callee_func.args)):
             if n[0].type != n[1].type:
