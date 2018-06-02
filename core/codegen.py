@@ -853,13 +853,20 @@ class LLVMCodeGenerator(object):
         if not possible_opt_args_funcs:
             mangled_name = mangle_types(node.name, call_args)
             callee_func = self.module.globals.get(mangled_name, None)
-        
+
         else:
             try:
+                match = False
                 for f1 in possible_opt_args_funcs:
-                    for a1 in zip(f1.args, call_args):
-                        if a1[0].type!=a1[1].type:
-                            raise TypeError
+                    if len(call_args)>len(f1.args):
+                        continue
+                    match=True 
+                    for function_arg, call_arg in zip(f1.args, call_args):
+                        if function_arg.type != call_arg.type:
+                            match=False
+                            break
+                if not match:
+                    raise TypeError
             except TypeError:
                 raise ParseError(
                     f'argument types do not match possible argument signature for optional-argument function "{f1.public_name}"',
@@ -883,7 +890,7 @@ class LLVMCodeGenerator(object):
         # keyword-style arguments would require a dictionary implementation
         # so we can't do that yet
 
-        #if len(callee_func.args) != len(node.args):
+        # if len(callee_func.args) != len(node.args):
         if len(callee_func.args) != len(call_args):
             raise CodegenError(
                 f'Call argument length mismatch for "{callee_func.public_name}" (expected {len(callee_func.args)}, got {len(node.args)})',
