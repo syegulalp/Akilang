@@ -559,8 +559,8 @@ def main(){
 Returns the size in bytes of a scalar type, or of the descriptor for an object. For a string, for instance, this would not be the length of the actual string data, but the size of the whole structure that describes a string.
 
 ```
-    var y:u64
-    x=c_size(u) # 8
+var y:u64
+x=c_size(u) # 8
 ```
 
 ## c_array_ptr
