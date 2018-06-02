@@ -50,6 +50,11 @@ class LLVMCodeGenerator(object):
         # Used to track where to break out of a loop.
         self.loop_exit = []
 
+        # Holds functions that have optional arguments.
+        # This allows them to be looked up efficiently.
+
+        self.opt_args_funcs = {}
+
         # Set up pointer size and ptr_size vartype for current hardware.
         self.pointer_size = (ir.PointerType(VarTypes.u8).get_abi_size(
             llvm.create_target_data(self.module.data_layout)))
@@ -194,7 +199,7 @@ class LLVMCodeGenerator(object):
             elif isinstance(current_node, ArrayAccessor):
                 # eventually this will be coded as a call
                 # to __index__ method of the element in question
-                # 
+                #
                 if not isinstance(latest, ir.instructions.LoadInstr):
                     array_element = self.builder.alloca(latest.type)
                     self.builder.store(latest, array_element)
@@ -210,9 +215,9 @@ class LLVMCodeGenerator(object):
 
             elif isinstance(current_node, Call):
                 # eventually, when we have function pointers,
-                # we'll need to have a pattern here similar to how 
+                # we'll need to have a pattern here similar to how
                 # we handle ArrayAccessors above
-                
+
                 latest = self._codegen_Call(current_node)
                 current_load = False
                 # TODO: why is a call the exception?
@@ -340,7 +345,6 @@ class LLVMCodeGenerator(object):
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], 'userbinop')
 
-    
     def _codegen_Binary(self, node):
         # Assignment is handled specially because it doesn't follow the general
         # recipe of binary ops.
@@ -427,7 +431,7 @@ class LLVMCodeGenerator(object):
                     return self._codegen_methodcall(node, lhs, rhs)
 
             # floating-point operations
-            
+
             elif isinstance(vartype, (ir.DoubleType, ir.FloatType)):
 
                 if node.op == '+':
@@ -464,7 +468,7 @@ class LLVMCodeGenerator(object):
                         node.lhs.position)
                 else:
                     return self._codegen_methodcall(node, lhs, rhs)
-            
+
             # Pointer equality
 
             elif isinstance(vartype, ir.PointerType):
@@ -475,7 +479,7 @@ class LLVMCodeGenerator(object):
                         x = signed_op('==', lhs, rhs, 'eqptrop')
                         x.type = VarTypes.bool
                         return x
-                        
+
             else:
                 return self._codegen_methodcall(node, lhs, rhs)
 
@@ -827,21 +831,47 @@ class LLVMCodeGenerator(object):
         # The 'while' expression returns the value of the body
         return self.builder.load(return_var)
 
-    def _codegen_Call(self, node, obj_method = False):
+    def _codegen_Call(self, node, obj_method=False):
         if not obj_method:
             if node.name in Builtins:
                 return getattr(self, '_codegen_Builtins_' + node.name)(node)
             if node.name in Dunders:
                 return self._codegen_dunder_methods(node)
 
-        call_args = [self._codegen(arg) for arg in node.args]
+        call_args = []
+        possible_opt_args_funcs = []
+
+        for arg in node.args:
+            call_args.append(self._codegen(arg))
+            _ = mangle_types(node.name, call_args)
+            if _ in self.opt_args_funcs:
+                possible_opt_args_funcs.append(self.opt_args_funcs[_])
 
         if obj_method:
             node.name = f'{call_args[0].type.pointee.name}.__{node.name}__'
 
-        mangled_name = mangle_types(node.name, call_args)
-
-        callee_func = self.module.globals.get(mangled_name, None)
+        if not possible_opt_args_funcs:
+            mangled_name = mangle_types(node.name, call_args)
+            callee_func = self.module.globals.get(mangled_name, None)
+        
+        else:
+            try:
+                print (call_args)
+                for f1 in possible_opt_args_funcs:
+                    print (f1.name)
+                    for a1 in zip(f1.args, call_args):
+                        if a1[0].type!=a1[1].type:
+                            raise TypeError
+            except TypeError:
+                raise ParseError(
+                    f'argument types do not match possible argument signature for optional-argument function "{f1.public_name}"',
+                    node.position
+                )
+            else:
+                callee_func = f1
+                print (len(call_args), len(f1.args))
+                for n in range(len(call_args), len(f1.args)):
+                    call_args.append(f1.args[n].type.default_value)
 
         if not callee_func:
             callee_func = self.module.globals.get(node.name, None)
@@ -856,7 +886,8 @@ class LLVMCodeGenerator(object):
         # keyword-style arguments would require a dictionary implementation
         # so we can't do that yet
 
-        if len(callee_func.args) != len(node.args):
+        #if len(callee_func.args) != len(node.args):
+        if len(callee_func.args) != len(call_args):
             raise CodegenError(
                 f'Call argument length mismatch for "{callee_func.public_name}" (expected {len(callee_func.args)}, got {len(node.args)})',
                 node.position)
@@ -875,7 +906,7 @@ class LLVMCodeGenerator(object):
         funcname = node.name
 
         # Create a function type
-        
+
         vartypes = []
         vartypes_with_defaults = []
 
@@ -887,13 +918,15 @@ class LLVMCodeGenerator(object):
             if isinstance(arg_type, Array):
                 s = arg_type.element_type
                 for n in arg_type.elements_elements:
-                    s=VarTypes.array(s, int(n.val))
+                    s = VarTypes.array(s, int(n.val))
             else:
                 s = arg_type
-            if x.initializer is not None: 
-                setattr(s,'default_value',
-                self._codegen(x.initializer, False))
+            if x.initializer is not None:
+                setattr(s, 'default_value',
+                        self._codegen(x.initializer, False))
                 append_to = vartypes_with_defaults
+
+            # ir.FunctionType doesn't preserve the attributes of the arguments it accepts to create a function, so we have to stuff any default_value in the TYPE for that argument, and then extract it again later.
 
             append_to.append(s)
             #print (s.__dict__)
@@ -907,9 +940,12 @@ class LLVMCodeGenerator(object):
         if node.vartype is None:
             node.vartype = DEFAULT_TYPE
 
-        functype = ir.FunctionType(node.vartype, vartypes)
+        functype = ir.FunctionType(node.vartype,
+                                   vartypes+vartypes_with_defaults)
 
         public_name = funcname
+
+        opt_args = None
 
         linkage = None
 
@@ -920,18 +956,20 @@ class LLVMCodeGenerator(object):
                 '_ANONYMOUS.') and funcname != 'main':
             linkage = 'private'
             if len(vartypes) > 0:
-                funcname = mangle_funcname(funcname, functype)
+                funcname = public_name + mangle_args(vartypes)
+
+            required_args = funcname
+
             if len(vartypes_with_defaults) > 0:
-                funcname += mangle_optional_args(vartypes_with_defaults)
-            # ? insert this into a dict that has the minimal number of args?
-            # so that we can look it up quickly?
+                opt_args = mangle_optional_args(vartypes_with_defaults)
+                funcname += opt_args
 
         # If a function with this name already exists in the module...
         if funcname in self.module.globals:
 
             # We only allow the case in which a declaration exists and now the
             # function is defined (or redeclared) with the same number of args.
-            # TODO: I think this rule should be dropped and ANY prior 
+            # TODO: I think this rule should be dropped and ANY prior
             # function version should never be overridden
             func = existing_func = self.module.globals[funcname]
 
@@ -954,7 +992,12 @@ class LLVMCodeGenerator(object):
             for i, arg in enumerate(func.args):
                 arg.name = node.argnames[i].name
 
+        if opt_args is not None:
+            self.opt_args_funcs[required_args] = func
+
         func.public_name = public_name
+
+        # Set LLVM function attributes
 
         # Calling convention.
         # This is the default with no varargs
@@ -1054,7 +1097,7 @@ class LLVMCodeGenerator(object):
         #     if n.heap_alloc:
         #         call obj destructor
         #         each obj in turn calls any destructors it might have
-        
+
         self.builder = ir.IRBuilder(self.func_returnblock)
 
         self.builder.ret(self.builder.load(self.func_returnarg))
@@ -1287,9 +1330,9 @@ class LLVMCodeGenerator(object):
     def _codegen_dunder_methods(self, node):
         call = self._codegen_Call(
             Call(node.position, node.name,
-            node.args,
-            ),
-            obj_method = True
+                 node.args,
+                 ),
+            obj_method=True
         )
         return call
 
