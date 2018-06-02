@@ -7,6 +7,7 @@ This is a document of Aki syntax.
 - [Aki language basics](#aki-language-basics)
 - [Introduction](#introduction)
     - [Expressions](#expressions)
+    - [Functions and function calls](#functions-and-function-calls)
     - [Variables and variable typing](#variables-and-variable-typing)
     - [Symbols](#symbols)
     - [`()`](#)
@@ -111,6 +112,55 @@ def main(){
 For the most part, Aki does not care about where you place linebreaks, and is insensitive to indentation. Expressions and strings can span multiple lines.
 
 However, comments (anything starting with a `#`) end with a linebreak.
+
+## Functions and function calls
+
+Use the `def` top-level keyword to define a function:
+
+```
+def f1(x:i32):i32 x
+```
+
+Function definitions need to have:
+
+* a name that does not shadow any existing name or keyword (except for functions with varying type signatures)
+* zero or more explicitly-typed arguments
+* a return type
+* and a function body.
+
+The function body in the above example is just the expression `x`. For a more complex example:
+
+```
+def f1(x:i32):i32 {
+    x = (if x>0 then 1 else -1)
+    x * 5
+}
+```
+
+Multiple versions of a function can be written to accept different type signatures:
+
+```
+def f1(x:i32):i32 {
+    x = (if x>0 then 1 else -1)
+    x * 5
+}
+
+def f1(x:i8):i32 {
+    f1(cast(x,i32))
+}
+```
+
+The second `f1` takes an `i8`, `cast`s it to `i32`, and supplies that to the `f1` that takes an `i32`.
+
+Functions can also take optional arguments with defaults:
+
+```
+def f1(x:i32, y:i32=1) x+y
+```
+
+Invoking this with `f1(0,32)` would return `32`. With `f1(1)`, you'd get `2`.
+
+Note that optional arguments must always follow mandatory arguments.
 
 ## Variables and variable typing
 
