@@ -7,28 +7,46 @@
 
 mangle_separator = '@'
 mangle_delineator = '@'
+mangle_opt_separator = '|'
 
 
-def mangle_funcname(name, type):
-    m_list = []
-    for n in type.args:
-        m_list.append(n.v_id + mangle_delineator)
-    return f"{name}{mangle_separator}{''.join(m_list)}"
-
-
+# Mangle a function supplied as an instance of ir.Function.
+# This is used mainly for codegenning the internal stdlib.
 def mangle_function(func):
     func.public_name = func.name
     func.name = mangle_types(func.name, func.args)
     return func
 
+# Mangle a function based on its name and type signature.
 
-def mangle_call(name, args):
-    return name + mangle_args(args)
+
+def mangle_funcname(name, type):
+    return mangle_call(name, type.args)
+
+# Mangle only the arguments for a function
 
 
 def mangle_args(args):
-    return mangle_separator + ''.join(
+    return _mangle_args(args, mangle_delineator)
+
+# Mangle a function call based on its name and a list of types.
+
+
+def mangle_call(name, args):
+    return f'{name}{mangle_args(args)}'
+
+# Mangle only the optional arguments for a function
+
+
+def mangle_optional_args(args):
+    return _mangle_args(args, mangle_opt_separator)
+
+
+def _mangle_args(args, sep):
+    return sep + ''.join(
         [n.v_id + mangle_delineator for n in args])
+
+# Mangle a function based on its name and a list of arguments.
 
 
 def mangle_types(name, args):

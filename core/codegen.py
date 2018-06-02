@@ -10,7 +10,7 @@ from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Arra
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
 from core.parsing import Builtins, Dunders
 from core.operators import BUILTIN_UNARY_OP
-from core.mangling import mangle_args, mangle_types, mangle_funcname
+from core.mangling import mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 
 
 def _int(pyval):
@@ -875,15 +875,28 @@ class LLVMCodeGenerator(object):
         funcname = node.name
 
         # Create a function type
+        
         vartypes = []
+        vartypes_with_defaults = []
+
+        append_to = vartypes
+
         for x in node.argnames:
-            if isinstance(x[1], Array):
-                s = x[1].element_type
-                for n in x[1].elements.elements:
-                    s = VarTypes.array(s, int(n.val))
+            # TODO: move this to a _codegen_vartype operation
+            arg_type = x.vartype
+            if isinstance(arg_type, Array):
+                s = arg_type.element_type
+                for n in arg_type.elements_elements:
+                    s=VarTypes.array(s, int(n.val))
             else:
-                s = x[1]
-            vartypes.append(s)
+                s = arg_type
+            if x.initializer is not None: 
+                setattr(s,'default_value',
+                self._codegen(x.initializer, False))
+                append_to = vartypes_with_defaults
+
+            append_to.append(s)
+            #print (s.__dict__)
 
         # TODO: it isn't yet possible to have an implicitly
         # typed function that just uses the return type of the body
@@ -906,18 +919,24 @@ class LLVMCodeGenerator(object):
         if node.extern is False and not funcname.startswith(
                 '_ANONYMOUS.') and funcname != 'main':
             linkage = 'private'
-            if len(node.argnames) > 0:
+            if len(vartypes) > 0:
                 funcname = mangle_funcname(funcname, functype)
+            if len(vartypes_with_defaults) > 0:
+                funcname += mangle_optional_args(vartypes_with_defaults)
+            # ? insert this into a dict that has the minimal number of args?
+            # so that we can look it up quickly?
 
         # If a function with this name already exists in the module...
         if funcname in self.module.globals:
 
             # We only allow the case in which a declaration exists and now the
             # function is defined (or redeclared) with the same number of args.
+            # TODO: I think this rule should be dropped and ANY prior 
+            # function version should never be overridden
             func = existing_func = self.module.globals[funcname]
 
             if not isinstance(existing_func, ir.Function):
-                raise CodegenError(f'Function/Global name collision {funcname}',
+                raise CodegenError(f'Function/universal name collision {funcname}',
                                    node.position)
             if not existing_func.is_declaration:
                 raise CodegenError(
@@ -933,7 +952,7 @@ class LLVMCodeGenerator(object):
 
             # Name the arguments
             for i, arg in enumerate(func.args):
-                arg.name = node.argnames[i][0]
+                arg.name = node.argnames[i].name
 
         func.public_name = public_name
 

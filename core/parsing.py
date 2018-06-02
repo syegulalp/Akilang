@@ -127,7 +127,7 @@ class Parser(object):
                         self._match(TokenKind.PUNCTUATOR, ',')
 
                 current.child = Call(start, id_name, args,
-                                        self.cur_tok.vartype)
+                                     self.cur_tok.vartype)
                 current = current.child
                 continue
 
@@ -309,7 +309,7 @@ class Parser(object):
                 self._get_next_token()
                 break
         return Call(start, name, args)
-    
+
     # TODO: eventually we will be able to recognize
     # vartypes as args without this kind of hackery
 
@@ -792,9 +792,27 @@ class Parser(object):
         argnames = []
 
         while not self._cur_tok_is_punctuator(')'):
+            position = self.cur_tok.position
             identifier, avartype = self._parse_var_declaration()
-            argnames.append((identifier, avartype
-                             if avartype is not None else DEFAULT_TYPE))
+
+            if self._cur_tok_is_operator('='):
+                self._get_next_token()
+                default_value = self._parse_expression()
+            else:
+                default_value = None
+
+            #print (default_value)
+
+            argnames.append(
+                Variable(
+                    position,
+                    identifier,
+                    avartype if avartype is not None else DEFAULT_TYPE,
+                    None,
+                    default_value
+                )
+            )
+
             if self._cur_tok_is_punctuator(','):
                 self._get_next_token()
 
@@ -861,10 +879,10 @@ class Parser(object):
 
 Builtins = {
     'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
-    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'dummy',    
+    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'dummy',
 }
 
-Dunders= {
+Dunders = {
     'len'
 }
 
