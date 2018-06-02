@@ -856,9 +856,7 @@ class LLVMCodeGenerator(object):
         
         else:
             try:
-                print (call_args)
                 for f1 in possible_opt_args_funcs:
-                    print (f1.name)
                     for a1 in zip(f1.args, call_args):
                         if a1[0].type!=a1[1].type:
                             raise TypeError
@@ -869,7 +867,6 @@ class LLVMCodeGenerator(object):
                 )
             else:
                 callee_func = f1
-                print (len(call_args), len(f1.args))
                 for n in range(len(call_args), len(f1.args)):
                     call_args.append(f1.args[n].type.default_value)
 
@@ -929,7 +926,6 @@ class LLVMCodeGenerator(object):
             # ir.FunctionType doesn't preserve the attributes of the arguments it accepts to create a function, so we have to stuff any default_value in the TYPE for that argument, and then extract it again later.
 
             append_to.append(s)
-            #print (s.__dict__)
 
         # TODO: it isn't yet possible to have an implicitly
         # typed function that just uses the return type of the body
