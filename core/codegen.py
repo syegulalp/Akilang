@@ -860,12 +860,12 @@ class LLVMCodeGenerator(object):
             try:
                 match = False
                 for f1 in possible_opt_args_funcs:
-                    if len(call_args)>len(f1.args):
+                    if len(call_args) > len(f1.args):
                         continue
-                    match=True 
+                    match = True
                     for function_arg, call_arg in zip(f1.args, call_args):
                         if function_arg.type != call_arg.type:
-                            match=False
+                            match = False
                             break
                 if not match:
                     raise TypeError
@@ -877,7 +877,7 @@ class LLVMCodeGenerator(object):
             else:
                 callee_func = f1
                 for n in range(len(call_args), len(f1.args)):
-                    call_args.append(f1.args[n].type.default_value)
+                    call_args.append(f1.args[n].default_value)
 
         if not callee_func:
             callee_func = self.module.globals.get(node.name, None)
@@ -920,12 +920,7 @@ class LLVMCodeGenerator(object):
             else:
                 s = arg_type
             if x.initializer is not None:
-                setattr(s, 'default_value',
-                        self._codegen(x.initializer, False))
                 append_to = vartypes_with_defaults
-
-            # ir.FunctionType doesn't preserve the attributes of the arguments it accepts to create a function, so we have to stuff any default_value in the TYPE for that argument, and then extract it again later.
-
             append_to.append(s)
 
         # TODO: it isn't yet possible to have an implicitly
@@ -991,6 +986,12 @@ class LLVMCodeGenerator(object):
 
         if opt_args is not None:
             self.opt_args_funcs[required_args] = func
+
+        # Set defaults (if any)
+
+        for x,n in enumerate(node.argnames):
+            if n.initializer is not None:
+                func.args[x].default_value = self._codegen(n.initializer, False)
 
         func.public_name = public_name
 

@@ -3,5 +3,8 @@ def f1(x:i32, y:i32=1, z:str="Hello"){
 }
 
 def main(){
+    f1(32, 32)
     f1(32, 32, "Bye?")
+    f1(32)
+    #f1(32, 32, "Bye?", 1)
 }
