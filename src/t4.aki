@@ -1,0 +1,5 @@
+def main(){
+    var n=20
+    var x:i32[n]
+    0
+}

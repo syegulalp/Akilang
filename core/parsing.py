@@ -267,20 +267,24 @@ class Parser(object):
 
         if self._cur_tok_is_punctuator('['):
             accessor = self._parse_array_accessor()
-            # the array has to be built from the inside out
+
+            fixed_size = True
+
             for n in accessor.elements:
                 if isinstance(n, Variable):
-                    raise ParseError(
-                        f'Array size cannot be set dynamically with a variable; use a constant',
-                        n.position
-                    )
-            for n in reversed(accessor.elements):
+                    fixed_size=False
+                    break
 
-                # TODO: arrays are declared only statically
-                # what we might want to do is codegen each,
-                # and then assign dynamically
-                # but that will NOT work with a uni dec...
+            if not fixed_size:
+                raise ParseError(
+                    f'Array size cannot be set dynamically with a variable; use a constant',
+                    n.position
+                )
+            
+            # the array has to be built from the inside out                
+            for n in reversed(accessor.elements):                
                 vartype = VarTypes.array(vartype, int(n.val))
+            
             self._get_next_token()
 
         if vartype.is_obj:
