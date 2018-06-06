@@ -651,7 +651,7 @@ class Parser(object):
                     c = codexec.AkilangEvaluator()
                     c._eval_ast(t)
                     c.codegen.generate_code(Function.Anonymous(start, init))
-                    r_type = c.codegen.module.globals[_ANONYMOUS+'1'].return_value.type
+                    r_type = c.codegen.module.globals[Prototype.anon_name(Prototype)].return_value.type
                     e= c._eval_ast(
                         Function.Anonymous(start, init, vartype=r_type),
                         return_type = r_type.c_type

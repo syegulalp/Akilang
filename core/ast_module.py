@@ -359,12 +359,15 @@ class Prototype(Node):
 
     _anonymous_count = 0
 
+    def anon_name(self):
+        return f'{_ANONYMOUS}{self._anonymous_count}'
+
     @classmethod
     def Anonymous(klass, position, vartype=None):
         klass._anonymous_count += 1
         return Prototype(
             position,
-           f'{_ANONYMOUS}{klass._anonymous_count}', [],
+            klass.anon_name(klass), [],
             vartype=vartype)
 
     def is_anonymous(self):
