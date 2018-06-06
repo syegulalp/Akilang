@@ -160,11 +160,25 @@ VarTypes = Map({
     #'any': Any
 })
 
+import ctypes
+
+VarTypes.u1.c_type = ctypes.c_bool
+VarTypes.u8.c_type = ctypes.c_ubyte
+VarTypes.i16.c_type = ctypes.c_short
+VarTypes.u16.c_type = ctypes.c_short
+VarTypes.i32.c_type = ctypes.c_long
+VarTypes.i64.c_type = ctypes.c_longlong
+VarTypes.u32.c_type = ctypes.c_ulong
+VarTypes.u64.c_type = ctypes.c_ulonglong
+VarTypes.f64.c_type = ctypes.c_longdouble
+
 # add these types in manually, since they just shadow existing ones
 
 VarTypes['bool'] = VarTypes.u1
 VarTypes['byte'] = VarTypes.u8
 VarTypes['func'] = ir.FunctionType
+
+
 
 # eventually this will be set to None
 # when we support object types as the default

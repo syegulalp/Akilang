@@ -2,7 +2,7 @@ from collections import namedtuple
 
 from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
-    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType
+    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, _ANONYMOUS
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
 from core.errors import ParseError, CodegenWarning
@@ -636,10 +636,33 @@ class Parser(object):
             if isinstance(init, String):
                 init.anonymous = False
 
-            vars.append((name, vartype, init, start))
-
             if const and init:
-                self.consts[name] = Number(start, init.val, init.vartype)
+                if not hasattr(init,'val'):
+
+                    # we need to also detect array size initializers, etc.
+                    # so this actually needs to be somewhere else,
+                    # and invoked very differently
+                    # basically, if we're in a const or uni block,
+                    # and we need to calculate a value that isn't itself a constant,
+                    # we should do it this way
+
+                    t=ast_type(self.cur_tok.position, vars[:-1])
+                    from core import codexec
+                    c = codexec.AkilangEvaluator()
+                    c._eval_ast(t)
+                    c.codegen.generate_code(Function.Anonymous(start, init))
+                    r_type = c.codegen.module.globals[_ANONYMOUS+'1'].return_value.type
+                    e= c._eval_ast(
+                        Function.Anonymous(start, init, vartype=r_type),
+                        return_type = r_type.c_type
+                    )
+
+                    init = Number(start, e.value, e.ast.proto.vartype)
+                    self.consts[name] = init
+                else:
+                    self.consts[name] = Number(start, init.val, init.vartype)
+
+            vars.append((name, vartype, init, start))
 
             if self._cur_tok_is_punctuator(','):
                 self._get_next_token()
@@ -720,7 +743,9 @@ class Parser(object):
                             start))
 
             # Merge lhs/rhs
-            lhs = Binary(start, op, lhs, rhs)
+            lhs = Binary(start, op, lhs, rhs)           
+                
+            
 
     def _parse_expression(self):
         self.level += 1

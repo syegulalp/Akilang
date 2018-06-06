@@ -3,16 +3,12 @@
 const {
     WIDTH=80,
     HEIGHT=32,
+    FIELD_SIZE = (WIDTH+1)*(HEIGHT+1)
 }
 
 uni {
-    field:byte[2,HEIGHT,WIDTH],
-    
-    # output:byte[(WIDTH+1)*(HEIGHT+1)],
-    # no constant folding yet, so this doesn't work
-    # constants should be AST-substituted
-    
-    output:byte[4001],
+    field:byte[2,HEIGHT,WIDTH],    
+    output:byte[FIELD_SIZE],
     divider:byte[81],
     world=0,
     gen:u64

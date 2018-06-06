@@ -1,5 +1,8 @@
+const {
+    n=20.0
+    m=n+5
+}
+
 def main(){
-    var n=20
-    var x:i32[n]
-    0
+    print (m+5.0)
 }

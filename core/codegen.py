@@ -4,7 +4,8 @@ import llvmlite.binding as llvm
 
 from core.ast_module import (
     Binary, Variable, Prototype, Function, Uni, Class,
-    Array, If, Number, ArrayAccessor, Call, Var
+    Array, If, Number, ArrayAccessor, Call, Var,
+    _ANONYMOUS
 )
 from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
@@ -67,6 +68,10 @@ class LLVMCodeGenerator(object):
         # from core.llvmlite_custom import _PointerType
         # _PointerType.width = self.pointer_size * 8
 
+    def generate_code(self, node):
+        assert isinstance(node, (Prototype, Function, Uni, Class))
+        return self._codegen(node, False)
+
     def _isize(self):
         '''
         Returns a constant of the pointer size for the currently configured architecture.
@@ -83,9 +88,7 @@ class LLVMCodeGenerator(object):
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
 
-    def generate_code(self, node):
-        assert isinstance(node, (Prototype, Function, Uni, Class))
-        return self._codegen(node, False)
+
 
     def _alloca(self, name, type=None, size=None):
         """Create an alloca in the entry BB of the current function."""
@@ -1051,6 +1054,7 @@ class LLVMCodeGenerator(object):
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')
         self.func_returnarg = self._alloca('%_return', self.func_returntype)
+        
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
@@ -1084,9 +1088,13 @@ class LLVMCodeGenerator(object):
                     node.position)
 
             if func.return_value.type != retval.type:
-                raise CodegenError(
-                    f'Prototype for function "{node.proto.name}" has return type "{func.return_value.type.descr()}", but returns "{retval.type.descr()}" instead (maybe an implicit return?)',
-                    node.proto.position)
+                if node.proto.name.startswith(_ANONYMOUS):
+                    func.return_value.type = retval.type
+                    self.func_returnarg = self._alloca('%_return', retval.type)
+                else:
+                    raise CodegenError(
+                        f'Prototype for function "{node.proto.name}" has return type "{func.return_value.type.descr()}", but returns "{retval.type.descr()}" instead (maybe an implicit return?)',
+                        node.proto.position)
 
             self.builder.store(retval, self.func_returnarg)
             self.builder.branch(self.func_returnblock)
