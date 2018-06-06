@@ -40,8 +40,11 @@ class Float64(ir.DoubleType):
         t.width=64
         return t
 
-# Non-singleton types (these require an invocation)
 
+ir.IntType.is_obj = False
+ir.DoubleType.is_obj = False
+
+# Non-singleton types (these require an invocation)
 
 class Array(ir.ArrayType):
     def __new__(cls, type, len):
@@ -52,9 +55,6 @@ class Array(ir.ArrayType):
 
         return t
 
-
-ir.IntType.is_obj = False
-ir.DoubleType.is_obj = False
 ir.ArrayType.is_obj = False
 
 
