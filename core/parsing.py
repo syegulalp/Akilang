@@ -10,10 +10,11 @@ from core.operators import binop_info, Associativity, set_binop_info
 
 
 class Parser(object):
-    """Parser for the Akilang language.
+    '''
+    Parser for the Akilang language.
     After the parser is created, invoke parse_toplevel multiple times to parse
     Akilang source into an AST.
-    """
+    '''
 
     def __init__(self, anon_vartype=DEFAULT_TYPE):
         self.token_generator = None
@@ -24,13 +25,19 @@ class Parser(object):
         self.level = 0
         self.top_return = False
         self.expr_stack = []
+        from core import codexec
+        self.evaluator = codexec.AkilangEvaluator()
 
-    # toplevel ::= definition | external | expression
     def parse_toplevel(self, buf):
+        '''
+        Parse the next top-level token into an AST node.
+        '''
         return next(self.parse_generator(buf))
 
     def parse_generator(self, buf):
-        """Given a string, returns an AST node representing it."""
+        '''
+        Given a string, returns an AST node representing it.
+        '''
         self.token_generator = Lexer(buf).tokens()
         self.cur_tok = None
         self._get_next_token()
@@ -59,9 +66,10 @@ class Parser(object):
         self.cur_tok = next(self.token_generator)
 
     def _match(self, expected_kind, expected_value=None, consume=True):
-        """Consume the current token; verify that it's of the expected kind.
+        '''
+        Consume the current token; verify that it's of the expected kind.
         If expected_kind == TokenKind.OPERATOR, verify the operator's value.
-        """
+        '''
         if self.cur_tok.kind != expected_kind or (
                 expected_value and self.cur_tok.value != expected_value):
             val = expected_value if expected_value is not None else expected_kind
@@ -73,18 +81,30 @@ class Parser(object):
             self._get_next_token()
 
     def _compare(self, expected_kind, expected_value=None):
+        '''
+        Similar to _match, but does not consume the token, just returns
+        whether or not the token matches what's expected.
+        '''
         return self._match(expected_kind, expected_value, consume=False)
 
     def _cur_tok_is_punctuator(self, punc):
+        '''
+        Query whether the current token is a specific punctuator.
+        '''
         return (self.cur_tok.kind == TokenKind.PUNCTUATOR
                 and self.cur_tok.value == punc)
 
     def _cur_tok_is_operator(self, op):
-        """Query whether the current token is the operator op"""
+        '''
+        Query whether the current token is the operator op.
+        '''
         return (self.cur_tok.kind == TokenKind.OPERATOR
                 and self.cur_tok.value == op)
 
     def _check_builtins(self):
+        '''
+        Query whether the current token is either a builtin or a registered vartype.
+        '''
         if self.cur_tok.value in Builtins:
             raise ParseError(
                 f'"{self.cur_tok.value}" cannot be used as an identifier (builtin)',
@@ -272,7 +292,7 @@ class Parser(object):
 
             for n in accessor.elements:
                 if isinstance(n, Variable):
-                    fixed_size=False
+                    fixed_size = False
                     break
 
             if not fixed_size:
@@ -280,11 +300,11 @@ class Parser(object):
                     f'Array size cannot be set dynamically with a variable; use a constant',
                     n.position
                 )
-            
-            # the array has to be built from the inside out                
-            for n in reversed(accessor.elements):                
+
+            # the array has to be built from the inside out
+            for n in reversed(accessor.elements):
                 vartype = VarTypes.array(vartype, int(n.val))
-            
+
             self._get_next_token()
 
         if vartype.is_obj:
@@ -563,10 +583,12 @@ class Parser(object):
         return ArrayAccessor(start, elements)
 
     def _parse_var_declaration(self):
-        # this is used to parse variable declarations in
-        # uni, var, and const blocks.
-        # It's not used for variable references, which are a little different.
-        # it doesn't yet handle initializer assignment because that's handled
+        '''
+        Parse variable declarations in uni/var/const blocks.
+        '''
+        
+        # Not used for variable *references*, which are a little different.
+        # Doesn't yet handle initializer assignment because that's handled
         # differently in each case, but maybe later we can unify it
 
         # first, consume the name of the identifier
@@ -605,6 +627,8 @@ class Parser(object):
 
     def _parse_uni_expr(self, const=False):
 
+        self.expr_stack.append(self._parse_uni_expr)
+
         if const:
             ast_type = Const
         else:
@@ -637,31 +661,46 @@ class Parser(object):
                 init.anonymous = False
 
             if const and init:
-                if not hasattr(init,'val'):
+                if not hasattr(init, 'val'):
 
-                    # we need to also detect array size initializers, etc.
-                    # so this actually needs to be somewhere else,
-                    # and invoked very differently
-                    # basically, if we're in a const or uni block,
-                    # and we need to calculate a value that isn't itself a constant,
-                    # we should do it this way
+                    # if there's no constant value on the initializer,
+                    # it's an expression, and so we need to 
+                    # JIT-compile the existing constants
+                    # to compute the value of that expression
 
-                    t=ast_type(self.cur_tok.position, vars[:-1])
-                    from core import codexec
-                    c = codexec.AkilangEvaluator()
-                    c._eval_ast(t)
-                    c.codegen.generate_code(Function.Anonymous(start, init))
-                    r_type = c.codegen.module.globals[Prototype.anon_name(Prototype)].return_value.type
-                    e= c._eval_ast(
+                    tt = []
+                    for k, v in self.consts.items():
+                        tt.append((k, None, v, v.position))
+                    t = ast_type(self.cur_tok.position, tt)
+
+                    # Evaluate the temporary AST with the unis/consts
+                    self.evaluator.reset()
+                    self.evaluator._eval_ast(t)
+
+                    # Codegen a function that obtains the computed result
+                    # for this constant
+                    self.evaluator.codegen.generate_code(
+                        Function.Anonymous(start, init))
+
+                    # Extract the variable type of that function
+                    r_type = self.evaluator.codegen.module.globals[Prototype.anon_name(
+                        Prototype)].return_value.type
+
+                    # Run the function with the proper return type
+                    e = self.evaluator._eval_ast(
                         Function.Anonymous(start, init, vartype=r_type),
-                        return_type = r_type.c_type
+                        return_type=r_type.c_type
                     )
 
+                    # Extract and assign the value
                     init = Number(start, e.value, e.ast.proto.vartype)
                     self.consts[name] = init
+
                 else:
                     self.consts[name] = Number(start, init.val, init.vartype)
 
+            # FIXME: Let's just append an actual Variable node, whatever it is
+            # & look at how codegen works from this, modify appropriately
             vars.append((name, vartype, init, start))
 
             if self._cur_tok_is_punctuator(','):
@@ -672,6 +711,7 @@ class Parser(object):
 
             elif self._cur_tok_is_punctuator('}'):
                 self._get_next_token()
+                self.expr_stack.pop()
                 return ast_type(self.cur_tok.position, vars)
 
             else:
@@ -680,10 +720,12 @@ class Parser(object):
                     self.cur_tok.position)
 
     def _parse_binop_rhs(self, expr_prec, lhs):
-        """Parse the right-hand-side of a binary expression.
+        '''
+        Parse the right-hand-side of a binary expression.
         expr_prec: minimal precedence to keep going (precedence climbing).
         lhs: AST of the left-hand-side.
-        """
+        '''
+        
         start = self.cur_tok.position
         while True:
 
@@ -743,9 +785,7 @@ class Parser(object):
                             start))
 
             # Merge lhs/rhs
-            lhs = Binary(start, op, lhs, rhs)           
-                
-            
+            lhs = Binary(start, op, lhs, rhs)
 
     def _parse_expression(self):
         self.level += 1
