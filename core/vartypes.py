@@ -71,7 +71,27 @@ class CustomClass():
         return new_class
 
 
-# object types
+class ArrayClass():
+    def __new__(cls, type, elements):
+        arr_type = type
+        for n in reversed(elements):
+            arr_type = VarTypes.array(arr_type, n)
+        new_arr = ir.LiteralStructType(
+            [
+                VarTypes.array(VarTypes.ptr_size, len(elements)),
+                arr_type
+            ]
+        )
+        new_arr.v_id = 'array_' + type.v_id
+        # need to distinguish arrays of different sizes?
+        #[str(n)+'_' for n in reversed(elements)] +type.v_id
+        new_arr.is_obj = True
+        new_arr.signed = type.signed # ??
+        new_arr.as_pointer = make_type_as_ptr(new_arr)
+        
+        return new_arr
+
+# singleton object types
 
 Ptr = ir.global_context.get_identified_type('.object.ptr')
 Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
@@ -178,14 +198,7 @@ VarTypes['bool'] = VarTypes.u1
 VarTypes['byte'] = VarTypes.u8
 VarTypes['func'] = ir.FunctionType
 
-
-
-# eventually this will be set to None
-# when we support object types as the default
-
 DEFAULT_TYPE = VarTypes.i32
 DEFAULT_RETURN_VALUE = ir.Constant(VarTypes.i32, 0)
 
-dunder_methods = [f'__{n}__' for n in ['len']]
-
-#print(dunder_methods)
+dunder_methods = set([f'__{n}__' for n in ['len']])

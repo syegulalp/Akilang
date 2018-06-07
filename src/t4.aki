@@ -1,8 +1,7 @@
-const {
-    n=20.0
-    m=n+5
-}
+def main() {
+    var x:i32[4,320,600]
+    var y=x[1,20]
+    y[0]=32
+    print (y[0])
 
-def main(){
-    print (m+5.0)
 }
