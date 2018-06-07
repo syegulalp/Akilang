@@ -5,7 +5,7 @@ import llvmlite.binding as llvm
 from core.ast_module import (
     Binary, Variable, Prototype, Function, Uni, Class,
     Array, If, Number, ArrayAccessor, Call, Var,
-    _ANONYMOUS
+    _ANONYMOUS, Const
 )
 from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
@@ -65,8 +65,14 @@ class LLVMCodeGenerator(object):
         from core.vartypes import UnsignedInt
         VarTypes['ptr_size'] = UnsignedInt(self.pointer_bitwidth)
 
-        # from core.llvmlite_custom import _PointerType
-        # _PointerType.width = self.pointer_size * 8
+
+    def _int(self, pyval):
+        '''
+        Returns a constant for Python int value.
+        Used for gep, so it returns a value that is the bitwidth
+        of the pointer size for the needed architecture.
+        '''
+        return ir.Constant(VarTypes.ptr_size, int(pyval))
 
     def generate_code(self, node):
         assert isinstance(node, (Prototype, Function, Uni, Class))
@@ -164,7 +170,7 @@ class LLVMCodeGenerator(object):
         '''
 
         accessor = [
-            _int(0),
+            self._int(0),
         ] + [self._codegen(n) for n in node.elements]
 
         # FIXME: This is intended to trap wrongly sized array accessors
@@ -236,7 +242,7 @@ class LLVMCodeGenerator(object):
                 _cls = self.class_symtab[_latest_vid]
                 _pos = _cls.v_types[current_node.name]['pos']
 
-                index = [_int(0), _int(_pos)]
+                index = [self._int(0), self._int(_pos)]
 
                 latest = self.builder.gep(
                     latest, index, True,
@@ -273,7 +279,7 @@ class LLVMCodeGenerator(object):
 
     def _codegen_Assignment(self, lhs, rhs):
         if not isinstance(lhs, Variable):
-            raise CodegenError(f'lhs of "=" ({lhs}) must be a variable',
+            raise CodegenError(f'Left-hand side of expression is not a variable and cannot be assigned a value at runtime',
                                lhs.position)
 
         ptr = self._codegen_Variable(lhs, noload=True)
@@ -327,7 +333,7 @@ class LLVMCodeGenerator(object):
         # Get pointer to first element in string's byte array
         # and bitcast it to a ptr i8.
 
-        spt = str_const.gep([_int(0)]).bitcast(VarTypes.u8.as_pointer())
+        spt = str_const.gep([self._int(0)]).bitcast(VarTypes.u8.as_pointer())
 
         # Create the string object that points to the constant.
 
@@ -1433,7 +1439,7 @@ class LLVMCodeGenerator(object):
         Returns a raw u8 pointer to the start of an array or structure.
         '''
         convert_from = self._get_obj_noload(node)
-        gep = self.builder.gep(convert_from, [_int(0)])
+        gep = self.builder.gep(convert_from, [self._int(0)])
         bc = self.builder.bitcast(gep, VarTypes.u8.as_pointer())
         return bc
 
