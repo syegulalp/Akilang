@@ -14,14 +14,6 @@ from core.operators import BUILTIN_UNARY_OP
 from core.mangling import mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 
 
-def _int(pyval):
-    '''
-    Returns i32 constant for Python int value.
-    Used for gep.
-    '''
-    return ir.Constant(VarTypes.i32, int(pyval))
-
-
 class LLVMCodeGenerator(object):
     def __init__(self):
         """Initialize the code generator.
@@ -64,7 +56,10 @@ class LLVMCodeGenerator(object):
 
         from core.vartypes import UnsignedInt
         VarTypes['ptr_size'] = UnsignedInt(self.pointer_bitwidth)
-
+        # XXX: this causes ALL instances of .ptr_size
+        # in the environment instance
+        # to be set to the platform width!
+        # we may not want to have this behavior
 
     def _int(self, pyval):
         '''
@@ -73,6 +68,14 @@ class LLVMCodeGenerator(object):
         of the pointer size for the needed architecture.
         '''
         return ir.Constant(VarTypes.ptr_size, int(pyval))
+
+    def _i32(self, pyval):
+        '''
+        Returns a constant for Python int value.
+        Used for gep, so it returns a value that is the bitwidth
+        of the pointer size for the needed architecture.
+        '''
+        return ir.Constant(VarTypes.u32, int(pyval))
 
     def generate_code(self, node):
         assert isinstance(node, (Prototype, Function, Uni, Class))
@@ -85,7 +88,7 @@ class LLVMCodeGenerator(object):
         that object is instantiated. By default it's the pointer size for the current
         hardware, but you will be able to override it later.
         '''
-        return ir.Constant(VarTypes.i32, self.pointer_size)
+        return ir.Constant(VarTypes.ptr_size, self.pointer_size)
 
     def _obj_size_type(self, obj=None):
         return obj.get_abi_size(
@@ -93,8 +96,6 @@ class LLVMCodeGenerator(object):
 
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
-
-
 
     def _alloca(self, name, type=None, size=None):
         """Create an alloca in the entry BB of the current function."""
@@ -242,7 +243,12 @@ class LLVMCodeGenerator(object):
                 _cls = self.class_symtab[_latest_vid]
                 _pos = _cls.v_types[current_node.name]['pos']
 
-                index = [self._int(0), self._int(_pos)]
+                # for some reason we can't use i64 gep here
+
+                index = [
+                    self._i32(0),
+                    self._i32(_pos)
+                ]                
 
                 latest = self.builder.gep(
                     latest, index, True,
@@ -998,9 +1004,10 @@ class LLVMCodeGenerator(object):
 
         # Set defaults (if any)
 
-        for x,n in enumerate(node.argnames):
+        for x, n in enumerate(node.argnames):
             if n.initializer is not None:
-                func.args[x].default_value = self._codegen(n.initializer, False)
+                func.args[x].default_value = self._codegen(
+                    n.initializer, False)
 
         func.public_name = public_name
 
@@ -1060,7 +1067,6 @@ class LLVMCodeGenerator(object):
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')
         self.func_returnarg = self._alloca('%_return', self.func_returntype)
-        
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
