@@ -76,7 +76,7 @@ class ArrayClass():
         arr_type = type
         for n in reversed(elements):
             arr_type = VarTypes.array(arr_type, n)
-        new_arr = ir.LiteralStructType(
+        new_arr = ir.types.LiteralStructType(
             [
                 VarTypes.array(VarTypes.ptr_size, len(elements)),
                 arr_type

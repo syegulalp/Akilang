@@ -1,7 +1,7 @@
-def main() {
-    var x:i32[4,320,600]
-    var y=x[1,20]
-    y[0]=32
-    print (y[0])
-
+def main(){
+    var x=c_obj_alloc({with var z:u64[64] z})
+    x[63]=32U
+    print (x[63])
+    print( c_obj_free(x))
+    0   
 }

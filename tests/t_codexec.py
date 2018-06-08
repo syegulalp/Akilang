@@ -236,8 +236,8 @@ class TestEvaluator(unittest.TestCase):
             pass
         self.assertEqual(_.value, 0)
 
-    def test_arr_class(self):
-        from core.vartypes import ArrayClass
-        a = ArrayClass(VarTypes.i32,[4,4,4])
-    #     print (a)
-    #     print (a.__dict__)
+    # def test_arr_class(self):
+    #     from core.vartypes import ArrayClass
+    #     a = ArrayClass(VarTypes.i32,[4,4,4])
+    # #     print (a)
+    # #     print (a.__dict__)

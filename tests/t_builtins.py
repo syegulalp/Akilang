@@ -78,13 +78,13 @@ class TestEvaluator(unittest.TestCase):
         e.evaluate('''
         def main(){
             var
-                x=c_obj_alloc({with var z:u64[64] z}),
+                x=c_obj_alloc({with var q:u64[64] q}),
                 y=0U,
                 z=0
             x[0]=c_addr(x)
             x[1]=64U
-            x[64]=64U
-            y=x[1]+x[64]
+            x[63]=64U
+            y=x[1]+x[63]
             z=z+(if y==128U then 0 else 1)
             z=z+(if c_obj_free(x) then 0 else 1)
             z

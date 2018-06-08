@@ -169,9 +169,9 @@ class LLVMCodeGenerator(object):
         '''
         Returns a pointer to the requested element of an array.
         '''
-
         accessor = [
-            self._int(0),
+            self._i32(0),
+            self._i32(1),
         ] + [self._codegen(n) for n in node.elements]
 
         # FIXME: This is intended to trap wrongly sized array accessors
@@ -209,7 +209,6 @@ class LLVMCodeGenerator(object):
             elif isinstance(current_node, ArrayAccessor):
                 # eventually this will be coded as a call
                 # to __index__ method of the element in question
-                #
                 if not isinstance(latest, ir.instructions.LoadInstr):
                     array_element = self.builder.alloca(latest.type)
                     self.builder.store(latest, array_element)
@@ -1267,6 +1266,7 @@ class LLVMCodeGenerator(object):
 
     def _codegen_Uni(self, node, const=False):
         for name, vartype, expr, position in node.vars:
+
             var_ref = self.module.globals.get(name, None)
 
             if var_ref is not None:
@@ -1288,7 +1288,16 @@ class LLVMCodeGenerator(object):
             if const:
                 str1.global_constant = True
             if val is None:
-                str1.initializer = ir.Constant(final_type, None)
+                if final_type.is_obj_ptr():
+                    empty_obj = ir.GlobalVariable(
+                        self.module,
+                        final_type.pointee,
+                        name + '.init'
+                    )
+                    empty_obj.initializer = ir.Constant(final_type.pointee,None)
+                    str1.initializer = empty_obj
+                else:
+                    str1.initializer = ir.Constant(final_type, None)
             else:
                 str1.initializer = val
 
@@ -1386,25 +1395,30 @@ class LLVMCodeGenerator(object):
         var x=c_obj_alloc({with var z:i32[8] z})
         '''
 
-        expr = self._codegen(node.args[0])
-        sizeof = self._obj_size(expr)
+        expr = self._get_obj_noload(node)
+        e2 = self.builder.load(expr)
+        sizeof = self._obj_size(e2)
 
         call = self._codegen_Call(
             Call(node.position, 'c_alloc',
                  [Number(node.position, sizeof, VarTypes.ptr_size)]))
 
-        bc = self.builder.bitcast(call, expr.type.as_pointer())
+        b1 = self.builder.bitcast(call, expr.type)
+        b2 = self.builder.alloca(b1.type)
+        self.builder.store(b1,b2)
 
-        bc.no_alloca = True
-        bc.heap_alloc = True
-
-        return bc
+        b2.no_alloca = True
+        b2.heap_alloc = True
+       
+        return b2
 
     def _codegen_Builtins_c_obj_free(self, node):
         '''
         Deallocates memory for an object created with c_obj_alloc.
         '''
         expr = self._get_obj_noload(node)
+        expr = self.builder.load(expr)
+
         addr = self.builder.ptrtoint(expr, VarTypes.ptr_size)
 
         call = self._codegen_Call(
@@ -1424,7 +1438,7 @@ class LLVMCodeGenerator(object):
 
     def _codegen_Builtins_c_size(self, node):
         '''
-        Returns the size of the object's desciptor in bytes.
+        Returns the size of the object's descriptor in bytes.
         For a string, this is NOT the size of the
         underlying string, but the size of the structure
         that describes a string.
@@ -1440,12 +1454,45 @@ class LLVMCodeGenerator(object):
 
         return ir.Constant(VarTypes.ptr_size, s2)
 
+    def _codegen_Builtins_c_obj_size(self, node):
+        # eventually we'll extract this information from
+        # the object headers once we start using those regularly
+
+        convert_from = self._get_obj_noload(node)
+
+        # get direct pointer to object
+        s0 = self.builder.load(convert_from)
+
+        # get actual data element pointer
+        s1 = self.builder.gep(s0,
+            [
+                self._i32(0),
+                self._i32(1)
+            ]
+        )
+
+        # dereference that to get the underlying data element
+        s1 = self.builder.load(s1)
+
+        # determine its size
+        s2 = self._obj_size_type(s1.type)
+
+        return ir.Constant(VarTypes.ptr_size, s2)
+
     def _codegen_Builtins_c_array_ptr(self, node):
         '''
-        Returns a raw u8 pointer to the start of an array or structure.
+        Returns a raw u8 pointer to the start of an array object.
         '''
         convert_from = self._get_obj_noload(node)
-        gep = self.builder.gep(convert_from, [self._int(0)])
+        
+        convert_from = self.builder.load(convert_from)
+        gep = self.builder.gep(convert_from,
+            [
+                self._i32(0),
+                self._i32(1),
+                #self._i32(0),
+            ]
+        )
         bc = self.builder.bitcast(gep, VarTypes.u8.as_pointer())
         return bc
 

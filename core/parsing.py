@@ -4,7 +4,7 @@ from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, _ANONYMOUS
 )
-from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes
+from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info
 
@@ -302,8 +302,14 @@ class Parser(object):
                 )
 
             # the array has to be built from the inside out
-            for n in reversed(accessor.elements):
-                vartype = VarTypes.array(vartype, int(n.val))
+            #for n in reversed(accessor.elements):
+                #vartype = VarTypes.array(vartype, int(n.val))
+            
+            elements = []
+            for n in accessor.elements:
+                elements.append(int(n.val))
+
+            vartype = ArrayClass(vartype, elements)
 
             self._get_next_token()
 
@@ -948,7 +954,8 @@ class Parser(object):
 
 Builtins = {
     'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
-    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'dummy',
+    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'c_obj_size',
+    'dummy',
 }
 
 Dunders = {
