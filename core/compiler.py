@@ -80,10 +80,12 @@ def compile(module, filename):
         raise Exception('Non-Win32 OSes not yet supported')
 
     try:
-        p = subprocess.Popen(shell,
-                             stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            shell,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
         for cmd in cmds:
             while True:

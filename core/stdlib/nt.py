@@ -7,19 +7,39 @@ def stdlib(self, module):
     from core.vartypes import VarTypes
     from core.mangling import mangle_function
 
+    # string length
+    # eventually when we move string to an identified type, we can remove this.
+
+    strlen_s = ir.FunctionType(VarTypes.u32, [VarTypes.str.as_pointer()])
+    strlen = mangle_function(ir.Function(module, strlen_s, '.object.str.__len__'))
+    irbuilder = ir.IRBuilder(strlen.append_basic_block('entry'))
+
+    # extract element 1, the length
+
+    s1 = strlen.args[0]
+    s2 = irbuilder.gep(s1,
+        [ir.Constant(ir.IntType(32), 0),
+        ir.Constant(ir.IntType(32), 1),]
+    )
+    s3 = irbuilder.load(s2)
+
+    irbuilder.ret(s3)
+
+    ### everything after this point is being retained for historical use only    
+
     # PLATFORM CONSTANTS
 
     # Add cr/lf constant (for win32 use only)
 
-    _crlf = '\r\n'
+    # _endln = '\r\n'
 
-    _type = ir.ArrayType(VarTypes.byte, len(_crlf))
+    # _type = ir.ArrayType(VarTypes.byte, len(_endln))
 
-    const = ir.GlobalVariable(module, _type, '.const.crlf')
-    const.global_constant = True
-    const.storage_class = 'private'
-    const.align = 8
-    const.initializer = ir.Constant(_type, bytearray(_crlf.encode()))
+    # const = ir.GlobalVariable(module, _type, '.const.endln')
+    # const.global_constant = True
+    # const.storage_class = 'private'
+    # const.align = 8
+    # const.initializer = ir.Constant(_type, bytearray(_endln.encode()))
 
     # Add atoi
     # TODO:untested
@@ -62,23 +82,7 @@ def stdlib(self, module):
     # strptr = irbuilder.load(data_ptr, 's2')
     # irbuilder.ret(strptr)
 
-    # string length
-    # eventually when we move string to an identified type, we can remove this.
 
-    strlen_s = ir.FunctionType(VarTypes.u32, [VarTypes.str.as_pointer()])
-    strlen = mangle_function(ir.Function(module, strlen_s, '.object.str.__len__'))
-    irbuilder = ir.IRBuilder(strlen.append_basic_block('entry'))
-
-    # extract element 1, the length
-
-    s1 = strlen.args[0]
-    s2 = irbuilder.gep(s1,
-        [ir.Constant(ir.IntType(32), 0),
-        ir.Constant(ir.IntType(32), 1),]
-    )
-    s3 = irbuilder.load(s2)
-
-    irbuilder.ret(s3)
 
     # string deletion
 
