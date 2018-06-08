@@ -247,7 +247,7 @@ class LLVMCodeGenerator(object):
                 index = [
                     self._i32(0),
                     self._i32(_pos)
-                ]                
+                ]
 
                 latest = self.builder.gep(
                     latest, index, True,
@@ -1294,7 +1294,8 @@ class LLVMCodeGenerator(object):
                         final_type.pointee,
                         name + '.init'
                     )
-                    empty_obj.initializer = ir.Constant(final_type.pointee,None)
+                    empty_obj.initializer = ir.Constant(
+                        final_type.pointee, None)
                     str1.initializer = empty_obj
                 else:
                     str1.initializer = ir.Constant(final_type, None)
@@ -1390,7 +1391,8 @@ class LLVMCodeGenerator(object):
         '''
         Allocates bytes for an object of the type submitted.
         Eventually we will be able to submit a type directly.
-        For now, use a throwaway closure
+        For now, use a throwaway closure that generates
+        an object of the type you want to use
         E.g., for an i32[8]:
         var x=c_obj_alloc({with var z:i32[8] z})
         '''
@@ -1405,11 +1407,11 @@ class LLVMCodeGenerator(object):
 
         b1 = self.builder.bitcast(call, expr.type)
         b2 = self.builder.alloca(b1.type)
-        self.builder.store(b1,b2)
+        self.builder.store(b1, b2)
 
         b2.no_alloca = True
         b2.heap_alloc = True
-       
+
         return b2
 
     def _codegen_Builtins_c_obj_free(self, node):
@@ -1440,7 +1442,7 @@ class LLVMCodeGenerator(object):
         '''
         Returns the size of the object's descriptor in bytes.
         For a string, this is NOT the size of the
-        underlying string, but the size of the structure
+        underlying string, but the size of the *structure*
         that describes a string.
         '''
         expr = self._codegen(node.args[0])
@@ -1464,7 +1466,8 @@ class LLVMCodeGenerator(object):
         s0 = self.builder.load(convert_from)
 
         # get actual data element pointer
-        s1 = self.builder.gep(s0,
+        s1 = self.builder.gep(
+            s0,
             [
                 self._i32(0),
                 self._i32(1)
@@ -1479,18 +1482,43 @@ class LLVMCodeGenerator(object):
 
         return ir.Constant(VarTypes.ptr_size, s2)
 
+    def _codegen_Builtins_c_data(self, node):
+        '''
+        Returns the underlying C-style data element
+        for an object.
+        This will eventually be normalized to be element 1 in the
+        GEP structure for the object, to make it easy to extract
+        that element universally.
+        '''
+
+        convert_from = self._codegen(node.args[0])
+
+        gep = self.builder.gep(
+            convert_from,
+            [
+                self._i32(0),
+                self._i32(0),
+            ]
+        )
+
+        gep = self.builder.load(gep)
+        return gep
+
     def _codegen_Builtins_c_array_ptr(self, node):
         '''
         Returns a raw u8 pointer to the start of an array object.
+        NOTE: I think we can drop c_data and make that into this,
+        since they are essentially the same thing, once we normalize
+        the layout of string and array objects.
         '''
         convert_from = self._get_obj_noload(node)
-        
+
         convert_from = self.builder.load(convert_from)
-        gep = self.builder.gep(convert_from,
+        gep = self.builder.gep(
+            convert_from,
             [
                 self._i32(0),
                 self._i32(1),
-                #self._i32(0),
             ]
         )
         bc = self.builder.bitcast(gep, VarTypes.u8.as_pointer())

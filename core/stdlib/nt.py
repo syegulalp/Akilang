@@ -48,19 +48,19 @@ def stdlib(self, module):
 
     # c_data for string
 
-    cdata_s = ir.FunctionType(VarTypes.i8.as_pointer(),
-                              [VarTypes.str.as_pointer()])
-    cdata = mangle_function(ir.Function(module, cdata_s, "c_data"))
-    cdata.linkage='private'
-    cdata.args[0]._name = "s"
+    # cdata_s = ir.FunctionType(VarTypes.i8.as_pointer(),
+    #                           [VarTypes.str.as_pointer()])
+    # cdata = mangle_function(ir.Function(module, cdata_s, "c_data"))
+    # cdata.linkage='private'
+    # cdata.args[0]._name = "s"
 
-    irbuilder = ir.IRBuilder(cdata.append_basic_block('entry'))
-    data_ptr = irbuilder.gep(cdata.args[0], [
-        ir.Constant(ir.IntType(32), 0),
-        ir.Constant(ir.IntType(32), 0),
-    ], True, 's1')
-    strptr = irbuilder.load(data_ptr, 's2')
-    irbuilder.ret(strptr)
+    # irbuilder = ir.IRBuilder(cdata.append_basic_block('entry'))
+    # data_ptr = irbuilder.gep(cdata.args[0], [
+    #     ir.Constant(ir.IntType(32), 0),
+    #     ir.Constant(ir.IntType(32), 0),
+    # ], True, 's1')
+    # strptr = irbuilder.load(data_ptr, 's2')
+    # irbuilder.ret(strptr)
 
     # string length
     # eventually when we move string to an identified type, we can remove this.
