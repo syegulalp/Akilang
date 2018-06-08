@@ -22,8 +22,8 @@ def optimize(llvm_module):
 
 def compile(module, filename):
 
-    print ('Parsing source.')
-    
+    print('Parsing source.')
+
     import llvmlite.binding as llvm
 
     llvm.initialize()
@@ -34,7 +34,8 @@ def compile(module, filename):
 
     llvm_module, pm = optimize(llvm_module)
 
-    import os, errno
+    import os
+    import errno
     try:
         os.makedirs(paths["output_dir"])
     except OSError as e:
@@ -45,8 +46,7 @@ def compile(module, filename):
               'w') as file:
         file.write(str(llvm_module))
 
-    print ('Creating object file.')
-
+    print('Creating object file.')
 
     tm2 = llvm.Target.from_default_triple()
     tm = tm2.create_target_machine(opt=3, codemodel='large')
@@ -55,46 +55,47 @@ def compile(module, filename):
     with llvm.create_mcjit_compiler(llvm_module, tm) as ee:
         ee.finalize_object()
         output_file = tm.emit_object(llvm_module)
-        with open(f'{paths["output_dir"]}{os.sep}{filename}.obj',
-                  'wb') as file:
+        with open(
+            f'{paths["output_dir"]}{os.sep}{filename}.obj',
+                'wb') as file:
             file.write(output_file)
 
-    print (f'{len(output_file)} bytes written.')
-    print ('Linking object file.')
+    print(f'{len(output_file)} bytes written.')
+    print('Linking object file.')
 
-    if os.name=='nt':
+    if os.name == 'nt':
 
         extension = 'exe'
-    
+
         cmds = [
-        r'call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64',
-        f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
-        r'EXIT /B %ERRORLEVEL%',
-        ''
+            r'call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64',
+            f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
+            r'EXIT /B %ERRORLEVEL%',
+            ''
         ]
 
-        shell = 'cmd.exe'        
-    
+        shell = 'cmd.exe'
+
     else:
         raise Exception('Non-Win32 OSes not yet supported')
 
     try:
-        p = subprocess.Popen(shell, 
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        p = subprocess.Popen(shell,
+                             stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
 
         for cmd in cmds:
             while True:
                 p.poll()
-                r=p.returncode
+                r = p.returncode
                 if r is not None:
                     break
-                t=p.stdout.readline().decode('utf-8')
+                t = p.stdout.readline().decode('utf-8')
                 print(t.strip())
-                if t in ('\r\n','\n','\r'):
+                if t in ('\r\n', '\n', '\r'):
                     break
-            p.stdin.write(bytes(cmd+'\n','utf-8'))
+            p.stdin.write(bytes(cmd+'\n', 'utf-8'))
             p.stdin.flush()
 
     except Exception as e:

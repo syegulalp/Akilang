@@ -29,7 +29,7 @@ class TokenKind(Enum):
 
     BINARY = -1011
     UNARY = -1012
-    
+
     EXTERN = -1020
     CONST = -1030
     UNI = -1040
@@ -53,8 +53,6 @@ class TokenKind(Enum):
     WHILE = -1650
     MATCH = -1660
     DEFAULT = -1665
-
-    
 
 
 ESCAPES = {'n': 10, 'r': 13, "'": ord("'"), '"': ord('"')}

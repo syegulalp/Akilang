@@ -302,9 +302,9 @@ class Parser(object):
                 )
 
             # the array has to be built from the inside out
-            #for n in reversed(accessor.elements):
+            # for n in reversed(accessor.elements):
                 #vartype = VarTypes.array(vartype, int(n.val))
-            
+
             elements = []
             for n in accessor.elements:
                 elements.append(int(n.val))
@@ -592,7 +592,7 @@ class Parser(object):
         '''
         Parse variable declarations in uni/var/const blocks.
         '''
-        
+
         # Not used for variable *references*, which are a little different.
         # Doesn't yet handle initializer assignment because that's handled
         # differently in each case, but maybe later we can unify it
@@ -670,7 +670,7 @@ class Parser(object):
                 if not hasattr(init, 'val'):
 
                     # if there's no constant value on the initializer,
-                    # it's an expression, and so we need to 
+                    # it's an expression, and so we need to
                     # JIT-compile the existing constants
                     # to compute the value of that expression
 
@@ -731,7 +731,7 @@ class Parser(object):
         expr_prec: minimal precedence to keep going (precedence climbing).
         lhs: AST of the left-hand-side.
         '''
-        
+
         start = self.cur_tok.position
         while True:
 
@@ -954,6 +954,7 @@ Builtins = {
     'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
     'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'c_obj_size',
     'dummy',
+    'c_data'
 }
 
 Dunders = {

@@ -37,7 +37,7 @@ class Float64(ir.DoubleType):
         t = super().__new__(cls)
         t.signed = True
         t.v_id = 'f64'
-        t.width=64
+        t.width = 64
         return t
 
 
@@ -45,6 +45,7 @@ ir.IntType.is_obj = False
 ir.DoubleType.is_obj = False
 
 # Non-singleton types (these require an invocation)
+
 
 class Array(ir.ArrayType):
     def __new__(cls, type, len):
@@ -54,6 +55,7 @@ class Array(ir.ArrayType):
         t.as_pointer = make_type_as_ptr(t)
 
         return t
+
 
 ir.ArrayType.is_obj = False
 
@@ -86,12 +88,13 @@ class ArrayClass():
         # need to distinguish arrays of different sizes?
         #[str(n)+'_' for n in reversed(elements)] +type.v_id
         new_arr.is_obj = True
-        new_arr.signed = type.signed # ??
+        new_arr.signed = type.signed  # ??
         new_arr.as_pointer = make_type_as_ptr(new_arr)
-        
+
         return new_arr
 
 # singleton object types
+
 
 Ptr = ir.global_context.get_identified_type('.object.ptr')
 Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
@@ -155,7 +158,7 @@ object_typemap = {0: NoneType, 1: Str}
 # maybe each should include its own deref function, too
 
 VarTypes = Map({
-    #singleton
+    # singleton
     'u1': Bool(),
     'i8': SignedInt(8),
     'i16': SignedInt(16),
@@ -177,7 +180,7 @@ VarTypes = Map({
     'ptrobj': Ptr,
     'None': NoneType,
 
-    #'any': Any
+    # 'any': Any
 })
 
 import ctypes

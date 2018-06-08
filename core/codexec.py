@@ -39,8 +39,8 @@ class AkilangEvaluator(object):
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
 
-        #llvm.load_library_permanently('freeglut.dll')
-        #llvm.load_library_permanently('ucrtbase.dll')
+        # llvm.load_library_permanently('freeglut.dll')
+        # llvm.load_library_permanently('ucrtbase.dll')
 
         self.basiclib_dir = basiclib_dir
         self.basiclib_file = basiclib_file
@@ -56,13 +56,13 @@ class AkilangEvaluator(object):
             # first loading its arch-specific sublib
             files = [
                 os.path.join(
-                    self.basiclib_dir,'arch',os.name,self.basiclib_file
+                    self.basiclib_dir, 'arch', os.name, self.basiclib_file
                 ),
                 os.path.join(
                     self.basiclib_dir, self.basiclib_file
                 )
             ]
-            
+
             for f in files:
                 try:
                     with open(f) as file:
@@ -75,8 +75,8 @@ class AkilangEvaluator(object):
                     self._reset_base()
                     raise err
 
-        #with open('llvmlib.ll') as file:
-        #self.eval_llasm(file.read())
+        # with open('llvmlib.ll') as file:
+        # self.eval_llasm(file.read())
 
         if history:
             # Run history
@@ -131,7 +131,7 @@ class AkilangEvaluator(object):
                   return_type=c_int32):
         """ 
         Evaluate a single top level expression given in ast form
-        
+
             optimize: activate optimizations
 
             llvmdump: generated IR and assembly code will be dumped prior to execution.
@@ -141,7 +141,7 @@ class AkilangEvaluator(object):
             parseonly: the code will only be parsed. Yields an AST dump.
 
             verbose: yields a quadruplet tuple: result, AST, non-optimized IR, optimized IR
-        
+
         """
         rawIR = None
         optIR = None
@@ -167,7 +167,7 @@ class AkilangEvaluator(object):
         # result.
 
         def_or_extern = not ((isinstance(ast, Function) and ast.is_anonymous())
-                             #or (isinstance(ast,Uni))
+                             # or (isinstance(ast,Uni))
                              )
 
         if def_or_extern and not verbose:
@@ -224,6 +224,7 @@ class AkilangEvaluator(object):
             return Result(result, ast, rawIR, optIR)
 
     def _add_builtins(self, module):
-        import os, importlib
+        import os
+        import importlib
         builtins = importlib.import_module(f'core.stdlib.{os.name}')
         builtins.stdlib(self, module)
