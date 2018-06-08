@@ -876,8 +876,6 @@ class Parser(object):
             else:
                 default_value = None
 
-            #print (default_value)
-
             argnames.append(
                 Variable(
                     position,
