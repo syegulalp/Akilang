@@ -14,12 +14,12 @@ def stdlib(self, module):
     strlen = mangle_function(ir.Function(module, strlen_s, '.object.str.__len__'))
     irbuilder = ir.IRBuilder(strlen.append_basic_block('entry'))
 
-    # extract element 1, the length
+    # extract element 0, the length
 
     s1 = strlen.args[0]
     s2 = irbuilder.gep(s1,
         [ir.Constant(ir.IntType(32), 0),
-        ir.Constant(ir.IntType(32), 1),]
+        ir.Constant(ir.IntType(32), 0),]
     )
     s3 = irbuilder.load(s2)
 

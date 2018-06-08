@@ -348,7 +348,7 @@ class LLVMCodeGenerator(object):
         str_val.global_constant = True
 
         str_val.initializer = VarTypes.str(
-            [spt, ir.Constant(VarTypes.u32, string_length)])
+            [ir.Constant(VarTypes.u32, string_length),spt])
 
         return str_val
 
@@ -925,14 +925,7 @@ class LLVMCodeGenerator(object):
         append_to = vartypes
 
         for x in node.argnames:
-            # TODO: move this to a _codegen_vartype operation
-            arg_type = x.vartype
-            if isinstance(arg_type, Array):
-                s = arg_type.element_type
-                for n in arg_type.elements_elements:
-                    s = VarTypes.array(s, int(n.val))
-            else:
-                s = arg_type
+            s= x.vartype
             if x.initializer is not None:
                 append_to = vartypes_with_defaults
             append_to.append(s)
@@ -1196,51 +1189,9 @@ class LLVMCodeGenerator(object):
     def _codegen_VarDef(self, expr, vartype):
         if expr is None:
             val = None
-
-            if isinstance(vartype, Class):
-                # XXX: using .v_id may not be the smart way
-                # to do this - we need to figure out exactly
-                # which name to use, but for now it seems to work
-                final_type = self.class_symtab[vartype.v_id]
-
-            elif isinstance(vartype, Array):
-                t = vartype.element_type
-
-                dims = []
-                for n in (vartype.elements.elements):
-                    if isinstance(n, Variable):
-                        v = self.module.globals.get(n.name, None)
-                        if not v:
-                            raise CodegenError(
-                                f'"{n.name}" could not be found in the universal scope to be used as an array size definition (is it defined afterwards?)',
-                                n.position)
-                        i = getattr(v, 'initializer', None)
-                        if not i:
-                            raise CodegenError(
-                                f'Array sizes cannot be described by an uninitialized variable in the universal scope',
-                                vartype.position)
-                        if not isinstance(i.type, ir.IntType):
-                            raise CodegenError(
-                                f'Array sizes can only be set as integer types',
-                                vartype.position)
-                        c = int(getattr(i, 'constant', None))
-                        dim = c
-                    else:
-                        try:
-                            dim = int(n.val)
-                        except ValueError:
-                            raise CodegenError(
-                                f'Array sizes must be integer constants',
-                                vartype.position)
-                    dims.append(dim)
-                    t = VarTypes.array(t, dim)
-
-                final_type = t
-
-            else:
-                if vartype is None:
-                    vartype = DEFAULT_TYPE
-                final_type = vartype
+            if vartype is None:
+                vartype = DEFAULT_TYPE
+            final_type = vartype
         else:
             val = self._codegen(expr)
 
@@ -1490,14 +1441,13 @@ class LLVMCodeGenerator(object):
         GEP structure for the object, to make it easy to extract
         that element universally.
         '''
-
         convert_from = self._codegen(node.args[0])
 
         gep = self.builder.gep(
             convert_from,
             [
                 self._i32(0),
-                self._i32(0),
+                self._i32(1),
             ]
         )
 

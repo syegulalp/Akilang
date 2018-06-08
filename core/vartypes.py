@@ -106,7 +106,7 @@ Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
 # create String type manually, for now
 
 Str = ir.global_context.get_identified_type('.object.str')
-Str.elements = (ir.IntType(8).as_pointer(), ir.IntType(32), )
+Str.elements = (ir.IntType(32), ir.IntType(8).as_pointer())
 Str.v_id = 'str'
 Str.is_obj = True
 Str.signed = False

@@ -15,6 +15,9 @@ def main(){
     print ("i32:")
     print (y)
 
+    print ("Length of string (including null):")
+    print (len(x))
+
     var t1 = c_obj_ref(x)
     var t2 = c_obj_deref(t1)
     print ("Deref of string ptr:")
