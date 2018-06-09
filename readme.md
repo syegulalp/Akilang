@@ -13,7 +13,7 @@ Eventually, this might become something useful for production. Right now, it's s
 The language's syntax and goals are in heavy flux, but this is the basic idea I want to aim for:
 
 * Compile to compact machine-native code with no external runtime and as few external dependencies as possible.
-* Strong typing, eventually to be made optional by way of an object system a la Python.
+* Strong typing, eventually to be made dynamic by way of an object system a la Python.
 * Keep the core of the language small, but provide useful native constructs a la Python (Unicode strings, lists, dictionaries, tuples, sets, etc.).
 * A batteries-included standard library, yet again like Python.
 * Good tooling for package and project management, including out-of-the-box code formatting tools, akin to Rust/Go/C#.

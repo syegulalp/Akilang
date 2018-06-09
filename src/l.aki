@@ -20,15 +20,6 @@ def reset() {
     # this preallocates those variables as i32, the default
     # otherwise they're allocated repeatedly within the loop
     
-    # var f = field[world]
-    # doesn't work because an attempt to take a subdimensional
-    # slice of the field is resulting in a newly allocated
-    # object of that size!
-    # %"field" = getelementptr inbounds [2 x [32 x [80 x i8]]], [2 x [32 x [80 x i8]]]* @"field", i64 0, i32 %"world"
-    # %"field.1" = load [32 x [80 x i8]], [32 x [80 x i8]]* %"field"
-    # %"f" = alloca [32 x [80 x i8]]
-    
-
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH)
             field[world,y,x] = (if rnd(20)<4 then 1B else 0B)
