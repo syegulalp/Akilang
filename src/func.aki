@@ -1,8 +1,8 @@
-def f1(a:u64):i32 {1}
+def f1(a:i32):i32 {1}
 
 def main(){
-    var f:func(u64):i32
+    var f:func(i32):i32
     f=f1
-    print (f())
+    print (f(32))
     0
 }

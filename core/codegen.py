@@ -298,7 +298,6 @@ class LLVMCodeGenerator(object):
                 ptr.type.pointee.pointee,
                 ir.FunctionType
             )
-            print (ptr.type.pointee.pointee.__dict__)
         except:
             is_func = False
         
@@ -913,7 +912,6 @@ class LLVMCodeGenerator(object):
                     call_args.append(f1.args[n].default_value)
 
         if not callee_func:
-            print (node.name)
             callee_func = self._varaddr(node.name, False)
         
         try:
@@ -921,9 +919,12 @@ class LLVMCodeGenerator(object):
                 callee_func.type.pointee.pointee,
                 ir.FunctionType
             )
-            # need to check target function args, etc.
-        except:
+            func_to_check = callee_func.type.pointee.pointee
+            final_call = self.builder.load(callee_func)
+        except AttributeError:
             is_func = False
+            func_to_check = callee_func
+            final_call = callee_func
 
         if not is_func:
             if (callee_func is None
@@ -932,18 +933,25 @@ class LLVMCodeGenerator(object):
                     f'Call to unknown function "{node.name}" with signature "{[n.type.descr() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
                     node.position)
 
-        if len(callee_func.args) != len(call_args):
+        if len(func_to_check.args) != len(call_args):
             raise CodegenError(
-                f'Call argument length mismatch for "{callee_func.public_name}" (expected {len(callee_func.args)}, got {len(node.args)})',
+                f'Call argument length mismatch for "{node.name}" (expected {len(callee_func.args)}, got {len(node.args)})',
                 node.position)
 
-        for x, n in enumerate(zip(call_args, callee_func.args)):
-            if n[0].type != n[1].type:
+        for x, n in enumerate(zip(call_args, func_to_check.args)):
+            type0 = n[0]
+            try:
+                type1 = n[1].type
+            except AttributeError:
+                type1 = n[1]
+
+            if type0.type != type1:
+                #print (callee_func.__dir__())
                 raise CodegenError(
-                    f'Call argument type mismatch for "{callee_func.public_name}" (position {x}: expected {n[1].type.descr()}, got {n[0].type.descr()})',
+                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.descr()}, got {type0.type.descr()})',
                     node.args[x].position)
 
-        return self.builder.call(callee_func, call_args, 'calltmp')
+        return self.builder.call(final_call, call_args, 'calltmp')
 
     def _codegen_Prototype(self, node):
         funcname = node.name
