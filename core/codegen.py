@@ -853,13 +853,19 @@ class LLVMCodeGenerator(object):
                 return self._codegen_dunder_methods(node)
 
         call_args = []
-        possible_opt_args_funcs = []
+        possible_opt_args_funcs = set()
 
-        for arg in node.args:
-            call_args.append(self._codegen(arg))
+        # The reason for the peculiar construction below
+        # is to first process a blank argument list, so
+        # we can match calls to functions that have
+        # all optional arguments
+
+        for arg in node.args+[None]:
             _ = mangle_types(node.name, call_args)
             if _ in self.opt_args_funcs:
-                possible_opt_args_funcs.append(self.opt_args_funcs[_])
+                possible_opt_args_funcs.add(self.opt_args_funcs[_])
+            if arg:
+                call_args.append(self._codegen(arg))
 
         # XXX: we might need to move this BEFORE vararg checking
 
@@ -956,6 +962,8 @@ class LLVMCodeGenerator(object):
             linkage = 'private'
             if len(vartypes) > 0:
                 funcname = public_name + mangle_args(vartypes)
+            else:
+                funcname = public_name + '@'
 
             required_args = funcname
 
@@ -1457,7 +1465,7 @@ class LLVMCodeGenerator(object):
     def _codegen_Builtins_c_array_ptr(self, node):
         '''
         Returns a raw ptr_size pointer to the start of an array object.
-        NOTE: I think we can drop c_data and make that into this,
+        NOTE: I think we can merge this with c_data,
         since they are essentially the same thing, once we normalize
         the layout of string and array objects.
         '''
@@ -1548,13 +1556,18 @@ class LLVMCodeGenerator(object):
             # If we're casting FROM a pointer...
 
             if isinstance(cast_from.type, ir.PointerType):
-                if isinstance(cast_to, ir.PointerType):
-                    op = self.builder.bitcast
-                    break
-
+                
                 # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr():
                     raise cast_exception
+
+                # but it can be cast to another pointer
+                # as long as it's not an object
+                if isinstance(cast_to, ir.PointerType):
+                    if cast_to.is_obj_ptr():
+                        raise cast_exception
+                    op = self.builder.bitcast
+                    break
 
                 # and it can't be anything other than an int
                 if not isinstance(cast_to, ir.IntType):

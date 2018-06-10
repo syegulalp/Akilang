@@ -50,9 +50,8 @@ def get_codepage() :u32
 def rnd(max:i32):i32
     rand()/(32767/max)
 
- def input():ptr ptr_size{
-    var buf=c_alloc(1024)
-
+ def input(bufsize:i32=1024):ptr ptr_size{
+    var buf=c_alloc(bufsize)
     var err:i32
     
     gets_s(

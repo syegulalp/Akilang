@@ -204,8 +204,9 @@ class TestEvaluator(unittest.TestCase):
     def test_optargs(self):
         e = AkilangEvaluator()
         e.evaluate('def f1(x:i32, y:i32=32, z:byte=1B) y')
-        e.evaluate('def main(){f1(1,2)}')
-        self.assertEqual(e.evaluate('main()'), 2)
+        e.evaluate('def f2(x:i32=1) x')
+        e.evaluate('def main(){f1(4)+f1(1,2)+f2()+f2(8)}')
+        self.assertEqual(e.evaluate('main()'), 43)
         
     def test_class_assignment(self):
         e = AkilangEvaluator()
