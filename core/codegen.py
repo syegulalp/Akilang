@@ -1189,10 +1189,11 @@ class LLVMCodeGenerator(object):
                     self.builder.store(val, var_ref)
             else:
                 if type.is_obj_ptr():
+                    if not isinstance(type.pointee, ir.FunctionType):
                     # allocate the actual object, not just a pointer to it
                     # beacuse it doesn't actually exist yet!
-                    obj = self._alloca('obj', type.pointee)
-                    self.builder.store(obj, var_ref)
+                        obj = self._alloca('obj', type.pointee)
+                        self.builder.store(obj, var_ref)
 
     def _codegen_VarDef(self, expr, vartype):
         if expr is None:
@@ -1541,7 +1542,7 @@ class LLVMCodeGenerator(object):
         Cast one data type as another, such as a pointer to a u64,
         or an i8 to a u32.
         Ignores signing.
-        Does not truncate bitwidths, however.
+        Will truncate bitwidths.
         '''
 
         cast_from = self._codegen(node.args[0])
@@ -1618,8 +1619,10 @@ class LLVMCodeGenerator(object):
                             op = self.builder.uitofp
                             break
             else:
-                cast_exception.msg += ' (data would be truncated)'
-                raise cast_exception
+                op = self.builder.trunc
+                break
+                #cast_exception.msg += ' (data would be truncated)'
+                #raise cast_exception
 
             raise cast_exception
 

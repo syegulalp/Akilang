@@ -10,14 +10,8 @@ class WINFUNCTYPE{
 class WNDCLASSEX {
     cbSize:u32,
     style:u32,
-    lpfnWndProc: ptr u8,
-    # func u8
-    # func(u8):u8
-    # func / func() -- void pointer
-
-    # is the fptr a different size depending on the call?
-    # or is the size demand b/c of pointer lengths on diff machines?
-
+    lpfnWndProc: ptr ptr_size,
+    #lpfnWndProc: func(ptr u8),   
     cbClsExtra:i32,
     cbWndExtra:i32,
     hInstance:i32,
@@ -29,33 +23,39 @@ class WNDCLASSEX {
     hIconSm:i32
 }
 
+extern RegisterClassExA (klass:ptr WNDCLASSEX):u32
+
 extern CreateWindowExA(exstyle:i32, classname:ptr WNDCLASSEX, windowname:ptr i8,
     params:i32, x:i32 , y:i32 ,w:i32, h:i32,
     parent:i32, menu:i32,instance:i32,lparam:i32):i32
 
 extern GetModuleHandleA(n:i32):i32
 
-def main() 
+def main() {
     var 
         handle:i32 = 0,
         x:i32=0,
         wndclass:WNDCLASSEX,
         s:ptr WNDCLASSEX
 
-    in {
-        
-        #print(cast(c_size(wndclass),u64))
-        #print('\n')
-        s = c_ptr(wndclass)
+        s = c_ref(wndclass)
 
-        wndclass.cbSize=c_size(wndclass)
+        wndclass.cbSize=cast(c_size(wndclass),u32)
         wndclass.style = 3
+
+        var cls_atom = RegisterClassExA(c_ref(wndclass))
+        
+        print ("Atom:")
+        print (cls_atom)
 
         handle = GetModuleHandleA(0)
 
+        print ("Handle")
         print(handle)
+        print ("Size")
         print(wndclass.cbSize) 
         x=CreateWindowExA(0,s,c_data('Hi'), 282001408,0,0,600,800,0,0,handle,0)
+        print ("Window handle")
         print(x)
         inkey()
         0

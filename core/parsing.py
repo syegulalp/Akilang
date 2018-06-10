@@ -280,10 +280,28 @@ class Parser(object):
             vartype = self.local_types[self.cur_tok.value].vartype
 
         else:
-            raise ParseError(f'Expected a variable type but got {self.cur_tok.value} instead',
-                             self.cur_tok.position)
+            raise ParseError(
+                f'Expected a variable type but got {self.cur_tok.value} instead',
+                self.cur_tok.position
+        )
 
-        self._get_next_token()
+        if isinstance(vartype, VarTypes.func.__class__):
+            self._get_next_token()
+            self._match(TokenKind.PUNCTUATOR, '(')
+            arguments = []
+            while True:
+                n = self._parse_vartype_expr()
+                arguments.append(n)
+                if self._cur_tok_is_punctuator(')'):
+                    break
+            self._get_next_token()
+            self._match(TokenKind.PUNCTUATOR, ':')
+            func_type = self._parse_vartype_expr()
+            vartype = vartype(func_type, arguments)
+
+
+        else:
+            self._get_next_token()
 
         if self._cur_tok_is_punctuator('['):
             accessor = self._parse_array_accessor()

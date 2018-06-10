@@ -174,6 +174,7 @@ VarTypes = Map({
 
     # non-singleton
     'array': Array,
+    'func': ir.FunctionType,
 
     # object types
     'str': Str,
@@ -199,7 +200,10 @@ VarTypes.f64.c_type = ctypes.c_longdouble
 
 VarTypes['bool'] = VarTypes.u1
 VarTypes['byte'] = VarTypes.u8
-VarTypes['func'] = ir.FunctionType
+
+VarTypes.func.is_obj = True
+#VarTypes.func.v_id = 'func'
+#ir.FunctionType.as_pointer = make_type_as_ptr(ir.FunctionType)
 
 DEFAULT_TYPE = VarTypes.i32
 DEFAULT_RETURN_VALUE = ir.Constant(VarTypes.i32, 0)

@@ -1,0 +1,4 @@
+def main(){
+    var f:func(u64):i32
+    0
+}
