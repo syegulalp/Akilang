@@ -11,7 +11,7 @@ from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Arra
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
 from core.parsing import Builtins, Dunders
 from core.operators import BUILTIN_UNARY_OP
-from core.mangling import mangle_args, mangle_types, mangle_funcname, mangle_optional_args
+from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 
 
 class LLVMCodeGenerator(object):
@@ -293,7 +293,20 @@ class LLVMCodeGenerator(object):
                 f'Universal constant "{lhs.name}" cannot be reassigned',
                 lhs.position)
 
-        value = self._codegen(rhs)
+        try:
+            is_func = isinstance(
+                ptr.type.pointee.pointee,
+                ir.FunctionType
+            )
+            print (ptr.type.pointee.pointee.__dict__)
+        except:
+            is_func = False
+        
+        if is_func:
+            rhs.name = mangle_call(rhs.name,ptr.type.pointee.pointee.args)
+            value = self.module.globals.get(rhs.name)
+        else:
+            value = self._codegen(rhs)
 
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
@@ -900,12 +913,24 @@ class LLVMCodeGenerator(object):
                     call_args.append(f1.args[n].default_value)
 
         if not callee_func:
-            callee_func = self.module.globals.get(node.name, None)
+            print (node.name)
+            callee_func = self._varaddr(node.name, False)
+        
+        try:
+            is_func = isinstance(
+                callee_func.type.pointee.pointee,
+                ir.FunctionType
+            )
+            # need to check target function args, etc.
+        except:
+            is_func = False
 
-        if callee_func is None or not isinstance(callee_func, ir.Function):
-            raise CodegenError(
-                f'Call to unknown function "{node.name}" with signature "{[n.type.descr() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
-                node.position)
+        if not is_func:
+            if (callee_func is None
+                or not isinstance(callee_func, ir.Function)):
+                raise CodegenError(
+                    f'Call to unknown function "{node.name}" with signature "{[n.type.descr() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
+                    node.position)
 
         if len(callee_func.args) != len(call_args):
             raise CodegenError(
