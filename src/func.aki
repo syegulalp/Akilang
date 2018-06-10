@@ -1,8 +1,17 @@
-def f1(a:i32):i32 {1}
+def f1(a:i32):i32 {
+    print ("Yo!")
+    1
+}
+
+def f2(a:i32):i32{
+    print ("Unh!")
+    2
+}
 
 def main(){
     var f:func(i32):i32
     f=f1
     print (f(32))
-    0
+    f=f2
+    print (f(32))
 }

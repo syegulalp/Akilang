@@ -304,6 +304,9 @@ class LLVMCodeGenerator(object):
         if is_func:
             rhs.name = mangle_call(rhs.name,ptr.type.pointee.pointee.args)
             value = self.module.globals.get(rhs.name)
+            value.attributes.add('optnone')
+            # TODO: Make this a decorator?
+            
         else:
             value = self._codegen(rhs)
 
@@ -946,7 +949,6 @@ class LLVMCodeGenerator(object):
                 type1 = n[1]
 
             if type0.type != type1:
-                #print (callee_func.__dir__())
                 raise CodegenError(
                     f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.descr()}, got {type0.type.descr()})',
                     node.args[x].position)
@@ -1046,6 +1048,9 @@ class LLVMCodeGenerator(object):
 
         # Set LLVM function attributes
 
+        if funcname == 'main':
+            func.attributes.add('optnone')
+
         # Calling convention.
         # This is the default with no varargs
 
@@ -1064,7 +1069,7 @@ class LLVMCodeGenerator(object):
         if node.isoperator:
             func.attributes.add('alwaysinline')
         else:
-            func.attributes.add('noinline')
+            func.attributes.add('noinline')            
 
         # Attributes.
 
@@ -1077,6 +1082,7 @@ class LLVMCodeGenerator(object):
 
         # By default, no stack unwinding
         func.attributes.add('nounwind')
+
 
         # Reset the decorator list now that we're done with it
         self.func_decorators = []
