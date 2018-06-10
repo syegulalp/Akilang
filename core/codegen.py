@@ -1456,7 +1456,7 @@ class LLVMCodeGenerator(object):
 
     def _codegen_Builtins_c_array_ptr(self, node):
         '''
-        Returns a raw u8 pointer to the start of an array object.
+        Returns a raw ptr_size pointer to the start of an array object.
         NOTE: I think we can drop c_data and make that into this,
         since they are essentially the same thing, once we normalize
         the layout of string and array objects.
@@ -1471,7 +1471,7 @@ class LLVMCodeGenerator(object):
                 self._i32(1),
             ]
         )
-        bc = self.builder.bitcast(gep, VarTypes.u8.as_pointer())
+        bc = self.builder.bitcast(gep, VarTypes.ptr_size.as_pointer())
         return bc
 
     def _codegen_Builtins_c_addr(self, node):
@@ -1548,6 +1548,9 @@ class LLVMCodeGenerator(object):
             # If we're casting FROM a pointer...
 
             if isinstance(cast_from.type, ir.PointerType):
+                if isinstance(cast_to, ir.PointerType):
+                    op = self.builder.bitcast
+                    break
 
                 # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr():
