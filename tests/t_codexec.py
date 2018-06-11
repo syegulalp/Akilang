@@ -166,11 +166,11 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             def main(){
-                var a:i32[2,32,32]
+                var a:i32[3,32,32]
                 a[0,8,16]=1
-                a[1,32,16]=2
+                a[1,31,16]=2
                 a[2,0,0]=4
-                return a[0,8,16]+a[1,32,16]+a[2,0,0]
+                return a[0,8,16]+a[1,31,16]+a[2,0,0]
             }
         ''')
         self.assertEqual(e.evaluate('main()'), 7)
@@ -179,7 +179,7 @@ class TestEvaluator(unittest.TestCase):
         e = AkilangEvaluator()
         e.evaluate('''
             uni {
-                a:i32[2,32,32],
+                a:i32[3,32,32],
                 b:i32
             }
         ''')
@@ -187,9 +187,9 @@ class TestEvaluator(unittest.TestCase):
             def main(){
                 b=32
                 a[0,8,16]=1
-                a[1,32,16]=2
+                a[1,31,16]=2
                 a[2,0,0]=4
-                return a[0,8,16]+a[1,32,16]+a[2,0,0]+b
+                return a[0,8,16]+a[1,31,16]+a[2,0,0]+b
             }            
         ''')
         self.assertEqual(e.evaluate('main()'), 39)
