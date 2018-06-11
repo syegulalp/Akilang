@@ -43,31 +43,11 @@ class Parser(object):
         self.cur_tok = None
         self._get_next_token()
 
-        # For the time being we're keeping this and the other
-        # major elif chain as-is, because we need to have the
-        # priority of the options enforced
-
         while self.cur_tok.kind != TokenKind.EOF:
             self.top_return = False
             yield self._generate_toplevel()
 
-            # if self.cur_tok.kind == TokenKind.EXTERN:
-            #     yield self._parse_external()
-            # elif self.cur_tok.kind == TokenKind.UNI:
-            #     yield self._parse_uni_expr()
-            # elif self.cur_tok.kind == TokenKind.CONST:
-            #     yield self._parse_uni_expr(True)
-            # elif self.cur_tok.kind == TokenKind.CLASS:
-            #     yield self._parse_class_expr()
-            # elif self.cur_tok.kind == TokenKind.DEF:
-            #     yield self._parse_definition()
-            # elif self._cur_tok_is_punctuator('@'):
-            #     yield self._parse_decorator()
-            # else:
-            #     yield self._parse_toplevel_expression()
-
     def _generate_toplevel(self):
-
         if self.cur_tok.kind == TokenKind.EXTERN:
             return self._parse_external()
         elif self.cur_tok.kind == TokenKind.UNI:
