@@ -1082,6 +1082,8 @@ class LLVMCodeGenerator(object):
         # Address is not relevant by default
         func.unnamed_addr = True
 
+        # Enable optnone for main() or anything
+        # designated as a target for a function pointer.
         if funcname == 'main' or funcptr:
             func.attributes.add('optnone')
 
@@ -1090,8 +1092,6 @@ class LLVMCodeGenerator(object):
             func.attributes.add('alwaysinline')
         else:
             func.attributes.add('noinline')
-
-        # Attributes.
 
         # External calls, by default, no recursion
         if node.extern:
