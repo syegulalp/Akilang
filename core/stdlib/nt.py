@@ -12,6 +12,8 @@ def stdlib(self, module):
 
     strlen_s = ir.FunctionType(VarTypes.u32, [VarTypes.str.as_pointer()])
     strlen = mangle_function(ir.Function(module, strlen_s, '.object.str.__len__'))
+    strlen.attributes.add('nonlazybind')
+    strlen.linkage='private'
     irbuilder = ir.IRBuilder(strlen.append_basic_block('entry'))
 
     # extract element 0, the length
