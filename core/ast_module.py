@@ -27,9 +27,10 @@ class Return(Expr):
         self.val = val
 
 class Decorator(Expr):
-    def __init__(self, position, val):
+    def __init__(self, position, name, body):
         super().__init__(position)
-        self.val = val
+        self.name = name
+        self.body = body
 
 class Break(Expr):
     def __init__(self, position):

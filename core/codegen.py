@@ -3,7 +3,7 @@ import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
 from core.ast_module import (
-    Binary, Variable, Prototype, Function, Uni, Class,
+    Binary, Variable, Prototype, Function, Uni, Class, Decorator,
     Array, If, Number, ArrayAccessor, Call, Var,
     _ANONYMOUS, Const
 )
@@ -78,7 +78,7 @@ class LLVMCodeGenerator(object):
         return ir.Constant(VarTypes.u32, int(pyval))
 
     def generate_code(self, node):
-        assert isinstance(node, (Prototype, Function, Uni, Class))
+        assert isinstance(node, (Prototype, Function, Uni, Class, Decorator))
         return self._codegen(node, False)
 
     def _isize(self):
@@ -187,6 +187,12 @@ class LLVMCodeGenerator(object):
 
         return ptr
 
+    def _codegen_Decorator(self, node):
+        self.func_decorators.append(node.name.name)
+        body = self._codegen(node.body, False)
+        self.func_decorators.pop()
+        return body
+
     def _codegen_Variable(self, node, noload=False):
 
         current_node = node
@@ -284,8 +290,10 @@ class LLVMCodeGenerator(object):
 
     def _codegen_Assignment(self, lhs, rhs):
         if not isinstance(lhs, Variable):
-            raise CodegenError(f'Left-hand side of expression is not a variable and cannot be assigned a value at runtime',
-                               lhs.position)
+            raise CodegenError(
+                f'Left-hand side of expression is not a variable and cannot be assigned a value at runtime',
+                lhs.position
+            )
 
         ptr = self._codegen_Variable(lhs, noload=True)
         if getattr(ptr, 'global_constant', None):
@@ -298,15 +306,18 @@ class LLVMCodeGenerator(object):
                 ptr.type.pointee.pointee,
                 ir.FunctionType
             )
-        except:
+        except AttributeError:
             is_func = False
-        
+
         if is_func:
-            rhs.name = mangle_call(rhs.name,ptr.type.pointee.pointee.args)
-            value = self.module.globals.get(rhs.name)
-            value.attributes.add('optnone')
-            # TODO: Make this a decorator?
-            
+            rhs_name = mangle_call(rhs.name, ptr.type.pointee.pointee.args)
+            value = self.module.globals.get(rhs_name)
+            if 'funcptr' not in value.decorators:
+                raise CodegenError(
+                    f'Function "{rhs.name}" must be decorated with @funcptr to be used as a function pointer',
+                    rhs.position
+                )
+
         else:
             value = self._codegen(rhs)
 
@@ -363,7 +374,7 @@ class LLVMCodeGenerator(object):
         str_val.global_constant = True
 
         str_val.initializer = VarTypes.str(
-            [ir.Constant(VarTypes.u32, string_length),spt])
+            [ir.Constant(VarTypes.u32, string_length), spt])
 
         return str_val
 
@@ -916,7 +927,7 @@ class LLVMCodeGenerator(object):
 
         if not callee_func:
             callee_func = self._varaddr(node.name, False)
-        
+
         try:
             is_func = isinstance(
                 callee_func.type.pointee.pointee,
@@ -931,7 +942,7 @@ class LLVMCodeGenerator(object):
 
         if not is_func:
             if (callee_func is None
-                or not isinstance(callee_func, ir.Function)):
+                    or not isinstance(callee_func, ir.Function)):
                 raise CodegenError(
                     f'Call to unknown function "{node.name}" with signature "{[n.type.descr() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
                     node.position)
@@ -966,7 +977,7 @@ class LLVMCodeGenerator(object):
         append_to = vartypes
 
         for x in node.argnames:
-            s= x.vartype
+            s = x.vartype
             if x.initializer is not None:
                 append_to = vartypes_with_defaults
             append_to.append(s)
@@ -1046,10 +1057,16 @@ class LLVMCodeGenerator(object):
 
         func.public_name = public_name
 
+        ##############################################################
         # Set LLVM function attributes
+        ##############################################################
 
-        if funcname == 'main':
-            func.attributes.add('optnone')
+        # First, extract a copy of the function decorators
+        # and use that to set up other attributes
+
+        decorators = [n for n in self.func_decorators]
+
+        funcptr = 'funcptr' in decorators
 
         # Calling convention.
         # This is the default with no varargs
@@ -1065,11 +1082,14 @@ class LLVMCodeGenerator(object):
         # Address is not relevant by default
         func.unnamed_addr = True
 
+        if funcname == 'main' or funcptr:
+            func.attributes.add('optnone')
+
         # Inlining. Operator functions are inlined by default.
-        if node.isoperator:
+        if node.isoperator and not funcptr:
             func.attributes.add('alwaysinline')
         else:
-            func.attributes.add('noinline')            
+            func.attributes.add('noinline')
 
         # Attributes.
 
@@ -1083,9 +1103,7 @@ class LLVMCodeGenerator(object):
         # By default, no stack unwinding
         func.attributes.add('nounwind')
 
-
-        # Reset the decorator list now that we're done with it
-        self.func_decorators = []
+        func.decorators = decorators
 
         return func
 
@@ -1229,8 +1247,8 @@ class LLVMCodeGenerator(object):
             else:
                 if type.is_obj_ptr():
                     if not isinstance(type.pointee, ir.FunctionType):
-                    # allocate the actual object, not just a pointer to it
-                    # beacuse it doesn't actually exist yet!
+                        # allocate the actual object, not just a pointer to it
+                        # beacuse it doesn't actually exist yet!
                         obj = self._alloca('obj', type.pointee)
                         self.builder.store(obj, var_ref)
 
@@ -1596,7 +1614,7 @@ class LLVMCodeGenerator(object):
             # If we're casting FROM a pointer...
 
             if isinstance(cast_from.type, ir.PointerType):
-                
+
                 # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr():
                     raise cast_exception

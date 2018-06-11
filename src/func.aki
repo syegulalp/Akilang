@@ -1,8 +1,11 @@
+
+@funcptr
 def f1(a:i32):i32 {
     print ("Yo!")
     1
 }
 
+@funcptr
 def f2(a:i32):i32{
     print ("Unh!")
     2

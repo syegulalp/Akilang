@@ -2,6 +2,7 @@ from collections import namedtuple
 
 from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
+    Decorator,
     Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, _ANONYMOUS
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
@@ -48,19 +49,39 @@ class Parser(object):
 
         while self.cur_tok.kind != TokenKind.EOF:
             self.top_return = False
+            yield self._generate_toplevel()
 
-            if self.cur_tok.kind == TokenKind.EXTERN:
-                yield self._parse_external()
-            elif self.cur_tok.kind == TokenKind.UNI:
-                yield self._parse_uni_expr()
-            elif self.cur_tok.kind == TokenKind.CONST:
-                yield self._parse_uni_expr(True)
-            elif self.cur_tok.kind == TokenKind.CLASS:
-                yield self._parse_class_expr()
-            elif self.cur_tok.kind == TokenKind.DEF:
-                yield self._parse_definition()
-            else:
-                yield self._parse_toplevel_expression()
+            # if self.cur_tok.kind == TokenKind.EXTERN:
+            #     yield self._parse_external()
+            # elif self.cur_tok.kind == TokenKind.UNI:
+            #     yield self._parse_uni_expr()
+            # elif self.cur_tok.kind == TokenKind.CONST:
+            #     yield self._parse_uni_expr(True)
+            # elif self.cur_tok.kind == TokenKind.CLASS:
+            #     yield self._parse_class_expr()
+            # elif self.cur_tok.kind == TokenKind.DEF:
+            #     yield self._parse_definition()
+            # elif self._cur_tok_is_punctuator('@'):
+            #     yield self._parse_decorator()
+            # else:
+            #     yield self._parse_toplevel_expression()
+
+    def _generate_toplevel(self):
+
+        if self.cur_tok.kind == TokenKind.EXTERN:
+            return self._parse_external()
+        elif self.cur_tok.kind == TokenKind.UNI:
+            return self._parse_uni_expr()
+        elif self.cur_tok.kind == TokenKind.CONST:
+            return self._parse_uni_expr(True)
+        elif self.cur_tok.kind == TokenKind.CLASS:
+            return self._parse_class_expr()
+        elif self.cur_tok.kind == TokenKind.DEF:
+            return self._parse_definition()
+        elif self._cur_tok_is_punctuator('@'):
+            return self._parse_decorator()
+        else:
+            return self._parse_toplevel_expression()
 
     def _get_next_token(self):
         self.cur_tok = next(self.token_generator)
@@ -114,6 +135,19 @@ class Parser(object):
                 f'"{self.cur_tok.value}" cannot be used as an identifier (variable type)',
                 self.cur_tok.position)
 
+    def _parse_decorator(self):
+        start = self.cur_tok.position
+        self._get_next_token()
+        dec_name = self._parse_identifier_expr()
+        if dec_name.name not in Decorators:
+            raise ParseError(
+                f'Unknown decorator "{dec_name.name}"',
+                start
+            )
+        dec_body = self._generate_toplevel()
+        return Decorator(start, dec_name, dec_body)
+
+    
     def _parse_identifier_expr(self):
         start = self.cur_tok.position
         id_name = self.cur_tok.value
@@ -977,6 +1011,10 @@ Builtins = {
 
 Dunders = {
     'len'
+}
+
+Decorators = {
+    'funcptr'
 }
 
 # if __name__ == '__main__':
