@@ -16,14 +16,16 @@ from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcnam
 
 class LLVMCodeGenerator(object):
     def __init__(self):
-        """Initialize the code generator.
+        '''
+        Initialize the code generator.
         This creates a new LLVM module into which code is generated. The
         generate_code() method can be called multiple times. It adds the code
         generated for this node into the module, and returns the IR value for
         the node.
         At any time, the current LLVM module being constructed can be obtained
         from the module attribute.
-        """
+        '''
+        # Current module.
         self.module = ir.Module()
 
         # Current IR builder.
@@ -48,9 +50,11 @@ class LLVMCodeGenerator(object):
 
         self.opt_args_funcs = {}
 
+        self.target_data = llvm.create_target_data(self.module.data_layout)
+
         # Set up pointer size and ptr_size vartype for current hardware.
         self.pointer_size = (ir.PointerType(VarTypes.u8).get_abi_size(
-            llvm.create_target_data(self.module.data_layout)))
+            self.target_data))
 
         self.pointer_bitwidth = self.pointer_size * 8
 
@@ -91,24 +95,28 @@ class LLVMCodeGenerator(object):
         return ir.Constant(VarTypes.ptr_size, self.pointer_size)
 
     def _obj_size_type(self, obj=None):
-        return obj.get_abi_size(
-            llvm.create_target_data(self.module.data_layout))
+        return obj.get_abi_size(self.target_data)
 
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
 
     def _alloca(self, name, type=None, size=None):
-        """Create an alloca in the entry BB of the current function."""
+        '''
+        Create an alloca in the entry BB of the current function.
+        '''
+        
         assert type is not None
         with self.builder.goto_entry_block():
             alloca = self.builder.alloca(type, size=size, name=name)
         return alloca
 
     def _codegen(self, node, check_for_type=True):
-        """Node visitor. Dispatches upon node type.
+        '''
+        Node visitor. Dispatches upon node type.
         For AST node of class Foo, calls self._codegen_Foo. Each visitor is
         expected to return a llvmlite.ir.Value.
-        """
+        '''
+
         method = '_codegen_' + node.__class__.__name__
         result = getattr(self, method)(node)
 
@@ -130,6 +138,9 @@ class LLVMCodeGenerator(object):
         return node.vartype
 
     def _varaddr(self, node, report=True):
+        '''
+        Retrieve the address of a variable indicated by a Variable AST object.
+        '''
         if report:
             name = node.name
         else:
@@ -188,6 +199,10 @@ class LLVMCodeGenerator(object):
         return ptr
 
     def _codegen_Decorator(self, node):
+        '''
+        Set the decorator stack and generate the code tagged by the decorator.
+        '''
+
         self.func_decorators.append(node.name)
         for n in node.body:
             self._codegen(n, False)
@@ -569,7 +584,6 @@ class LLVMCodeGenerator(object):
 
     def _codegen_When(self, node):
         return self._codegen_If(node, True)
-        # we're going to modify If to support both If and When
 
     def _codegen_If(self, node, codegen_when=False):
         # Emit comparison value
