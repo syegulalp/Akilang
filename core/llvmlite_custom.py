@@ -16,30 +16,9 @@ class MyType():
             return self.pointee.is_obj
         except AttributeError:
             return False
-        
-    # def underlying_obj(self):
-    #     '''
-    #     Returns the original object, if any,
-    #     underyling a particular pointer.
-    #     '''
-    #     try:
-    #         obj = self.original_obj
-    #     except AttributeError:
-    #         obj = None
-    #     return obj
 
     def descr(self):
-        '''
-        Provides a human readable description of the type, for errors.
-        '''
-        if self.is_obj_ptr():
-            return self.pointee.v_id.replace('_', ' ')
-        return self.v_id.replace('_', ' ')
-
-
-# now, how to use this to patch v_id behaviors globally?
-# for now I'm OK with using underscores
-# getter/setter behavior on descr would probably help
+        return self.v_id
 
 ir.types.Type.descr = MyType.descr
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
@@ -51,6 +30,7 @@ class _PointerType(PointerType):
         super().__init__(*a, **ka)
         self.v_id = "ptr_" + v_id
         self.signed = signed
+        self.descr = lambda: "ptr " + v_id
 
     def as_pointer(self, addrspace=0):
         return _PointerType(
