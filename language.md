@@ -652,6 +652,22 @@ A function decorated with `@inline` cannot be decorated with `@varfunc`, and vic
 
 The following built-ins are largely for the sake of interoperability with C, and for bootstrapping the language to full functionality.
 
+## c_alloc / c_free
+
+Allocate *n* bytes from the heap to a pointer; free bytes associated with a given pointer.
+
+## c_obj_alloc / c_obj_dealloc
+
+> ⚠ This function's implementation is unstable and likely to change.
+
+Same as above but takes a specific object type. Right now this is done by way of supplying a sample object through a closure:
+
+```
+x=c_obj_alloc({with var q:u64[64] q})
+```
+
+This allocates the memory needed to store a single object of `q`'s type.
+
 ## c_data
 
 Returns a pointer to the data component for an object, such as a string or an array. This can be used, for instance, to pass a pointer to a null-terminated string to a C library function that needs it.
@@ -688,6 +704,7 @@ Returns a raw u8 pointer to the start of an array or structure.
 Like `c_ref/c_deref`, but for complex objects like strings.
 
 > ⚠ This may eventually be merged into `c_ref/c_deref` for simplicity.
+
 
 ## cast/convert
 
