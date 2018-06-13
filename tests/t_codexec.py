@@ -237,8 +237,30 @@ class TestEvaluator(unittest.TestCase):
             pass
         self.assertEqual(_.value, 0)
 
-    # def test_arr_class(self):
-    #     from core.vartypes import ArrayClass
-    #     a = ArrayClass(VarTypes.i32,[4,4,4])
-    # #     print (a)
-    # #     print (a.__dict__)
+    def test_function_pointer(self):
+        e = AkilangEvaluator()
+        n = '''
+        @varfunc {
+            def f1(a:i32):i32 {
+                a+1
+            }
+
+            def f2(a:i32):i32{
+                a+2
+            }
+        }
+
+        def main(){
+            var f:func(i32):i32
+            var z
+            f=f1
+            z=z+f(1)
+            f=f2
+            z=z+f(1)
+            z
+        }
+
+        main()'''
+        for _ in e.eval_generator(n):
+            pass
+        self.assertEqual(_.value, 5)
