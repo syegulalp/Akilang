@@ -56,8 +56,9 @@ class _PointerType(PointerType):
         return _PointerType(
             self, addrspace, v_id=self.v_id, signed=self.signed)
 
+Old_IntType = ir.types.IntType
 
-class _IntType(ir.types.Type):
+class _IntType(Old_IntType):
     """
     The type for integers.
     """
@@ -80,7 +81,7 @@ class _IntType(ir.types.Type):
     @classmethod
     def __new(cls, bits, signed, v_id):
         assert isinstance(bits, int) and bits >= 0
-        self = super(_IntType, cls).__new__(cls)
+        self = super(Old_IntType, cls).__new__(cls)
         self.width = bits
         self.signed = signed
         if v_id is not None:
@@ -91,37 +92,6 @@ class _IntType(ir.types.Type):
 
     def as_pointer(self, addrspace=0):
         return _PointerType(self, addrspace, v_id=self.v_id)
-
-    # Everything after this is a copy of the original IntType
-
-    def __getnewargs__(self):
-        return self.width,
-
-    def __copy__(self):
-        return self
-
-    def _to_string(self):
-        return f'i{self.width}'
-
-    def __eq__(self, other):
-        if isinstance(other, _IntType):
-            return self.width == other.width
-        else:
-            return False
-
-    def __hash__(self):
-        return hash(_IntType)
-
-    def format_constant(self, val):
-        if isinstance(val, bool):
-            return str(val).lower()
-        else:
-            return str(val)
-
-    @property
-    def intrinsic_name(self):
-        return str(self)
-
 
 ir.types.IntType = _IntType
 ir.IntType = _IntType
