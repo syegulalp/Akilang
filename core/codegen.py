@@ -9,7 +9,7 @@ from core.ast_module import (
 )
 from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
-from core.parsing import Builtins, Dunders
+from core.parsing import Builtins, Dunders, decorator_collisions
 from core.operators import BUILTIN_UNARY_OP
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 
@@ -188,10 +188,10 @@ class LLVMCodeGenerator(object):
         return ptr
 
     def _codegen_Decorator(self, node):
-        self.func_decorators.append(node.name.name)
-        body = self._codegen(node.body, False)
+        self.func_decorators.append(node.name)
+        for n in node.body:
+            self._codegen(n, False)
         self.func_decorators.pop()
-        return body
 
     def _codegen_Variable(self, node, noload=False):
 
@@ -312,9 +312,9 @@ class LLVMCodeGenerator(object):
         if is_func:
             rhs_name = mangle_call(rhs.name, ptr.type.pointee.pointee.args)
             value = self.module.globals.get(rhs_name)
-            if 'funcptr' not in value.decorators:
+            if 'varfunc' not in value.decorators:
                 raise CodegenError(
-                    f'Function "{rhs.name}" must be decorated with @funcptr to be used as a function pointer',
+                    f'Function "{rhs.name}" must be decorated with "@varfunc" to allow variable assignments',
                     rhs.position
                 )
 
@@ -934,6 +934,7 @@ class LLVMCodeGenerator(object):
                 ir.FunctionType
             )
             func_to_check = callee_func.type.pointee.pointee
+            # retrieve actual function pointer from the variable ref
             final_call = self.builder.load(callee_func)
         except AttributeError:
             is_func = False
@@ -941,6 +942,9 @@ class LLVMCodeGenerator(object):
             final_call = callee_func
 
         if not is_func:
+            # we can use callee_func here, not func_to_check
+            # because there's no chance this would be a
+            # function object anyway
             if (callee_func is None
                     or not isinstance(callee_func, ir.Function)):
                 raise CodegenError(
@@ -1064,9 +1068,16 @@ class LLVMCodeGenerator(object):
         # First, extract a copy of the function decorators
         # and use that to set up other attributes
 
-        decorators = [n for n in self.func_decorators]
+        decorators = [n.name for n in self.func_decorators]
 
-        funcptr = 'funcptr' in decorators
+        varfunc = 'varfunc' in decorators
+
+        for a, b in decorator_collisions:
+            if a in decorators and b in decorators:
+                raise CodegenError(
+                    f'Function cannot be decorated with both "@{a}" and "@{b}"',
+                    node.position
+                )
 
         # Calling convention.
         # This is the default with no varargs
@@ -1084,14 +1095,29 @@ class LLVMCodeGenerator(object):
 
         # Enable optnone for main() or anything
         # designated as a target for a function pointer.
-        if funcname == 'main' or funcptr:
+        if funcname == 'main' or varfunc:
             func.attributes.add('optnone')
-
-        # Inlining. Operator functions are inlined by default.
-        if node.isoperator and not funcptr:
-            func.attributes.add('alwaysinline')
-        else:
             func.attributes.add('noinline')
+        
+        # Inlining. Operator functions are inlined by default.
+
+        if (
+            # function is manually inlined
+            ('inline' in decorators)
+            or
+            # function is an operator, not @varfunc,
+            # and not @noinline
+            (node.isoperator and not varfunc and 'noinline' not in decorators)
+        ):
+            func.attributes.add('alwaysinline')
+
+        # function is @noinline
+        # or function is @varfunc
+        if 'noinline' in decorators:
+            func.attributes.add('noinline')
+
+        # End inlining.
+
 
         # External calls, by default, no recursion
         if node.extern:
@@ -1168,13 +1194,7 @@ class LLVMCodeGenerator(object):
             self.builder.store(retval, self.func_returnarg)
             self.builder.branch(self.func_returnblock)
 
-        # for n in self.func_symtab.values():
-        #     if n.heap_alloc:
-        #         call obj destructor
-        #         each obj in turn calls any destructors it might have
-
         self.builder = ir.IRBuilder(self.func_returnblock)
-
         self.builder.ret(self.builder.load(self.func_returnarg))
 
         self.func_returntype = None

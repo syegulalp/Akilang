@@ -7,7 +7,7 @@ from core.ast_module import (
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.errors import ParseError, CodegenWarning
-from core.operators import binop_info, Associativity, set_binop_info
+from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 
 
 class Parser(object):
@@ -124,7 +124,16 @@ class Parser(object):
                 f'Unknown decorator "{dec_name.name}"',
                 start
             )
-        dec_body = self._generate_toplevel()
+        if self._cur_tok_is_punctuator('{'):
+            dec_body = []
+            self._get_next_token()
+            while True:
+                dec_body.append(self._generate_toplevel())
+                if self._cur_tok_is_punctuator('}'):
+                    self._get_next_token()
+                    break
+        else:
+            dec_body = [self._generate_toplevel()]
         return Decorator(start, dec_name, dec_body)
 
     
@@ -862,10 +871,9 @@ class Parser(object):
 
         elif self.cur_tok.kind == TokenKind.UNARY:
             self._get_next_token()
-            if self.cur_tok.kind not in (TokenKind.IDENTIFIER,
-                                         TokenKind.OPERATOR):
+            if self.cur_tok.value not in UNASSIGNED:
                 raise ParseError(
-                    f'Expected identifier or unassigned operator after "unary", got {self.cur_tok.value} instead',
+                    f'Expected unassigned operator after "unary", got {self.cur_tok.value} instead',
                     self.cur_tok.position)
             name = f'unary.{self.cur_tok.value}'
             r_name = self.cur_tok.value
@@ -994,8 +1002,13 @@ Dunders = {
 }
 
 Decorators = {
-    'funcptr'
+    'varfunc','inline','noinline'
 }
+
+decorator_collisions = (
+    ('inline','noinline'),
+    ('inline','varfunc')
+)
 
 # if __name__ == '__main__':
 #     ast = Parser().parse_toplevel('def foo(x) 1 + bar(x)')

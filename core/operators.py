@@ -34,6 +34,10 @@ BUILTIN_UNARY_OP = {
     '-'
 }
 
+UNASSIGNED = {
+    '!','$','%','`','^','&','|','\','
+}
+
 FALSE_BINOP_INFO = BinOpInfo(-1, Associativity.UNDEFINED)
 
 def builtin_operators():
