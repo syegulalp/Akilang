@@ -15,17 +15,17 @@
     - [ ] String slices.
     - [ ] String operations.
         - [ ] Comparisons.
-        - [ ] `len()` of strings.
+        - [x] `len()` of strings.
         - [ ] `str()` for creating strings from other types.
-- [ ] Constants.
-    - [X] Constant definitions.
-    - [ ] Constant folding/lowering.
+- [x] Constants.
+    - [x] Constant definitions.
+    - [x] Constant folding/lowering.
 - [ ] Support for basic logic and keywords:
     - [x] `def`
     - [x] `do`
     - [x] `if / then / else`
-    - [ ] `when / then / else`
-    - [ ] `while`
+    - [x] `when / then / else`
+    - [x] `while`
     - [x] `var` (unscoped variable declaration)
     - [ ] `with` (context mgr)
         - [x] `with var` (scoped variable declaration)
@@ -36,16 +36,19 @@
 - [x] Global and local variables (`var`, `uni`).
 - [ ] Object type.
     - [x] Object definitions (`class`).
-    - [ ] Bound functions / "dunder" methods for objects.
+    - [x] Bound functions / "dunder" methods for objects.
 - [ ] Pointer syntax for interfacing with C.
     - [x] Get pointer
     - [x] Dereference pointer
     - [x] Get raw data from complex object (right now only strings)
-    - [ ] Function pointers.
-- [ ] Heap-based memory management for things that need it (e.g., `class` objects returned from a function).
+    - [x] Function pointers.
+- [x] Manual heap memory management.
+    - [ ] Heap-based memory management for things that need it (e.g., `class` objects returned from a function).
 - [ ] Type definitions / aliases, apart from object types. (`alias`?)
-- [ ] Variable length arguments for functions.
-- [ ] Default arguments.
+- [ ] Variable arguments.
+    - [ ] Variable length arguments for functions.
+    - [x] Optional arguments.
+    - [x] Default arguments.
 - [x] Compiling to standalone binaries.
     - [ ] Command-line parameters for binaries.
 - [x] Print statement that supports scalar types, and strings too.
@@ -53,7 +56,7 @@
     - [ ] F-string style syntaxing.
 - [ ] Overflow detection for math, and minimal error handling.
 - [ ] Integers of abritrary length, for bignum support.
-- [ ] Documentation
+- [ ] Documentation.
 
 # Next phase
 - [ ] Ports to other platforms, mainly Linux.
