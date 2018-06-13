@@ -1,6 +1,0 @@
-def main(){
-    var x=32
-    #print (cast(x,i64))
-    var y=1923
-    print (convert(y,u64))
-}

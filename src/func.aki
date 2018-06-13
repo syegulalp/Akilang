@@ -1,20 +1,39 @@
+@varfunc {
+    def f1(a:i32):i32 {
+        a+1
+    }
 
-@funcptr
-def f1(a:i32):i32 {
-    print ("Yo!")
-    1
+    def f2(a:i32):i32{
+        a+2
+    }
 }
 
-@funcptr
-def f2(a:i32):i32{
-    print ("Unh!")
-    2
+@inline
+def c1():i32{
+    64
+}
+
+@noinline
+def c2():i32{
+    64
+}
+
+def binary c3(a:i32,b:i32):i32 {
+    a+1+b
+}
+
+def unary $ (a:i32) {
+    -a
 }
 
 def main(){
     var f:func(i32):i32
     f=f1
     print (f(32))
+    print (c1())
     f=f2
     print (f(32))
+    print (c2())
+    print (32 c3 32)
+    print ($12)
 }

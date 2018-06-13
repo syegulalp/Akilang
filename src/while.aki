@@ -1,8 +1,0 @@
-def s(z:i32){
-    var x=0U
-    return x
-}
-
-def main() {
-    s(1)
-}
