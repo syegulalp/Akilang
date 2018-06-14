@@ -2,8 +2,10 @@ from collections import namedtuple
 
 from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
-    Decorator,
-    Variable, Call, Number, Break, Return, String, Match, Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const, Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, _ANONYMOUS
+    Decorator, Variable, Call, Number, Break, Return, String, Match,
+    Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
+    Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType,
+    _ANONYMOUS
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.errors import ParseError, CodegenWarning
@@ -136,7 +138,6 @@ class Parser(object):
             dec_body = [self._generate_toplevel()]
         return Decorator(start, dec_name, dec_body)
 
-    
     def _parse_identifier_expr(self):
         start = self.cur_tok.position
         id_name = self.cur_tok.value
@@ -306,7 +307,7 @@ class Parser(object):
             raise ParseError(
                 f'Expected a variable type but got {self.cur_tok.value} instead',
                 self.cur_tok.position
-        )
+            )
 
         if isinstance(vartype, VarTypes.func.__class__):
             self._get_next_token()
@@ -321,7 +322,6 @@ class Parser(object):
             self._match(TokenKind.PUNCTUATOR, ':')
             func_type = self._parse_vartype_expr()
             vartype = vartype(func_type, arguments)
-
 
         else:
             self._get_next_token()
@@ -991,10 +991,14 @@ class Parser(object):
 # Eventually we'll want to move them into the pregenned stdlib somehow.
 
 Builtins = {
-    'c_obj_ref', 'c_obj_deref', 'c_ref', 'c_size', 'c_array_ptr', 'c_deref',
-    'cast', 'convert', 'c_addr', 'c_obj_alloc', 'c_obj_free', 'c_obj_size',
+    'c_ref', 'c_deref',
+    'c_size', 'c_addr',
+    'c_obj_ref', 'c_obj_deref',
+    'c_obj_alloc', 'c_obj_free',
+    'c_obj_size',
+    'c_data', 'c_array_ptr',
+    'cast', 'convert',
     'dummy',
-    'c_data'
 }
 
 Dunders = {
@@ -1002,12 +1006,14 @@ Dunders = {
 }
 
 Decorators = {
-    'varfunc','inline','noinline'
+    'varfunc',
+    'inline',
+    'noinline'
 }
 
 decorator_collisions = (
-    ('inline','noinline'),
-    ('inline','varfunc')
+    ('inline', 'noinline'),
+    ('inline', 'varfunc')
 )
 
 # if __name__ == '__main__':
