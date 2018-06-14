@@ -94,7 +94,7 @@ class LLVMCodeGenerator(object):
         '''
         return ir.Constant(VarTypes.ptr_size, self.pointer_size)
 
-    def _obj_size_type(self, obj=None):
+    def _obj_size_type(self, obj):
         return obj.get_abi_size(self.target_data)
 
     def _obj_size(self, obj):
@@ -205,8 +205,9 @@ class LLVMCodeGenerator(object):
 
         self.func_decorators.append(node.name)
         for n in node.body:
-            self._codegen(n, False)
+            _ = self._codegen(n, False)
         self.func_decorators.pop()
+        return _
 
     def _codegen_Variable(self, node, noload=False):
 
