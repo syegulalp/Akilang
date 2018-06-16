@@ -910,8 +910,14 @@ class LLVMCodeGenerator(object):
 
         # XXX: we might need to move this BEFORE vararg checking
 
+        
         if obj_method:
-            node.name = f'{call_args[0].type.pointee.name}.__{node.name}__'
+            c=call_args[0]
+            try:
+                c1=c.type.pointee.name
+            except:
+                c1=c.type
+            node.name = f'{c1}.__{node.name}__'
 
         if not possible_opt_args_funcs:
             mangled_name = mangle_types(node.name, call_args)
@@ -1407,7 +1413,7 @@ class LLVMCodeGenerator(object):
 
         return body_val
 
-    def _codegen_dunder_methods(self, node):
+    def _codegen_dunder_methods(self, node):        
         call = self._codegen_Call(
             Call(node.position, node.name,
                  node.args,

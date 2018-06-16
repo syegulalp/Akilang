@@ -254,6 +254,28 @@ class Parser(object):
         '''
         pos = self.cur_tok.position
         vartype = self._parse_vartype_expr()
+
+        # if we're invoking a type as a call,
+        # then we call the __new__ method
+        # for that type
+
+        if self._cur_tok_is_punctuator('('):
+            args = []
+            while True:
+                arg = self._parse_expression()
+                args.append(arg)
+                if self._cur_tok_is_punctuator(','):
+                    self._get_next_token()
+                else:
+                    break
+            if vartype.is_obj_ptr():
+                v=vartype.pointee
+                v='.object.'+v.v_id
+            else:
+                v=vartype
+                v=v.v_id
+            return Call(pos, v+'.__new__', args)
+        
         return VariableType(pos, vartype)
 
     def _parse_with_expr(self):
