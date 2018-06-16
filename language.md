@@ -10,6 +10,17 @@ This is a document of Aki syntax and usage.
     - [Functions and function calls](#functions-and-function-calls)
     - [Variables and variable typing](#variables-and-variable-typing)
     - [Symbols](#symbols)
+    - [Operators](#operators)
+        - [`=` Assignment](#-assignment)
+        - [`==` Equality test](#-equality-test)
+        - [`!=` Negative equality test](#-negative-equality-test)
+        - [`>`/`>=` Greater than / or equal to test](#-greater-than--or-equal-to-test)
+        - [`<`/`<=` Less than / or equal to test](#-less-than--or-equal-to-test)
+        - [`+` Addition operator](#-addition-operator)
+        - [`-` Subtraction operator](#--subtraction-operator)
+        - [`*` Multiplication operator](#-multiplication-operator)
+        - [`/` Division operator](#-division-operator)
+    - [`and`/`or`/`xor`/`not` operators](#andorxornot-operators)
     - [Parentheses `()`](#parentheses-)
     - [Curly braces `{}`](#curly-braces-)
     - [Hash symbol `#`](#hash-symbol-)
@@ -39,12 +50,16 @@ This is a document of Aki syntax and usage.
     - [@noinline](#noinline)
     - [@varfunc](#varfunc)
 - [Builtin functions](#builtin-functions)
+    - [c_addr](#c_addr)
+    - [c_alloc / c_free](#c_alloc--c_free)
+    - [c_obj_alloc / c_obj_dealloc](#c_obj_alloc--c_obj_dealloc)
     - [c_data](#c_data)
     - [c_size](#c_size)
     - [c_array_ptr](#c_array_ptr)
     - [c_ref / c_deref](#c_ref--c_deref)
     - [c_obj_ref / c_obj_deref](#c_obj_ref--c_obj_deref)
     - [cast/convert](#castconvert)
+- [len](#len)
 - [Library functions](#library-functions)
     - [inkey](#inkey)
     - [print](#print)
@@ -180,6 +195,50 @@ There is no shadowing of variable names permitted anywhere. You cannot have the 
 Scalar types -- integers, floats, booleans -- are passed by value. All other objects (classes, strings, etc.) are passed by reference, by way of a pointer to the object.
 
 ## Symbols
+
+## Operators
+
+The following operator symbols are predefined:
+
+### `=` Assignment
+
+`var x:i32=5`
+
+### `==` Equality test
+
+`if x==5 then print("OK") else print ("No)`
+
+### `!=` Negative equality test
+
+`if x!=5 then print("No") else print ("OK")`
+
+### `>`/`>=` Greater than / or equal to test
+
+`if x>=5 then print ("OK") else print ("No")`
+
+### `<`/`<=` Less than / or equal to test
+
+`if x<=5 then print ("OK") else print ("No")`
+
+### `+` Addition operator
+
+`x=x+1`
+
+### `-` Subtraction operator
+
+`x=x-1`
+
+### `*` Multiplication operator
+
+`x=x*5`
+
+### `/` Division operator
+
+`x=x/2`
+
+## `and`/`or`/`xor`/`not` operators
+
+Logical `and`, `or`, `xor`, and `not`.
 
 ## Parentheses `()`
 
@@ -596,7 +655,7 @@ Multiple top-level expressions can be grouped together under a single decorator 
 }
 ```
 
-Both `inline_func` and `other_inline_func` will be decorated with `@inline`.
+Here, both `inline_func` and `other_inline_func` will be decorated with `@inline`.
 
 ## @inline
 
@@ -625,7 +684,6 @@ Normally functions cannot be handled this way; they must be specially decorated 
 
 ```
 @varfunc {
-
     def f1(a:i32):i32 {
         a+1
     }
@@ -644,13 +702,17 @@ def main(){
 }
 ```
 
-This allows the functions `f1` and `f2` to be interchangeably assigned to the variable `f`, and invoked as if it were one of those two functions. (The output from this program is the two numbers `33` and `34`.)
+This allows the functions `f1` and `f2` to be interchangeably assigned to the variable `f`, and allows `f` to be called as if it were a function itself. (The output from this program is the two numbers `33` and `34`.)
 
 A function decorated with `@inline` cannot be decorated with `@varfunc`, and vice versa.
 
 # Builtin functions
 
 The following built-ins are largely for the sake of interoperability with C, and for bootstrapping the language to full functionality.
+
+## c_addr
+
+Returns the location of an object in memory, as an integer. The bitwidth of the integer matches the platform in use.
 
 ## c_alloc / c_free
 
