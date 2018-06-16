@@ -27,3 +27,17 @@ def stdlib(self, module):
 
     irbuilder.ret(s3)
 
+    # for n in VarTypes:
+    #     if isinstance(VarTypes[n], ir.types.IntType):
+        
+    # mkstr_s = ir.FunctionType(VarTypes.i32, [VarTpes.str.as_pointer()])
+    # mkstr = mangle_function(ir.Function(module, mkstr_s, '.i32.__str__'))
+
+    # mkstr.attributes.add('nonlazybind')
+    # mkstr.linkage='private'
+    # irbuilder = ir.IRBuilder(mkstr.append_basic_block('entry'))
+
+    # construct a call to snprintf
+    # get syntax for that
+    # and print into the buffer
+    # then construct the new object
