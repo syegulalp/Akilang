@@ -27,6 +27,23 @@ def stdlib(self, module):
 
     irbuilder.ret(s3)
 
+    # type builders:
+    # int() to: str(), float()
+    # str() to: int(), float()
+    # float() to: int(), str()
+    # number-to-number conversions should be codegenned as a cast
+    # eventually create a grid
+
+    '''
+    One of the problems we have now:
+    how do we deal with the stuff that's codegenned in advance, programmatically,
+    vs. the stuff we have to codegen by way of library functions?
+    what prevents us from doing everything as library functions?
+    we need to find out what those things are.
+    barring that, we need a way to more efficiently generate programmatic functions
+    that we could also use to produce the casts between types we need here
+    '''
+    
     # for n in VarTypes:
     #     if isinstance(VarTypes[n], ir.types.IntType):
         
@@ -41,3 +58,6 @@ def stdlib(self, module):
     # get syntax for that
     # and print into the buffer
     # then construct the new object
+
+    # each int type should be converted to either signed or unsighned i64 first,
+    # and then we call based on that?
