@@ -927,9 +927,17 @@ class Parser(object):
 
         self._match(TokenKind.PUNCTUATOR, '(')
         argnames = []
+        varargname = None
 
         while not self._cur_tok_is_punctuator(')'):
             position = self.cur_tok.position
+            if self.cur_tok.value == '*':
+                self._get_next_token()
+                varargname = self.cur_tok.value
+
+                self._get_next_token()
+                break
+
             identifier, avartype = self._parse_var_declaration()
 
             if self._cur_tok_is_operator('='):
@@ -970,7 +978,7 @@ class Parser(object):
 
         return Prototype(start, name, argnames,
                          name.startswith(('unary', 'binary')), prec, vartype,
-                         extern)
+                         extern, varargname)
 
     def _parse_external(self):
         self._get_next_token()  # consume 'extern'

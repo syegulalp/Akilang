@@ -345,7 +345,8 @@ class Prototype(Node):
                  isoperator=False,
                  prec=DEFAULT_PREC,
                  vartype=None,
-                 extern=False):
+                 extern=False,
+                 varargs=None):
         super().__init__(position)
         self.name = name
         self.argnames = argnames
@@ -353,6 +354,7 @@ class Prototype(Node):
         self.prec = prec
         self.vartype = vartype
         self.extern = extern
+        self.varargs = varargs
 
     def is_unary_op(self):
         return self.isoperator and len(self.argnames) == 1

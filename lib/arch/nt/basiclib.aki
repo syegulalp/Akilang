@@ -5,7 +5,8 @@ extern GetConsoleOutputCP() :u32
 
 # We don't yet have the ability to encode variable arguments
 # so printf is just one for now
-extern printf(str_fmt :ptr i8, int_data :u64) :i32
+extern printf(str_fmt :ptr i8, int_data :u64, *va) :i32
+extern snprintf(str_buf: ptr i8, str_size:ptr_size, str_fmt: ptr i8, *va): i32
 
 extern rand():i32
 
