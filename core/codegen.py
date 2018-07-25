@@ -104,7 +104,7 @@ class LLVMCodeGenerator(object):
         '''
         Create an alloca in the entry BB of the current function.
         '''
-        
+
         assert type is not None
         with self.builder.goto_entry_block():
             alloca = self.builder.alloca(type, size=size, name=name)
@@ -910,13 +910,12 @@ class LLVMCodeGenerator(object):
 
         # XXX: we might need to move this BEFORE vararg checking
 
-        
         if obj_method:
-            c=call_args[0]
+            c = call_args[0]
             try:
-                c1=c.type.pointee.name
+                c1 = c.type.pointee.name
             except:
-                c1=c.type
+                c1 = c.type
             node.name = f'{c1}.__{node.name}__'
 
         if not possible_opt_args_funcs:
@@ -957,10 +956,12 @@ class LLVMCodeGenerator(object):
             func_to_check = callee_func.type.pointee.pointee
             # retrieve actual function pointer from the variable ref
             final_call = self.builder.load(callee_func)
+            ftype = func_to_check
         except AttributeError:
             is_func = False
             func_to_check = callee_func
             final_call = callee_func
+            ftype = getattr(func_to_check, 'ftype', None)
 
         if not is_func:
             # we can use callee_func here, not func_to_check
@@ -972,10 +973,16 @@ class LLVMCodeGenerator(object):
                     f'Call to unknown function "{node.name}" with signature "{[n.type.descr() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
                     node.position)
 
-        if len(func_to_check.args) != len(call_args):
-            raise CodegenError(
-                f'Call argument length mismatch for "{node.name}" (expected {len(callee_func.args)}, got {len(node.args)})',
-                node.position)
+        if not ftype.var_arg:
+            if len(func_to_check.args) != len(call_args):
+                raise CodegenError(
+                    f'Call argument length mismatch for "{node.name}" (expected {len(callee_func.args)}, got {len(node.args)})',
+                    node.position)
+        else:
+            if len(call_args) < len(func_to_check.args):
+                raise CodegenError(
+                    f'Call argument length mismatch for "{node.name}" (expected at least {len(callee_func.args)}, got {len(node.args)})',
+                    node.position)
 
         for x, n in enumerate(zip(call_args, func_to_check.args)):
             type0 = n[0]
@@ -1080,6 +1087,9 @@ class LLVMCodeGenerator(object):
                 func.args[x].default_value = self._codegen(
                     n.initializer, False)
 
+        if node.varargs:
+            func.ftype.var_arg = True
+
         func.public_name = public_name
 
         ##############################################################
@@ -1103,7 +1113,8 @@ class LLVMCodeGenerator(object):
         # Calling convention.
         # This is the default with no varargs
 
-        func.calling_convention = 'fastcc'
+        if node.varargs is None:
+            func.calling_convention = 'fastcc'
 
         # Linkage.
         # Default is 'private' if it's not extern, an anonymous function, or main
@@ -1119,7 +1130,7 @@ class LLVMCodeGenerator(object):
         if funcname == 'main' or varfunc:
             func.attributes.add('optnone')
             func.attributes.add('noinline')
-        
+
         # Inlining. Operator functions are inlined by default.
 
         if (
@@ -1138,7 +1149,6 @@ class LLVMCodeGenerator(object):
             func.attributes.add('noinline')
 
         # End inlining.
-
 
         # External calls, by default, no recursion
         if node.extern:
@@ -1413,7 +1423,7 @@ class LLVMCodeGenerator(object):
 
         return body_val
 
-    def _codegen_dunder_methods(self, node):        
+    def _codegen_dunder_methods(self, node):
         call = self._codegen_Call(
             Call(node.position, node.name,
                  node.args,
