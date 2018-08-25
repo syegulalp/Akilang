@@ -47,13 +47,8 @@ def show() {
     }
     output[z]=0B
     
-    # TODO: replace with f-strings
-    # print ($'Generation: {gen} -- Population: {pop}')
-    # rendered as call to printf directly with multiple parameters
-    # interpolated strings are compile time only
-
-    printf(c_data('Generation: %i -- '), gen)
-    printf(c_data('Population: %i\n'), cast(pop,u64))
+    printf(c_data('Generation: %i -- Population: %i\n'),
+        gen, cast(pop,u64))
     
     # TODO: replace with `print(str(divider)?)`
 

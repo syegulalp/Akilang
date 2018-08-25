@@ -1,13 +1,41 @@
 
-def c_print(cstr string, *operators) {
-    printf(c_data(cstr), *operator)
+def c_print(cstr:str, *operators) {
+    '
+    In the context of a non-external function
+    starred arguments should get their own node type?
+    or at least a variable node with a flag
+    
+    when we encounter that in a function call to an external,
+    unpack the stararg into the call signature.
+
+    when we encounter it in a call to an internal,
+    ???
+
+    also, what happens to all that type information?
+    do we unpack each use case?
+    
+    is it possible for us to send something
+    that's packed in advance? i don't think so
+
+    we need to have a special type for this when
+    calling from a non-external function
+    we don't yet have a heterogenous tuple or list
+    so we need a way to pack/unpack generic types.
+
+    ok, barring that, we need this
+
+    *ka
+    len(ka) = number of arguments
+    ka[x] = xth argument
+    accessing out of bounds is for now undefined
+    but in time we should make it manageable
+
+    passing *ka just passes along the same pointer?
+
+    '
+    printf(c_data(cstr), *operators)
 }
 
 def main(){
-    #printf(c_data('Hello world %i %s %i'), 32U, c_data('Yo'))
-    c_print('Hello world %i %s', 32U, 'Yo')
-    # pack and unpack
-    # If we pass a stararg then we need to save that in the function params and then
-    # just pass it along when we invoke it again
-    # they're all just generic ptr i8 with no type information
+    c_print('Hello world %i %s' , 32U, c_data('Yo')
 }
