@@ -169,7 +169,7 @@ class LLVMCodeGenerator(object):
 
         if retval.type != self.func_returntype:
             raise CodegenError(
-                f'Expected return type "{self.func_returntype.descr()}" but got "{retval.type.descr()}" instead',
+                f'Expected return type "{self.func_returntype.describe()}" but got "{retval.type.describe()}" instead',
                 node.val.position)
 
         self.builder.store(retval, self.func_returnarg)
@@ -233,13 +233,16 @@ class LLVMCodeGenerator(object):
                 # to __index__ method of the element in question
 
                 if latest.type.is_obj_ptr():
-                    # all objects are passed by reference
+                    # objects are passed by reference
                     array_element = latest
                 else:
                     if not isinstance(latest, ir.instructions.LoadInstr):
+                        # if the array object is not yet loaded,
+                        # then we need to allocate and store ptr
                         array_element = self.builder.alloca(latest.type)
                         self.builder.store(latest, array_element)
                     else:
+                        # otherwise, just point to the existing allocation
                         array_element = self._varaddr(previous_node)    
 
                 latest = self._codegen_ArrayElement(
@@ -250,6 +253,7 @@ class LLVMCodeGenerator(object):
                 # eventually, when we have function pointers,
                 # we'll need to have a pattern here similar to how
                 # we handle ArrayAccessors above
+                # e.g., encoded as __call__
 
                 latest = self._codegen_Call(current_node)
                 current_load = False
@@ -342,11 +346,11 @@ class LLVMCodeGenerator(object):
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
                 raise CodegenError(
-                    f'Cannot assign value of type "{value.type.descr()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.descr()}"',
+                    f'Cannot assign value of type "{value.type.describe()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.describe()}"',
                     rhs.position)
             else:
                 raise CodegenError(
-                    f'Cannot assign value of type "{value.type.descr()}" to variable "{ptr.name}" of type "{ptr.type.pointee.descr()}"',
+                    f'Cannot assign value of type "{value.type.describe()}" to variable "{ptr.name}" of type "{ptr.type.pointee.describe()}"',
                     rhs.position)
 
         self.builder.store(value, ptr)
@@ -415,7 +419,7 @@ class LLVMCodeGenerator(object):
 
         if lhs.type != rhs.type:
             raise CodegenError(
-                f'"{lhs.type.descr()}" ({node.lhs.name}) and "{rhs.type.descr()}" ({node.rhs.name}) are incompatible types for operation',
+                f'"{lhs.type.describe()}" ({node.lhs.name}) and "{rhs.type.describe()}" ({node.rhs.name}) are incompatible types for operation',
                 node.position)
         else:
             vartype = lhs.type
@@ -561,7 +565,7 @@ class LLVMCodeGenerator(object):
                     value.position)
             if val_codegen.type != cond_item.type:
                 raise CodegenError(
-                    f'Type of match object ("{cond_item.type.descr()}") and match parameter ("{val_codegen.type.descr()}") must be consistent)',
+                    f'Type of match object ("{cond_item.type.describe()}") and match parameter ("{val_codegen.type.describe()}") must be consistent)',
                     value.position)
             if expr in exprs:
                 switch_instr.add_case(val_codegen, exprs[expr])
@@ -668,7 +672,7 @@ class LLVMCodeGenerator(object):
 
         if then_val.type != else_val.type:
             raise CodegenError(
-                f'"then/else" expression return types must be the same ("{then_val.type.descr()}" does not match "{else_val.type.descr()}"',
+                f'"then/else" expression return types must be the same ("{then_val.type.describe()}" does not match "{else_val.type.describe()}"',
                 node.position)
 
         phi = self.builder.phi(then_val.type, 'ifval')
@@ -972,7 +976,7 @@ class LLVMCodeGenerator(object):
             if (callee_func is None
                     or not isinstance(callee_func, ir.Function)):
                 raise CodegenError(
-                    f'Call to unknown function "{node.name}" with signature "{[n.type.descr() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
+                    f'Call to unknown function "{node.name}" with signature "{[n.type.describe() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
                     node.position)
 
         if not ftype.var_arg:
@@ -995,7 +999,7 @@ class LLVMCodeGenerator(object):
 
             if type0.type != type1:
                 raise CodegenError(
-                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.descr()}, got {type0.type.descr()})',
+                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.type.describe()})',
                     node.args[x].position)
 
         return self.builder.call(final_call, call_args, 'calltmp')
@@ -1207,12 +1211,12 @@ class LLVMCodeGenerator(object):
         else:
             if not hasattr(retval, 'type'):
                 raise CodegenError(
-                    f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.descr()}" but no concluding expression with an explicit return type was supplied',
+                    f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.describe()}" but no concluding expression with an explicit return type was supplied',
                     node.position)
 
             if retval is None and func.return_value.type is not None:
                 raise CodegenError(
-                    f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.descr()}" but no expression with an explicit return type was supplied',
+                    f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.describe()}" but no expression with an explicit return type was supplied',
                     node.position)
 
             if func.return_value.type != retval.type:
@@ -1221,7 +1225,7 @@ class LLVMCodeGenerator(object):
                     self.func_returnarg = self._alloca('%_return', retval.type)
                 else:
                     raise CodegenError(
-                        f'Prototype for function "{node.proto.name}" has return type "{func.return_value.type.descr()}", but returns "{retval.type.descr()}" instead (maybe an implicit return?)',
+                        f'Prototype for function "{node.proto.name}" has return type "{func.return_value.type.describe()}", but returns "{retval.type.describe()}" instead (maybe an implicit return?)',
                         node.proto.position)
 
             self.builder.store(retval, self.func_returnarg)
@@ -1260,7 +1264,7 @@ class LLVMCodeGenerator(object):
                 f'unary.{node.op}{mangle_args((operand.type,))}')
             if not func:
                 raise CodegenError(
-                    f'Undefined unary operator "{node.op}" for "{operand.type.descr()}"',
+                    f'Undefined unary operator "{node.op}" for "{operand.type.describe()}"',
                     node.position)
             return self.builder.call(func, [operand], 'unop')
 
@@ -1323,11 +1327,11 @@ class LLVMCodeGenerator(object):
 
             if val.type != vartype:
                 raise CodegenError(
-                    f'Type declaration and variable assignment type do not match (expected "{vartype.descr()}", got "{val.type.descr()}"',
+                    f'Type declaration and variable assignment type do not match (expected "{vartype.describe()}", got "{val.type.describe()}"',
                     expr.position)
             if val.type.signed != vartype.signed:
                 raise CodegenError(
-                    f'Type declaration and variable assignment type have signed/unsigned mismatch (expected "{vartype.descr()}", got "{val.type.descr()}")',
+                    f'Type declaration and variable assignment type have signed/unsigned mismatch (expected "{vartype.describe()}", got "{val.type.describe()}")',
                     expr.position)
 
             final_type = val.type
@@ -1659,7 +1663,7 @@ class LLVMCodeGenerator(object):
         cast_to = self._codegen(node.args[1], False)
 
         cast_exception = CodegenError(
-            f'Casting from type "{cast_from.type.descr()}" to type "{cast_to.descr()}" is not supported',
+            f'Casting from type "{cast_from.type.describe()}" to type "{cast_to.describe()}" is not supported',
             node.args[0].position)
 
         while True:
@@ -1750,7 +1754,7 @@ class LLVMCodeGenerator(object):
         convert_to = self._codegen(node.args[1], False)
 
         convert_exception = CodegenError(
-            f'Converting from type "{convert_from.type.descr()}" to type "{convert_to.descr()}" is not supported',
+            f'Converting from type "{convert_from.type.describe()}" to type "{convert_to.describe()}" is not supported',
             node.args[0].position)
 
         while True:
@@ -1777,7 +1781,7 @@ class LLVMCodeGenerator(object):
 
                 print(
                     CodegenWarning(
-                        f'Float to integer conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
+                        f'Float to integer conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
                         node.args[0].position))
 
                 if convert_from.type.signed:
@@ -1795,7 +1799,7 @@ class LLVMCodeGenerator(object):
                 if isinstance(convert_to, ir.DoubleType):
                     print(
                         CodegenWarning(
-                            f'Integer to float conversions ("{convert_from.type.descr()}" to "{convert_to.descr()}") are inherently imprecise',
+                            f'Integer to float conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
                             node.args[0].position))
 
                     if convert_from.type.signed:
@@ -1812,14 +1816,14 @@ class LLVMCodeGenerator(object):
 
                     if convert_from.type.signed and not convert_to.signed:
                         raise CodegenError(
-                            f'Signed type "{convert_from.type.descr()}" cannot be converted to unsigned type "{convert_to.descr()}"',
+                            f'Signed type "{convert_from.type.describe()}" cannot be converted to unsigned type "{convert_to.describe()}"',
                             node.args[0].position)
 
                     # Don't allow converting to a smaller bitwidth
 
                     if convert_from.type.width > convert_to.width:
                         raise CodegenError(
-                            f'Type "{convert_from.type.descr()}" cannot be converted to type "{convert_to.descr()}" without possible truncation',
+                            f'Type "{convert_from.type.describe()}" cannot be converted to type "{convert_to.describe()}" without possible truncation',
                             node.args[0].position)
 
                     # otherwise, extend bitwidth to convert

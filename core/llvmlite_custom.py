@@ -17,10 +17,10 @@ class MyType():
         except AttributeError:
             return False
 
-    def descr(self):
+    def describe(self):
         return self.v_id
 
-ir.types.Type.descr = MyType.descr
+ir.types.Type.describe = MyType.describe
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 
 class _PointerType(PointerType):
