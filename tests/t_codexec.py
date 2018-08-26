@@ -264,3 +264,23 @@ class TestEvaluator(unittest.TestCase):
         for _ in e.eval_generator(n):
             pass
         self.assertEqual(_.value, 5)
+
+    def test_object_pass_array(self):
+        e = AkilangEvaluator()
+        n = '''
+        def fn1(x:i32[8]) :i32[8] {
+            x[0]=64
+            return x
+        }
+
+        def main(){
+            var xx:i32[8]
+            xx[0]=32
+            fn1(xx)
+            xx[0]
+        }
+
+        main()'''
+        for _ in e.eval_generator(n):
+            pass
+        self.assertEqual(_.value, 64)
