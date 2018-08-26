@@ -1,3 +1,5 @@
+from core.constants import PRODUCT, VERSION, COPYRIGHT, CONFIG_INI_DEFAULTS
+
 def config():
     import configparser
     cfg = configparser.ConfigParser()
@@ -6,15 +8,7 @@ def config():
             with open('config.ini') as file:
                 cfg.read_file(file)
         except FileNotFoundError:
-            defaults = '''[paths]
-lib_dir=lib
-basiclib=basiclib.aki
-source_dir=src
-compiler_dir=compile
-output_dir=output
-dump_dir=.
-editor=notepad.exe
-'''
+            defaults = CONFIG_INI_DEFAULTS
             with open('config.ini', 'w') as file:
                 file.write(defaults)
         else:
@@ -38,8 +32,6 @@ from termcolor import colored, cprint
 colorama.init()
 
 from core import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
-from core.constants import PRODUCT, VERSION, COPYRIGHT
-
 
 class ReloadException(Exception):
     pass
