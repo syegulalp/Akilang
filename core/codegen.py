@@ -231,14 +231,16 @@ class LLVMCodeGenerator(object):
             elif isinstance(current_node, ArrayAccessor):
                 # eventually this will be coded as a call
                 # to __index__ method of the element in question
-                if not isinstance(latest, ir.instructions.LoadInstr):
-                    array_element = self.builder.alloca(latest.type)
-                    self.builder.store(latest, array_element)
+
+                if latest.type.is_obj_ptr():
+                    # all objects are passed by reference
+                    array_element = latest
                 else:
-                    if latest.type.is_obj_ptr():
-                        array_element = latest
+                    if not isinstance(latest, ir.instructions.LoadInstr):
+                        array_element = self.builder.alloca(latest.type)
+                        self.builder.store(latest, array_element)
                     else:
-                        array_element = self._varaddr(previous_node)
+                        array_element = self._varaddr(previous_node)    
 
                 latest = self._codegen_ArrayElement(
                     current_node, array_element)
