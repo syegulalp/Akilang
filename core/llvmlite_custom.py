@@ -81,7 +81,7 @@ old_NamedValue_init = ir.values.NamedValue.__init__
 def NamedValue_init(self, parent, type, name):
     old_NamedValue_init(self, parent, type, name)
     self.heap_alloc = False
-    self.no_alloca = False
+    self.do_not_allocate = False
 
 ir.values.NamedValue.__init__ = NamedValue_init
 
@@ -89,7 +89,7 @@ old_Constant_init = ir.values.Constant.__init__
 
 def Constant_init(self, typ, constant):
     old_Constant_init(self,typ,constant)
-    self.no_alloca = False
+    self.do_not_allocate = False
 
 ir.values.Constant.__init__ = Constant_init
 

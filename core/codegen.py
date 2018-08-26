@@ -1295,11 +1295,11 @@ class LLVMCodeGenerator(object):
 
             if expr:
 
-                # if _no_alloca is set, we've already preallocated space
+                # if _do_not_allocate is set, we've already preallocated space
                 # for the object, so all we have to do is set the name
                 # to its existing pointer
 
-                if val.no_alloca:
+                if val.do_not_allocate:
                     self.func_symtab[name] = val
                 else:
                     self.builder.store(val, var_ref)
@@ -1485,7 +1485,7 @@ class LLVMCodeGenerator(object):
         b2 = self.builder.alloca(b1.type)
         self.builder.store(b1, b2)
 
-        b2.no_alloca = True
+        b2.do_not_allocate = True
         b2.heap_alloc = True
 
         return b2
