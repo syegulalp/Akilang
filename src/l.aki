@@ -22,7 +22,11 @@ def reset() {
     
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH)
-            field[world,y,x] = (if rnd(20)<4 then 1B else 0B)
+            field[world,y,x] = (
+                if rnd(20)<4
+                    then 1B
+                    else 0B
+            )
             
 }
 
@@ -30,14 +34,21 @@ def randomize(){
     var y,x
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH)
-            field[world, y,x] = (if rnd(20)<1 then 1B else field[world, y,x])
+            field[world, y,x] = (
+                if rnd(20)<1
+                    then 1B
+                    else field[world, y,x]
+            )
 }
 
 def show() {
     var pop = 0, z=0, s=0B, y, x
     loop (y=0, y<HEIGHT) {
         loop (x=0, x<WIDTH) {
-            s = (if field[world,y,x]>0B then 219B else 32B)
+            s = (if field[world,y,x]>0B
+                then 219B
+                else 32B
+            )
             output[z] = s
             pop = pop + (if s<33B then 0i else 1i)
             z=z+1
@@ -50,8 +61,6 @@ def show() {
     printf(c_data('Generation: %i -- Population: %i\n'),
         gen, cast(pop,u64))
     
-    # TODO: replace with `print(str(divider)?)`
-
     print(c_array_ptr(divider))
     print(c_array_ptr(output))
     print(c_array_ptr(divider))
