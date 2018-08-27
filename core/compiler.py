@@ -68,38 +68,47 @@ def compile(module, filename):
         extension = 'exe'
 
         cmds = [
-            r'pushd .\\',
+            r"pushd .",
             r'call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64',
-            r'popd',
-            f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
-            r'EXIT /B %ERRORLEVEL%',
+            r'popd',            
+            f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF', 
+            r'exit %errorlevel%',
         ]
 
-        shell = 'cmd.exe'
+        shell_cmd = [os.environ['COMSPEC']]
 
     else:
         raise Exception('Non-Win32 OSes not yet supported')
 
     try:
         p = subprocess.Popen(
-            shell,
+            shell_cmd,
+            shell=False,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
         )
 
         for cmd in cmds:
-            while True:
-                p.poll()
-                r = p.returncode
-                if r is not None:
+            for line in p.stdout:
+                ln = line.decode('utf-8').strip()
+                if len(ln)==0:
                     break
-                t = p.stdout.readline().decode('utf-8')
-                print(t.strip())
-                if t in ('\r\n', '\n', '\r'):
-                    break
+                print(ln)
+
+            p.poll()
+            r = p.returncode
+            if r is not None:
+                break
+
+            print()
+            
             p.stdin.write(bytes(cmd+'\n', 'utf-8'))
             p.stdin.flush()
+
+        errs = ''.join([n.decode('utf-8') for n in p.stderr.readlines()])
+        if len(errs):
+            raise Exception(errs)
 
     except Exception as e:
         print(f'Build failed with the following error:\n{e}')
@@ -109,4 +118,5 @@ def compile(module, filename):
             f'Build successful for {paths["output_dir"]}{os.sep}{filename}.{extension}.'
         )
 
-    p.terminate()
+    finally:
+        p.terminate()
