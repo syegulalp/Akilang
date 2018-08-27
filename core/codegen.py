@@ -1440,19 +1440,21 @@ class LLVMCodeGenerator(object):
         )
         return call
 
-###########
+#######################################################
 # Builtins
-###########
+#######################################################
 
     def _check_pointer(self, obj, node):
+        '''
+        Determines if a given item is a pointer or object.
+        '''
         if not isinstance(obj.type, ir.PointerType):
             raise CodegenError('Parameter must be a pointer or object',
                                node.args[0].position)
 
     def _get_obj_noload(self, node, ptr_check=True):
         '''
-        Returns a pointer to a codegenned object
-        without a `load` instruction.
+        Returns a pointer to a codegenned object.
         '''
         arg = node.args[0]
         if isinstance(arg, Variable):
@@ -1471,6 +1473,8 @@ class LLVMCodeGenerator(object):
         an object of the type you want to use
         E.g., for an i32[8]:
         var x=c_obj_alloc({with var z:i32[8] z})
+        (the contents of the closure are optimized out
+        at compile time)
         '''
 
         expr = self._get_obj_noload(node)
