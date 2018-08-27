@@ -284,3 +284,9 @@ class TestEvaluator(unittest.TestCase):
         for _ in e.eval_generator(n):
             pass
         self.assertEqual(_.value, 64)
+
+    def test_strlen_inline(self):
+        e = AkilangEvaluator()
+        e.evaluate('def main(){len("Hello there")}')
+        self.assertEqual(e.evaluate('main()'), 12)
+        # includes terminating null, do we want that?
