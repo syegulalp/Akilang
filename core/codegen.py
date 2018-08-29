@@ -918,8 +918,6 @@ class LLVMCodeGenerator(object):
             if arg:
                 call_args.append(self._codegen(arg))
 
-        # XXX: we might need to move this BEFORE vararg checking
-
         if obj_method:
             c = call_args[0]
             try:
@@ -955,6 +953,8 @@ class LLVMCodeGenerator(object):
                 for n in range(len(call_args), len(f1.args)):
                     call_args.append(f1.args[n].default_value)
 
+        # Determine if this is a function pointer
+        
         if not callee_func:
             callee_func = self._varaddr(node.name, False)
 
@@ -1037,8 +1037,7 @@ class LLVMCodeGenerator(object):
         # TODO: identify anonymous functions with a property
         # not by way of their nomenclature
 
-        if node.extern is False and not funcname.startswith(
-                '_ANONYMOUS.') and funcname != 'main':
+        if node.extern is False and not funcname.startswith('_ANONYMOUS.') and funcname != 'main':
             linkage = 'private'
             if len(vartypes) > 0:
                 funcname = public_name + mangle_args(vartypes)
