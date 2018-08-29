@@ -52,7 +52,7 @@ def stdlib(self, module):
     # we should be able to automate creation of all the 
     # primitive scalar types to string
 
-    # new string from raw ptr_size:
+    # new string from raw u_size:
     # copy original array, add NUL
     # we don't want to mess with the original if we can help it
 

@@ -80,7 +80,7 @@ class ArrayClass():
             arr_type = VarTypes.array(arr_type, n)
         new_arr = ir.types.LiteralStructType(
             [
-                VarTypes.array(VarTypes.ptr_size, len(elements)),
+                VarTypes.array(VarTypes.u_size, len(elements)),
                 arr_type
             ]
         )
@@ -169,11 +169,8 @@ VarTypes = Map({
     'u32': UnsignedInt(32),
     'u64': UnsignedInt(64),
     'f64': Float64(),
-    'ptr_size': None,
-    # ptr_size is set on init
-    # however, this instance of it is set to the MACHINE's pointer size
-    # in the future we need a way to set that independently for
-    # cross-compilation
+    'u_size': None,
+    # u_size is set on init
 
     # non-singleton
     'array': Array,

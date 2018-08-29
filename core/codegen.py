@@ -52,15 +52,18 @@ class LLVMCodeGenerator(object):
 
         self.target_data = llvm.create_target_data(self.module.data_layout)
 
-        # Set up pointer size and ptr_size vartype for current hardware.
+        # Set up pointer size and u_size vartype for current hardware.
         self.pointer_size = (ir.PointerType(VarTypes.u8).get_abi_size(
             self.target_data))
 
         self.pointer_bitwidth = self.pointer_size * 8
 
         from core.vartypes import UnsignedInt
-        VarTypes['ptr_size'] = UnsignedInt(self.pointer_bitwidth)
-        # XXX: this causes ALL instances of .ptr_size
+        VarTypes['u_size'] = UnsignedInt(self.pointer_bitwidth)
+
+        import ctypes
+        VarTypes.u_size.c_type = ctypes.c_voidp
+        # XXX: this causes ALL instances of .u_size
         # in the environment instance
         # to be set to the platform width!
         # we may not want to have this behavior
@@ -71,7 +74,7 @@ class LLVMCodeGenerator(object):
         Used for gep, so it returns a value that is the bitwidth
         of the pointer size for the needed architecture.
         '''
-        return ir.Constant(VarTypes.ptr_size, int(pyval))
+        return ir.Constant(VarTypes.u_size, int(pyval))
 
     def _i32(self, pyval):
         '''
@@ -92,7 +95,7 @@ class LLVMCodeGenerator(object):
         that object is instantiated. By default it's the pointer size for the current
         hardware, but you will be able to override it later.
         '''
-        return ir.Constant(VarTypes.ptr_size, self.pointer_size)
+        return ir.Constant(VarTypes.u_size, self.pointer_size)
 
     def _obj_size_type(self, obj):
         return obj.get_abi_size(self.target_data)
@@ -1475,7 +1478,7 @@ class LLVMCodeGenerator(object):
 
         call = self._codegen_Call(
             Call(node.position, 'c_alloc',
-                 [Number(node.position, sizeof, VarTypes.ptr_size)]))
+                 [Number(node.position, sizeof, VarTypes.u_size)]))
 
         b1 = self.builder.bitcast(call, expr.type)
         b2 = self.builder.alloca(b1.type)
@@ -1493,11 +1496,11 @@ class LLVMCodeGenerator(object):
         expr = self._get_obj_noload(node)
         expr = self.builder.load(expr)
 
-        addr = self.builder.ptrtoint(expr, VarTypes.ptr_size)
+        addr = self.builder.ptrtoint(expr, VarTypes.u_size)
 
         call = self._codegen_Call(
             Call(node.position, 'c_free',
-                 [Number(node.position, addr.get_reference(), VarTypes.ptr_size)]))
+                 [Number(node.position, addr.get_reference(), VarTypes.u_size)]))
 
         return call
 
@@ -1526,7 +1529,7 @@ class LLVMCodeGenerator(object):
 
         s2 = self._obj_size_type(s1)
 
-        return ir.Constant(VarTypes.ptr_size, s2)
+        return ir.Constant(VarTypes.u_size, s2)
 
     def _codegen_Builtins_c_obj_size(self, node):
         # eventually we'll extract this information from
@@ -1552,7 +1555,7 @@ class LLVMCodeGenerator(object):
         # determine its size
         s2 = self._obj_size_type(s1.type)
 
-        return ir.Constant(VarTypes.ptr_size, s2)
+        return ir.Constant(VarTypes.u_size, s2)
 
     def _codegen_Builtins_c_data(self, node):
         '''
@@ -1577,7 +1580,7 @@ class LLVMCodeGenerator(object):
 
     def _codegen_Builtins_c_array_ptr(self, node):
         '''
-        Returns a raw ptr_size pointer to the start of an array object.
+        Returns a raw u_size pointer to the start of an array object.
         NOTE: I think we can merge this with c_data,
         since they are essentially the same thing, once we normalize
         the layout of string and array objects.
@@ -1592,8 +1595,7 @@ class LLVMCodeGenerator(object):
                 self._i32(1),
             ]
         )
-
-        bc = self.builder.bitcast(gep, VarTypes.ptr_size.as_pointer())
+        bc = self.builder.bitcast(gep, VarTypes.u_size.as_pointer())
         return bc
 
     def _codegen_Builtins_c_addr(self, node):
@@ -1601,7 +1603,7 @@ class LLVMCodeGenerator(object):
         Returns an unsigned value that is the address of the object in memory.
         '''
         address_of = self._get_obj_noload(node)
-        return self.builder.ptrtoint(address_of, VarTypes.ptr_size)
+        return self.builder.ptrtoint(address_of, VarTypes.u_size)
 
         # perhaps we should also have a way to cast
         # c_addr as a pointer to a specific type (the reverse of this)
