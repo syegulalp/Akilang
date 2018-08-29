@@ -263,8 +263,7 @@ class LLVMCodeGenerator(object):
                 try:
                     oo = latest.type.pointee
                 except AttributeError:
-                    raise CodegenError(f'Not a pointer or object',
-                                       current_node.position)
+                    raise CodegenError(f'Not a pointer or object', current_node.position)
 
                 _latest_vid = oo.v_id
                 _cls = self.class_symtab[_latest_vid]
@@ -285,9 +284,7 @@ class LLVMCodeGenerator(object):
 
             # pathological case
             else:
-                raise CodegenError(
-                    f'Unknown variable instance', current_node.position
-                )
+                raise CodegenError(f'Unknown variable instance', current_node.position)
 
             child = getattr(current_node, 'child', None)
             if child is None:
@@ -345,15 +342,17 @@ class LLVMCodeGenerator(object):
 
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
-                raise CodegenError(
-                    f'Cannot assign value of type "{value.type.describe()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.describe()}"',
-                    rhs.position)
+                error_string = f'Cannot assign value of type "{value.type.describe()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.describe()}"'
             else:
-                raise CodegenError(
-                    f'Cannot assign value of type "{value.type.describe()}" to variable "{ptr.name}" of type "{ptr.type.pointee.describe()}"',
-                    rhs.position)
+                error_string = f'Cannot assign value of type "{value.type.describe()}" to variable "{ptr.name}" of type "{ptr.type.pointee.describe()}"',
+            raise CodegenError(error_string, rhs.position)
 
         self.builder.store(value, ptr)
+
+        # Here we need to track the type of value being stored
+        # whether or not it's a malloc'd object
+        # so that we can track if it's given away or returned, etc.
+
         return value
 
     def _codegen_String(self, node):
@@ -478,8 +477,7 @@ class LLVMCodeGenerator(object):
                     return x
                 elif node.op == '/':
                     if int(getattr(rhs, 'constant', 1)) == 0:
-                        raise CodegenError('Integer division by zero',
-                                           node.rhs.position)
+                        raise CodegenError('Integer division by zero', node.rhs.position)
                     return self.builder.sdiv(lhs, rhs, 'divop')
                 elif node.op == 'and':
                     x = self.builder.and_(lhs, rhs, 'andop')
@@ -731,8 +729,10 @@ class LLVMCodeGenerator(object):
             self._codegen_Var(Var(node.start_expr.position, [node.start_expr]))
             var_addr = self._varaddr(node.start_expr.name, False)
         else:
-            self._codegen_Assignment(node.start_expr,
-                                     node.start_expr.initializer)
+            self._codegen_Assignment(
+                node.start_expr,
+                node.start_expr.initializer
+            )
 
         loop_ctr_type = var_addr.type.pointee
 
@@ -1031,8 +1031,10 @@ class LLVMCodeGenerator(object):
         if node.vartype is None:
             node.vartype = DEFAULT_TYPE
 
-        functype = ir.FunctionType(node.vartype,
-                                   vartypes+vartypes_with_defaults)
+        functype = ir.FunctionType(
+            node.vartype,
+            vartypes+vartypes_with_defaults
+        )
 
         public_name = funcname
 
@@ -1199,8 +1201,7 @@ class LLVMCodeGenerator(object):
                 self.builder.store(arg, alloca)
 
             # We don't shadow existing variables names, ever
-            assert not self.func_symtab.get(
-                arg.name) and "arg name redefined: " + arg.name
+            assert not self.func_symtab.get(arg.name) and "arg name redefined: " + arg.name
             self.func_symtab[arg.name] = alloca
 
         # Generate code for the body
@@ -1274,11 +1275,11 @@ class LLVMCodeGenerator(object):
         for v in node.vars:
 
             name = v.name
-            type = v.vartype
+            v_type = v.vartype
             expr = v.initializer
             position = v.position
 
-            val, type = self._codegen_VarDef(expr, type)
+            val, v_type = self._codegen_VarDef(expr, v_type)
 
             var_ref = self.func_symtab.get(name)
             if var_ref is not None:
@@ -1290,7 +1291,7 @@ class LLVMCodeGenerator(object):
                 raise CodegenError(
                     f'"{name}" already defined in universal scope', position)
 
-            var_ref = self._alloca(name, type)
+            var_ref = self._alloca(name, v_type)
             self.func_symtab[name] = var_ref
 
             if expr:
@@ -1304,11 +1305,11 @@ class LLVMCodeGenerator(object):
                 else:
                     self.builder.store(val, var_ref)
             else:
-                if type.is_obj_ptr():
-                    if not isinstance(type.pointee, ir.FunctionType):
+                if v_type.is_obj_ptr():
+                    if not isinstance(v_type.pointee, ir.FunctionType):
                         # allocate the actual object, not just a pointer to it
                         # beacuse it doesn't actually exist yet!
-                        obj = self._alloca('obj', type.pointee)
+                        obj = self._alloca('obj', v_type.pointee)
                         self.builder.store(obj, var_ref)
 
     def _codegen_VarDef(self, expr, vartype):
@@ -1395,7 +1396,7 @@ class LLVMCodeGenerator(object):
         for v in node.vars.vars:
 
             name = v.name
-            type = v.vartype
+            v_type = v.vartype
             init = v.initializer
             position = v.position
 
@@ -1407,7 +1408,7 @@ class LLVMCodeGenerator(object):
                     f'Variable shadowing is not permitted; "{name}" is used in other scopes',
                     position)
 
-            val, final_type = self._codegen_VarDef(init, type)
+            val, final_type = self._codegen_VarDef(init, v_type)
 
             var_addr = self._alloca(name, final_type)
 
@@ -1600,6 +1601,7 @@ class LLVMCodeGenerator(object):
                 self._i32(1),
             ]
         )
+
         bc = self.builder.bitcast(gep, VarTypes.ptr_size.as_pointer())
         return bc
 
