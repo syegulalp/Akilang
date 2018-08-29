@@ -58,12 +58,12 @@ def show() {
     }
     output[z]=0B
     
-    printf(c_data('Generation: %i -- Population: %i\n'),
-        gen, cast(pop,u64))
-    
-    print(c_array_ptr(divider))
-    print(c_array_ptr(output))
-    print(c_array_ptr(divider))
+    printf(c_data('Generation: %i -- Population: %i\n%s\n%s%s\n'),
+        gen, cast(pop,u64),
+        c_array_ptr(divider),
+        c_array_ptr(output),
+        c_array_ptr(divider)
+    )
        
 }
 
