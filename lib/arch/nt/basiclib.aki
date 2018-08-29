@@ -5,7 +5,8 @@ extern GetConsoleOutputCP() :u32
 
 # We don't yet have the ability to encode variable arguments
 # so printf is just one for now
-extern printf(str_fmt :ptr i8, int_data :u64, *va) :i32
+#extern printf(str_fmt :ptr i8, int_data :u64, *va) :i32
+extern printf(str_fmt :ptr i8, *va) :i32
 extern snprintf(str_buf: ptr i8, str_size:ptr_size, str_fmt: ptr i8, *va): i32
 
 extern rand():i32
@@ -51,13 +52,12 @@ def get_codepage() :u32
 def rnd(max:i32):i32
     rand()/(32767/max)
 
- def input(bufsize:i32=1024):ptr ptr_size{
+ def input(bufsize:i32=1024):ptr ptr_size{     
     var buf=c_alloc(bufsize)
     var err:i32
     
     gets_s(
-        buf,
-        1024U
+        buf, cast(bufsize,u64)
     )
     
     # we don't do anything with this yet,
@@ -66,8 +66,7 @@ def rnd(max:i32):i32
 
     return buf
     
-    # maybe we can get wide and then convert it to UTF-8?
-    # save us a step? would that give us the length automatically?
     # https://msdn.microsoft.com/en-us/library/windows/desktop/dd319072(v=vs.85).aspx
     # return the string object
-}
+    
+}   
