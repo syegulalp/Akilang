@@ -171,6 +171,9 @@ VarTypes = Map({
     'f64': Float64(),
     'ptr_size': None,
     # ptr_size is set on init
+    # however, this instance of it is set to the MACHINE's pointer size
+    # in the future we need a way to set that independently for
+    # cross-compilation
 
     # non-singleton
     'array': Array,

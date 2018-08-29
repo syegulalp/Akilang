@@ -13,6 +13,8 @@ def stdlib(self, module):
 
     # TODO: emit all this as bitcode, save it
 
+    # self.codegen gives us access to codegen methods if we need it
+
     from core.vartypes import VarTypes
     
     # string length
