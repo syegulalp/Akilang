@@ -24,8 +24,8 @@ def stdlib(self, module):
     )
 
     # extract element 0, the length
-
-    s1 = strlen.args[0]
+    
+    s1 = strlen.args[0]    
     s2 = irbuilder.gep(s1,
         [ir.Constant(ir.IntType(32), 0),
         ir.Constant(ir.IntType(32), 0),]
@@ -33,3 +33,26 @@ def stdlib(self, module):
     s3 = irbuilder.load(s2)
 
     irbuilder.ret(s3)
+
+    # new string from i32:
+
+    # strlen, irbuilder = makefunc(
+    #     module,
+    #     '.object.str.__new__', VarTypes.str.as_pointer(),   
+    #     [VarTypes.i32]
+    # )
+
+    # use win32 int to str or just snprintf?
+    # see https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/itoa-s-itow-s
+    # we also need to get resulting string length to store
+    # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/strnlen-strnlen-s
+
+    # we should be able to automate creation of all the 
+    # primitive scalar types to string
+
+    # new string from raw ptr_size:
+    # copy original array, add NUL
+    # we don't want to mess with the original if we can help it
+
+    # for in-place printing, we need to check that the last
+    # character of the array is a NUL
