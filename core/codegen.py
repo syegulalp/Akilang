@@ -320,13 +320,15 @@ class LLVMCodeGenerator(object):
                 f'Universal constant "{lhs.name}" cannot be reassigned',
                 lhs.position)
 
-        try:
-            is_func = isinstance(
-                ptr.type.pointee.pointee,
-                ir.FunctionType
-            )
-        except AttributeError:
-            is_func = False
+        # try:
+        #     is_func = isinstance(
+        #         ptr.type.pointee.pointee,
+        #         ir.FunctionType
+        #     )
+        # except AttributeError:
+        #     is_func = False
+
+        is_func = ptr.type.is_func()
 
         if is_func:
             rhs_name = mangle_call(rhs.name, ptr.type.pointee.pointee.args)
@@ -956,27 +958,17 @@ class LLVMCodeGenerator(object):
         if not callee_func:
             callee_func = self._varaddr(node.name, False)
 
-        try:
-            is_func = isinstance(
-                callee_func.type.pointee.pointee,
-                ir.FunctionType
-            )
+        if callee_func.type.is_func():
             func_to_check = callee_func.type.pointee.pointee
             # retrieve actual function pointer from the variable ref
             final_call = self.builder.load(callee_func)
             ftype = func_to_check
-        except AttributeError:
-            is_func = False
+        else:
             func_to_check = callee_func
             final_call = callee_func
             ftype = getattr(func_to_check, 'ftype', None)
 
-        if not is_func:
-            # we can use callee_func here, not func_to_check
-            # because there's no chance this would be a
-            # function object anyway
-            if (callee_func is None
-                    or not isinstance(callee_func, ir.Function)):
+            if callee_func is None or not isinstance(callee_func, ir.Function):
                 raise CodegenError(
                     f'Call to unknown function "{node.name}" with signature "{[n.type.describe() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
                     node.position)

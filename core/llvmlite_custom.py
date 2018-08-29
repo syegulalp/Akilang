@@ -1,10 +1,24 @@
 from llvmlite.ir.types import PointerType, Type
 import llvmlite.ir as ir
 
-
 class MyType():
     pointee = None
     v_id = None
+
+    def is_func(self):
+        '''
+        Reports whether or not a given type
+        is a function pointer.
+        '''
+        try:
+            is_func = isinstance(
+                self.pointee.pointee,
+                ir.FunctionType
+            )
+        except:
+            return False
+        else:
+            return is_func
 
     def is_obj_ptr(self):
         '''
@@ -22,6 +36,7 @@ class MyType():
 
 ir.types.Type.describe = MyType.describe
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
+ir.types.Type.is_func = MyType.is_func
 
 class _PointerType(PointerType):
     def __init__(self, *a, **ka):
