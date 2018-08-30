@@ -34,9 +34,15 @@ class MyType():
     def describe(self):
         return self.v_id
 
+    def signature(self):
+        #if not self.is_obj:
+            #raise Exception("Not an object")
+        return f'.object.{self.v_id}.'
+
 ir.types.Type.describe = MyType.describe
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_func = MyType.is_func
+ir.types.Type.signature = MyType.signature
 
 class _PointerType(PointerType):
     def __init__(self, *a, **ka):
@@ -104,6 +110,7 @@ old_Constant_init = ir.values.Constant.__init__
 
 def Constant_init(self, typ, constant):
     old_Constant_init(self,typ,constant)
+    self.heap_alloc = False
     self.do_not_allocate = False
 
 ir.values.Constant.__init__ = Constant_init

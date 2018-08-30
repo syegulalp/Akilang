@@ -50,6 +50,10 @@ class LLVMCodeGenerator(object):
 
         self.opt_args_funcs = {}
 
+        # Variable graphs for tracing memory allocation.
+        # Functions that "give" allocated memory by way of a variable.
+        self.gives_alloc = set()
+
         self.target_data = llvm.create_target_data(self.module.data_layout)
 
         # Set up pointer size and u_size vartype for current hardware.
@@ -178,6 +182,27 @@ class LLVMCodeGenerator(object):
         self.builder.store(retval, self.func_returnarg)
         self.builder.branch(self.func_returnblock)
         self.func_returncalled = True
+
+        # Check for the presence of a returned object
+        # that requires memory tracing
+
+        # FIXME: we should do this in a self-contained way
+        # for the normal return operation, too
+
+        if hasattr(retval, 'operands') and retval.operands:
+            to_check = retval.operands[0]
+        else:
+            to_check = retval
+        
+        if to_check.heap_alloc:
+            #print ("heap")
+            self.gives_alloc.add(self.func_returnblock.parent)
+        else:
+            #print ("noheap")
+            pass
+        
+        #print (self.gives_alloc)
+
 
     def _codegen_ArrayElement(self, node, array):
         '''
@@ -323,14 +348,6 @@ class LLVMCodeGenerator(object):
                 f'Universal constant "{lhs.name}" cannot be reassigned',
                 lhs.position)
 
-        # try:
-        #     is_func = isinstance(
-        #         ptr.type.pointee.pointee,
-        #         ir.FunctionType
-        #     )
-        # except AttributeError:
-        #     is_func = False
-
         is_func = ptr.type.is_func()
 
         if is_func:
@@ -354,6 +371,10 @@ class LLVMCodeGenerator(object):
 
         self.builder.store(value, ptr)
 
+        #print ("Assign", rhs.name)
+        #if value.heap_alloc:
+            #print ("is heap")
+
         # Here we need to track the type of value being stored
         # whether or not it's a malloc'd object
         # so that we can track if it's given away or returned, etc.
@@ -365,7 +386,7 @@ class LLVMCodeGenerator(object):
 
     def _string_base(self, string, global_constant=True):
         '''
-        Core function for code generation for strings.
+        Core function for code generation for strings.        
         This will also be called when we create strings dynamically
         in the course of a function, or statically during compilation.
         '''
@@ -999,7 +1020,18 @@ class LLVMCodeGenerator(object):
                     f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.type.describe()})',
                     node.args[x].position)
 
-        return self.builder.call(final_call, call_args, 'calltmp')
+        call_to_return = self.builder.call(final_call, call_args, 'calltmp')
+
+        # Check for the presence of an object returned from the call
+        # that requires memory tracing
+
+        #print (node.name, callee_func in self.gives_alloc)
+        #print (self.gives_alloc)
+        
+        if callee_func in self.gives_alloc:
+            call_to_return.heap_alloc = True
+
+        return call_to_return
 
     def _codegen_Prototype(self, node):
         funcname = node.name
@@ -1229,6 +1261,64 @@ class LLVMCodeGenerator(object):
             self.builder.branch(self.func_returnblock)
 
         self.builder = ir.IRBuilder(self.func_returnblock)
+        
+
+        # Check for the presence of a returned object
+        # that requires memory tracing
+
+        #print ("func", node.proto.name)
+        to_check = retval
+
+        if retval:
+            if hasattr(retval, 'operands') and retval.operands:
+                to_check = retval.operands[0]
+            #else:
+                #to_check = retval
+            if to_check.heap_alloc:
+                #print ("heap on ret")
+                self.gives_alloc.add(self.func_returnblock.parent)
+            else:
+                #print ("noheap on ret")
+                pass
+        else:
+            #print ("no end ret")
+            pass
+
+        # Get all still-tracked objects that are not being returned
+
+        # #print ("Symtab:")
+
+        if to_check:
+            #print (node.proto.name, "Check:", to_check)
+
+            for k,v in self.func_symtab.items():
+                #print ("Var:",k)
+                if v is to_check:
+                    #print ("Match out:", k,v)
+                    continue
+                #print (k, v.heap_alloc)
+                if v.heap_alloc:
+                    #print ("Match dealloc:", k,v, v.type.pointee.pointee.__dict__)
+                    #print (v.type.pointee.pointee.signature())
+                    #print (v.__dict__)
+                    #print (v.type.pointee.pointee.__dir__())
+                    #print (v.type.pointee.pointee.__dict__)
+                    ref = self.builder.load(v)
+                    ref = self.builder.bitcast(
+                        ref,
+                        VarTypes.u_size.as_pointer()
+                    )
+                    sig = v.type.pointee.pointee.signature()
+                    
+                    del_call = self.builder.call(
+                        self.module.globals.get(sig+'__del__'),
+                        [ref],
+                        'del'
+                    )                    
+
+                
+        #print ("----")
+
         self.builder.ret(self.builder.load(self.func_returnarg))
 
         self.func_returntype = None
@@ -1286,9 +1376,21 @@ class LLVMCodeGenerator(object):
                     f'"{name}" already defined in universal scope', position)
 
             var_ref = self._alloca(name, v_type)
+            
+            if val:
+                var_ref.heap_alloc = val.heap_alloc
+
             self.func_symtab[name] = var_ref
 
             if expr:
+
+                # determine if this is a heap-allocated assignment
+                # I don't think we need to do anything with the
+                # resulting value, this is just for tracing for now
+
+                # print ("Declare", name)
+                # if val.heap_alloc:
+                #     print ("is heap")
 
                 # if _do_not_allocate is set, we've already preallocated space
                 # for the object, so all we have to do is set the name
@@ -1298,6 +1400,7 @@ class LLVMCodeGenerator(object):
                     self.func_symtab[name] = val
                 else:
                     self.builder.store(val, var_ref)
+
             else:
                 if v_type.is_obj_ptr():
                     if not isinstance(v_type.pointee, ir.FunctionType):
@@ -1494,6 +1597,10 @@ class LLVMCodeGenerator(object):
         Deallocates memory for an object created with c_obj_alloc.
         '''
         expr = self._get_obj_noload(node)
+
+        # Mark the variable in question as untracked
+        expr.heap_alloc = False
+
         expr = self.builder.load(expr)
 
         addr = self.builder.ptrtoint(expr, VarTypes.u_size)

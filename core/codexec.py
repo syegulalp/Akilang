@@ -75,6 +75,8 @@ class AkilangEvaluator(object):
                     self._reset_base()
                     raise err
 
+            self._add_post_builtins(self.codegen.module)
+
         # with open('llvmlib.ll') as file:
         # self.eval_llasm(file.read())
 
@@ -228,3 +230,9 @@ class AkilangEvaluator(object):
         import importlib
         builtins = importlib.import_module(f'core.stdlib.{os.name}')
         builtins.stdlib(self, module)
+
+    def _add_post_builtins(self, module):
+        import os
+        import importlib
+        builtins = importlib.import_module(f'core.stdlib.{os.name}')
+        builtins.stdlib_post(self, module)        
