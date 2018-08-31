@@ -11,12 +11,13 @@ class Robot{
 const {
     WIDTH=40,
     HEIGHT=20,
+    FIELD_SIZE = (WIDTH+1)*HEIGHT
 }
 
 uni {
     field:byte[WIDTH,HEIGHT],
     #display:byte[(WIDTH+1)*HEIGHT], # can't do this yet
-    display:byte[2000],
+    display:byte[FIELD_SIZE],
     player:Player,
     robots:Robot[10]
 }
@@ -92,7 +93,7 @@ def setup(){
     player.x=20
     player.y=10
 
-    field[player.x,player.y]=144B
+    field[player.x,player.y]=232B
 
     0
 }
