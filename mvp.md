@@ -7,7 +7,7 @@
     - [x] Signed and unsigned scalar types.
     - [x] `cast` and `convert` operations for primitive numerical types.
     - [x] Type checking for basic assignment operations.
-    - [ ] Type checking for math. (I think we did this)
+    - [x] Type checking for math. (I think we did this)
 - [ ] *N*-dimensional arrays of scalar types.
     - [x] Array references.
     - [ ] Array slices (return new arrays)
@@ -42,8 +42,10 @@
     - [x] Dereference pointer
     - [x] Get raw data from complex object (right now only strings)
     - [x] Function pointers.
-- [x] Manual heap memory management.
+- [ ] Memory management
+    - [x] Manual heap memory management.
     - [ ] Heap-based memory management for things that need it (e.g., `class` objects returned from a function).
+    - [ ] Automatic heap memory management (object destructor called when it goes out of scope)    
 - [ ] Type definitions / aliases, apart from object types. (`alias`?)
 - [ ] Variable arguments.
     - [ ] Variable length arguments for functions.

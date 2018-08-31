@@ -2,7 +2,7 @@
 
 This is a short list of things I'm going to be working on, in rough order of attempt.
 
-* Some form of tracing of object scopes, so that heap allocated objects can be passed freely around and deallocated intelligently
+* Some form of tracing of object scopes, so that heap allocated objects can be passed freely around and deallocated intelligently. (*In progress.*)
 
 * Methods for dynamically allocating and manipulating strings. Right now all strings are statically allocated as globals at runtime.
 
