@@ -290,3 +290,10 @@ class TestEvaluator(unittest.TestCase):
         e.evaluate('def main(){len("Hello there")}')
         self.assertEqual(e.evaluate('main()'), 12)
         # includes terminating null, do we want that?
+    
+    def test_auto_free(self):
+        '''
+        Placeholder. This test is intended to determine if
+        automatically allocated resources are freed when
+        they go out of scope.
+        '''
