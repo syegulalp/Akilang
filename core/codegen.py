@@ -1601,13 +1601,13 @@ class LLVMCodeGenerator(object):
         # Mark the variable in question as untracked
         expr.heap_alloc = False
 
-        expr = self.builder.load(expr)
-
-        addr = self.builder.ptrtoint(expr, VarTypes.u_size)
+        addr = self.builder.load(expr)
+        addr2 = self.builder.bitcast(addr, VarTypes.u_size.as_pointer()).get_reference()
 
         call = self._codegen_Call(
             Call(node.position, 'c_free',
-                 [Number(node.position, addr.get_reference(), VarTypes.u_size)]))
+                 [Number(node.position, addr2,
+            VarTypes.u_size.as_pointer())]))        
 
         return call
 

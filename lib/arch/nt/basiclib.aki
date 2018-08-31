@@ -12,7 +12,7 @@ extern rand():i32
 
 extern GetProcessHeap():u_size
 extern HeapAlloc(handle:u_size, flags:u32, bytes:u_size):ptr u_size
-extern HeapFree(handle:u_size, flags:u32, mem:u_size): bool
+extern HeapFree(handle:u_size, flags:u32, mem:ptr u_size): bool
 
 extern _getwch():i32
 
@@ -32,7 +32,7 @@ def c_alloc(bytes:i32):ptr u_size
     # eventually we can use that when we support inlining
     HeapAlloc(GetProcessHeap(), 8u, cast(bytes, u_size))
 
-def c_free(mem:u_size):bool
+def c_free(mem:ptr u_size):bool
     HeapFree(GetProcessHeap(), 0u, mem)
 
 def inkey():i32 {

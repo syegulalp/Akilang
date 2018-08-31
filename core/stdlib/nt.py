@@ -13,11 +13,8 @@ def makefunc(module, func_name, func_type, func_sig):
 def stdlib(self, module):
 
     # TODO: emit all this as bitcode, save it
-
     # self.codegen gives us access to codegen methods if we need it
 
-    
-    
     # string length
 
     strlen, irbuilder = makefunc(
@@ -51,16 +48,9 @@ def stdlib_post(self, module):
         [VarTypes.u_size.as_pointer()]
     )
     
-    # fn = ir.Function(module,
-    #     ir.FunctionType(VarTypes.bool, [VarTypes.u_size]),
-    #     mangle_call('c_free',[VarTypes.u_size])
-    # )
-
-    target = irbuilder.ptrtoint(obj_del.args[0], VarTypes.u_size)
-
     result = irbuilder.call(
-        module.globals.get(mangle_call('c_free',[VarTypes.u_size])),
-        [target]
+        module.globals.get(mangle_call('c_free',[VarTypes.u_size.as_pointer()])),
+        [obj_del.args[0]]
     )
 
     irbuilder.ret(result)
