@@ -734,6 +734,8 @@ This allocates the memory needed to store a single object of `q`'s type.
 
 Returns a pointer to the data component for an object, such as a string or an array. This can be used, for instance, to pass a pointer to a null-terminated string to a C library function that needs it.
 
+This example uses `c_data` to pass raw string data to a Win32 system call:
+
 ```
 extern MessageBoxA(hwnd:i32, msg:ptr i8, caption:ptr i8, type: i8):i32
 
