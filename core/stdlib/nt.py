@@ -1,5 +1,6 @@
 import llvmlite.ir as ir
-from core.mangling import mangle_function
+from core.vartypes import ArrayClass, VarTypes
+from core.mangling import mangle_function, mangle_call
 
 def makefunc(module, func_name, func_type, func_sig):
     func_s = ir.FunctionType(func_type, func_sig)
@@ -12,11 +13,8 @@ def makefunc(module, func_name, func_type, func_sig):
 def stdlib(self, module):
 
     # TODO: emit all this as bitcode, save it
-
     # self.codegen gives us access to codegen methods if we need it
 
-    from core.vartypes import VarTypes
-    
     # string length
 
     strlen, irbuilder = makefunc(
@@ -35,6 +33,27 @@ def stdlib(self, module):
     s3 = irbuilder.load(s2)
 
     irbuilder.ret(s3)
+
+def stdlib_post(self, module):
+
+    # This is all the instructions that have to come AFTER
+    # the platform libraries are loaded
+    # for instance, because we don't know how malloc or free work
+
+    # del for array
+
+    obj_del, irbuilder = makefunc(
+        module,
+        '.object.array_u64.__del__', VarTypes.bool,
+        [VarTypes.u_size.as_pointer()]
+    )
+    
+    result = irbuilder.call(
+        module.globals.get(mangle_call('c_free',[VarTypes.u_size.as_pointer()])),
+        [obj_del.args[0]]
+    )
+
+    irbuilder.ret(result)
 
     # new string from i32:
 

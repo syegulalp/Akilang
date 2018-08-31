@@ -50,6 +50,10 @@ class LLVMCodeGenerator(object):
 
         self.opt_args_funcs = {}
 
+        # Variable graphs for tracing memory allocation.
+        # Functions that "give" allocated memory by way of a variable.
+        self.gives_alloc = set()
+
         self.target_data = llvm.create_target_data(self.module.data_layout)
 
         # Set up pointer size and u_size vartype for current hardware.
@@ -178,6 +182,21 @@ class LLVMCodeGenerator(object):
         self.builder.store(retval, self.func_returnarg)
         self.builder.branch(self.func_returnblock)
         self.func_returncalled = True
+
+        # Check for the presence of a returned object
+        # that requires memory tracing
+
+        # FIXME: we should do this in a self-contained way
+        # for the normal return operation, too
+
+        if hasattr(retval, 'operands') and retval.operands:
+            to_check = retval.operands[0]
+        else:
+            to_check = retval
+        
+        if to_check.heap_alloc:
+            self.gives_alloc.add(self.func_returnblock.parent)
+
 
     def _codegen_ArrayElement(self, node, array):
         '''
@@ -323,14 +342,6 @@ class LLVMCodeGenerator(object):
                 f'Universal constant "{lhs.name}" cannot be reassigned',
                 lhs.position)
 
-        # try:
-        #     is_func = isinstance(
-        #         ptr.type.pointee.pointee,
-        #         ir.FunctionType
-        #     )
-        # except AttributeError:
-        #     is_func = False
-
         is_func = ptr.type.is_func()
 
         if is_func:
@@ -354,10 +365,6 @@ class LLVMCodeGenerator(object):
 
         self.builder.store(value, ptr)
 
-        # Here we need to track the type of value being stored
-        # whether or not it's a malloc'd object
-        # so that we can track if it's given away or returned, etc.
-
         return value
 
     def _codegen_String(self, node):
@@ -365,7 +372,7 @@ class LLVMCodeGenerator(object):
 
     def _string_base(self, string, global_constant=True):
         '''
-        Core function for code generation for strings.
+        Core function for code generation for strings.        
         This will also be called when we create strings dynamically
         in the course of a function, or statically during compilation.
         '''
@@ -999,7 +1006,15 @@ class LLVMCodeGenerator(object):
                     f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.type.describe()})',
                     node.args[x].position)
 
-        return self.builder.call(final_call, call_args, 'calltmp')
+        call_to_return = self.builder.call(final_call, call_args, 'calltmp')
+
+        # Check for the presence of an object returned from the call
+        # that requires memory tracing
+
+        if callee_func in self.gives_alloc:
+            call_to_return.heap_alloc = True
+
+        return call_to_return
 
     def _codegen_Prototype(self, node):
         funcname = node.name
@@ -1229,6 +1244,38 @@ class LLVMCodeGenerator(object):
             self.builder.branch(self.func_returnblock)
 
         self.builder = ir.IRBuilder(self.func_returnblock)
+        
+        # Check for the presence of a returned object
+        # that requires memory tracing
+
+        to_check = retval
+
+        if retval:
+            if hasattr(retval, 'operands') and retval.operands:
+                to_check = retval.operands[0]
+            if to_check.heap_alloc:
+                self.gives_alloc.add(self.func_returnblock.parent)
+
+        # Get all still-tracked objects that are not being returned
+
+        if to_check:
+            for k,v in self.func_symtab.items():
+                if v is to_check:
+                    continue
+                if v.heap_alloc:
+                    ref = self.builder.load(v)
+                    ref = self.builder.bitcast(
+                        ref,
+                        VarTypes.u_size.as_pointer()
+                    )
+                    sig = v.type.pointee.pointee.signature()
+                    
+                    del_call = self.builder.call(
+                        self.module.globals.get(sig+'__del__'),
+                        [ref],
+                        'del'
+                    )                    
+
         self.builder.ret(self.builder.load(self.func_returnarg))
 
         self.func_returntype = None
@@ -1286,6 +1333,10 @@ class LLVMCodeGenerator(object):
                     f'"{name}" already defined in universal scope', position)
 
             var_ref = self._alloca(name, v_type)
+            
+            if val:
+                var_ref.heap_alloc = val.heap_alloc
+
             self.func_symtab[name] = var_ref
 
             if expr:
@@ -1298,6 +1349,7 @@ class LLVMCodeGenerator(object):
                     self.func_symtab[name] = val
                 else:
                     self.builder.store(val, var_ref)
+
             else:
                 if v_type.is_obj_ptr():
                     if not isinstance(v_type.pointee, ir.FunctionType):
@@ -1494,13 +1546,17 @@ class LLVMCodeGenerator(object):
         Deallocates memory for an object created with c_obj_alloc.
         '''
         expr = self._get_obj_noload(node)
-        expr = self.builder.load(expr)
 
-        addr = self.builder.ptrtoint(expr, VarTypes.u_size)
+        # Mark the variable in question as untracked
+        expr.heap_alloc = False
+
+        addr = self.builder.load(expr)
+        addr2 = self.builder.bitcast(addr, VarTypes.u_size.as_pointer()).get_reference()
 
         call = self._codegen_Call(
             Call(node.position, 'c_free',
-                 [Number(node.position, addr.get_reference(), VarTypes.u_size)]))
+                 [Number(node.position, addr2,
+            VarTypes.u_size.as_pointer())]))        
 
         return call
 
