@@ -92,6 +92,22 @@ class LLVMCodeGenerator(object):
         assert isinstance(node, (Prototype, Function, Uni, Class, Decorator))
         return self._codegen(node, False)
 
+    def _extract_operand(self, val):
+        '''
+        Extracts the first operand for a load or alloca statement.
+        Used to examine the actual variable underlying such.
+        This is used mainly when determining if a variable being traced
+        through a function has its heap_alloc attribute set,
+        to further determine if it needs to be disposed automatically
+        when it goes out of scope.
+        '''
+        if hasattr(val, 'operands') and val.operands:
+            to_check = val.operands[0]
+        else:
+            to_check = val
+        return to_check
+
+
     def _isize(self):
         '''
         Returns a constant of the pointer size for the currently configured architecture.
@@ -160,6 +176,7 @@ class LLVMCodeGenerator(object):
                 return None
             raise CodegenError(f"Undefined variable: {node.name}",
                                node.position)
+        #print (v, v.heap_alloc)
         return v
 
     def _codegen_Return(self, node):
@@ -189,10 +206,7 @@ class LLVMCodeGenerator(object):
         # FIXME: we should do this in a self-contained way
         # for the normal return operation, too
 
-        if hasattr(retval, 'operands') and retval.operands:
-            to_check = retval.operands[0]
-        else:
-            to_check = retval
+        to_check = self._extract_operand(retval)
         
         if to_check.heap_alloc:
             self.gives_alloc.add(self.func_returnblock.parent)
@@ -995,16 +1009,54 @@ class LLVMCodeGenerator(object):
                     node.position)
 
         for x, n in enumerate(zip(call_args, func_to_check.args)):
-            type0 = n[0]
-            try:
+            type0 = n[0].type
+            
+            # in some cases, such as with a function pointer,
+            # the argument is not an Argument but a core.vartypes instance
+            # so this check is necessary
+
+            if type(n[1])==ir.values.Argument:
                 type1 = n[1].type
-            except AttributeError:
+            else:
                 type1 = n[1]
 
-            if type0.type != type1:
+            if type0 != type1:
                 raise CodegenError(
-                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.type.describe()})',
+                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.describe()})',
                     node.args[x].position)
+
+            to_check = self._extract_operand(n[0])
+        
+            if to_check.heap_alloc:
+                to_check.heap_alloc = False                
+                # We also need somehow to tag the CALLED function
+                # as having a variable that needs tracing
+                # so we would need to take each variable passed to it,
+                # trace it through from top to bottom,
+                # and determine if it was given away or returned
+                # If not, then we go to its exit block
+                # and prepend a disposal
+                # actually, one thing we could do ahead of time
+                # is perform this kind of tab-keeping when we 
+                # build the function the first time,
+                # and then consult it later
+                # so the function has a return_list attr
+                # we should have an attribute for each function arg
+                # that traces it
+                # input_arg
+                # whenever we do a variable setting, we pass it along
+                # for every return and at the end of the function,
+                # we append that to the return_list attr in the function
+                # we may also need to track the argument position
+                # or just the original argument name
+
+                # we may want to also see if there's some way we can pass
+                # all these attributes along automatically, in a single attrib
+                # if it comes to that
+
+                # stil don't have a strategy for subobjects like classes
+                # e.g., for them we need to autogenerate __del__ methods
+
 
         call_to_return = self.builder.call(final_call, call_args, 'calltmp')
 
@@ -1203,15 +1255,17 @@ class LLVMCodeGenerator(object):
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
-            if arg.type.is_obj_ptr():  # is_obj(arg.type):
-                alloca = arg
+            if arg.type.is_obj_ptr():
+                alloca = arg                
             else:
                 alloca = self._alloca(arg.name, arg.type)
-                self.builder.store(arg, alloca)
+                self.builder.store(arg, alloca)            
 
             # We don't shadow existing variables names, ever
             assert not self.func_symtab.get(arg.name) and "arg name redefined: " + arg.name
             self.func_symtab[arg.name] = alloca
+            alloca.input_arg = _
+            #setattr(alloca,'input_arg',_)
 
         # Generate code for the body
         retval = self._codegen(node.body, False)
@@ -1251,8 +1305,7 @@ class LLVMCodeGenerator(object):
         to_check = retval
 
         if retval:
-            if hasattr(retval, 'operands') and retval.operands:
-                to_check = retval.operands[0]
+            to_check = self._extract_operand(retval)
             if to_check.heap_alloc:
                 self.gives_alloc.add(self.func_returnblock.parent)
 
@@ -1262,9 +1315,18 @@ class LLVMCodeGenerator(object):
             for k,v in self.func_symtab.items():
                 if v is to_check:
                     continue
+                if v.input_arg is not None:
+                    # save the current position
+                    # trace the result in the target function
+                    # insert the c_free at the start of the exit block
+
+                    #print ("Input", v,v.input_arg)
+                    #self.builder.position_at_start
+                    #print (self.builder._block)
+                    pass
                 if v.heap_alloc:
                     ref = self.builder.load(v)
-                    ref = self.builder.bitcast(
+                    ref2 = self.builder.bitcast(
                         ref,
                         VarTypes.u_size.as_pointer()
                     )
@@ -1272,7 +1334,7 @@ class LLVMCodeGenerator(object):
                     
                     del_call = self.builder.call(
                         self.module.globals.get(sig+'__del__'),
-                        [ref],
+                        [ref2],
                         'del'
                     )                    
 
@@ -1336,6 +1398,7 @@ class LLVMCodeGenerator(object):
             
             if val:
                 var_ref.heap_alloc = val.heap_alloc
+                var_ref.input_arg = val.input_arg
 
             self.func_symtab[name] = var_ref
 
