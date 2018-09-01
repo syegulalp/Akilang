@@ -176,7 +176,6 @@ class LLVMCodeGenerator(object):
                 return None
             raise CodegenError(f"Undefined variable: {node.name}",
                                node.position)
-        #print (v, v.heap_alloc)
         return v
 
     def _codegen_Return(self, node):
@@ -1292,27 +1291,8 @@ class LLVMCodeGenerator(object):
                 if v is to_check:
                     continue
                 if v.input_arg is not None:
-                    # in each function, for each return,
-                    # add the returned variable to a list
-                    # when we call that function,
-                    # and when we provide a variable that is traced,
-                    # check the trace status of that argument.
-                    # if by the end of the function it hasn't been given away,
-                    # and it hasn't already been flagged as disposed (by a previous pass),
-                    # then:
-                    # flag the variable as disposed [how?]
-                    # save the current position,
-                    # insert the c_free at the start of the exit block
-                    # restore the position
-
-                    # each function we should have an attrib, like 'disposed'?
-                    # and a return list for the function,
-                    # maybe it makes more sense to have a disposed list for the function?
-
-                    #print ("Input", v,v.input_arg)
-                    #self.builder.position_at_start
-                    #print (self.builder._block)
                     pass
+
                 if v.heap_alloc:
                     ref = self.builder.load(v)
                     ref2 = self.builder.bitcast( # pylint: disable=E1111
