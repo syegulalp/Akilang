@@ -4,6 +4,7 @@ import llvmlite.ir as ir
 class MyType():
     pointee = None
     v_id = None
+    is_obj = None
 
     def is_func(self):
         '''

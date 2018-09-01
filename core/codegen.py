@@ -1288,7 +1288,7 @@ class LLVMCodeGenerator(object):
         # Get all still-tracked objects that are not being returned
 
         if to_check:
-            for k,v in self.func_symtab.items():
+            for _,v in self.func_symtab.items():
                 if v is to_check:
                     continue
                 if v.input_arg is not None:
@@ -1321,7 +1321,7 @@ class LLVMCodeGenerator(object):
                     )
                     sig = v.type.pointee.pointee.signature()
                     
-                    del_call = self.builder.call(
+                    self.builder.call(
                         self.module.globals.get(sig+'__del__'),
                         [ref2],
                         'del'
