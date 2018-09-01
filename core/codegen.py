@@ -507,11 +507,11 @@ class LLVMCodeGenerator(object):
                         raise CodegenError('Integer division by zero', node.rhs.position)
                     return self.builder.sdiv(lhs, rhs, 'divop')
                 elif node.op == 'and':
-                    x = self.builder.and_(lhs, rhs, 'andop')
+                    x = self.builder.and_(lhs, rhs, 'andop') # pylint: disable=E1111
                     x.type = VarTypes.bool
                     return x
                 elif node.op == 'or':
-                    x = self.builder.or_(lhs, rhs, 'orop')
+                    x = self.builder.or_(lhs, rhs, 'orop') # pylint: disable=E1111
                     x.type = VarTypes.bool
                     return x
                 else:
@@ -1315,7 +1315,7 @@ class LLVMCodeGenerator(object):
                     pass
                 if v.heap_alloc:
                     ref = self.builder.load(v)
-                    ref2 = self.builder.bitcast(
+                    ref2 = self.builder.bitcast( # pylint: disable=E1111
                         ref,
                         VarTypes.u_size.as_pointer()
                     )
@@ -1584,7 +1584,7 @@ class LLVMCodeGenerator(object):
             Call(node.position, 'c_alloc',
                  [Number(node.position, sizeof, VarTypes.u_size)]))
 
-        b1 = self.builder.bitcast(call, expr.type)
+        b1 = self.builder.bitcast(call, expr.type) # pylint: disable=E1111
         b2 = self.builder.alloca(b1.type)
         self.builder.store(b1, b2)
 
@@ -1698,12 +1698,9 @@ class LLVMCodeGenerator(object):
         convert_from = self.builder.load(convert_from)
         gep = self.builder.gep(
             convert_from,
-            [
-                self._i32(0),
-                self._i32(1),
-            ]
+            [self._i32(0),self._i32(1),]
         )
-        bc = self.builder.bitcast(gep, VarTypes.u_size.as_pointer())
+        bc = self.builder.bitcast(gep, VarTypes.u_size.as_pointer()) # pylint: disable=E1111
         return bc
 
     def _codegen_Builtins_c_addr(self, node):

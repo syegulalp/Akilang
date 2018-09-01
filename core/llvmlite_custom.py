@@ -83,7 +83,7 @@ class _IntType(Old_IntType):
     @classmethod
     def __new(cls, bits, signed, v_id):
         assert isinstance(bits, int) and bits >= 0
-        self = super(Old_IntType, cls).__new__(cls)
+        self = super(Old_IntType, cls).__new__(cls) # pylint: disable=E1003
         self.width = bits
         self.signed = signed
         if v_id is not None:
