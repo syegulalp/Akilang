@@ -203,13 +203,14 @@ class LLVMCodeGenerator(object):
         # Check for the presence of a returned object
         # that requires memory tracing
 
-        # FIXME: we should do this in a self-contained way
-        # for the normal return operation, too
-
         to_check = self._extract_operand(retval)
         
         if to_check.heap_alloc:
             self.gives_alloc.add(self.func_returnblock.parent)
+            self.func_returnblock.parent.returns.append(to_check)
+
+            # add variable to list in function of returns
+            # self.func_returnblock.parent.returns.append(to_check)
 
 
     def _codegen_ArrayElement(self, node, array):
@@ -1028,35 +1029,7 @@ class LLVMCodeGenerator(object):
             to_check = self._extract_operand(n[0])
         
             if to_check.heap_alloc:
-                to_check.heap_alloc = False                
-                # We also need somehow to tag the CALLED function
-                # as having a variable that needs tracing
-                # so we would need to take each variable passed to it,
-                # trace it through from top to bottom,
-                # and determine if it was given away or returned
-                # If not, then we go to its exit block
-                # and prepend a disposal
-                # actually, one thing we could do ahead of time
-                # is perform this kind of tab-keeping when we 
-                # build the function the first time,
-                # and then consult it later
-                # so the function has a return_list attr
-                # we should have an attribute for each function arg
-                # that traces it
-                # input_arg
-                # whenever we do a variable setting, we pass it along
-                # for every return and at the end of the function,
-                # we append that to the return_list attr in the function
-                # we may also need to track the argument position
-                # or just the original argument name
-
-                # we may want to also see if there's some way we can pass
-                # all these attributes along automatically, in a single attrib
-                # if it comes to that
-
-                # stil don't have a strategy for subobjects like classes
-                # e.g., for them we need to autogenerate __del__ methods
-
+                to_check.heap_alloc = False
 
         call_to_return = self.builder.call(final_call, call_args, 'calltmp')
 
@@ -1162,6 +1135,8 @@ class LLVMCodeGenerator(object):
             func.ftype.var_arg = True
 
         func.public_name = public_name
+
+        func.returns = []
 
         ##############################################################
         # Set LLVM function attributes
@@ -1308,6 +1283,7 @@ class LLVMCodeGenerator(object):
             to_check = self._extract_operand(retval)
             if to_check.heap_alloc:
                 self.gives_alloc.add(self.func_returnblock.parent)
+                self.func_returnblock.parent.returns.append(to_check)
 
         # Get all still-tracked objects that are not being returned
 
@@ -1316,9 +1292,22 @@ class LLVMCodeGenerator(object):
                 if v is to_check:
                     continue
                 if v.input_arg is not None:
-                    # save the current position
-                    # trace the result in the target function
+                    # in each function, for each return,
+                    # add the returned variable to a list
+                    # when we call that function,
+                    # and when we provide a variable that is traced,
+                    # check the trace status of that argument.
+                    # if by the end of the function it hasn't been given away,
+                    # and it hasn't already been flagged as disposed (by a previous pass),
+                    # then:
+                    # flag the variable as disposed [how?]
+                    # save the current position,
                     # insert the c_free at the start of the exit block
+                    # restore the position
+
+                    # each function we should have an attrib, like 'disposed'?
+                    # and a return list for the function,
+                    # maybe it makes more sense to have a disposed list for the function?
 
                     #print ("Input", v,v.input_arg)
                     #self.builder.position_at_start
@@ -1343,7 +1332,7 @@ class LLVMCodeGenerator(object):
         self.func_returntype = None
         self.func_returnarg = None
         self.func_returnblock = None
-        self.func_returncalled = None
+        self.func_returncalled = None        
 
     def _codegen_Unary(self, node):
         operand = self._codegen(node.rhs)
