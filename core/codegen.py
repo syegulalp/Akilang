@@ -92,6 +92,22 @@ class LLVMCodeGenerator(object):
         assert isinstance(node, (Prototype, Function, Uni, Class, Decorator))
         return self._codegen(node, False)
 
+    def _extract_operand(self, val):
+        '''
+        Extracts the first operand for a load or alloca statement.
+        Used to examine the actual variable underlying such.
+        This is used mainly when determining if a variable being traced
+        through a function has its heap_alloc attribute set,
+        to further determine if it needs to be disposed automatically
+        when it goes out of scope.
+        '''
+        if hasattr(val, 'operands') and val.operands:
+            to_check = val.operands[0]
+        else:
+            to_check = val
+        return to_check
+
+
     def _isize(self):
         '''
         Returns a constant of the pointer size for the currently configured architecture.
@@ -160,6 +176,7 @@ class LLVMCodeGenerator(object):
                 return None
             raise CodegenError(f"Undefined variable: {node.name}",
                                node.position)
+        #print (v, v.heap_alloc)
         return v
 
     def _codegen_Return(self, node):
@@ -171,8 +188,8 @@ class LLVMCodeGenerator(object):
 
         retval = self._codegen(node.val)
         if self.func_returntype is None:
-            raise CodegenError(f'Unknown return declaration error',
-                               node.position)
+            raise CodegenError(f'Unknown return declaration error', 
+                node.position)
 
         if retval.type != self.func_returntype:
             raise CodegenError(
@@ -186,16 +203,14 @@ class LLVMCodeGenerator(object):
         # Check for the presence of a returned object
         # that requires memory tracing
 
-        # FIXME: we should do this in a self-contained way
-        # for the normal return operation, too
-
-        if hasattr(retval, 'operands') and retval.operands:
-            to_check = retval.operands[0]
-        else:
-            to_check = retval
+        to_check = self._extract_operand(retval)
         
         if to_check.heap_alloc:
             self.gives_alloc.add(self.func_returnblock.parent)
+            self.func_returnblock.parent.returns.append(to_check)
+
+            # add variable to list in function of returns
+            # self.func_returnblock.parent.returns.append(to_check)
 
 
     def _codegen_ArrayElement(self, node, array):
@@ -492,11 +507,11 @@ class LLVMCodeGenerator(object):
                         raise CodegenError('Integer division by zero', node.rhs.position)
                     return self.builder.sdiv(lhs, rhs, 'divop')
                 elif node.op == 'and':
-                    x = self.builder.and_(lhs, rhs, 'andop')
+                    x = self.builder.and_(lhs, rhs, 'andop') # pylint: disable=E1111
                     x.type = VarTypes.bool
                     return x
                 elif node.op == 'or':
-                    x = self.builder.or_(lhs, rhs, 'orop')
+                    x = self.builder.or_(lhs, rhs, 'orop') # pylint: disable=E1111
                     x.type = VarTypes.bool
                     return x
                 else:
@@ -544,7 +559,7 @@ class LLVMCodeGenerator(object):
             # Pointer equality
 
             elif isinstance(vartype, ir.PointerType):
-                # LATER: use vartype.is_obj_ptr() to determine
+                # TODO: use vartype.is_obj_ptr() to determine
                 # if this is a complex object that needs to invoke
                 # its __eq__ method, but this is fine for now
                 signed_op = self.builder.icmp_unsigned
@@ -995,16 +1010,26 @@ class LLVMCodeGenerator(object):
                     node.position)
 
         for x, n in enumerate(zip(call_args, func_to_check.args)):
-            type0 = n[0]
-            try:
+            type0 = n[0].type
+            
+            # in some cases, such as with a function pointer,
+            # the argument is not an Argument but a core.vartypes instance
+            # so this check is necessary
+
+            if type(n[1])==ir.values.Argument:
                 type1 = n[1].type
-            except AttributeError:
+            else:
                 type1 = n[1]
 
-            if type0.type != type1:
+            if type0 != type1:
                 raise CodegenError(
-                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.type.describe()})',
+                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.describe()})',
                     node.args[x].position)
+
+            to_check = self._extract_operand(n[0])
+        
+            if to_check.heap_alloc:
+                to_check.heap_alloc = False
 
         call_to_return = self.builder.call(final_call, call_args, 'calltmp')
 
@@ -1111,6 +1136,8 @@ class LLVMCodeGenerator(object):
 
         func.public_name = public_name
 
+        func.returns = []
+
         ##############################################################
         # Set LLVM function attributes
         ##############################################################
@@ -1203,15 +1230,17 @@ class LLVMCodeGenerator(object):
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
-            if arg.type.is_obj_ptr():  # is_obj(arg.type):
-                alloca = arg
+            if arg.type.is_obj_ptr():
+                alloca = arg                
             else:
                 alloca = self._alloca(arg.name, arg.type)
-                self.builder.store(arg, alloca)
+                self.builder.store(arg, alloca)            
 
             # We don't shadow existing variables names, ever
             assert not self.func_symtab.get(arg.name) and "arg name redefined: " + arg.name
             self.func_symtab[arg.name] = alloca
+            alloca.input_arg = _
+            #setattr(alloca,'input_arg',_)
 
         # Generate code for the body
         retval = self._codegen(node.body, False)
@@ -1251,28 +1280,50 @@ class LLVMCodeGenerator(object):
         to_check = retval
 
         if retval:
-            if hasattr(retval, 'operands') and retval.operands:
-                to_check = retval.operands[0]
+            to_check = self._extract_operand(retval)
             if to_check.heap_alloc:
                 self.gives_alloc.add(self.func_returnblock.parent)
+                self.func_returnblock.parent.returns.append(to_check)
 
         # Get all still-tracked objects that are not being returned
 
         if to_check:
-            for k,v in self.func_symtab.items():
+            for _,v in self.func_symtab.items():
                 if v is to_check:
                     continue
+                if v.input_arg is not None:
+                    # in each function, for each return,
+                    # add the returned variable to a list
+                    # when we call that function,
+                    # and when we provide a variable that is traced,
+                    # check the trace status of that argument.
+                    # if by the end of the function it hasn't been given away,
+                    # and it hasn't already been flagged as disposed (by a previous pass),
+                    # then:
+                    # flag the variable as disposed [how?]
+                    # save the current position,
+                    # insert the c_free at the start of the exit block
+                    # restore the position
+
+                    # each function we should have an attrib, like 'disposed'?
+                    # and a return list for the function,
+                    # maybe it makes more sense to have a disposed list for the function?
+
+                    #print ("Input", v,v.input_arg)
+                    #self.builder.position_at_start
+                    #print (self.builder._block)
+                    pass
                 if v.heap_alloc:
                     ref = self.builder.load(v)
-                    ref = self.builder.bitcast(
+                    ref2 = self.builder.bitcast( # pylint: disable=E1111
                         ref,
                         VarTypes.u_size.as_pointer()
                     )
                     sig = v.type.pointee.pointee.signature()
                     
-                    del_call = self.builder.call(
+                    self.builder.call(
                         self.module.globals.get(sig+'__del__'),
-                        [ref],
+                        [ref2],
                         'del'
                     )                    
 
@@ -1281,7 +1332,7 @@ class LLVMCodeGenerator(object):
         self.func_returntype = None
         self.func_returnarg = None
         self.func_returnblock = None
-        self.func_returncalled = None
+        self.func_returncalled = None        
 
     def _codegen_Unary(self, node):
         operand = self._codegen(node.rhs)
@@ -1336,6 +1387,7 @@ class LLVMCodeGenerator(object):
             
             if val:
                 var_ref.heap_alloc = val.heap_alloc
+                var_ref.input_arg = val.input_arg
 
             self.func_symtab[name] = var_ref
 
@@ -1468,6 +1520,9 @@ class LLVMCodeGenerator(object):
         # Now all the vars are in scope. Codegen the body.
         body_val = self._codegen(node.body)
 
+        # TODO: Delete anything that has gone out of scope,
+        # as per how we handle a function.
+
         # Restore the old bindings.
         for i, v in enumerate(node.vars.vars):
             name = v.name
@@ -1532,7 +1587,7 @@ class LLVMCodeGenerator(object):
             Call(node.position, 'c_alloc',
                  [Number(node.position, sizeof, VarTypes.u_size)]))
 
-        b1 = self.builder.bitcast(call, expr.type)
+        b1 = self.builder.bitcast(call, expr.type) # pylint: disable=E1111
         b2 = self.builder.alloca(b1.type)
         self.builder.store(b1, b2)
 
@@ -1646,12 +1701,9 @@ class LLVMCodeGenerator(object):
         convert_from = self.builder.load(convert_from)
         gep = self.builder.gep(
             convert_from,
-            [
-                self._i32(0),
-                self._i32(1),
-            ]
+            [self._i32(0),self._i32(1),]
         )
-        bc = self.builder.bitcast(gep, VarTypes.u_size.as_pointer())
+        bc = self.builder.bitcast(gep, VarTypes.u_size.as_pointer()) # pylint: disable=E1111
         return bc
 
     def _codegen_Builtins_c_addr(self, node):

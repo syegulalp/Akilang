@@ -4,6 +4,7 @@ import llvmlite.ir as ir
 class MyType():
     pointee = None
     v_id = None
+    is_obj = None
 
     def is_func(self):
         '''
@@ -35,8 +36,8 @@ class MyType():
         return self.v_id
 
     def signature(self):
-        #if not self.is_obj:
-            #raise Exception("Not an object")
+        if not self.is_obj:
+            raise Exception("Not an object")
         return f'.object.{self.v_id}.'
 
 ir.types.Type.describe = MyType.describe
@@ -82,7 +83,7 @@ class _IntType(Old_IntType):
     @classmethod
     def __new(cls, bits, signed, v_id):
         assert isinstance(bits, int) and bits >= 0
-        self = super(Old_IntType, cls).__new__(cls)
+        self = super(Old_IntType, cls).__new__(cls) # pylint: disable=E1003
         self.width = bits
         self.signed = signed
         if v_id is not None:
@@ -103,6 +104,7 @@ def NamedValue_init(self, parent, type, name):
     old_NamedValue_init(self, parent, type, name)
     self.heap_alloc = False
     self.do_not_allocate = False
+    self.input_arg = None
 
 ir.values.NamedValue.__init__ = NamedValue_init
 
@@ -112,6 +114,7 @@ def Constant_init(self, typ, constant):
     old_Constant_init(self,typ,constant)
     self.heap_alloc = False
     self.do_not_allocate = False
+    self.input_arg = None
 
 ir.values.Constant.__init__ = Constant_init
 
