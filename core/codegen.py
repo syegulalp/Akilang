@@ -188,8 +188,8 @@ class LLVMCodeGenerator(object):
 
         retval = self._codegen(node.val)
         if self.func_returntype is None:
-            raise CodegenError(f'Unknown return declaration error',
-                               node.position)
+            raise CodegenError(f'Unknown return declaration error', 
+                node.position)
 
         if retval.type != self.func_returntype:
             raise CodegenError(
@@ -559,7 +559,7 @@ class LLVMCodeGenerator(object):
             # Pointer equality
 
             elif isinstance(vartype, ir.PointerType):
-                # LATER: use vartype.is_obj_ptr() to determine
+                # TODO: use vartype.is_obj_ptr() to determine
                 # if this is a complex object that needs to invoke
                 # its __eq__ method, but this is fine for now
                 signed_op = self.builder.icmp_unsigned
