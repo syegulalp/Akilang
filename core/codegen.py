@@ -1520,6 +1520,9 @@ class LLVMCodeGenerator(object):
         # Now all the vars are in scope. Codegen the body.
         body_val = self._codegen(node.body)
 
+        # TODO: Delete anything that has gone out of scope,
+        # as per how we handle a function.
+
         # Restore the old bindings.
         for i, v in enumerate(node.vars.vars):
             name = v.name
