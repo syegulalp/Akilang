@@ -204,7 +204,7 @@ class LLVMCodeGenerator(object):
 
         to_check = self._extract_operand(retval)
 
-        if to_check.heap_alloc:
+        if to_check.tracked:
             self.gives_alloc.add(self.func_returnblock.parent)
             self.func_returnblock.parent.returns.append(to_check)
 
@@ -1028,10 +1028,13 @@ class LLVMCodeGenerator(object):
                     f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.describe()})',
                     node.args[x].position)
 
-            to_check = self._extract_operand(n[0])
-        
+            # if this is a traced object, and we give it away,
+            # then we can't delete it in this scope anymore
+            # because we no longer have ownership of it
+            
+            to_check = self._extract_operand(n[0])        
             if to_check.heap_alloc:
-                to_check.heap_alloc = False
+                to_check.tracked = False
 
         call_to_return = self.builder.call(final_call, call_args, 'calltmp')
 
@@ -1040,6 +1043,7 @@ class LLVMCodeGenerator(object):
 
         if callee_func in self.gives_alloc:
             call_to_return.heap_alloc = True
+            call_to_return.tracked = True
 
         return call_to_return
 
@@ -1284,7 +1288,7 @@ class LLVMCodeGenerator(object):
 
         if retval:
             to_check = self._extract_operand(retval)
-            if to_check.heap_alloc:
+            if to_check.tracked:
                 self.gives_alloc.add(self.func_returnblock.parent)
                 self.func_returnblock.parent.returns.append(to_check)
 
@@ -1297,7 +1301,7 @@ class LLVMCodeGenerator(object):
                 if v.input_arg is not None:
                     pass
 
-                if v.heap_alloc:
+                if v.tracked:
                     ref = self.builder.load(v)
                     ref2 = self.builder.bitcast( # pylint: disable=E1111
                         ref,
@@ -1373,6 +1377,9 @@ class LLVMCodeGenerator(object):
             if val:
                 var_ref.heap_alloc = val.heap_alloc
                 var_ref.input_arg = val.input_arg
+
+                if var_ref.heap_alloc:
+                    var_ref.tracked = True
 
             self.func_symtab[name] = var_ref
 
@@ -1578,6 +1585,7 @@ class LLVMCodeGenerator(object):
 
         b2.do_not_allocate = True
         b2.heap_alloc = True
+        b2.tracked = True
 
         return b2
 
@@ -1587,11 +1595,11 @@ class LLVMCodeGenerator(object):
         '''
         expr = self._get_obj_noload(node)
 
-        if not expr.heap_alloc:
+        if not expr.tracked:
             raise CodegenError(f'{node.args[0].name} is not an allocated object',node.args[0].position)
 
         # Mark the variable in question as untracked
-        expr.heap_alloc = False
+        expr.tracked = False
 
         addr = self.builder.load(expr)
         addr2 = self.builder.bitcast(addr, VarTypes.u_size.as_pointer()).get_reference()
