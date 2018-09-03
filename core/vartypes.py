@@ -5,13 +5,9 @@ from core.llvmlite_custom import Map, _PointerType, MyType
 # Singleton types (these do not require an invocation, they're only created once)
 
 
-def make_type_as_ptr(type):
+def make_type_as_ptr(my_type):
     def type_as_ptr(addrspace=0):
-        t = _PointerType(type, addrspace, v_id=type.v_id)
-        # if  type.underlying_obj() is None:
-        #     t.original_obj = type
-        # else:
-        #     t.original_obj = type.original_obj
+        t = _PointerType(my_type, addrspace, v_id=my_type.v_id)
         return t
 
     return type_as_ptr
@@ -94,7 +90,6 @@ class ArrayClass():
         return new_arr
 
 # singleton object types
-
 
 Ptr = ir.global_context.get_identified_type('.object.ptr')
 Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
