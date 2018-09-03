@@ -192,7 +192,7 @@ class LLVMCodeGenerator(object):
 
         if retval.type != self.func_returntype:
             raise CodegenError(
-                f'Expected return type "{self.func_returntype.describe()}" but got "{retval.type.describe()}" instead',
+                f'In function "{self.func_incontext.public_name}", expected return type "{self.func_returntype.describe()}" but got "{retval.type.describe()}" instead',
                 node.val.position)
 
         self.builder.store(retval, self.func_returnarg)
@@ -203,14 +203,10 @@ class LLVMCodeGenerator(object):
         # that requires memory tracing
 
         to_check = self._extract_operand(retval)
-        
+
         if to_check.heap_alloc:
             self.gives_alloc.add(self.func_returnblock.parent)
             self.func_returnblock.parent.returns.append(to_check)
-
-            # add variable to list in function of returns
-            # self.func_returnblock.parent.returns.append(to_check)
-
 
     def _codegen_ArrayElement(self, node, array):
         '''
@@ -978,24 +974,31 @@ class LLVMCodeGenerator(object):
                     call_args.append(f1.args[n].default_value)
 
         # Determine if this is a function pointer
-        
-        if not callee_func:
-            callee_func = self._varaddr(node.name, False)
 
-        if callee_func.type.is_func():
-            func_to_check = callee_func.type.pointee.pointee
-            # retrieve actual function pointer from the variable ref
-            final_call = self.builder.load(callee_func)
-            ftype = func_to_check
-        else:
-            func_to_check = callee_func
-            final_call = callee_func
-            ftype = getattr(func_to_check, 'ftype', None)
+        try:
+            
+            # if we don't yet have a reference,
+            # since this might be a function pointer,
+            # attempt to obtain one from the variable list
 
-            if callee_func is None or not isinstance(callee_func, ir.Function):
-                raise CodegenError(
-                    f'Call to unknown function "{node.name}" with signature "{[n.type.describe() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
-                    node.position)
+            if not callee_func:
+                callee_func = self._varaddr(node.name, False)
+
+            if callee_func.type.is_func():
+                # retrieve actual function pointer from the variable ref
+                func_to_check = callee_func.type.pointee.pointee                
+                final_call = self.builder.load(callee_func)
+                ftype = func_to_check                
+            else:
+                # this is a regular old function, not a function pointer
+                func_to_check = callee_func
+                final_call = callee_func
+                ftype = getattr(func_to_check, 'ftype', None)
+
+        except Exception:
+            raise CodegenError(
+                f'Call to unknown function "{node.name}" with signature "{[n.type.describe() for n in call_args]}" (maybe this call signature is not implemented for this function?)',
+                node.position)
 
         if not ftype.var_arg:
             if len(func_to_check.args) != len(call_args):
@@ -1106,10 +1109,10 @@ class LLVMCodeGenerator(object):
                                    node.position)
             if not existing_func.is_declaration:
                 raise CodegenError(
-                    f'Redefinition of {funcname}', node.position)
+                    f'Redefinition of function "{public_name}"', node.position)
             if len(existing_func.function_type.args) != len(functype.args):
                 raise CodegenError(
-                    f'Redefinition of {funcname} with different number of arguments',
+                    f'Redefinition of function "{public_name}" with different number of arguments',
                     node.position)
         else:
             # Otherwise create a new function
@@ -1222,6 +1225,7 @@ class LLVMCodeGenerator(object):
         bb_entry = func.append_basic_block('entry')
         self.builder = ir.IRBuilder(bb_entry)
 
+        self.func_incontext = func
         self.func_returncalled = False
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')
@@ -1309,6 +1313,7 @@ class LLVMCodeGenerator(object):
 
         self.builder.ret(self.builder.load(self.func_returnarg))
 
+        self.func_incontext = None
         self.func_returntype = None
         self.func_returnarg = None
         self.func_returnblock = None
