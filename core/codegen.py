@@ -1587,6 +1587,9 @@ class LLVMCodeGenerator(object):
         '''
         expr = self._get_obj_noload(node)
 
+        if not expr.heap_alloc:
+            raise CodegenError(f'{node.args[0].name} is not an allocated object',node.args[0].position)
+
         # Mark the variable in question as untracked
         expr.heap_alloc = False
 
