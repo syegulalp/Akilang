@@ -201,6 +201,7 @@ class LLVMCodeGenerator(object):
 
         # Check for the presence of a returned object
         # that requires memory tracing
+        # if so, add it to the set of functions that returns a trackable object
 
         to_check = self._extract_operand(retval)
 
@@ -1246,8 +1247,9 @@ class LLVMCodeGenerator(object):
             # We don't shadow existing variables names, ever
             assert not self.func_symtab.get(arg.name) and "arg name redefined: " + arg.name
             self.func_symtab[arg.name] = alloca
-            alloca.input_arg = _
-            #setattr(alloca,'input_arg',_)
+            
+            alloca.input_arg = _            
+            alloca.tracked = False
 
         # Generate code for the body
         retval = self._codegen(node.body, False)
@@ -1283,6 +1285,7 @@ class LLVMCodeGenerator(object):
         
         # Check for the presence of a returned object
         # that requires memory tracing
+        # if so, add it to the set of functions that returns a trackable object
 
         to_check = retval
 
@@ -1292,12 +1295,19 @@ class LLVMCodeGenerator(object):
                 self.gives_alloc.add(self.func_returnblock.parent)
                 self.func_returnblock.parent.returns.append(to_check)
 
-        # Get all still-tracked objects that are not being returned
+        # Determine which variables need to be automatically disposed
 
         if to_check:
             for _,v in self.func_symtab.items():
                 if v is to_check:
                     continue
+                
+                # if this is an input argument,
+                # and it's still being tracked (e.g., not given away),
+                # and the variable in question has not been deleted
+                # manually at any time, 
+                # ...?
+                
                 if v.input_arg is not None:
                     pass
 
@@ -1944,3 +1954,27 @@ class LLVMCodeGenerator(object):
         result = op(convert_from, convert_to)
         result.type = convert_to
         return result
+    
+    def _codegen_Builtins_print_statement(self, node):
+        pass
+
+        # print takes 1 or more f-strings
+        # for each f-string:
+        # split from left to right, starting with {
+        # if there are no vars, just use the string as-is
+        # and return early
+        # if there is no corresponding }, crash
+        # codegen the name so we can use func-calls
+        # if not found, crash
+        # look up the type for the symbol
+        # substitute the appropriate formatter
+        # construct the new string
+        # construct a new call to the underlying printf
+        # add spacer for next iteration of the loop
+        
+        # be sure to escape literals - how to do that?
+        # maybe we could do that in the lexing portion,
+        # and store the results with the string node
+        # seems like the best way to do it
+        # store strings in one list, variables in another
+        # use zip to concatenate them as needed
