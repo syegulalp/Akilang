@@ -1,6 +1,7 @@
-import llvmlite.ir as ir
 from core.vartypes import ArrayClass, VarTypes
 from core.mangling import mangle_function, mangle_call
+
+import llvmlite.ir as ir
 
 def makefunc(module, func_name, func_type, func_sig):
     func_s = ir.FunctionType(func_type, func_sig)
@@ -55,13 +56,20 @@ def stdlib_post(self, module):
 
     irbuilder.ret(result)
 
-    # new string from i32:
+    # new string from pointer:
 
-    # strlen, irbuilder = makefunc(
+    # str_fn, irbuilder = makefunc(
     #     module,
     #     '.object.str.__new__', VarTypes.str.as_pointer(),   
-    #     [VarTypes.i32]
+    #     [VarTypes.u_size.as_pointer()]
     # )
+
+    # get length of string
+    # allocate new object space
+    # set length
+    # copy data into new buffer
+    # return object
+
 
     # use win32 int to str or just snprintf?
     # see https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/itoa-s-itow-s
