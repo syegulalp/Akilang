@@ -1,11 +1,12 @@
+import re
+
 import warnings
-import llvmlite.ir as ir
-import llvmlite.binding as llvm
+   
 
 from core.ast_module import (
     Binary, Variable, Prototype, Function, Uni, Class, Decorator,
-    Array, If, Number, ArrayAccessor, Call, Var,
-    _ANONYMOUS, Const
+    Array, If, Number, ArrayAccessor, Call, Var, String,
+    _ANONYMOUS, Const, VariableType
 )
 from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
@@ -13,6 +14,8 @@ from core.parsing import Builtins, Dunders, decorator_collisions
 from core.operators import BUILTIN_UNARY_OP
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 
+import llvmlite.ir as ir
+import llvmlite.binding as llvm
 
 class LLVMCodeGenerator(object):
     def __init__(self):
@@ -570,6 +573,7 @@ class LLVMCodeGenerator(object):
                 return self._codegen_methodcall(node, lhs, rhs)
 
         except NotImplementedError:
+            print (type(vartype))
             raise CodegenError(
                 f'Unknown binary operator {node.op} for {vartype}',
                 node.position)
@@ -1768,6 +1772,7 @@ class LLVMCodeGenerator(object):
 
                 # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr():
+                    #if cast_from.type.v_id != 'ptr_str':
                     raise cast_exception
 
                 # but it can be cast to another pointer
@@ -1934,32 +1939,66 @@ class LLVMCodeGenerator(object):
         result.type = convert_to
         return result
     
-    def _codegen_Builtins_print_statement(self, node):
-        pass
-
-        # print takes 1 or more f-strings
-        # for each f-string:
-        # split from left to right, starting with {
-        # if there are no vars, just use the string as-is
-        # and return early
-        # if there is no corresponding }, crash
-        # codegen the name so we can use func-calls
-        # if not found, crash
-        # look up the type for the symbol
-        # substitute the appropriate formatter
-        # construct the new string
-        # construct a new call to the underlying printf
-        # add spacer for next iteration of the loop
+    def _codegen_Builtins_out(self, node):
+        in_template = re.split(r'([{}])', node.args[0].val)
         
-        # be sure to escape literals - how to do that?
-        # maybe we could do that in the lexing portion,
-        # and store the results with the string node
-        # seems like the best way to do it
-        # store strings in one list, variables in another
-        # use zip to concatenate them as needed
+        var_names = []        
+        escape = False
+        open_br = False
 
-        # another way to do it: store the string as-is,
-        # but if we encounter {}, set a flag for it
-        # and then retrieve a split version of the string
-        # on demand when we need it
-        # by way of a helper function
+        for n in in_template:
+            if n==r'{' and not escape:
+                open_br = True
+                continue
+            if n==r'}' and not escape:
+                open_br = False
+                continue
+            if open_br:
+                var_ref = self._varaddr(n,False)
+                var_names.append([var_ref.type.p_fmt,n])
+                continue
+            escape=False            
+            if n and n[-1]=='\\':
+                escape=True
+                n=n[0:-1]
+            n = n.replace('%','%%')
+            var_names.append([n,None])
+        
+        format_string = []
+        variable_list = []
+
+        for n in var_names:
+            format_string.append(n[0])
+
+            if n[1] is None:
+                continue
+
+            if n[0] == '%s':
+                print (n[1])
+                var_app = Call(
+                    node.position,
+                    'c_data',
+                    [Variable(node.position, n[1])]
+                )
+            else:
+                var_app = Variable(node.position, n[1])
+
+            variable_list.append(var_app)
+
+        str_to_extract = String(node.position, ''.join(format_string))
+        
+        convert = Call(node.position,
+            'c_data',
+            [str_to_extract]
+        )
+
+        variable_list.insert(0,convert)
+
+        return self._codegen_Call(
+            Call(
+                node.position,
+                'printf',
+                variable_list,
+                VarTypes.i32
+            )
+        )

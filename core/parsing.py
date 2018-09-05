@@ -1028,7 +1028,7 @@ Builtins = {
     'c_obj_size',
     'c_data', 'c_array_ptr',
     'cast', 'convert',
-    'dummy',
+    'dummy','out'
 }
 
 Dunders = {

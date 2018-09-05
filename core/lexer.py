@@ -1,12 +1,11 @@
 from enum import Enum, unique
 from collections import namedtuple
-import llvmlite.ir as ir
-
 from core.vartypes import VarTypes
 from core.errors import AkiSyntaxError
 from core.operators import BUILTIN_OP, BUILTIN_UNARY_OP
-
 from functools import lru_cache
+
+import llvmlite.ir as ir
 
 # Each token is a tuple of kind and value. kind is one of the enumeration values
 # in TokenKind. value is the textual value of the token in the input.
@@ -55,7 +54,15 @@ class TokenKind(Enum):
     DEFAULT = -1665
 
 
-ESCAPES = {'n': 10, 'r': 13, "'": ord("'"), '"': ord('"')}
+#ESCAPES = {'n': 10, 'r': 13, "'": ord("'"), '"': ord('"'), '{':'\{','}':'\}'}
+ESCAPES = {
+    'n': chr(10),
+    'r': chr(13),
+    "'": "'",
+    '"':'"',
+    '{':'\{',
+    '}':'\}'
+}
 
 PUNCTUATORS = '()[]{},:@'
 COMMENT = "#"
@@ -155,10 +162,11 @@ class Lexer(object):
                 self._advance()
                 while self.lastchar and self.lastchar != opening_quote:
                     # Process escape codes
-                    if self.lastchar in ('\\', ):
+                    if self.lastchar in ('\\',):
                         self._advance()
                         if self.lastchar in ESCAPES:
-                            new_str.append(chr(ESCAPES[self.lastchar]))
+                            #new_str.append(chr(ESCAPES[self.lastchar]))
+                            new_str.append((ESCAPES[self.lastchar]))
                         elif self.lastchar in 'x':
                             hex = []
                             for _ in range(0, 2):
