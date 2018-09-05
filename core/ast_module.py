@@ -1,7 +1,6 @@
 from collections import namedtuple
-import llvmlite.ir as ir
-
 from core.vartypes import DEFAULT_TYPE, VarTypes
+import llvmlite.ir as ir
 
 # AST hierarchy
 
