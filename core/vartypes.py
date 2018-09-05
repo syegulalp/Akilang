@@ -1,9 +1,8 @@
-import llvmlite.ir as ir
-
 from core.llvmlite_custom import Map, _PointerType, MyType
 
-# Singleton types (these do not require an invocation, they're only created once)
+import llvmlite.ir as ir
 
+# Singleton types (these do not require an invocation, they're only created once)
 
 def make_type_as_ptr(my_type):
     def type_as_ptr(addrspace=0):
@@ -14,19 +13,21 @@ def make_type_as_ptr(my_type):
 
 
 class Bool(ir.IntType):
+    p_fmt = '%i'
     def __new__(cls):
         return super().__new__(cls, 1, False, False)
 
 
 class SignedInt(ir.IntType):
+    p_fmt = '%i'
     def __new__(cls, bits, force=True):
         return super().__new__(cls, bits, force, True)
 
 
 class UnsignedInt(ir.IntType):
+    p_fmt = '%u'
     def __new__(cls, bits, force=True):
         return super().__new__(cls, bits, force, False)
-
 
 class Float64(ir.DoubleType):
     def __new__(cls):
@@ -34,28 +35,11 @@ class Float64(ir.DoubleType):
         t.signed = True
         t.v_id = 'f64'
         t.width = 64
+        t.is_obj = False
+        t.p_fmt = '%f'
         return t
 
-
 ir.IntType.is_obj = False
-ir.DoubleType.is_obj = False
-
-# Non-singleton types (these require an invocation)
-
-# class Array(ir.ArrayType):
-#     def __new__(cls, my_type, my_len):
-#         #t = super().__new__(cls)
-#         #t = super().__init__(cls, type, len)
-#         #t = ir.ArrayType(type, len)
-#         #t = super(my_type, my_len)
-#         t = ir.ArrayType(my_type, my_len)
-#         t.v_id = 'array_' + my_type.v_id
-#         t.signed = my_type.signed
-#         t.as_pointer = make_type_as_ptr(t)
-#         return t
-#ir.ArrayType.is_obj = False
-
-#oldArray = ir.ArrayType
 
 class Array(ir.ArrayType):
     is_obj = False
@@ -64,9 +48,6 @@ class Array(ir.ArrayType):
         self.v_id = 'array_' + my_type.v_id
         self.signed = my_type.signed
         self.as_pointer = make_type_as_ptr(self)
-
-#ir.ArrayType = Array
-
 
 class CustomClass():
     def __new__(cls, name, types, v_types):
@@ -79,26 +60,6 @@ class CustomClass():
         new_class.as_pointer = make_type_as_ptr(new_class)
         return new_class
 
-
-# class ArrayClass():
-#     def __new__(cls, type, elements):
-#         arr_type = type
-#         for n in reversed(elements):
-#             arr_type = VarTypes.array(arr_type, n)
-#         new_arr = ir.types.LiteralStructType(
-#             [
-#                 VarTypes.array(VarTypes.u_size, len(elements)),
-#                 arr_type
-#             ]
-#         )
-#         new_arr.v_id = 'array_' + type.v_id
-#         # need to distinguish arrays of different sizes?
-#         #[str(n)+'_' for n in reversed(elements)] +type.v_id
-#         new_arr.is_obj = True
-#         new_arr.signed = type.signed  # ??
-#         new_arr.as_pointer = make_type_as_ptr(new_arr)
-
-#         return new_arr
 
 class ArrayClass(ir.types.LiteralStructType):
     is_obj = True
@@ -133,6 +94,7 @@ Str.is_obj = True
 Str.signed = False
 # type signature for external (C-library) stuff
 Str.ext_ptr = UnsignedInt(8, True).as_pointer()
+Str.p_fmt = '%s'
 Str.as_pointer = make_type_as_ptr(Str)
 
 

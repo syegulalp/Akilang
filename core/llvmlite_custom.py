@@ -5,6 +5,7 @@ class MyType():
     pointee = None
     v_id = None
     is_obj = None
+    p_fmt = None
 
     def is_func(self):
         '''
@@ -53,10 +54,14 @@ class _PointerType(PointerType):
         self.v_id = "ptr_" + v_id
         self.signed = signed
         self.descr = lambda: "ptr " + v_id
+        self.p_fmt = getattr(a[0],'p_fmt',None)
 
     def as_pointer(self, addrspace=0):
         return _PointerType(
             self, addrspace, v_id=self.v_id, signed=self.signed)
+
+ir.types.PointerType = _PointerType
+ir.PointerType = _PointerType
 
 Old_IntType = ir.types.IntType
 
