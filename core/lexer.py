@@ -151,21 +151,21 @@ class Lexer(object):
             if self.lastchar in ('"\''):
                 opening_quote = self.lastchar
                 opening_quote_position = self.position.copy
-                str = []
+                new_str = []
                 self._advance()
                 while self.lastchar and self.lastchar != opening_quote:
                     # Process escape codes
                     if self.lastchar in ('\\', ):
                         self._advance()
                         if self.lastchar in ESCAPES:
-                            str.append(chr(ESCAPES[self.lastchar]))
+                            new_str.append(chr(ESCAPES[self.lastchar]))
                         elif self.lastchar in 'x':
                             hex = []
                             for _ in range(0, 2):
                                 self._advance()
                                 hex.append(self.lastchar)
                             try:
-                                str.append(chr(int(''.join(hex), 16)))
+                                new_str.append(chr(int(''.join(hex), 16)))
                             except ValueError:
                                 raise AkiSyntaxError(
                                     f'invalid hex value "{"".join(hex)}"',
@@ -175,16 +175,16 @@ class Lexer(object):
                                 f'escape code "\\{self.lastchar}" not recognized',
                                 self.position)
                     else:
-                        str.append(self.lastchar)
+                        new_str.append(self.lastchar)
                     self._advance()
                     if not self.lastchar:
                         raise AkiSyntaxError(
                             f'unclosed quote (missing {opening_quote})',
                             opening_quote_position
                         )
-                str = ''.join(str)
+                new_str = ''.join(new_str)
                 self._advance()
-                yield Token(TokenKind.STRING, str, VarTypes.str, pos)
+                yield Token(TokenKind.STRING, new_str, VarTypes.str, pos)
 
             # Identifier or keyword, including vartypes
             elif self.lastchar.isalpha() or self.lastchar in ('_', ):
