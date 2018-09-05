@@ -101,11 +101,9 @@ class LLVMCodeGenerator(object):
         when it goes out of scope.
         '''
         if hasattr(val, 'operands') and val.operands:
-            to_check = val.operands[0]
+            return val.operands[0]
         else:
-            to_check = val
-        return to_check
-
+            return val
 
     def _isize(self):
         '''
