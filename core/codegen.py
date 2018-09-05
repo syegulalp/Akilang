@@ -123,14 +123,17 @@ class LLVMCodeGenerator(object):
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
 
-    def _alloca(self, name, type=None, size=None):
+    def _alloca(self, name, alloca_type=None, size=None, current_block=False):
         '''
         Create an alloca in the entry BB of the current function.
         '''
 
-        assert type is not None
-        with self.builder.goto_entry_block():
-            alloca = self.builder.alloca(type, size=size, name=name)
+        assert alloca_type is not None
+        if current_block:
+            alloca = self.builder.alloca(alloca_type, size=size, name=name)
+        else:
+            with self.builder.goto_entry_block():
+                alloca = self.builder.alloca(alloca_type, size=size, name=name)
         return alloca
 
     def _codegen(self, node, check_for_type=True):
@@ -1491,7 +1494,7 @@ class LLVMCodeGenerator(object):
                 raise e
         return t
 
-    def _codegen_VarIn(self, node):
+    def _codegen_With(self, node):
         old_bindings = []
 
         for v in node.vars.vars:
@@ -1511,7 +1514,7 @@ class LLVMCodeGenerator(object):
 
             val, final_type = self._codegen_VarDef(init, v_type)
 
-            var_addr = self._alloca(name, final_type)
+            var_addr = self._alloca(name, final_type, current_block=True)
 
             if val is not None:
                 self.builder.store(val, var_addr)
