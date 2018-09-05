@@ -1235,6 +1235,7 @@ class LLVMCodeGenerator(object):
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')
         self.func_returnarg = self._alloca('%_return', self.func_returntype)
+        self.func_tracked = []
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
@@ -1296,9 +1297,9 @@ class LLVMCodeGenerator(object):
                 self.func_returnblock.parent.returns.append(to_check)
 
         # Determine which variables need to be automatically disposed
-
+        
         if to_check:
-            for _,v in self.func_symtab.items():
+            for _,v in reversed(list(self.func_symtab.items())):
                 if v is to_check:
                     continue
                 
@@ -1978,3 +1979,9 @@ class LLVMCodeGenerator(object):
         # seems like the best way to do it
         # store strings in one list, variables in another
         # use zip to concatenate them as needed
+
+        # another way to do it: store the string as-is,
+        # but if we encounter {}, set a flag for it
+        # and then retrieve a split version of the string
+        # on demand when we need it
+        # by way of a helper function
