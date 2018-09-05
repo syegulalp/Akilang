@@ -3,8 +3,6 @@
 extern SetConsoleOutputCP(codepage :u32) :bool
 extern GetConsoleOutputCP() :u32
 
-# We don't yet have the ability to encode variable arguments
-# so printf is just one for now
 extern printf(str_fmt :ptr i8, *va) :i32
 extern snprintf(str_buf: ptr i8, str_size:u_size, str_fmt: ptr i8, *va): i32
 
@@ -15,23 +13,23 @@ extern HeapAlloc(handle:u_size, flags:u32, bytes:u_size):ptr u_size
 extern HeapFree(handle:u_size, flags:u32, mem:ptr u_size): bool
 
 extern _getwch():i32
-
-# extern gets() :i32
-
 extern gets_s(input:ptr u_size, bytes:u_size)
 
 extern _get_errno(errno:ptr i32) :i32
 
 # implementations of above
 
+@inline
 def c_alloc(bytes:u_size):ptr u_size
     HeapAlloc(GetProcessHeap(), 8u, bytes)
 
+@inline
 def c_alloc(bytes:i32):ptr u_size
     #c_alloc(cast(bytes, u_size))
     # eventually we can use that when we support inlining
     HeapAlloc(GetProcessHeap(), 8u, cast(bytes, u_size))
 
+@inline
 def c_free(mem:ptr u_size):bool
     HeapFree(GetProcessHeap(), 0u, mem)
 
@@ -42,16 +40,18 @@ def inkey():i32 {
     return key
 }
 
+@inline
 def set_codepage(codepage :u32) :bool
     SetConsoleOutputCP(codepage)
 
+@inline
 def get_codepage() :u32
     GetConsoleOutputCP()
 
 def rnd(max:i32):i32
     rand()/(32767/max)
 
- def input(bufsize:i32=1024):ptr u_size{
+def input(bufsize:i32=1024):ptr u_size{
     var buf=c_alloc(bufsize)
     var err:i32
     
@@ -68,4 +68,4 @@ def rnd(max:i32):i32
     # https://msdn.microsoft.com/en-us/library/windows/desktop/dd319072(v=vs.85).aspx
     # return the string object
     
-}   
+}
