@@ -1238,7 +1238,6 @@ class LLVMCodeGenerator(object):
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')
         self.func_returnarg = self._alloca('%_return', self.func_returntype)
-        self.func_tracked = []
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
