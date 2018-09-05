@@ -286,7 +286,7 @@ class Loop(Expr):
         ]
 
 
-class VarIn(Expr):
+class With(Expr):
     def __init__(self, position, vars, body):
         # vars is a Var object
         # we preserve the whole object so we can keep its position

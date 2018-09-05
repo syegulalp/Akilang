@@ -4,7 +4,7 @@ from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
     Decorator, Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, VarIn, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType,
+    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType,
     _ANONYMOUS
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
@@ -289,7 +289,7 @@ class Parser(object):
 
         vars = self._parse_var_expr()
         body = self._parse_expression()
-        return VarIn(cur, vars, body)
+        return With(cur, vars, body)
 
     def _parse_break_expr(self):
         cur = self.cur_tok
