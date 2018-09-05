@@ -1363,7 +1363,7 @@ class LLVMCodeGenerator(object):
                     node.position)
             return self.builder.call(func, [operand], 'unop')
 
-    def _codegen_Var(self, node):
+    def _codegen_Var(self, node, local_alloca = False):
         for v in node.vars:
 
             name = v.name
@@ -1383,7 +1383,7 @@ class LLVMCodeGenerator(object):
                 raise CodegenError(
                     f'"{name}" already defined in universal scope', position)
 
-            var_ref = self._alloca(name, v_type)
+            var_ref = self._alloca(name, v_type, current_block=local_alloca)
             
             if val:
                 var_ref.heap_alloc = val.heap_alloc
@@ -1492,47 +1492,12 @@ class LLVMCodeGenerator(object):
         return t
 
     def _codegen_With(self, node):
-        old_bindings = []
-
-        for v in node.vars.vars:
-
-            name = v.name
-            v_type = v.vartype
-            init = v.initializer
-            position = v.position
-
-            # Emit the initializer before adding the variable to scope. This
-            # prevents the initializer from referencing the variable itself.
-
-            if self._varaddr(name, False) is not None:
-                raise CodegenError(
-                    f'Variable shadowing is not permitted; "{name}" is used in other scopes',
-                    position)
-
-            val, final_type = self._codegen_VarDef(init, v_type)
-
-            var_addr = self._alloca(name, final_type, current_block=True)
-
-            if val is not None:
-                self.builder.store(val, var_addr)
-
-            # Put var in symbol table; remember old bindings if any.
-            old_bindings.append(self.func_symtab.get(name))
-            self.func_symtab[name] = var_addr
-
-        # Now all the vars are in scope. Codegen the body.
+        self._codegen_Var(node.vars, local_alloca=True)
         body_val = self._codegen(node.body)
 
         # TODO: Delete anything that has gone out of scope,
         # as per how we handle a function.
-
-        # Restore the old bindings.
-        for i, v in enumerate(node.vars.vars):
-            name = v.name
-            if old_bindings[i] is not None:
-                self.func_symtab[name] = old_bindings[i]
-            else:
-                del self.func_symtab[name]
+        # for that we probably need to re-use the same code
 
         return body_val
 
