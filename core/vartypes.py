@@ -42,18 +42,30 @@ ir.DoubleType.is_obj = False
 
 # Non-singleton types (these require an invocation)
 
+# class Array(ir.ArrayType):
+#     def __new__(cls, my_type, my_len):
+#         #t = super().__new__(cls)
+#         #t = super().__init__(cls, type, len)
+#         #t = ir.ArrayType(type, len)
+#         #t = super(my_type, my_len)
+#         t = ir.ArrayType(my_type, my_len)
+#         t.v_id = 'array_' + my_type.v_id
+#         t.signed = my_type.signed
+#         t.as_pointer = make_type_as_ptr(t)
+#         return t
+#ir.ArrayType.is_obj = False
+
+#oldArray = ir.ArrayType
 
 class Array(ir.ArrayType):
-    def __new__(cls, type, len):
-        t = ir.ArrayType(type, len)
-        t.v_id = 'array_' + type.v_id
-        t.signed = type.signed
-        t.as_pointer = make_type_as_ptr(t)
+    is_obj = False
+    def __init__(self, my_type, my_len):
+        super().__init__(my_type, my_len)
+        self.v_id = 'array_' + my_type.v_id
+        self.signed = my_type.signed
+        self.as_pointer = make_type_as_ptr(self)
 
-        return t
-
-
-ir.ArrayType.is_obj = False
+#ir.ArrayType = Array
 
 
 class CustomClass():
@@ -65,29 +77,43 @@ class CustomClass():
         new_class.signed = False
         new_class.is_obj = True
         new_class.as_pointer = make_type_as_ptr(new_class)
-
         return new_class
 
 
-class ArrayClass():
-    def __new__(cls, type, elements):
-        arr_type = type
+# class ArrayClass():
+#     def __new__(cls, type, elements):
+#         arr_type = type
+#         for n in reversed(elements):
+#             arr_type = VarTypes.array(arr_type, n)
+#         new_arr = ir.types.LiteralStructType(
+#             [
+#                 VarTypes.array(VarTypes.u_size, len(elements)),
+#                 arr_type
+#             ]
+#         )
+#         new_arr.v_id = 'array_' + type.v_id
+#         # need to distinguish arrays of different sizes?
+#         #[str(n)+'_' for n in reversed(elements)] +type.v_id
+#         new_arr.is_obj = True
+#         new_arr.signed = type.signed  # ??
+#         new_arr.as_pointer = make_type_as_ptr(new_arr)
+
+#         return new_arr
+
+class ArrayClass(ir.types.LiteralStructType):
+    is_obj = True
+    def __init__(self, my_type, elements):
+        arr_type = my_type
         for n in reversed(elements):
             arr_type = VarTypes.array(arr_type, n)
-        new_arr = ir.types.LiteralStructType(
+        super().__init__(
             [
                 VarTypes.array(VarTypes.u_size, len(elements)),
                 arr_type
             ]
         )
-        new_arr.v_id = 'array_' + type.v_id
-        # need to distinguish arrays of different sizes?
-        #[str(n)+'_' for n in reversed(elements)] +type.v_id
-        new_arr.is_obj = True
-        new_arr.signed = type.signed  # ??
-        new_arr.as_pointer = make_type_as_ptr(new_arr)
-
-        return new_arr
+        self.v_id = f'array_{my_type.v_id}'
+        self.as_pointer = make_type_as_ptr(self)
 
 # singleton object types
 
@@ -115,8 +141,9 @@ NoneType.elements = (ir.IntType(1), )
 NoneType.v_id = 'none'
 NoneType.is_obj = True
 NoneType.signed = False
-NoneType.ext_ptr = ir.IntType(8).as_pointer()
 # don't know if we need this, placeholder for now
+NoneType.ext_ptr = ir.IntType(8).as_pointer()
+
 
 # each runtime creates one Nonetype object
 # so when we return that as our default value,
@@ -143,6 +170,7 @@ object_typemap = {0: NoneType, 1: Str}
 # object mapping:
 # 0 = None
 # 1 = str
+# 2 = 
 
 # when do we use the object wrapper? maybe when we expect an object generically.
 # we can return anything. so maybe for toplevel returns from main we wrap in an object?
