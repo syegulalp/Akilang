@@ -82,9 +82,8 @@ class LLVMCodeGenerator(object):
 
     def _i32(self, pyval):
         '''
-        Returns a constant for Python int value.
-        Used for gep, so it returns a value that is the bitwidth
-        of the pointer size for the needed architecture.
+        Returns a constant for 32-bit int value.
+        Also used for gep where a 32-bit value is required.
         '''
         return ir.Constant(VarTypes.u32, int(pyval))
 
