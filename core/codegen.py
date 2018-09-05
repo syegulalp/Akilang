@@ -1299,32 +1299,10 @@ class LLVMCodeGenerator(object):
         # Determine which variables need to be automatically disposed
         
         if to_check:
-            for _,v in reversed(list(self.func_symtab.items())):
-                if v is to_check:
-                    continue
-                
-                # if this is an input argument,
-                # and it's still being tracked (e.g., not given away),
-                # and the variable in question has not been deleted
-                # manually at any time, 
-                # ...?
-                
-                if v.input_arg is not None:
-                    pass
-
-                if v.tracked:
-                    ref = self.builder.load(v)
-                    ref2 = self.builder.bitcast( # pylint: disable=E1111
-                        ref,
-                        VarTypes.u_size.as_pointer()
-                    )
-                    sig = v.type.pointee.pointee.signature()
-                    
-                    self.builder.call(
-                        self.module.globals.get(sig+'__del__'),
-                        [ref2],
-                        'del'
-                    )                    
+            self._codegen_autodispose(
+                reversed(list(self.func_symtab.items())),
+                to_check
+            )
 
         self.builder.ret(self.builder.load(self.func_returnarg))
 
@@ -1334,6 +1312,35 @@ class LLVMCodeGenerator(object):
         self.func_returnblock = None
         self.func_returncalled = None        
 
+    def _codegen_autodispose(self, item_list, to_check):
+        for _,v in item_list:
+            if v is to_check:
+                continue
+            
+            # if this is an input argument,
+            # and it's still being tracked (e.g., not given away),
+            # and the variable in question has not been deleted
+            # manually at any time, 
+            # ...?
+            
+            if v.input_arg is not None:
+                pass
+
+            if v.tracked:
+                ref = self.builder.load(v)
+                ref2 = self.builder.bitcast( # pylint: disable=E1111
+                    ref,
+                    VarTypes.u_size.as_pointer()
+                )
+                sig = v.type.pointee.pointee.signature()
+                
+                self.builder.call(
+                    self.module.globals.get(sig+'__del__'),
+                    [ref2],
+                    'del'
+                    )                    
+
+    
     def _codegen_Unary(self, node):
         operand = self._codegen(node.rhs)
         # TODO: no overflow checking yet!
@@ -1492,13 +1499,21 @@ class LLVMCodeGenerator(object):
         return t
 
     def _codegen_With(self, node):
+        new_bindings = [v.name for v in node.vars.vars]
+        
         self._codegen_Var(node.vars, local_alloca=True)
         body_val = self._codegen(node.body)
 
         # TODO: Delete anything that has gone out of scope,
         # as per how we handle a function.
         # for that we probably need to re-use the same code
+        # we will also need to have a scope stack instead of
+        # a single scope for the whole function
 
+        for n in new_bindings:
+            if n in self.func_symtab:
+                del self.func_symtab[n]
+        
         return body_val
 
     def _codegen_dunder_methods(self, node):
