@@ -393,19 +393,19 @@ class LLVMCodeGenerator(object):
         # only strings codegenned from source should be stored as LLVM globals
         module = self.module
         string_length = len(string.encode('utf8')) + 1
-        type = ir.ArrayType(ir.IntType(8), string_length)
+        data_type = ir.ArrayType(ir.IntType(8), string_length)
 
         str_name = f'.str.{len(module.globals)}'
 
         # Create the LLVM constant value for the underlying string data.
 
-        str_const = ir.GlobalVariable(module, type, str_name + '.dat')
+        str_const = ir.GlobalVariable(module, data_type, str_name + '.dat')
         str_const.storage_class = 'private'
         str_const.unnamed_addr = True
         str_const.global_constant = True
 
         str_const.initializer = ir.Constant(
-            type,
+            data_type,
             bytearray(string, 'utf8') + b'\x00')
 
         # Get pointer to first element in string's byte array
@@ -623,16 +623,16 @@ class LLVMCodeGenerator(object):
 
         cond_val = self._codegen(node.cond_expr)
 
-        type = cond_val.type
+        if_type = cond_val.type
 
-        cond = ('!=', cond_val, ir.Constant(type, 0), 'notnull')
+        cond = ('!=', cond_val, ir.Constant(if_type, 0), 'notnull')
 
-        if isinstance(type, (ir.FloatType, ir.DoubleType)):
-            cmp = self.builder.fcmp_unordered(*cond)
-        elif isinstance(type, SignedInt):
-            cmp = self.builder.icmp_signed(*cond)
+        if isinstance(if_type, (ir.FloatType, ir.DoubleType)):
+            cmp_instr = self.builder.fcmp_unordered(*cond)
+        elif isinstance(if_type, SignedInt):
+            cmp_instr = self.builder.icmp_signed(*cond)
         else:
-            cmp = self.builder.icmp_unsigned(*cond)
+            cmp_instr = self.builder.icmp_unsigned(*cond)
 
         # Create basic blocks to express the control flow
         then_bb = ir.Block(self.builder.function, 'then')
@@ -642,9 +642,9 @@ class LLVMCodeGenerator(object):
         # branch to either then_bb or else_bb depending on cmp
         # if no else, then go straight to merge
         if node.else_expr is None:
-            self.builder.cbranch(cmp, then_bb, merge_bb)
+            self.builder.cbranch(cmp_instr, then_bb, merge_bb)
         else:
-            self.builder.cbranch(cmp, then_bb, else_bb)
+            self.builder.cbranch(cmp_instr, then_bb, else_bb)
 
         # Emit the 'then' part
         self.builder.function.basic_blocks.append(then_bb)
@@ -787,15 +787,15 @@ class LLVMCodeGenerator(object):
         cond = ('!=', endcond, ir.Constant(loop_ctr_type, 0), 'loopifcond')
 
         if isinstance(loop_ctr_type, (ir.FloatType, ir.DoubleType)):
-            cmp = self.builder.fcmp_unordered(*cond)
+            cmp_instr = self.builder.fcmp_unordered(*cond)
         elif isinstance(loop_ctr_type, ir.IntType):
             if getattr(loop_ctr_type, 'v_signed', None):
-                cmp = self.builder.icmp_signed(*cond)
+                cmp_instr = self.builder.icmp_signed(*cond)
             else:
-                cmp = self.builder.icmp_unsigned(*cond)
+                cmp_instr = self.builder.icmp_unsigned(*cond)
 
         # Goto loop body if condition satisfied, otherwise, exit.
-        self.builder.cbranch(cmp, loopbody_bb, loopafter_bb)
+        self.builder.cbranch(cmp_instr, loopbody_bb, loopafter_bb)
 
         ############
         # loop body
@@ -878,15 +878,15 @@ class LLVMCodeGenerator(object):
         cond = ('!=', endcond, ir.Constant(type, 0), 'loopcond')
 
         if isinstance(type, (ir.FloatType, ir.DoubleType)):
-            cmp = self.builder.fcmp_unordered(*cond)
+            cmp_instr = self.builder.fcmp_unordered(*cond)
         elif isinstance(type, ir.IntType):
             if getattr(type, 'v_signed', None):
-                cmp = self.builder.icmp_signed(*cond)
+                cmp_instr = self.builder.icmp_signed(*cond)
             else:
-                cmp = self.builder.icmp_unsigned(*cond)
+                cmp_instr = self.builder.icmp_unsigned(*cond)
 
         # Goto loop body if condition satisfied, otherwise, exit.
-        self.builder.cbranch(cmp, loopbody_bb, loopafter_bb)
+        self.builder.cbranch(cmp_instr, loopbody_bb, loopafter_bb)
 
         ############
         # loop body
