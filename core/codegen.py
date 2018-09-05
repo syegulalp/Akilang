@@ -1337,7 +1337,7 @@ class LLVMCodeGenerator(object):
                 self.builder.call(
                     self.module.globals.get(sig+'__del__'),
                     [ref2],
-                    'del'
+                    f'{_}.delete'
                     )                    
 
     
@@ -1504,16 +1504,14 @@ class LLVMCodeGenerator(object):
         self._codegen_Var(node.vars, local_alloca=True)
         body_val = self._codegen(node.body)
 
-        # TODO: Delete anything that has gone out of scope,
-        # as per how we handle a function.
-        # for that we probably need to re-use the same code
-        # we will also need to have a scope stack instead of
-        # a single scope for the whole function
-
-        for n in new_bindings:
-            if n in self.func_symtab:
-                del self.func_symtab[n]
-        
+        for n in reversed(new_bindings):
+            self._codegen_autodispose(
+                [
+                [n, self.func_symtab[n]]
+                ],
+                None)
+            del self.func_symtab[n]
+    
         return body_val
 
     def _codegen_dunder_methods(self, node):
