@@ -122,7 +122,8 @@ class LLVMCodeGenerator(object):
 
     def _alloca(self, name, alloca_type=None, size=None, current_block=False):
         '''
-        Create an alloca in the entry BB of the current function.
+        Create an alloca, by default in the entry BB of the current function.
+        Set current_block=True to use the current block.
         '''
 
         assert alloca_type is not None
