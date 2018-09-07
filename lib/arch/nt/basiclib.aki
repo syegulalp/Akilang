@@ -4,7 +4,8 @@ extern SetConsoleOutputCP(codepage :u32) :bool
 extern GetConsoleOutputCP() :u32
 
 extern printf(str_fmt :ptr i8, *va) :i32
-extern snprintf(str_buf: ptr i8, str_size:u_size, str_fmt: ptr i8, *va): i32
+extern snprintf(str_buf: ptr u_size, str_size:u_size, str_fmt: ptr i8, *va): i32
+extern strlen(str_to_check: ptr u_size): u_size
 
 extern rand():i32
 
@@ -18,6 +19,10 @@ extern gets_s(input:ptr u_size, bytes:u_size)
 extern _get_errno(errno:ptr i32) :i32
 
 # implementations of above
+
+@inline
+def c_strlen(str_to_check: ptr u_size): u_size
+    strlen(str_to_check)
 
 @inline
 def c_alloc(bytes:u_size):ptr u_size
@@ -51,21 +56,11 @@ def get_codepage() :u32
 def rnd(max:i32):i32
     rand()/(32767/max)
 
-def input(bufsize:i32=1024):ptr u_size{
-    var buf=c_alloc(bufsize)
-    var err:i32
-    
-    gets_s(
-        buf, cast(bufsize,u64)
-    )
-    
-    # we don't do anything with this yet,
-    # but in time we will
-    _get_errno(c_ref(err))
+####
 
-    return buf
-    
-    # https://msdn.microsoft.com/en-us/library/windows/desktop/dd319072(v=vs.85).aspx
-    # return the string object
-    
+def int_to_c_str(my_int:i32): ptr u_size {
+    var size = c_size(my_int)*4U+1U
+    var buffer = c_alloc(size)
+    snprintf(buffer, size, c_data('%i'),my_int)
+    return buffer
 }

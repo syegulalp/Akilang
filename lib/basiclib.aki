@@ -1,4 +1,22 @@
-# general cross-platform functions
+
+ #general cross-platform functions
+
+ def input(bufsize:i32=1024):str{
+    var buf=c_alloc(bufsize)
+    var err:i32
+    
+    gets_s(
+        buf, cast(bufsize,u64)
+    )
+    
+    # we don't do anything with this yet,
+    # but in time we will
+    _get_errno(c_ref(err))
+
+    return str(buf)   
+}
+
+
 
 def print(number :bool) :i32
     printf(c_data('%i\n'), convert(number,u64))

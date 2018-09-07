@@ -1,39 +1,29 @@
 from core.vartypes import ArrayClass, VarTypes
-from core.mangling import mangle_function, mangle_call
+from core.mangling import mangle_function, mangle_call, mangle_funcname
 
 import llvmlite.ir as ir
 
+
 def makefunc(module, func_name, func_type, func_sig):
     func_s = ir.FunctionType(func_type, func_sig)
-    func = mangle_function(ir.Function(module, func_s, func_name))
+    m_name = mangle_funcname(func_name, func_s)
+    func = ir.Function(module, func_s, m_name)
     func.attributes.add('nonlazybind')
-    func.linkage='private'
+    func.linkage = 'private'
     irbuilder = ir.IRBuilder(func.append_basic_block('entry'))
     return func, irbuilder
 
-def stdlib(self, module):
 
-    # TODO: emit all this as bitcode, save it
-    # self.codegen gives us access to codegen methods if we need it
-
-    # string length
-
-    strlen, irbuilder = makefunc(
-        module,
-        '.object.str.__len__',
-        VarTypes.u32, [VarTypes.str.as_pointer()]
+def makecall(irbuilder, module, funcname, func_type, func_sig):
+    types = [v.type for v in func_sig]
+    f_name = module.globals.get(
+        mangle_call(funcname, types)
+    )
+    return irbuilder.call(
+        f_name,
+        func_sig
     )
 
-    # extract element 0, the length
-    
-    s1 = strlen.args[0]    
-    s2 = irbuilder.gep(s1,
-        [ir.Constant(ir.IntType(32), 0),
-        ir.Constant(ir.IntType(32), 0),]
-    )
-    s3 = irbuilder.load(s2)
-
-    irbuilder.ret(s3)
 
 def stdlib_post(self, module):
 
@@ -41,47 +31,145 @@ def stdlib_post(self, module):
     # the platform libraries are loaded
     # for instance, because we don't know how malloc or free work
 
-    # del for array
+    #
+    # len for string object
+    #
+
+    strlen, irbuilder = makefunc(
+        module,
+        '.object.str.__len__',
+        VarTypes.u64, [VarTypes.str.as_pointer()]
+    )
+
+    s1 = strlen.args[0]
+    s2 = irbuilder.gep(
+        s1,
+        [self.codegen._i32(0),
+         self.codegen._i32(0), ]
+    )
+    s3 = irbuilder.load(s2)
+
+    irbuilder.ret(s3)
+
+    # del for array:
 
     obj_del, irbuilder = makefunc(
         module,
         '.object.array_u64.__del__', VarTypes.bool,
         [VarTypes.u_size.as_pointer()]
     )
-    
-    result = irbuilder.call(
-        module.globals.get(mangle_call('c_free',[VarTypes.u_size.as_pointer()])),
+
+    result = makecall(
+        irbuilder, module,
+        'c_free',
+        [VarTypes.u_size.as_pointer()],
         [obj_del.args[0]]
     )
 
     irbuilder.ret(result)
 
-    # new string from pointer:
+    #
+    # new string from raw pointer:
+    #
 
-    # str_fn, irbuilder = makefunc(
-    #     module,
-    #     '.object.str.__new__', VarTypes.str.as_pointer(),   
-    #     [VarTypes.u_size.as_pointer()]
-    # )
+    str_fn, irbuilder = makefunc(
+        module,
+        '.object.str.__new__', VarTypes.str.as_pointer(),
+        [VarTypes.u_size.as_pointer()]
+    )
 
-    # get length of string
-    # allocate new object space
-    # set length
-    # copy data into new buffer
-    # return object
+    str_ptr = str_fn.args[0]
 
+    # XXX: unsafe
+    # if we are doing this from an array or buffer,
+    # we need to pass the max dimensions of the buffer
 
-    # use win32 int to str or just snprintf?
-    # see https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/itoa-s-itow-s
-    # we also need to get resulting string length to store
-    # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/strnlen-strnlen-s
+    str_len = makecall(
+        irbuilder, module,
+        'c_strlen', [VarTypes.u_size.as_pointer()],
+        [str_ptr]
+    )
 
-    # we should be able to automate creation of all the 
-    # primitive scalar types to string
+    # Use the ABI to determine the size of the string structure
 
-    # new string from raw u_size:
-    # copy original array, add NUL
-    # we don't want to mess with the original if we can help it
+    size_of_struct = ir.Constant(
+        VarTypes.u64,
+        self.codegen._obj_size_type(
+            VarTypes.str
+        ))
 
-    # for in-place printing, we need to check that the last
-    # character of the array is a NUL
+    # Allocate memory for one string structure
+
+    struct_alloc = makecall(
+        irbuilder, module,
+        'c_alloc', [VarTypes.u_size],
+        [size_of_struct]
+    )
+
+    # Bitcast the pointer to the string structure
+    # so it's the correct type
+
+    struct_reference = irbuilder.bitcast(
+        struct_alloc,
+        VarTypes.str.as_pointer()
+    )
+
+    # Obtain element 0, length.
+
+    size_ptr = irbuilder.gep(
+        struct_reference,
+        [self.codegen._i32(0), self.codegen._i32(0)]
+    )
+
+    # Set the length
+
+    irbuilder.store(
+        str_len,
+        size_ptr
+    )
+
+    # Obtain element 1, the pointer to the data
+
+    data_ptr = irbuilder.gep(
+        struct_reference,
+        [self.codegen._i32(0), self.codegen._i32(1)]
+    )
+
+    # Set the data, return the object
+
+    str_ptr_conv = irbuilder.bitcast(
+        str_ptr,
+        VarTypes.i8.as_pointer()
+    )
+
+    irbuilder.store(
+        str_ptr_conv,
+        data_ptr
+    )
+
+    irbuilder.ret(struct_reference)
+
+    #
+    # new string from i32
+    #
+
+    str_fn, irbuilder = makefunc(
+        module,
+        '.object.str.__new__', VarTypes.str.as_pointer(),
+        [VarTypes.i32]
+    )
+
+    result = makecall(
+        irbuilder, module,
+        'int_to_c_str',
+        [VarTypes.u_size.as_pointer()],
+        [str_fn.args[0]]
+    )
+
+    result = makecall(
+        irbuilder, module,
+        '.object.str.__new__', VarTypes.str.as_pointer(),
+        [result]
+    )
+
+    irbuilder.ret(result)
