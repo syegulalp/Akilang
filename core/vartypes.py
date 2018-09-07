@@ -85,31 +85,21 @@ Ptr.is_obj = True
 Ptr.signed = False
 Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
 
-# create String type manually, for now
-
 Str = ir.global_context.get_identified_type('.object.str')
-Str.elements = (ir.IntType(32), ir.IntType(8).as_pointer())
+Str.elements = (ir.IntType(64), ir.IntType(8).as_pointer())
 Str.v_id = 'str'
 Str.is_obj = True
 Str.signed = False
-# type signature for external (C-library) stuff
 Str.ext_ptr = UnsignedInt(8, True).as_pointer()
 Str.p_fmt = '%s'
 Str.as_pointer = make_type_as_ptr(Str)
-
 
 NoneType = ir.global_context.get_identified_type('.object.none')
 NoneType.elements = (ir.IntType(1), )
 NoneType.v_id = 'none'
 NoneType.is_obj = True
 NoneType.signed = False
-# don't know if we need this, placeholder for now
 NoneType.ext_ptr = ir.IntType(8).as_pointer()
-
-
-# each runtime creates one Nonetype object
-# so when we return that as our default value,
-# we're returning a pointer to that single instance
 
 # Object wrapper
 
@@ -122,25 +112,6 @@ Obj.elements = (
 Obj.v_id = 'obj'
 Obj.is_obj = True
 Obj.ext_ptr = ir.IntType(8).as_pointer()
-# actually ptr to void, not sure this will be used for anything
-
-object_typemap = {0: NoneType, 1: Str}
-
-# object layout:
-# element 1 = object type as i8
-# element = pointer to object
-# object mapping:
-# 0 = None
-# 1 = str
-# 2 = 
-
-# when do we use the object wrapper? maybe when we expect an object generically.
-# we can return anything. so maybe for toplevel returns from main we wrap in an object?
-# default return should be a None, which translates to 0
-# when returned from main() we should provide a wrapper and deref that manually
-# in the repl, using something in vartypes
-
-# maybe each should include its own deref function, too
 
 VarTypes = Map({
     # singleton
@@ -168,6 +139,11 @@ VarTypes = Map({
 
     # 'any': Any
 })
+
+object_typemap = {
+    0: VarTypes['None'],
+    1: VarTypes.str
+}
 
 import ctypes
 

@@ -422,7 +422,7 @@ class LLVMCodeGenerator(object):
         str_val.global_constant = True
 
         str_val.initializer = VarTypes.str(
-            [ir.Constant(VarTypes.u32, string_length), spt])
+            [ir.Constant(VarTypes.u64, string_length), spt])
 
         return str_val
 
@@ -573,7 +573,6 @@ class LLVMCodeGenerator(object):
                 return self._codegen_methodcall(node, lhs, rhs)
 
         except NotImplementedError:
-            print (type(vartype))
             raise CodegenError(
                 f'Unknown binary operator {node.op} for {vartype}',
                 node.position)
@@ -1665,6 +1664,7 @@ class LLVMCodeGenerator(object):
         GEP structure for the object, to make it easy to extract
         that element universally.
         '''
+
         convert_from = self._codegen(node.args[0])
 
         gep = self.builder.gep(
@@ -1974,7 +1974,6 @@ class LLVMCodeGenerator(object):
                 continue
 
             if n[0] == '%s':
-                print (n[1])
                 var_app = Call(
                     node.position,
                     'c_data',
@@ -1986,15 +1985,16 @@ class LLVMCodeGenerator(object):
             variable_list.append(var_app)
 
         str_to_extract = String(node.position, ''.join(format_string))
-        
-        convert = Call(node.position,
+
+        convert = Call(
+            node.position,
             'c_data',
             [str_to_extract]
         )
 
         variable_list.insert(0,convert)
 
-        return self._codegen_Call(
+        return self._codegen(
             Call(
                 node.position,
                 'printf',
