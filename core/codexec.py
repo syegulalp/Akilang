@@ -47,6 +47,18 @@ class AkilangEvaluator(object):
         self.target = llvm.Target.from_default_triple()
         self.reset()
 
+    def load_file(self,f):
+        try:
+            with open(f) as file:
+                for _ in self.eval_generator(file.read()):
+                    pass
+        except (FileNotFoundError, ParseError, CodegenError) as err:
+            print(
+                colored(f"Could not load basic library: {err}", 'red'),
+                f)
+            self._reset_base()
+            raise err
+    
     def reset(self, history=[]):
         import os
         self._reset_base()
@@ -63,19 +75,9 @@ class AkilangEvaluator(object):
                 )
             ]
 
-            for f in files:
-                try:
-                    with open(f) as file:
-                        for _ in self.eval_generator(file.read()):
-                            pass
-                except (FileNotFoundError, ParseError, CodegenError) as err:
-                    print(
-                        colored(f"Could not load basic library: {err}", 'red'),
-                        f)
-                    self._reset_base()
-                    raise err
-
+            self.load_file(files[0]) # Platform arch
             self._add_post_builtins(self.codegen.module)
+            self.load_file(files[1]) # Core library
 
         # with open('llvmlib.ll') as file:
         # self.eval_llasm(file.read())
@@ -93,7 +95,7 @@ class AkilangEvaluator(object):
 
     def _reset_base(self):
         self.codegen = LLVMCodeGenerator()
-        self._add_builtins(self.codegen.module)
+        #self._add_builtins(self.codegen.module)
 
     def evaluate(self, codestr, options=dict()):
         """Evaluates only the first top level expression in codestr.
