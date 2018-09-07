@@ -1,5 +1,5 @@
 import unittest
-from ctypes import c_double
+from ctypes import c_double, c_longlong
 
 from core.codexec import AkilangEvaluator
 from core.vartypes import VarTypes
@@ -286,9 +286,16 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(_.value, 64)
 
     def test_strlen_inline(self):
-        e = AkilangEvaluator()
-        e.evaluate('def main(){len("Hello there")}')
-        self.assertEqual(e.evaluate('main()'), 12)
+        from core.repl import config
+        cfg = config()
+        paths = cfg['paths']
+        e = AkilangEvaluator(paths['lib_dir'], paths['basiclib'])
+
+        opts = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}
+
+        e.evaluate('def main():u64{len("Hello there")}')
+        self.assertEqual(e.evaluate('main()', opts), 12)
+        
         # includes terminating null, do we want that?
     
     def test_auto_free(self):
