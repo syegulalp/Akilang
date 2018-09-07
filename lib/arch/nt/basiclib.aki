@@ -1,42 +1,46 @@
 # Microsoft Win32/NT library interfaces
 
+
+
 extern SetConsoleOutputCP(codepage :u32) :bool
 extern GetConsoleOutputCP() :u32
 
 extern printf(str_fmt :ptr i8, *va) :i32
-extern snprintf(str_buf: ptr u_size, str_size:u_size, str_fmt: ptr i8, *va): i32
-extern strlen(str_to_check: ptr u_size): u_size
+extern snprintf(str_buf: ptr u_mem, str_size:u_size, str_fmt: ptr i8, *va): i32
+extern strlen(str_to_check: ptr u_mem): u_size
 
 extern rand():i32
 
 extern GetProcessHeap():u_size
-extern HeapAlloc(handle:u_size, flags:u32, bytes:u_size):ptr u_size
-extern HeapFree(handle:u_size, flags:u32, mem:ptr u_size): bool
+extern HeapAlloc(handle:u_size, flags:u32, bytes:u_size):ptr u_mem
+extern HeapFree(handle:u_size, flags:u32, m:ptr u_mem): bool
+
+extern memcpy_s(dest:ptr u_size, size:u_size, source: ptr u_mem, count: u_size)
 
 extern _getwch():i32
-extern gets_s(input:ptr u_size, bytes:u_size)
+extern gets_s(input:ptr u_mem, bytes:u_size)
 
 extern _get_errno(errno:ptr i32) :i32
 
 # implementations of above
 
 @inline
-def c_strlen(str_to_check: ptr u_size): u_size
+def c_strlen(str_to_check: ptr u_mem): u_size
     strlen(str_to_check)
 
 @inline
-def c_alloc(bytes:u_size):ptr u_size
+def c_alloc(bytes:u_size):ptr u_mem
     HeapAlloc(GetProcessHeap(), 8u, bytes)
 
 @inline
-def c_alloc(bytes:i32):ptr u_size
+def c_alloc(bytes:i32):ptr u_mem
     #c_alloc(cast(bytes, u_size))
     # eventually we can use that when we support inlining
     HeapAlloc(GetProcessHeap(), 8u, cast(bytes, u_size))
 
 @inline
-def c_free(mem:ptr u_size):bool
-    HeapFree(GetProcessHeap(), 0u, mem)
+def c_free(m:ptr u_mem):bool
+    HeapFree(GetProcessHeap(), 0u, m)
 
 def inkey():i32 {
     var key:i32
@@ -58,7 +62,7 @@ def rnd(max:i32):i32
 
 ####
 
-def int_to_c_str(my_int:i32): ptr u_size {
+def int_to_c_str(my_int:i32): ptr u_mem {
     var size = c_size(my_int)*4U+1U
     var buffer = c_alloc(size)
     snprintf(buffer, size, c_data('%i'),my_int)

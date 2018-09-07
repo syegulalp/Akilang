@@ -56,13 +56,13 @@ def stdlib_post(self, module):
     obj_del, irbuilder = makefunc(
         module,
         '.object.array_u64.__del__', VarTypes.bool,
-        [VarTypes.u_size.as_pointer()]
+        [VarTypes.u_mem.as_pointer()]
     )
 
     result = makecall(
         irbuilder, module,
         'c_free',
-        [VarTypes.u_size.as_pointer()],
+        [VarTypes.u_mem.as_pointer()],
         [obj_del.args[0]]
     )
 
@@ -75,7 +75,7 @@ def stdlib_post(self, module):
     str_fn, irbuilder = makefunc(
         module,
         '.object.str.__new__', VarTypes.str.as_pointer(),
-        [VarTypes.u_size.as_pointer()]
+        [VarTypes.u_mem.as_pointer()]
     )
 
     str_ptr = str_fn.args[0]
@@ -86,7 +86,7 @@ def stdlib_post(self, module):
 
     str_len = makecall(
         irbuilder, module,
-        'c_strlen', [VarTypes.u_size.as_pointer()],
+        'c_strlen', [VarTypes.u_mem.as_pointer()],
         [str_ptr]
     )
 

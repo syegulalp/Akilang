@@ -13,6 +13,17 @@
     # but in time we will
     _get_errno(c_ref(err))
 
+    # var s_len = strlen(buf)-1
+
+    # var buf2=c_alloc(s_len)
+
+    # memcpy_s(
+    #     buf2,
+    #     s_len,
+    #     buf,
+    #     s_len
+    # )
+
     return str(buf)   
 }
 

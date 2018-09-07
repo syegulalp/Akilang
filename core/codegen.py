@@ -67,9 +67,12 @@ class LLVMCodeGenerator(object):
 
         from core.vartypes import UnsignedInt
         VarTypes['u_size'] = UnsignedInt(self.pointer_bitwidth)
+        VarTypes['u_mem'] = UnsignedInt(self.pointer_size)
 
         import ctypes
         VarTypes.u_size.c_type = ctypes.c_voidp
+        VarTypes.u_mem.c_type = ctypes.c_uint8
+
         # XXX: this causes ALL instances of .u_size
         # in the environment instance
         # to be set to the platform width!
@@ -1594,12 +1597,12 @@ class LLVMCodeGenerator(object):
         expr.tracked = False
 
         addr = self.builder.load(expr)
-        addr2 = self.builder.bitcast(addr, VarTypes.u_size.as_pointer()).get_reference()
+        addr2 = self.builder.bitcast(addr, VarTypes.u_mem.as_pointer()).get_reference()
 
         call = self._codegen_Call(
             Call(node.position, 'c_free',
                  [Number(node.position, addr2,
-            VarTypes.u_size.as_pointer())]))        
+            VarTypes.u_mem.as_pointer())]))        
 
         return call
 
