@@ -61,12 +61,12 @@ class TestEvaluator(unittest.TestCase):
     def test_c_convert_int_float(self):
         e = AkilangEvaluator()
         e.evaluate('''
-            def test_convert(){
+            def main(){
                 var a=128, b = convert(a,f64)
                 if b==128.0 then 0 else 1
             }            
         ''')
-        self.assertEqual(e.evaluate('test_convert()'), 0)
+        self.assertEqual(e.evaluate('main()'), 0)
 
     def test_alloc_free(self):
         from core.repl import config
@@ -91,3 +91,31 @@ class TestEvaluator(unittest.TestCase):
         }
         ''')
         self.assertEqual(e.evaluate('main()'), 0)
+
+    def test_c_ptr_math(self):
+        e = AkilangEvaluator()
+        e.evaluate('''
+            def main(){
+                var x:i32[4]
+                x[0]=32
+                x[3]=64
+                var y=c_ptr_math(c_ref(x[0]),12U)
+                c_deref(y)
+            }
+        ''')
+        self.assertEqual(e.evaluate('main()'), 64)
+
+    def test_c_ptr_mod(self):
+        e = AkilangEvaluator()
+        e.evaluate('''
+            def main(){
+                var x:i32[4]
+                x[0]=32
+                var y=c_ptr_math(c_ref(x[0]),12U)
+                unsafe {
+                    c_ptr_mod(y,128)
+                }
+                c_deref(y)
+            }
+        ''')
+        self.assertEqual(e.evaluate('main()'), 128)
