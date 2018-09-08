@@ -13,16 +13,17 @@
     # but in time we will
     _get_errno(c_ref(err))
 
-    # var s_len = strlen(buf)-1
+    var s_len = strlen(buf)-1U
+    
+    var cr=c_ptr_math(
+        buf, s_len
+    )
 
-    # var buf2=c_alloc(s_len)
-
-    # memcpy_s(
-    #     buf2,
-    #     s_len,
-    #     buf,
-    #     s_len
-    # )
+    # NT compatibility - strip CRs
+    if (c_deref(cr) == 13B) then
+        unsafe {
+        c_ptr_mod(cr, 0B)
+    }
 
     return str(buf)   
 }
