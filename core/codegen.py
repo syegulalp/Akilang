@@ -270,7 +270,7 @@ class LLVMCodeGenerator(object):
 
             elif isinstance(current_node, ArrayAccessor):
                 # eventually this will be coded as a call
-                # to __index__ method of the element in question
+                # to __index__ method of the element in question                
 
                 if latest.type.is_obj_ptr():
                     # objects are passed by reference
@@ -1554,6 +1554,23 @@ class LLVMCodeGenerator(object):
             self._check_pointer(codegen, node)
         return codegen
 
+    def _codegen_Builtins_c_ptr_math(self, node):
+
+        ptr = self._codegen(node.args[0])
+        int_from_ptr = self.builder.ptrtoint(ptr, VarTypes.u_size)
+        amount_to_add = self._codegen(node.args[1])        
+        add_result = self.builder.add(int_from_ptr, amount_to_add)
+        add_result = self.builder.inttoptr(add_result, ptr.type)
+
+        return add_result
+
+    def _codegen_Builtins_c_ptr_mod(self, node):
+
+        ptr = self._codegen(node.args[0])
+        value = self._codegen(node.args[1])        
+        self.builder.store(value, ptr)
+        return ptr
+    
     def _codegen_Builtins_c_obj_alloc(self, node):
         '''
         Allocates bytes for an object of the type submitted.
