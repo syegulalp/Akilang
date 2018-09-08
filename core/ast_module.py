@@ -20,6 +20,11 @@ class Expr(Node):
     pass
 
 
+class Unsafe(Expr):
+    def __init__(self, position, body):
+        super().__init__(position)
+        self.body = body
+
 class Return(Expr):
     def __init__(self, position, val):
         super().__init__(position)

@@ -4,7 +4,7 @@ from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
     Decorator, Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType,
+    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe,
     _ANONYMOUS
 )
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
@@ -231,6 +231,8 @@ class Parser(object):
             return self._parse_var_expr()
         elif self.cur_tok.kind == TokenKind.WITH:
             return self._parse_with_expr()
+        elif self.cur_tok.kind == TokenKind.UNSAFE:
+            return self._parse_unsafe_expr()
         elif self.cur_tok.kind == TokenKind.MATCH:
             return self._parse_match_expr()
         elif self.cur_tok.kind == TokenKind.BREAK:
@@ -278,6 +280,12 @@ class Parser(object):
         
         return VariableType(pos, vartype)
 
+    def _parse_unsafe_expr(self):
+        cur = self.cur_tok
+        self._get_next_token()
+        body = self._parse_expression()
+        return Unsafe(cur, body)
+    
     def _parse_with_expr(self):
         cur = self.cur_tok
         self._get_next_token()  # consume `with`
@@ -1021,12 +1029,15 @@ class Parser(object):
 # Eventually we'll want to move them into the pregenned stdlib somehow.
 
 Builtins = {
+    'c_addr',
+    # c_alloc/c_free
+    'c_array_ptr',
+    'c_data',
     'c_ref', 'c_deref',
-    'c_size', 'c_addr',
-    'c_obj_ref', 'c_obj_deref',
+    'c_size', 
     'c_obj_alloc', 'c_obj_free',
-    'c_obj_size',
-    'c_data', 'c_array_ptr',
+    'c_obj_ref', 'c_obj_deref',    
+    'c_obj_size',    
     'c_ptr_math','c_ptr_mod',
     'cast', 'convert',
     'dummy','out'

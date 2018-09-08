@@ -65,6 +65,9 @@ class LLVMCodeGenerator(object):
 
         self.pointer_bitwidth = self.pointer_size * 8
 
+        # Flag for unsafe operations.
+        self.allow_unsafe = False
+
         from core.vartypes import UnsignedInt
         VarTypes['u_size'] = UnsignedInt(self.pointer_bitwidth)
         VarTypes['u_mem'] = UnsignedInt(self.pointer_size)
@@ -1504,6 +1507,12 @@ class LLVMCodeGenerator(object):
                 raise e
         return t
 
+    def _codegen_Unsafe(self, node):
+        self.allow_unsafe = True
+        body_val = self._codegen(node.body)
+        self.allow_unsafe = False
+        return body_val
+    
     def _codegen_With(self, node):
         new_bindings = [v.name for v in node.vars.vars]
         
@@ -1533,6 +1542,10 @@ class LLVMCodeGenerator(object):
 # Builtins
 #######################################################
 
+    def _if_unsafe(self, node):
+        if not self.allow_unsafe:
+            raise CodegenError('Operation must be enclosed in an "unsafe" block', node.position)
+    
     def _check_pointer(self, obj, node):
         '''
         Determines if a given item is a pointer or object.
@@ -1565,6 +1578,7 @@ class LLVMCodeGenerator(object):
         return add_result
 
     def _codegen_Builtins_c_ptr_mod(self, node):
+        self._if_unsafe(node)
 
         ptr = self._codegen(node.args[0])
         value = self._codegen(node.args[1])        

@@ -36,6 +36,7 @@ class TokenKind(Enum):
 
     PTR = -1045
 
+    UNSAFE = -1046
     RETURN = -1047
     BREAK = -1048
     VAR = -1050
