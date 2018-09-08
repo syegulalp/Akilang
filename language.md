@@ -41,6 +41,7 @@ This is a document of Aki syntax and usage.
     - [match](#match)
     - [not](#not)
     - [return](#return)
+    - [unsafe](#unsafe)
     - [var](#var)
     - [while](#while)
     - [with](#with)
@@ -52,12 +53,15 @@ This is a document of Aki syntax and usage.
 - [Builtin functions](#builtin-functions)
     - [c_addr](#c_addr)
     - [c_alloc / c_free](#c_alloc--c_free)
-    - [c_obj_alloc / c_obj_dealloc](#c_obj_alloc--c_obj_dealloc)
-    - [c_data](#c_data)
-    - [c_size](#c_size)
     - [c_array_ptr](#c_array_ptr)
+    - [c_data](#c_data)
     - [c_ref / c_deref](#c_ref--c_deref)
+    - [c_size](#c_size)
+    - [c_obj_alloc / c_obj_dealloc](#c_obj_alloc--c_obj_dealloc)
     - [c_obj_ref / c_obj_deref](#c_obj_ref--c_obj_deref)
+    - [c_obj_size](#c_obj_size)
+    - [c_ptr_math](#c_ptr_math)
+    - [c_ptr_mod](#c_ptr_mod)
     - [cast/convert](#castconvert)
 - [len](#len)
 - [Library functions](#library-functions)
@@ -555,6 +559,25 @@ def fn(x):u64{
 }
 ```
 
+## unsafe
+
+Designates an expression or block where direct manipulation of memory is performed.
+
+```
+def main(){
+    var x:i8[4]
+    
+    # Not unsafe because we're just obtaining a raw pointer.
+    var y=c_ref(x[1])
+
+    # Unsafe because we're modifying memory at that location.
+    unsafe {
+        c_ptr_mod(y,32)
+    }
+}
+
+```
+
 ## var
 
 Defines a variable for use within the scope of a function.
@@ -718,17 +741,11 @@ Returns the location of an object in memory, as an integer. The bitwidth of the 
 
 Allocate *n* bytes from the heap to a pointer; free bytes associated with a given pointer.
 
-## c_obj_alloc / c_obj_dealloc
+## c_array_ptr
 
-> ⚠ This function's implementation is unstable and likely to change.
+Returns a raw u8 pointer to the start of an array or structure.
 
-Same as above but takes a specific object type. Right now this is done by way of supplying a sample object through a closure:
-
-```
-x=c_obj_alloc({with var q:u64[64] q})
-```
-
-This allocates the memory needed to store a single object of `q`'s type.
+> ⚠ This function is likely to be removed.
 
 ## c_data
 
@@ -744,6 +761,11 @@ def main(){
 }
 ```
 
+## c_ref / c_deref
+
+`c_ref` returns a typed pointer to a scalar, like an int; `c_deref` dereferences such a pointer.
+
+
 ## c_size
 
 Returns the size in bytes of a scalar type, or of the descriptor for an object. For a string, for instance, this would *not* be the length of the actual string data (for that, use `len`), but the size of the whole structure that describes a string.
@@ -753,21 +775,52 @@ var y:u64
 x=c_size(u) # 8
 ```
 
-## c_array_ptr
 
-Returns a raw u8 pointer to the start of an array or structure.
+## c_obj_alloc / c_obj_dealloc
 
-> ⚠ This function is likely to be removed.
+> ⚠ This function's implementation is unstable and likely to change.
 
-## c_ref / c_deref
+Same as above but takes a specific object type. Right now this is done by way of supplying a sample object through a closure:
 
-`c_ref` returns a typed pointer to a scalar, like an int; `c_deref` dereferences such a pointer.
+```
+x=c_obj_alloc({with var q:u64[64] q})
+```
+
+This allocates the memory needed to store a single object of `q`'s type.
+
 
 ## c_obj_ref / c_obj_deref
 
 Like `c_ref/c_deref`, but for complex objects like strings.
 
 > ⚠ This may eventually be merged into `c_ref/c_deref` for simplicity.
+
+
+## c_obj_size
+
+Like `c_size` but used to return the size of an object structure. For instance, for a string, this would not be the length of the string data itself, but rather the structure that holds the pointer to the string data and the string's byte length.
+
+## c_ptr_math
+
+Takes a pointer and adds to its position by the number of bytes specified. Returns a newly modifed pointer.
+
+```
+var x=32
+var y=c_ref(x)
+var z=c_ptr_math(y,1)
+```
+
+## c_ptr_mod
+
+> ⚠ This requires the `unsafe` keyword.
+
+Modifies the data at a given pointer location. Accepts only the same type as the pointer's type.
+
+```
+var x=32
+var y=c_ref(x)
+unsafe c_ptr_mod(y,128) # returns y with a modified underlying value
+```
 
 
 ## cast/convert
