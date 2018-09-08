@@ -7,6 +7,9 @@ class MyType():
     is_obj = None
     p_fmt = None
 
+    def is_ptr(self):
+        return isinstance(self, ir.types.PointerType)
+    
     def is_func(self):
         '''
         Reports whether or not a given type
@@ -46,7 +49,7 @@ ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_func = MyType.is_func
 ir.types.Type.signature = MyType.signature
 
-class _PointerType(PointerType):
+class _PointerType(PointerType, MyType):
     def __init__(self, *a, **ka):
         v_id = ka.pop('v_id', '')
         signed = ka.pop('signed', '')
@@ -59,6 +62,8 @@ class _PointerType(PointerType):
     def as_pointer(self, addrspace=0):
         return _PointerType(
             self, addrspace, v_id=self.v_id, signed=self.signed)
+
+#_PointerType.is_ptr = MyType.is_ptr
 
 ir.types.PointerType = _PointerType
 ir.PointerType = _PointerType
