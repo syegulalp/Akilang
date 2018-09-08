@@ -49,7 +49,7 @@ ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_func = MyType.is_func
 ir.types.Type.signature = MyType.signature
 
-class _PointerType(PointerType, MyType):
+class _PointerType(PointerType):
     def __init__(self, *a, **ka):
         v_id = ka.pop('v_id', '')
         signed = ka.pop('signed', '')
@@ -63,7 +63,7 @@ class _PointerType(PointerType, MyType):
         return _PointerType(
             self, addrspace, v_id=self.v_id, signed=self.signed)
 
-#_PointerType.is_ptr = MyType.is_ptr
+_PointerType.is_ptr = MyType.is_ptr
 
 ir.types.PointerType = _PointerType
 ir.PointerType = _PointerType
