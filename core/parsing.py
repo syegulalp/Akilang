@@ -10,7 +10,7 @@ from core.ast_module import (
 from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
-
+from core.tokens import Builtins, Decorators, Dunders
 
 class Parser(object):
     '''
@@ -1027,35 +1027,7 @@ class Parser(object):
 # they're just identifiers, but we need to reserve codegens for them.
 # Eventually we'll want to move them into the pregenned stdlib somehow.
 
-Builtins = {
-    'c_addr',
-    # c_alloc/c_free
-    'c_array_ptr',
-    'c_data',
-    'c_ref', 'c_deref',
-    'c_size', 
-    'c_obj_alloc', 'c_obj_free',
-    'c_obj_ref', 'c_obj_deref',    
-    'c_obj_size',    
-    'c_ptr_math','c_ptr_mod',
-    'cast', 'convert',
-    'dummy','out'
-}
 
-Dunders = {
-    'len'
-}
-
-Decorators = {
-    'varfunc',
-    'inline',
-    'noinline'
-}
-
-decorator_collisions = (
-    ('inline', 'noinline'),
-    ('inline', 'varfunc')
-)
 
 # if __name__ == '__main__':
 #     ast = Parser().parse_toplevel('def foo(x) 1 + bar(x)')

@@ -1,7 +1,5 @@
 import re
-
-import warnings
-   
+import warnings   
 
 from core.ast_module import (
     Binary, Variable, Prototype, Function, Uni, Class, Decorator,
@@ -10,7 +8,7 @@ from core.ast_module import (
 )
 from core.vartypes import SignedInt, DEFAULT_TYPE, VarTypes, Str, Array as _Array, CustomClass
 from core.errors import MessageError, ParseError, CodegenError, CodegenWarning
-from core.parsing import Builtins, Dunders, decorator_collisions
+from core.tokens import Builtins, Dunders, decorator_collisions
 from core.operators import BUILTIN_UNARY_OP
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 
