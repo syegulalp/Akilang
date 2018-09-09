@@ -67,6 +67,7 @@ def int_to_c_str(my_int:i32): ptr u_mem {
     return buffer
 }
 
+@nomod
 def c_str_to_int(my_str:str) :i32 {
     atoi(c_data(my_str))
 }

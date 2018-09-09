@@ -82,7 +82,8 @@ Dunders = {
 Decorators = {
     'varfunc',
     'inline',
-    'noinline'
+    'noinline',
+    'nomod'
 }
 
 decorator_collisions = (

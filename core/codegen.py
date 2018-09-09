@@ -1019,7 +1019,9 @@ class LLVMCodeGenerator(object):
                 raise CodegenError(
                     f'Call argument length mismatch for "{node.name}" (expected at least {len(callee_func.args)}, got {len(node.args)})',
                     node.position)
-
+        
+        nomod = 'nomod' in callee_func.decorators
+        
         for x, n in enumerate(zip(call_args, func_to_check.args)):
             type0 = n[0].type
             
@@ -1041,14 +1043,17 @@ class LLVMCodeGenerator(object):
             # then we can't delete it in this scope anymore
             # because we no longer have ownership of it
             
-            to_check = self._extract_operand(n[0])        
-            if to_check.heap_alloc:
-                to_check.tracked = False
+            if not nomod:
+                to_check = self._extract_operand(n[0])
+                if to_check.heap_alloc:
+                    to_check.tracked = False
 
         call_to_return = self.builder.call(final_call, call_args, 'calltmp')
 
         # Check for the presence of an object returned from the call
         # that requires memory tracing
+
+        
 
         if callee_func in self.gives_alloc:
             call_to_return.heap_alloc = True
@@ -1062,6 +1067,9 @@ class LLVMCodeGenerator(object):
         
         # if callee_func.do_not_allocate == True:
         #     call_to_return.do_not_allocate = True
+
+        # if 'nomod' in callee_func.decorators:
+        #     call_to_return.tracked=False
 
         return call_to_return
 
@@ -1170,7 +1178,7 @@ class LLVMCodeGenerator(object):
         # and use that to set up other attributes
 
         decorators = [n.name for n in self.func_decorators]
-
+        
         varfunc = 'varfunc' in decorators
 
         for a, b in decorator_collisions:
@@ -1241,7 +1249,7 @@ class LLVMCodeGenerator(object):
         self.func_symtab = {}
 
         # Create the function skeleton from the prototype.
-        func = self._codegen(node.proto, False)
+        func = self._codegen(node.proto, False)        
 
         # Create the entry BB in the function and set a new builder to it.
         bb_entry = func.append_basic_block('entry')
@@ -1305,7 +1313,7 @@ class LLVMCodeGenerator(object):
         # if so, add it to the set of functions that returns a trackable object
 
         to_check = retval
-
+        
         if retval:
             to_check = self._extract_operand(retval)
             if to_check.tracked:

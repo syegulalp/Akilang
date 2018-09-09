@@ -12,8 +12,12 @@ def makefunc(module, func_name, func_type, func_sig, no_mangle=False):
         m_name = mangle_funcname(func_name, func_s)
 
     func = ir.Function(module, func_s, m_name)
+    
     func.attributes.add('nonlazybind')
     func.linkage = 'private'
+    func.decorators = []
+    # TODO: override ir.Function __init__ to add decorators
+
     irbuilder = ir.IRBuilder(func.append_basic_block('entry'))
     return func, irbuilder
 
