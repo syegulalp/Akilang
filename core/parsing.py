@@ -278,9 +278,7 @@ class Parser(object):
             else:
                 v=vartype
                 v='.'+v.v_id
-            vv= Call(pos, v+'.__new__', args, vartype)
-            print ("V:", vv)
-            return vv
+            return Call(pos, v+'.__new__', args, vartype)
         
         return VariableType(pos, vartype)
 

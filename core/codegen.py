@@ -1532,8 +1532,7 @@ class LLVMCodeGenerator(object):
     def _codegen_dunder_methods(self, node):
         call = self._codegen_Call(
             Call(node.position, node.name,
-                 node.args,
-                 node.type
+                 node.args
                  ),
             obj_method=True
         )
