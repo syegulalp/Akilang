@@ -264,19 +264,23 @@ class Parser(object):
         if self._cur_tok_is_punctuator('('):
             args = []
             while True:
+                self._get_next_token()
                 arg = self._parse_expression()
                 args.append(arg)
                 if self._cur_tok_is_punctuator(','):
-                    self._get_next_token()
+                    continue
                 else:
+                    self._get_next_token()
                     break
             if vartype.is_obj_ptr():
                 v=vartype.pointee
                 v='.object.'+v.v_id
             else:
                 v=vartype
-                v=v.v_id
-            return Call(pos, v+'.__new__', args)
+                v='.'+v.v_id
+            vv= Call(pos, v+'.__new__', args, vartype)
+            print ("V:", vv)
+            return vv
         
         return VariableType(pos, vartype)
 
@@ -396,6 +400,7 @@ class Parser(object):
     def _parse_builtin(self, name):
         if name in ('cast', 'convert'):
             return getattr(self, f'_parse_{name}_expr')()
+
         start = self.cur_tok.position
         self._get_next_token()
         self._match(TokenKind.PUNCTUATOR, '(')
