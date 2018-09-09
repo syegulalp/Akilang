@@ -130,6 +130,13 @@ def Constant_init(self, typ, constant):
 
 ir.values.Constant.__init__ = Constant_init
 
+OldInit = ir.Function.__init__
+
+def __init(self, *a, **ka):    
+    OldInit(self, *a, **ka)
+    self.decorators = []
+
+ir.Function.__init__ = __init
 
 class Map(dict):
     # https://stackoverflow.com/a/32107024
