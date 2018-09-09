@@ -49,6 +49,7 @@ This is a document of Aki syntax and usage.
 - [Decorators](#decorators)
     - [@inline](#inline)
     - [@noinline](#noinline)
+    - [@nomod](#nomod)
     - [@varfunc](#varfunc)
 - [Builtin functions](#builtin-functions)
     - [c_addr](#c_addr)
@@ -697,6 +698,14 @@ Indicates that the decorated function is never to be inlined. Inlining replaces 
 Functions defined as [`binary`](#binary) or [`unary`](#unary) are automatically inlined. To suppress this behavior, use `@noinline` on the operator definition.
 
 A function decorated with `@inline` cannot be decorated with `@noinline`, and vice versa.
+
+## @nomod
+
+Indicates that the compiler should assume the decorated function does not modify any of the arguments passed to it, such as a s tring's underlying data.
+
+This allows functions that take in an object to not affect how that object's disposal tracking is calculated.
+
+An entire function must be decorated with this. It is not possible to indicate that only some arguments of a function are not modified.
 
 
 ## @varfunc
