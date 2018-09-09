@@ -1,7 +1,5 @@
 # Microsoft Win32/NT library interfaces
 
-
-
 extern SetConsoleOutputCP(codepage :u32) :bool
 extern GetConsoleOutputCP() :u32
 
@@ -42,13 +40,6 @@ def c_alloc(bytes:i32):ptr u_mem
 def c_free(m:ptr u_mem):bool
     HeapFree(GetProcessHeap(), 0u, m)
 
-def inkey():i32 {
-    var key:i32
-    key=_getwch()
-    if (key==0 or key==224) then key=_getwch()
-    return key
-}
-
 @inline
 def set_codepage(codepage :u32) :bool
     SetConsoleOutputCP(codepage)
@@ -59,6 +50,13 @@ def get_codepage() :u32
 
 def rnd(max:i32):i32
     rand()/(32767/max)
+
+def inkey():i32 {
+    var key:i32
+    key=_getwch()
+    if (key==0 or key==224) then key=_getwch()
+    return key
+}
 
 ####
 
