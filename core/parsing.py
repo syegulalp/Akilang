@@ -117,6 +117,24 @@ class Parser(object):
                 f'"{self.cur_tok.value}" cannot be used as an identifier (variable type)',
                 self.cur_tok.position)
 
+    def _parse_argument_list(self, args_required = False):
+        args = []
+        self._get_next_token()
+        while True:            
+            if self._cur_tok_is_punctuator(')'):
+                break
+            arg = self._parse_expression()
+            args.append(arg)
+            if not self._cur_tok_is_punctuator(','):
+                break
+            self._get_next_token()
+        if args_required and len(args)==0:
+            raise ParseError(
+                f'At least one argument is required',
+                self.cur_tok.position
+            )
+        return args
+    
     def _parse_decorator(self):
         start = self.cur_tok.position
         self._get_next_token()
@@ -161,15 +179,7 @@ class Parser(object):
                 continue
 
             elif self._cur_tok_is_punctuator('('):
-                self._get_next_token()
-                args = []
-                if not self._cur_tok_is_punctuator(')'):
-                    while True:
-                        args.append(self._parse_expression())
-                        if self._cur_tok_is_punctuator(')'):
-                            break
-                        self._match(TokenKind.PUNCTUATOR, ',')
-
+                args = self._parse_argument_list()
                 current.child = Call(start, id_name, args,
                                      self.cur_tok.vartype)
                 current = current.child
@@ -262,16 +272,8 @@ class Parser(object):
         # for that type
 
         if self._cur_tok_is_punctuator('('):
-            args = []
-            while True:
-                self._get_next_token()
-                arg = self._parse_expression()
-                args.append(arg)
-                if self._cur_tok_is_punctuator(','):
-                    continue
-                else:
-                    self._get_next_token()
-                    break
+            args = self._parse_argument_list(True)
+            self._get_next_token()
             if vartype.is_obj_ptr():
                 v=vartype.pointee
                 v='.object.'+v.v_id
@@ -344,12 +346,14 @@ class Parser(object):
         if isinstance(vartype, VarTypes.func.__class__):
             self._get_next_token()
             self._match(TokenKind.PUNCTUATOR, '(')
+            
             arguments = []
             while True:
                 n = self._parse_vartype_expr()
                 arguments.append(n)
                 if self._cur_tok_is_punctuator(')'):
                     break
+
             self._get_next_token()
             self._match(TokenKind.PUNCTUATOR, ':')
             func_type = self._parse_vartype_expr()
@@ -401,17 +405,9 @@ class Parser(object):
 
         start = self.cur_tok.position
         self._get_next_token()
-        self._match(TokenKind.PUNCTUATOR, '(')
-        args = []
-        while True:
-            expr = self._parse_expression()
-            args.append(expr)
-            if self._cur_tok_is_punctuator(','):
-                self._get_next_token()
-                continue
-            if self._cur_tok_is_punctuator(')'):
-                self._get_next_token()
-                break
+        self._match(TokenKind.PUNCTUATOR, '(', consume=False)
+        args = self._parse_argument_list()
+        self._get_next_token()
         return Call(start, name, args)
 
     # TODO: eventually we will be able to recognize
