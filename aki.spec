@@ -11,10 +11,10 @@ a = Analysis(['aki.py'],
              datas=[
              ('lib', ''),
              ('src', ''),
-             ('core', ''),
              ('tests', ''),
              ],
-             hiddenimports=[],
+             hiddenimports=['core.*','core.stdlib',
+             'core.stdlib.nt'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[
