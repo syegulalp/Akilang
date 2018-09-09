@@ -35,9 +35,8 @@ def c_alloc(bytes:u_size):ptr u_mem
 
 @inline
 def c_alloc(bytes:i32):ptr u_mem
-    #c_alloc(cast(bytes, u_size))
-    # eventually we can use that when we support inlining
-    HeapAlloc(GetProcessHeap(), 8u, cast(bytes, u_size))
+    c_alloc(cast(bytes, u_size))
+    # HeapAlloc(GetProcessHeap(), 8u, cast(bytes, u_size))
 
 @inline
 def c_free(m:ptr u_mem):bool
@@ -64,7 +63,7 @@ def rnd(max:i32):i32
 ####
 
 def int_to_c_str(my_int:i32): ptr u_mem {
-    var size = c_size(my_int)*4U+1U
+    var size = c_size(my_int) * 4U + 1U
     var buffer = c_alloc(size)
     snprintf(buffer, size, c_data('%i'),my_int)
     return buffer
