@@ -45,7 +45,6 @@ class TokenKind(Enum):
     DEFAULT = -1665
 
 
-#ESCAPES = {'n': 10, 'r': 13, "'": ord("'"), '"': ord('"'), '{':'\{','}':'\}'}
 ESCAPES = {
     'n': chr(10),
     'r': chr(13),
@@ -55,7 +54,7 @@ ESCAPES = {
     '}':r'\}'
 }
 
-PUNCTUATORS = '()[]{},:@'
+PUNCTUATORS = r'()[]{},:@'
 COMMENT = "#"
 
 Token = namedtuple('Token', 'kind value vartype position')
