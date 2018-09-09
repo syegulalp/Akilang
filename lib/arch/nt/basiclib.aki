@@ -19,6 +19,7 @@ extern memcpy_s(dest:ptr u_size, size:u_size, source: ptr u_mem, count: u_size)
 
 extern _getwch():i32
 extern gets_s(input:ptr u_mem, bytes:u_size)
+extern atoi(string: ptr u_mem): i32
 
 extern _get_errno(errno:ptr i32) :i32
 
@@ -67,4 +68,8 @@ def int_to_c_str(my_int:i32): ptr u_mem {
     var buffer = c_alloc(size)
     snprintf(buffer, size, c_data('%i'),my_int)
     return buffer
+}
+
+def c_str_to_int(my_str:str) :i32 {
+    atoi(c_data(my_str))
 }

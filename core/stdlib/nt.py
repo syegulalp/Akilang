@@ -173,3 +173,21 @@ def stdlib_post(self, module):
     )
 
     irbuilder.ret(result)
+
+    #
+    # new i32 from string
+    #
+
+    str_fn, irbuilder = makefunc(
+        module,
+        '.i32.__new__', VarTypes.i32,
+        [VarTypes.str.as_pointer()]
+    )    
+
+    result = makecall(
+        irbuilder, module,
+        'c_str_to_int', VarTypes.str.as_pointer(),
+        [str_fn.args[0]]
+    )
+
+    irbuilder.ret(result)
