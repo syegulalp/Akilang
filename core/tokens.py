@@ -62,7 +62,7 @@ Token = namedtuple('Token', 'kind value vartype position')
 
 Builtins = {
     'c_addr',
-    # c_alloc/c_free
+    # c_alloc/c_free are provided by core.stdlib.nt
     'c_array_ptr',
     'c_data',
     'c_ref', 'c_deref',
@@ -72,7 +72,8 @@ Builtins = {
     'c_obj_size',    
     'c_ptr_math','c_ptr_mod',
     'cast', 'convert',
-    'dummy','out'
+    'out',
+    'dummy'
 }
 
 Dunders = {
