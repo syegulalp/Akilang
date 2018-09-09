@@ -4,9 +4,13 @@ from core.mangling import mangle_function, mangle_call, mangle_funcname
 import llvmlite.ir as ir
 
 
-def makefunc(module, func_name, func_type, func_sig):
+def makefunc(module, func_name, func_type, func_sig, no_mangle=False):
     func_s = ir.FunctionType(func_type, func_sig)
-    m_name = mangle_funcname(func_name, func_s)
+    if no_mangle:
+        m_name = func_name
+    else:
+        m_name = mangle_funcname(func_name, func_s)
+
     func = ir.Function(module, func_s, m_name)
     func.attributes.add('nonlazybind')
     func.linkage = 'private'
@@ -14,7 +18,7 @@ def makefunc(module, func_name, func_type, func_sig):
     return func, irbuilder
 
 
-def makecall(irbuilder, module, funcname, func_type, func_sig):
+def makecall(irbuilder, module, funcname, func_sig):
     types = [v.type for v in func_sig]
     f_name = module.globals.get(
         mangle_call(funcname, types)
@@ -56,14 +60,50 @@ def stdlib_post(self, module):
     obj_del, irbuilder = makefunc(
         module,
         '.object.array_u64.__del__', VarTypes.bool,
-        [VarTypes.u_mem.as_pointer()]
+        [VarTypes.array(VarTypes.u64,0).as_pointer()]
     )
+
+    ptr_cast = irbuilder.bitcast(
+        obj_del.args[0],
+        VarTypes.u_mem.as_pointer()
+    )    
 
     result = makecall(
         irbuilder, module,
         'c_free',
-        [VarTypes.u_mem.as_pointer()],
-        [obj_del.args[0]]
+        [ptr_cast]
+    )
+
+    irbuilder.ret(result)
+
+    #
+    # del for string
+    #
+
+    obj_del, irbuilder = makefunc(
+        module,
+        '.object.str.__del__', VarTypes.bool,
+        [VarTypes.str.as_pointer()],
+        no_mangle = True
+    )
+
+    # this just deletes the string object,
+    # not the string data (for now)
+
+    ptr_cast = irbuilder.bitcast(
+        obj_del.args[0],
+        VarTypes.u_mem.as_pointer()
+    )
+
+    # is there any way to determine at compile time
+    # whether or not we need to delete the underlying data?
+
+    #data_ptr = 
+
+    result = makecall(
+        irbuilder, module,
+        'c_free',
+        [ptr_cast]
     )
 
     irbuilder.ret(result)
@@ -86,7 +126,7 @@ def stdlib_post(self, module):
 
     str_len = makecall(
         irbuilder, module,
-        'c_strlen', [VarTypes.u_mem.as_pointer()],
+        'c_strlen',
         [str_ptr]
     )
 
@@ -96,13 +136,14 @@ def stdlib_post(self, module):
         VarTypes.u64,
         self.codegen._obj_size_type(
             VarTypes.str
-        ))
+        )
+    )
 
     # Allocate memory for one string structure
 
     struct_alloc = makecall(
         irbuilder, module,
-        'c_alloc', [VarTypes.u_size],
+        'c_alloc',
         [size_of_struct]
     )
 
@@ -147,6 +188,9 @@ def stdlib_post(self, module):
         data_ptr
     )
 
+    # Note that we do not add tracking information
+    # to this string yet.
+
     irbuilder.ret(struct_reference)
 
     #
@@ -162,15 +206,17 @@ def stdlib_post(self, module):
     result = makecall(
         irbuilder, module,
         'int_to_c_str',
-        [VarTypes.u_size.as_pointer()],
         [str_fn.args[0]]
     )
 
     result = makecall(
         irbuilder, module,
-        '.object.str.__new__', VarTypes.str.as_pointer(),
+        '.object.str.__new__',
         [result]
     )
+
+    str_fn.tracked = True
+    str_fn.do_not_allocate = True
 
     irbuilder.ret(result)
 
@@ -186,8 +232,8 @@ def stdlib_post(self, module):
 
     result = makecall(
         irbuilder, module,
-        'c_str_to_int', VarTypes.str.as_pointer(),
+        'c_str_to_int',
         [str_fn.args[0]]
-    )
+    )    
 
     irbuilder.ret(result)

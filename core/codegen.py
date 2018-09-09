@@ -1054,6 +1054,15 @@ class LLVMCodeGenerator(object):
             call_to_return.heap_alloc = True
             call_to_return.tracked = True
 
+        # FIXME: There ought to be a better way to assign this
+        
+        if callee_func.tracked == True:
+            call_to_return.heap_alloc = True
+            call_to_return.tracked = True
+        
+        # if callee_func.do_not_allocate == True:
+        #     call_to_return.do_not_allocate = True
+
         return call_to_return
 
     def _codegen_Prototype(self, node):
@@ -1335,15 +1344,10 @@ class LLVMCodeGenerator(object):
 
             if v.tracked:
                 ref = self.builder.load(v)
-                ref2 = self.builder.bitcast( # pylint: disable=E1111
-                    ref,
-                    VarTypes.u_size.as_pointer()
-                )
                 sig = v.type.pointee.pointee.signature()
-                
                 self.builder.call(
                     self.module.globals.get(sig+'__del__'),
-                    [ref2],
+                    [ref],
                     f'{_}.delete'
                     )                    
 
