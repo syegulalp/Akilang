@@ -88,5 +88,6 @@ Decorators = {
 
 decorator_collisions = (
     ('inline', 'noinline'),
-    ('inline', 'varfunc')
+    ('inline', 'varfunc'),
+    ('nomod','varfunc')
 )
