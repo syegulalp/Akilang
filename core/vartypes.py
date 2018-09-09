@@ -1,4 +1,5 @@
 from core.llvmlite_custom import Map, _PointerType, MyType
+from core.tokens import Dunders
 
 import llvmlite.ir as ir
 
@@ -167,4 +168,4 @@ VarTypes.func.is_obj = True
 DEFAULT_TYPE = VarTypes.i32
 DEFAULT_RETURN_VALUE = ir.Constant(VarTypes.i32, 0)
 
-dunder_methods = set([f'__{n}__' for n in ['len']])
+dunder_methods = set([f'__{n}__' for n in Dunders])
