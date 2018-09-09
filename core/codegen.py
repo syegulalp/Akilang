@@ -929,10 +929,10 @@ class LLVMCodeGenerator(object):
 
     def _codegen_Call(self, node, obj_method=False):
         if not obj_method:
-            if node.name in Builtins:
-                return getattr(self, '_codegen_Builtins_' + node.name)(node)
             if node.name in Dunders:
                 return self._codegen_dunder_methods(node)
+            if node.name in Builtins:
+                return getattr(self, '_codegen_Builtins_' + node.name)(node)            
 
         call_args = []
         possible_opt_args_funcs = set()
@@ -1533,6 +1533,7 @@ class LLVMCodeGenerator(object):
         call = self._codegen_Call(
             Call(node.position, node.name,
                  node.args,
+                 node.type
                  ),
             obj_method=True
         )
