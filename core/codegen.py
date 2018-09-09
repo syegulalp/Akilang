@@ -372,6 +372,8 @@ class LLVMCodeGenerator(object):
                     rhs.position
                 )
 
+            ptr.decorators = value.decorators
+
         else:
             value = self._codegen(rhs)
 
@@ -995,9 +997,19 @@ class LLVMCodeGenerator(object):
 
             if callee_func.type.is_func():
                 # retrieve actual function pointer from the variable ref
-                func_to_check = callee_func.type.pointee.pointee                
+                func_to_check = callee_func.type.pointee.pointee
                 final_call = self.builder.load(callee_func)
-                ftype = func_to_check                
+                final_call.decorators = callee_func.decorators
+                #print (callee_func.__dict__)
+                #.decorators)
+                
+                # TODO: We can't obtain information about the
+                # function's decorators if it's a function pointer,
+                # at least not yet.
+                # One possible way to do that would be to check at assignment time
+                # and pass things along from the function in question.
+
+                ftype = func_to_check
             else:
                 # this is a regular old function, not a function pointer
                 func_to_check = callee_func
@@ -1020,7 +1032,7 @@ class LLVMCodeGenerator(object):
                     f'Call argument length mismatch for "{node.name}" (expected at least {len(callee_func.args)}, got {len(node.args)})',
                     node.position)
         
-        nomod = 'nomod' in callee_func.decorators
+        nomod = 'nomod' in final_call.decorators
         
         for x, n in enumerate(zip(call_args, func_to_check.args)):
             type0 = n[0].type
