@@ -60,7 +60,7 @@ preceded by a dot sign:
     .example      : Run some code examples.
     .exit|quit|stop|q
                   : Stop and exit the program.
-    .export <filename>
+    .export|ex <filename>
                   : Dump current module to file in LLVM assembler format.
     .list|.l      : List all available language functions and operators.
     .help|.       : Show this message.
@@ -75,7 +75,8 @@ preceded by a dot sign:
                     module.
     .test|tests   : Run unit tests.
     .version|ver  : Print version information.
-    .<file>       : Run the given file .aki in the src directory.
+    .<file>.      : Run the given file .aki in the src directory.
+                    For instance, .l. will load the Conway's Life demo.
     .<option>     : Toggle the given option on/off.
 
 These commands are also available directly from the command line, for example: 
@@ -194,7 +195,7 @@ def run_repl_command(ak, command, options):
         print(f'{len(output)} bytes written to {filename}')
     elif command in ('compile', 'cp'):
         compiler.compile(ak.codegen.module, 'output')
-    elif command in ('export',) or command.startswith('export '):
+    elif command in ('export','ex') or command.startswith('export '):
         try:
             filename = command.split(' ')[1]
             if '.' not in filename:
