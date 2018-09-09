@@ -372,7 +372,14 @@ class LLVMCodeGenerator(object):
                     rhs.position
                 )
 
-            ptr.decorators = value.decorators
+            #ptr.decorators = value.decorators
+            # XXX: Not possible to trace function decorators across
+            # function pointer boundaries
+            # One POSSIBLE way to do it would be to have a specialized type
+            # that uses the function decorators mangled in the name.
+            # That way the pointer could only point to one of a class of
+            # function pointers allowed to do so (with bitcasting).
+            # But this seems like a lot of work for little payoff.
 
         else:
             value = self._codegen(rhs)
@@ -998,18 +1005,15 @@ class LLVMCodeGenerator(object):
             if callee_func.type.is_func():
                 # retrieve actual function pointer from the variable ref
                 func_to_check = callee_func.type.pointee.pointee
-                final_call = self.builder.load(callee_func)
-                final_call.decorators = callee_func.decorators
-                #print (callee_func.__dict__)
-                #.decorators)
-                
-                # TODO: We can't obtain information about the
-                # function's decorators if it's a function pointer,
-                # at least not yet.
-                # One possible way to do that would be to check at assignment time
-                # and pass things along from the function in question.
-
+                final_call = self.builder.load(callee_func)                
                 ftype = func_to_check
+                
+                final_call.decorators = []
+                #final_call.decorators = callee_func.decorators
+
+                # It's not possible to trace decorators across
+                # function pointers
+
             else:
                 # this is a regular old function, not a function pointer
                 func_to_check = callee_func

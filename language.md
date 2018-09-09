@@ -707,6 +707,8 @@ This allows functions that take in an object to not affect how that object's dis
 
 An entire function must be decorated with this. It is not possible to indicate that only some arguments of a function are not modified.
 
+A `@varfunc`-decorated function cannot be decorated with `@nomod`.
+
 
 ## @varfunc
 
@@ -737,6 +739,8 @@ def main(){
 This allows the functions `f1` and `f2` to be interchangeably assigned to the variable `f`, and allows `f` to be called as if it were a function itself. (The output from this program is the two numbers `33` and `34`.)
 
 A function decorated with `@inline` cannot be decorated with `@varfunc`, and vice versa.
+
+A `@varfunc`-decorated function cannot be decorated with `@nomod`.
 
 # Builtin functions
 
