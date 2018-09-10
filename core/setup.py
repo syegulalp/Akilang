@@ -4,6 +4,7 @@
 # This setup file is provisional. Use pip install -r requirements.txt
 
 from setuptools import setup, find_packages
+from core import constants
 
 NAME = 'Akilang'
 DESCRIPTION = 'A compiler for a simple language, built with Python and LLVM'
@@ -11,10 +12,10 @@ URL = 'https://github.com/syegulalp/Akilang'
 EMAIL = 'serdar@genjipress.com'
 AUTHOR = 'Serdar Yegulalp'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.0.1'
+VERSION = constants.VERSION
 
 REQUIRED = [
-    'llvmlite',
+    'llvmlite==0.24.0',
     'colorama',
     'termcolor'
 ]
