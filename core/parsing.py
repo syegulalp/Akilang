@@ -12,6 +12,24 @@ from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Decorators, Dunders
 
+parse_actions = {
+    TokenKind.RETURN: 'return',
+    TokenKind.IDENTIFIER:'identifier',
+    TokenKind.OPERATOR:'unaryop',
+    TokenKind.NUMBER: 'number',
+    TokenKind.STRING: 'string',
+    TokenKind.WHILE: 'while',
+    TokenKind.IF: 'if',
+    TokenKind.WHEN: 'when',
+    TokenKind.LOOP: 'loop',
+    TokenKind.VAR: 'var',
+    TokenKind.WITH: 'with',
+    TokenKind.UNSAFE: 'unsafe',
+    TokenKind.MATCH: 'match',
+    TokenKind.BREAK: 'break',
+    TokenKind.VARTYPE: 'standalone_vartype'
+}
+
 class Parser(object):
     '''
     Parser for the Akilang language.
@@ -30,6 +48,8 @@ class Parser(object):
         self.expr_stack = []
         from core import codexec
         self.evaluator = codexec.AkilangEvaluator()
+
+        self.parse_actions = parse_actions
 
     def parse_toplevel(self, buf):
         '''
@@ -219,37 +239,10 @@ class Parser(object):
             return self._parse_paren_expr()
         elif self._cur_tok_is_punctuator('{'):
             return self._parse_do_expr()
-        elif self.cur_tok.kind == TokenKind.RETURN:
-            return self._parse_return_expr()
-        elif self.cur_tok.kind == TokenKind.IDENTIFIER:
-            return self._parse_identifier_expr()
-        elif self.cur_tok.kind == TokenKind.OPERATOR:
-            return self._parse_unaryop_expr()
-        elif self.cur_tok.kind == TokenKind.NUMBER:
-            return self._parse_number_expr()
-        elif self.cur_tok.kind == TokenKind.STRING:
-            return self._parse_string_expr()
-        elif self.cur_tok.kind == TokenKind.WHILE:
-            return self._parse_while_expr()
-        elif self.cur_tok.kind == TokenKind.IF:
-            return self._parse_if_expr()
-        elif self.cur_tok.kind == TokenKind.WHEN:
-            return self._parse_when_expr()
-        elif self.cur_tok.kind == TokenKind.LOOP:
-            return self._parse_loop_expr()
-        elif self.cur_tok.kind == TokenKind.VAR:
-            return self._parse_var_expr()
-        elif self.cur_tok.kind == TokenKind.WITH:
-            return self._parse_with_expr()
-        elif self.cur_tok.kind == TokenKind.UNSAFE:
-            return self._parse_unsafe_expr()
-        elif self.cur_tok.kind == TokenKind.MATCH:
-            return self._parse_match_expr()
-        elif self.cur_tok.kind == TokenKind.BREAK:
-            return self._parse_break_expr()
-        elif self.cur_tok.kind == TokenKind.VARTYPE:
-            return self._parse_standalone_vartype_expr()
-
+        elif self.cur_tok.kind in self.parse_actions:
+            return getattr(self, 
+                f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr'
+            )()
         elif self.cur_tok.kind == TokenKind.EOF:
             raise ParseError('Expression expected but reached end of code',
                              self.cur_tok.position)
