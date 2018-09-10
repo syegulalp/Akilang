@@ -4,12 +4,13 @@ const {
     WIDTH=80,
     HEIGHT=32,
     FIELD_SIZE = (WIDTH+1)*(HEIGHT+1)
+    DIVIDER_WIDTH = WIDTH+1
 }
 
 uni {
     field:byte[2,HEIGHT,WIDTH],    
     output:byte[FIELD_SIZE],
-    divider:byte[81],
+    divider:byte[DIVIDER_WIDTH],
     world=0,
     gen:u64
 }
@@ -93,7 +94,7 @@ def life() {
 
 def setup(){
     var x
-    loop (x=0, x<80)
+    loop (x=0, x<DIVIDER_WIDTH-1)
         divider[x]=177B
     divider[x]=0B
     reset()
