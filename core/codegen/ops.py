@@ -7,7 +7,7 @@ from core.vartypes import VarTypes, Str
 
 # pylint: disable=E1101
 
-class Ops_Class():
+class Ops():
 
     def _codegen_Unary(self, node):
         operand = self._codegen(node.rhs)

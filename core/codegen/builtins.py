@@ -5,7 +5,7 @@ import re
 
 # pylint: disable=E1101
 
-class Builtins_Class():
+class Builtins():
     
     def _if_unsafe(self, node):
         if not self.allow_unsafe:

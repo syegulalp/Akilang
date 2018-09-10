@@ -8,7 +8,7 @@ import llvmlite.ir as ir
 
 # pylint: disable=E1101
 
-class ControlFlow_Class():
+class ControlFlow():
     def _codegen_Return(self, node):
         '''
         Generates a return from within a function, and 

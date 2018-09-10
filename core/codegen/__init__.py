@@ -6,13 +6,13 @@ from core.mangling import mangle_args
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
-from core.codegen.builtins import Builtins_Class
-from core.codegen.toplevel import Toplevel_Class
-from core.codegen.vars import Vars_Class
-from core.codegen.ops import Ops_Class
-from core.codegen.controlflow import ControlFlow_Class
+from core.codegen.builtins import Builtins as Builtins_Class
+from core.codegen.toplevel import Toplevel
+from core.codegen.vars import Vars
+from core.codegen.ops import Ops
+from core.codegen.controlflow import ControlFlow
 
-class LLVMCodeGenerator(Builtins_Class, Toplevel_Class, Vars_Class, Ops_Class, ControlFlow_Class):
+class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
     def __init__(self):
         '''
         Initialize the code generator.

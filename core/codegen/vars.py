@@ -6,7 +6,7 @@ from core.vartypes import VarTypes, DEFAULT_TYPE
 
 # pylint: disable=E1101
 
-class Vars_Class():
+class Vars():
     def _codegen_NoneType(self, node):
         pass
 

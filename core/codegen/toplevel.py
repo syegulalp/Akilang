@@ -7,7 +7,7 @@ from core.tokens import decorator_collisions
 
 # pylint: disable=E1101
 
-class Toplevel_Class():
+class Toplevel():
 
     def _codegen_Decorator(self, node):
         '''
