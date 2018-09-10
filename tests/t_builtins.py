@@ -12,7 +12,7 @@ def evallib():
     e.reset()
     return e
 
-opts = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}
+ret_u64 = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}
 
 class TestEvaluator(unittest.TestCase):
     def test_c_ref(self):
@@ -135,4 +135,4 @@ class TestEvaluator(unittest.TestCase):
                 len(x)
             }
         ''')
-        self.assertEqual(e.evaluate('main()', opts), 9)
+        self.assertEqual(e.evaluate('main()', ret_u64), 9)
