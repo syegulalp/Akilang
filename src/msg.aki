@@ -1,7 +1,12 @@
 # Simple Win32 MessageBox call example
 
-extern MessageBoxA(hwnd:i32, msg:ptr i8, caption:ptr i8, type: i8):i32
+extern MessageBoxW(hwnd:i32, msg:ptr u8, caption:ptr u8, type: u8):i32
 
-def main(){
-    MessageBoxA(0,c_data('Hi'),c_data('Yo there'),0B)
-}
+def main(){    
+    MessageBoxW(
+        0,
+        utf_to_wide('Yo there! こんにちは世界!'),
+        utf_to_wide('Greetings'),
+        0B)
+    0
+    }

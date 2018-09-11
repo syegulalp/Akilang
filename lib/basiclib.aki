@@ -1,7 +1,8 @@
+# NT-specific functions that should be moved into another
+# library that is loaded after basiclib and stdlib
+# we need better names for those!
 
- #general cross-platform functions
-
- def input(bufsize:i32=1024):str{
+  def input(bufsize:i32=1024):str{
     var buf=c_alloc(bufsize)
     var err:i32
     
@@ -28,6 +29,34 @@
     return str(buf)   
 }
 
+# convert UTF8 to Win32 widechar
+
+def utf_to_wide(in_str:str):ptr u8 {
+    var instr_data = c_data(in_str)
+    var size = MultiByteToWideChar(
+        65001u, 0, 
+        instr_data,
+        -1,
+        instr_data,
+        0
+    )
+    
+    # TODO: untracked, b/c raw c_alloc calls
+    # don't flag for tracking
+    var out_data=c_alloc(size*2)
+
+    MultiByteToWideChar(
+        65001u, 0, 
+        instr_data,
+        cast(len(in_str),i32),
+        out_data,
+        size
+    )
+
+    return out_data
+}
+
+#general cross-platform functions
 
 @nomod
 def print(number :bool) :i32
