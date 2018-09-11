@@ -118,7 +118,7 @@ class Variable(Expr):
         super().__init__(position)
         self.name = name
         self.vartype = vartype
-        self.child = None
+        self.child = child
         self.initializer = initializer
 
     def flatten(self):
