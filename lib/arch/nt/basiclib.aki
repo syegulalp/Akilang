@@ -30,6 +30,7 @@ extern atoi(string: ptr u_mem): i32
 extern _get_errno(errno:ptr i32) :i32
 
 # implementations of above
+# plus expected platform services
 
 @inline
 def c_strlen(str_to_check: ptr u_mem): u_size
@@ -55,17 +56,6 @@ def set_codepage(codepage :u32) :bool
 def get_codepage() :u32
     GetConsoleOutputCP()
 
-def rnd(max:i32):i32
-    rand()/(32767/max)
-
-def inkey():i32 {
-    var key:i32
-    key=_getwch()
-    if (key==0 or key==224) then key=_getwch()
-    return key
-}
-
-####
 
 def int_to_c_str(my_int:i32): ptr u_mem {
     var size = c_size(my_int) * 4U + 1U

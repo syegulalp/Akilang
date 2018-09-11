@@ -2,33 +2,6 @@
 # library that is loaded after basiclib and stdlib
 # we need better names for those!
 
-  def input(bufsize:i32=1024):str{
-    var buf=c_alloc(bufsize)
-    var err:i32
-    
-    gets_s(
-        buf, cast(bufsize,u64)
-    )
-    
-    # we don't do anything with this yet,
-    # but in time we will
-    _get_errno(c_ref(err))
-
-    var s_len = strlen(buf)-1U
-    
-    var cr=c_ptr_math(
-        buf, s_len
-    )
-
-    # NT compatibility - strip CRs
-    if (c_deref(cr) == 13B) then
-        unsafe {
-        c_ptr_mod(cr, 0B)
-    }
-
-    return str(buf)   
-}
-
 # Win32: convert UTF8 to widechar
 
 def utf_to_wide(in_str:str):ptr u8 {
@@ -56,6 +29,43 @@ def utf_to_wide(in_str:str):ptr u8 {
 }
 
 #general cross-platform functions
+
+def rnd(max:i32):i32
+    rand()/(32767/max)
+
+def inkey():i32 {
+    var key:i32
+    key=_getwch()
+    if (key==0 or key==224) then key=_getwch()
+    return key
+}
+
+def input(bufsize:i32=1024):str{
+    var buf=c_alloc(bufsize)
+    var err:i32
+    
+    gets_s(
+        buf, cast(bufsize,u64)
+    )
+    
+    # we don't do anything with this yet,
+    # but in time we will
+    _get_errno(c_ref(err))
+
+    var s_len = strlen(buf)-1U
+    
+    var cr=c_ptr_math(
+        buf, s_len
+    )
+
+    # NT compatibility - strip CRs
+    if (c_deref(cr) == 13B) then
+        unsafe {
+        c_ptr_mod(cr, 0B)
+    }
+
+    return str(buf)   
+}
 
 @nomod
 def print(number :bool) :i32
