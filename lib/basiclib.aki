@@ -28,7 +28,8 @@ def utf_to_wide(in_str:str):ptr u8 {
     return out_data
 }
 
-#general cross-platform functions
+# general cross-platform functions
+# platform specific
 
 def rnd(max:i32):i32
     rand()/(32767/max)
@@ -66,6 +67,8 @@ def input(bufsize:i32=1024):str{
 
     return str(buf)   
 }
+
+# non-platform specific
 
 @nomod
 def print(number :bool) :i32
@@ -128,4 +131,3 @@ def factorial(n)
 
 def binary mod 10 (lhs, rhs)
     lhs - (lhs/rhs) * rhs
-  
