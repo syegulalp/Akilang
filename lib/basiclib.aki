@@ -29,28 +29,27 @@
     return str(buf)   
 }
 
-# convert UTF8 to Win32 widechar
+# Win32: convert UTF8 to widechar
 
 def utf_to_wide(in_str:str):ptr u8 {
-    var instr_data = c_data(in_str)
-    var size = MultiByteToWideChar(
-        65001u, 0, 
-        instr_data,
-        -1,
-        instr_data,
-        0
-    )
-    
+  
     # TODO: untracked, b/c raw c_alloc calls
     # don't flag for tracking
-    var out_data=c_alloc(size*2)
+
+    # TODO: a good test case for auto-promotion
+    # of ints?
+
+    var str_len = len(in_str)
+    var out_size = str_len*2U
+
+    var out_data=c_alloc(out_size)
 
     MultiByteToWideChar(
         65001u, 0, 
-        instr_data,
-        cast(len(in_str),i32),
+        c_data(in_str),
+        cast(str_len,i32),
         out_data,
-        size
+        cast(out_size,i32)
     )
 
     return out_data
