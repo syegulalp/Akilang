@@ -16,7 +16,7 @@ def make_type_as_ptr(my_type):
 class Bool(ir.IntType):
     p_fmt = '%i'
     def __new__(cls):
-        return super().__new__(cls, 1, False, False)
+        return super().__new__(cls, 1, False, True)
 
 
 class SignedInt(ir.IntType):

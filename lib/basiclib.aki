@@ -72,7 +72,7 @@ def input(bufsize:i32=1024):str{
 
 @nomod
 def print(number :bool) :i32
-    printf(c_data('%i\n'), convert(number,u64))
+    printf(c_data('%i\n'), cast(number,u64))
 
 @nomod
 def print(number :byte) :i32
