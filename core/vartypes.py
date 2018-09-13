@@ -77,7 +77,7 @@ class ArrayClass(ir.types.LiteralStructType):
         self.v_id = f'array_{my_type.v_id}'
         self.as_pointer = make_type_as_ptr(self)
 
-# singleton object types
+# object types
 
 Ptr = ir.global_context.get_identified_type('.object.ptr')
 Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
@@ -95,12 +95,26 @@ Str.ext_ptr = UnsignedInt(8, True).as_pointer()
 Str.p_fmt = '%s'
 Str.as_pointer = make_type_as_ptr(Str)
 
+ErrType = ir.global_context.get_identified_type('.object.err')
+ErrType.elements = (Str,)
+ErrType.v_id = 'err'
+ErrType.is_obj = True # ?
+ErrType.signed = False
+
+# types for singleton objects
+
 NoneType = ir.global_context.get_identified_type('.object.none')
 NoneType.elements = (ir.IntType(1), )
 NoneType.v_id = 'none'
 NoneType.is_obj = True
 NoneType.signed = False
 NoneType.ext_ptr = ir.IntType(8).as_pointer()
+
+OKType = ir.global_context.get_identified_type('.object.ok')
+OKType.elements = (ir.IntType(1),)
+OKType.v_id = 'ok'
+OKType.is_obj = True # ?
+OKType.signed = False
 
 # Object wrapper
 

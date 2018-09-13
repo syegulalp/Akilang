@@ -135,6 +135,7 @@ OldInit = ir.Function.__init__
 def __init(self, *a, **ka):    
     OldInit(self, *a, **ka)
     self.decorators = []
+    self.raises_exception = False
 
 ir.Function.__init__ = __init
 
