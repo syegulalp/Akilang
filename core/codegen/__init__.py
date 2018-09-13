@@ -79,6 +79,16 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # which we use to create the types,
         # and then refer to that unless it's explicitly overloaded?
 
+        self.noneobj = ir.GlobalVariable(
+            self.module,
+            VarTypes['None'],
+            '.none.'
+        )
+        self.noneobj.initializer = ir.Constant(VarTypes['None'],(0,))
+        self.noneobj.global_constant = True
+        self.noneobj.unnamed_addr = True
+        self.noneobj.storage_class = 'private'
+
     def _int(self, pyval):
         '''
         Returns a constant for Python int value.

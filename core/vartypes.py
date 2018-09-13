@@ -116,11 +116,14 @@ OKType.v_id = 'ok'
 OKType.is_obj = True # ?
 OKType.signed = False
 
+# module doesn't exist yet
+# OKProto = ir.GlobalValue(ir.module, OKType, '.object.ok1')
+
 # Object wrapper
 
 Obj = ir.global_context.get_identified_type('.object.base')
 Obj.elements = (
-    ir.IntType(8),  # object type identifier
+    ir.IntType(8).as_pointer(),  # pointer to object prototype
     ir.IntType(8).as_pointer()  # pointer to the object data itself
     # eventually, a pointer to a dict obj for properties
 )
