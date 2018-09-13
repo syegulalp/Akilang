@@ -1,6 +1,6 @@
 # Simple Win32 MessageBox call example
 
-extern MessageBoxW(hwnd:i32, msg:ptr u8, caption:ptr u8, type: u8):i32
+extern MessageBoxW(hwnd:i32, msg:ptr u_mem, caption:ptr u_mem, type: u8):i32
 
 def main(){    
     MessageBoxW(
