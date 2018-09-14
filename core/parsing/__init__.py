@@ -8,7 +8,7 @@ from core.ast_module import (
     _ANONYMOUS
 )
 
-from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
+from core.vartypes import generate_vartypes
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Decorators, Dunders
@@ -43,18 +43,21 @@ class Parser(Expressions, Toplevel):
     Akilang source into an AST.
     '''
 
-    def __init__(self, anon_vartype=DEFAULT_TYPE):
+    def __init__(self, anon_vartype=None):
+        self.vartypes = generate_vartypes()
+        if anon_vartype is None:
+            self.anon_vartype = self.vartypes._DEFAULT_TYPE
+        else:
+            self.anon_vartype = anon_vartype
         self.token_generator = None
         self.cur_tok = None
         self.local_types = {}
         self.consts = {}
-        self.anon_vartype = anon_vartype
         self.level = 0
         self.top_return = False
         self.expr_stack = []
         from core import codexec
         self.evaluator = codexec.AkilangEvaluator()
-
         self.parse_actions = PARSE_ACTIONS
 
     def parse_toplevel(self, buf):
@@ -138,7 +141,7 @@ class Parser(Expressions, Toplevel):
             raise ParseError(
                 f'"{self.cur_tok.value}" cannot be used as an identifier (builtin)',
                 self.cur_tok.position)
-        if self.cur_tok.value in VarTypes:
+        if self.cur_tok.value in self.vartypes:
             raise ParseError(
                 f'"{self.cur_tok.value}" cannot be used as an identifier (variable type)',
                 self.cur_tok.position)

@@ -1,4 +1,4 @@
-from core.vartypes import VarTypes
+from core.vartypes import generate_vartypes
 from core.errors import AkiSyntaxError
 from core.operators import BUILTIN_OP, BUILTIN_UNARY_OP
 from functools import lru_cache
@@ -17,6 +17,7 @@ class Position():
         self.absposition = absposition
         self.lineposition = lineposition
         self.buffer = buffer
+        
 
     def advance(self, newline=False):
         if newline:
@@ -58,12 +59,13 @@ class Lexer(object):
     stopping.
     """
 
-    def __init__(self, buf):
+    def __init__(self, buf, vartypes=generate_vartypes()):
         assert len(buf) >= 1
         self.buf = buf
         self.pos = 0
         self.lastchar = self.buf[0]
         self.position = Position(buf)
+        self.vartypes = vartypes
 
     def _advance(self):
         try:
@@ -76,6 +78,8 @@ class Lexer(object):
             self.lastchar = ''
 
     def tokens(self):
+
+        VarTypes = self.vartypes
 
         pos = self.position.copy
 

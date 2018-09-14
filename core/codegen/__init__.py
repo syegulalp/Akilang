@@ -1,5 +1,5 @@
 from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call
-from core.vartypes import VarTypes 
+from core.vartypes import generate_vartypes
 from core.errors import CodegenError
 from core.mangling import mangle_args
 
@@ -11,6 +11,9 @@ from core.codegen.toplevel import Toplevel
 from core.codegen.vars import Vars
 from core.codegen.ops import Ops
 from core.codegen.controlflow import ControlFlow
+
+# pylint: disable=E1101
+
 
 class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
     def __init__(self):
@@ -54,37 +57,14 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # Flag for unsafe operations.
         self.allow_unsafe = False
 
-        # Initialize target data for the module.
-        self.target_data = llvm.create_target_data(self.module.data_layout)
-
-        # Set up pointer size and u_size vartype for current hardware.
-        self.pointer_size = (ir.PointerType(VarTypes.u8).get_abi_size(
-            self.target_data))
-
-        self.pointer_bitwidth = self.pointer_size * 8
-
-        from core.vartypes import UnsignedInt
-        VarTypes['u_size'] = UnsignedInt(self.pointer_bitwidth)
-        VarTypes['u_mem'] = UnsignedInt(self.pointer_size)
-
-        import ctypes
-        VarTypes.u_size.c_type = ctypes.c_voidp
-        VarTypes.u_mem.c_type = ctypes.c_uint8
-
-        # XXX: this causes ALL instances of .u_size
-        # in the environment instance
-        # to be set to the platform width!
-        # we may not want to have this behavior
-        # what we may want to do is have a master instance of the target data
-        # which we use to create the types,
-        # and then refer to that unless it's explicitly overloaded?
-
+        self.vartypes = generate_vartypes()
+        
         self.noneobj = ir.GlobalVariable(
             self.module,
-            VarTypes['None'],
+            self.vartypes['None'],
             '.none.'
         )
-        self.noneobj.initializer = ir.Constant(VarTypes['None'],(0,))
+        self.noneobj.initializer = ir.Constant(self.vartypes['None'],None)
         self.noneobj.global_constant = True
         self.noneobj.unnamed_addr = True
         self.noneobj.storage_class = 'private'
@@ -95,14 +75,14 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         Used for gep, so it returns a value that is the bitwidth
         of the pointer size for the needed architecture.
         '''
-        return ir.Constant(VarTypes.u_size, int(pyval))
+        return ir.Constant(self.vartypes.u_size, int(pyval))
 
     def _i32(self, pyval):
         '''
         Returns a constant for 32-bit int value.
         Also used for gep where a 32-bit value is required.
         '''
-        return ir.Constant(VarTypes.u32, int(pyval))
+        return ir.Constant(self.vartypes.u32, int(pyval))
 
     def generate_code(self, node):
         assert isinstance(node, (Prototype, Function, Uni, Class, Decorator))
@@ -129,10 +109,10 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         that object is instantiated. By default it's the pointer size for the current
         hardware, but you will be able to override it later.
         '''
-        return ir.Constant(VarTypes.u_size, self.pointer_size)
+        return ir.Constant(self.varTypes.u_size, self.pointer_size)
 
     def _obj_size_type(self, obj):
-        return obj.get_abi_size(self.target_data)
+        return obj.get_abi_size(self.vartypes._target_data)
 
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)

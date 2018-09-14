@@ -2,6 +2,8 @@ from core.llvmlite_custom import Map, _PointerType, MyType
 from core.tokens import Dunders
 
 import llvmlite.ir as ir
+import ctypes
+from llvmlite import binding
 
 # Singleton types (these do not require an invocation, they're only created once)
 
@@ -123,7 +125,7 @@ OKType.signed = False
 
 Obj = ir.global_context.get_identified_type('.object.base')
 Obj.elements = (
-    ir.IntType(8).as_pointer(),  # pointer to object prototype
+    ir.IntType(8),  # pointer to object prototype list
     ir.IntType(8).as_pointer()  # pointer to the object data itself
     # eventually, a pointer to a dict obj for properties
 )
@@ -131,58 +133,99 @@ Obj.v_id = 'obj'
 Obj.is_obj = True
 Obj.ext_ptr = ir.IntType(8).as_pointer()
 
-VarTypes = Map({
-    # singleton
-    'u1': Bool(),
-    'i8': SignedInt(8),
-    'i16': SignedInt(16),
-    'i32': SignedInt(32),
-    'i64': SignedInt(64),
-    'u8': UnsignedInt(8),
-    'u16': UnsignedInt(16),
-    'u32': UnsignedInt(32),
-    'u64': UnsignedInt(64),
-    'f64': Float64(),
-    'u_size': None,
-    # u_size is set on init
+# This will take in a target data,
+# or failing that, just default to the platform running
+# The lexer, parser, and codegen objects will each
+# create an instance of this, so they are all instance-local
+# and not simply imported from this module
 
-    # non-singleton
-    'array': Array,
-    'func': ir.FunctionType,
+def generate_vartypes(module=None):
+    
+    _vartypes = Map({
+        
+        # singleton
+        'u1': Bool(),
+        'i8': SignedInt(8),
+        'i16': SignedInt(16),
+        'i32': SignedInt(32),
+        'i64': SignedInt(64),
+        'u8': UnsignedInt(8),
+        'u16': UnsignedInt(16),
+        'u32': UnsignedInt(32),
+        'u64': UnsignedInt(64),
+        'f64': Float64(),
+        'u_size': None,
+        # u_size is set on init
 
-    # object types
-    'str': Str,
-    'ptrobj': Ptr,
-    'None': NoneType,
+        # non-singleton
+        'array': Array,
+        'func': ir.FunctionType,
 
-    # 'any': Any
-})
+        # object types
+        'str': Str,
+        'ptrobj': Ptr,
+        'None': NoneType,
 
-object_typemap = {
-    0: VarTypes['None'],
-    1: VarTypes.str
-}
+        # 'any': Any
+    })
+    
 
-import ctypes
+    _vartypes.u1.c_type = ctypes.c_bool
+    _vartypes.u8.c_type = ctypes.c_ubyte
+    _vartypes.i16.c_type = ctypes.c_short
+    _vartypes.u16.c_type = ctypes.c_short
+    _vartypes.i32.c_type = ctypes.c_long
+    _vartypes.i64.c_type = ctypes.c_longlong
+    _vartypes.u32.c_type = ctypes.c_ulong
+    _vartypes.u64.c_type = ctypes.c_ulonglong
+    _vartypes.f64.c_type = ctypes.c_longdouble
 
-VarTypes.u1.c_type = ctypes.c_bool
-VarTypes.u8.c_type = ctypes.c_ubyte
-VarTypes.i16.c_type = ctypes.c_short
-VarTypes.u16.c_type = ctypes.c_short
-VarTypes.i32.c_type = ctypes.c_long
-VarTypes.i64.c_type = ctypes.c_longlong
-VarTypes.u32.c_type = ctypes.c_ulong
-VarTypes.u64.c_type = ctypes.c_ulonglong
-VarTypes.f64.c_type = ctypes.c_longdouble
+    # add these types in manually, since they just shadow existing ones
 
-# add these types in manually, since they just shadow existing ones
+    _vartypes['bool'] = _vartypes.u1
+    _vartypes['byte'] = _vartypes.u8
 
-VarTypes['bool'] = VarTypes.u1
-VarTypes['byte'] = VarTypes.u8
+    _vartypes.func.is_obj = True
 
-VarTypes.func.is_obj = True
+    _vartypes._DEFAULT_TYPE = _vartypes.i32
+    _vartypes._DEFAULT_RETURN_VALUE = ir.Constant(_vartypes.i32, 0)
 
-DEFAULT_TYPE = VarTypes.i32
-DEFAULT_RETURN_VALUE = ir.Constant(VarTypes.i32, 0)
+    # if no module, assume platform
+
+    if not module:
+        module = ir.Module()
+    
+    # Initialize target data for the module.
+    target_data = binding.create_target_data(module.data_layout)
+
+    # Set up pointer size and u_size vartype for current hardware.
+    _vartypes._pointer_size = (
+        ir.PointerType(_vartypes.u8).get_abi_size(target_data)
+    )
+
+    _vartypes._pointer_bitwidth = _vartypes._pointer_size * 8
+
+    _vartypes._target_data = target_data
+    
+    _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_bitwidth)
+    _vartypes['u_mem'] = UnsignedInt(_vartypes._pointer_size)
+
+    _vartypes.u_size.c_type = ctypes.c_voidp
+    _vartypes.u_mem.c_type = ctypes.c_uint8
+
+    for _, n in enumerate(_vartypes):
+        if not n.startswith('_'):
+            _vartypes[n].box_id = _
+
+    return _vartypes
+
+VarTypes = generate_vartypes()
+
+# platform VarTypes is the default
+# we can just import from here if we want that
+# and most of the time, we do
+
+DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
+DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
 
 dunder_methods = set([f'__{n}__' for n in Dunders])

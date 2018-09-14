@@ -1,4 +1,3 @@
-from core.vartypes import DEFAULT_TYPE
 from core.ast_module import _ANONYMOUS
 import llvmlite.ir as ir
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
@@ -46,7 +45,7 @@ class Toplevel():
         # note that Extern functions MUST be typed
 
         if node.vartype is None:
-            node.vartype = DEFAULT_TYPE
+            node.vartype = self.vartypes._DEFAULT_TYPE
 
         functype = ir.FunctionType(
             node.vartype,
@@ -303,7 +302,7 @@ class Toplevel():
             val, final_type = self._codegen_VarDef(expr, vartype)
 
             if final_type is None:
-                final_type = DEFAULT_TYPE
+                final_type = self.vartypes._DEFAULT_TYPE
 
             str1 = ir.GlobalVariable(self.module, final_type, name)
 

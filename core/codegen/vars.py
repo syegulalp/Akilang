@@ -2,7 +2,7 @@ import llvmlite.ir as ir
 from core.errors import CodegenError
 from core.ast_module import Variable, Call, ArrayAccessor
 from core.mangling import mangle_call
-from core.vartypes import VarTypes, DEFAULT_TYPE
+#from core.vartypes import VarTypes, DEFAULT_TYPE
 
 # pylint: disable=E1101
 
@@ -211,17 +211,17 @@ class Vars():
         # Get pointer to first element in string's byte array
         # and bitcast it to a ptr i8.
 
-        spt = str_const.gep([self._int(0)]).bitcast(VarTypes.u8.as_pointer())
+        spt = str_const.gep([self._int(0)]).bitcast(self.vartypes.u8.as_pointer())
 
         # Create the string object that points to the constant.
 
-        str_val = ir.GlobalVariable(module, VarTypes.str, str_name)
+        str_val = ir.GlobalVariable(module, self.vartypes.str, str_name)
         str_val.storage_class = 'private'
         str_val.unnamed_addr = True
         str_val.global_constant = True
 
-        str_val.initializer = VarTypes.str(
-            [ir.Constant(VarTypes.u64, string_length), spt])
+        str_val.initializer = self.vartypes.str(
+            [ir.Constant(self.vartypes.u64, string_length), spt])
 
         return str_val
 
@@ -279,7 +279,7 @@ class Vars():
         if expr is None:
             val = None
             if vartype is None:
-                vartype = DEFAULT_TYPE
+                vartype = self.vartypes._DEFAULT_TYPE
             final_type = vartype
         else:
             val = self._codegen(expr)

@@ -9,6 +9,8 @@ from core.codegen import llvm, LLVMCodeGenerator
 from core.errors import CodegenError, ParseError
 from core.repl import paths
 from core.vartypes import Str, DEFAULT_TYPE
+# TODO: make sure these are eventually supplied 
+# by way of the module instance
 from core.ast_module import Function
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])

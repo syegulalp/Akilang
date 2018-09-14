@@ -1,10 +1,11 @@
-from core.lexer import TokenKind
+from core.tokens import TokenKind
 from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
     Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe
 )
-from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
+#from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
+from core.vartypes import CustomClass, ArrayClass
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Dunders
@@ -137,8 +138,8 @@ class Expressions():
             is_ptr += 1
             self._get_next_token()
 
-        if self.cur_tok.value in VarTypes:
-            vartype = VarTypes[self.cur_tok.value]
+        if self.cur_tok.value in self.vartypes:
+            vartype = self.vartypes[self.cur_tok.value]
 
         elif self.cur_tok.value in self.local_types:
             vartype = self.local_types[self.cur_tok.value].vartype
@@ -149,7 +150,7 @@ class Expressions():
                 self.cur_tok.position
             )
 
-        if isinstance(vartype, VarTypes.func.__class__):
+        if isinstance(vartype, self.vartypes.func.__class__):
             self._get_next_token()
             self._match(TokenKind.PUNCTUATOR, '(')
             
