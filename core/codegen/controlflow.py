@@ -519,8 +519,6 @@ class ControlFlow():
         # Check for the presence of an object returned from the call
         # that requires memory tracing
 
-        
-
         if callee_func in self.gives_alloc:
             call_to_return.heap_alloc = True
             call_to_return.tracked = True
