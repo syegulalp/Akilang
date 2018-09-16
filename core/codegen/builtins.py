@@ -181,7 +181,7 @@ class Builtins():
 
     def _codegen_Builtins_c_array_ptr(self, node):
         '''
-        Returns a raw u_size pointer to the start of an array object.
+        Returns a raw u_mem pointer to the start of an array object.
         NOTE: I think we can merge this with c_data,
         since they are essentially the same thing, once we normalize
         the layout of string and array objects.
@@ -193,7 +193,7 @@ class Builtins():
             convert_from,
             [self._i32(0),self._i32(1),]
         )
-        bc = self.builder.bitcast(gep, self.vartypes.u_size.as_pointer()) # pylint: disable=E1111
+        bc = self.builder.bitcast(gep, self.vartypes.u_mem.as_pointer()) # pylint: disable=E1111
         return bc
 
     def _codegen_Builtins_c_addr(self, node):
