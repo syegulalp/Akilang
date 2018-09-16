@@ -528,6 +528,12 @@ class ControlFlow():
         if callee_func.tracked == True:
             call_to_return.heap_alloc = True
             call_to_return.tracked = True
+
+        if 'unsafe_req' in callee_func.decorators and not self.allow_unsafe:
+            raise CodegenError(
+                f'Function "{node.name}" is decorated with "@unsafe_req" and requires an "unsafe" block"',
+                node.position
+            )
         
         # if callee_func.do_not_allocate == True:
         #     call_to_return.do_not_allocate = True
@@ -536,6 +542,7 @@ class ControlFlow():
         #     call_to_return.tracked=False
 
         return call_to_return
+
     def _codegen_Do(self, node):
         for n in node.expr_list:
             try:

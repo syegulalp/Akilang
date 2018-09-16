@@ -45,6 +45,7 @@ def c_alloc(bytes:i32):ptr u_mem
     c_alloc(cast(bytes, u_size))
 
 @inline
+@unsafe_req
 def c_free(m:ptr u_mem):bool
     HeapFree(GetProcessHeap(), 0u, m)
 
