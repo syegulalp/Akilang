@@ -31,26 +31,6 @@ class Builtins():
         if ptr_check:
             self._check_pointer(codegen, node)
         return codegen
-
-    def _codegen_Builtins_c_ptr_math(self, node):
-
-        ptr = self._codegen(node.args[0])
-        int_from_ptr = self.builder.ptrtoint(ptr, self.vartypes.u_size)
-        amount_to_add = self._codegen(node.args[1])
-        # TODO: if this is a signed type,
-        # perform runtime test for subtraction
-        add_result = self.builder.add(int_from_ptr, amount_to_add)
-        add_result = self.builder.inttoptr(add_result, ptr.type)
-
-        return add_result
-
-    def _codegen_Builtins_c_ptr_mod(self, node):
-        self._if_unsafe(node)
-
-        ptr = self._codegen(node.args[0])
-        value = self._codegen(node.args[1])        
-        self.builder.store(value, ptr)
-        return ptr
     
     def _codegen_Builtins_c_obj_alloc(self, node):
         '''
@@ -112,6 +92,26 @@ class Builtins():
         s1 = self._alloca('obj_ref', expr.type)
         self.builder.store(expr, s1)
         return s1
+
+    def _codegen_Builtins_c_ptr_math(self, node):
+
+        ptr = self._codegen(node.args[0])
+        int_from_ptr = self.builder.ptrtoint(ptr, self.vartypes.u_size)
+        amount_to_add = self._codegen(node.args[1])
+        # TODO: if this is a signed type,
+        # perform runtime test for subtraction
+        add_result = self.builder.add(int_from_ptr, amount_to_add)
+        add_result = self.builder.inttoptr(add_result, ptr.type)
+
+        return add_result
+
+    def _codegen_Builtins_c_ptr_mod(self, node):
+        self._if_unsafe(node)
+
+        ptr = self._codegen(node.args[0])
+        value = self._codegen(node.args[1])        
+        self.builder.store(value, ptr)
+        return ptr
 
     def _codegen_Builtins_c_size(self, node):
         '''
@@ -195,6 +195,14 @@ class Builtins():
         )
         bc = self.builder.bitcast(gep, self.vartypes.u_mem.as_pointer()) # pylint: disable=E1111
         return bc
+
+    def _codegen_Builtins_c_ptr(self, node):
+        '''
+        Returns a u_mem ptr to anything
+        '''
+        self._if_unsafe(node)
+        address_of = self._codegen(node.args[0])
+        return self.builder.bitcast(address_of, self.vartypes.u_mem.as_pointer())
 
     def _codegen_Builtins_c_addr(self, node):
         '''

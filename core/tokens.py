@@ -69,6 +69,7 @@ Builtins = {
     'c_obj_alloc', 'c_obj_free',
     'c_obj_ref', 'c_obj_deref',    
     'c_obj_size',    
+    'c_ptr',
     'c_ptr_math','c_ptr_mod',
     'cast', 'convert',
     'out',
