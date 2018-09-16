@@ -119,5 +119,6 @@ def main(){
         }
         life()
     }
+    print ("Goodbye!")
     return 0
 }
