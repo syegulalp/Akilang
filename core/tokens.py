@@ -84,7 +84,9 @@ Decorators = {
     'varfunc',
     'inline',
     'noinline',
-    'nomod'
+    'nomod',
+    'unsafe_req',
+    'track'
 }
 
 decorator_collisions = (
