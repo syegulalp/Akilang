@@ -20,6 +20,11 @@ def makefunc(module, func_name, func_type, func_sig, no_mangle=False):
 
 
 def makecall(irbuilder, module, funcname, func_sig):
+
+    # we might want to use the node visitor,
+    # since that also supplies things like
+    # decorator tests, etc.
+
     types = [v.type for v in func_sig]
     f_name = module.globals.get(
         mangle_call(funcname, types)
