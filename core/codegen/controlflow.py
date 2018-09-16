@@ -529,7 +529,7 @@ class ControlFlow():
             call_to_return.heap_alloc = True
             call_to_return.tracked = True
 
-        if 'unsafe_req' in callee_func.decorators and not self.allow_unsafe:
+        if 'unsafe_req' in final_call.decorators and not self.allow_unsafe:
             raise CodegenError(
                 f'Function "{node.name}" is decorated with "@unsafe_req" and requires an "unsafe" block"',
                 node.position

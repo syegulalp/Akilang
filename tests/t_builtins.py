@@ -93,7 +93,7 @@ class TestEvaluator(unittest.TestCase):
             x[63]=64U
             y=x[1]+x[63]
             z=z+(if y==128U then 0 else 1)
-            z=z+(if c_obj_free(x) then 0 else 1)
+            z=z+(if unsafe c_obj_free(x) then 0 else 1)
             z
         }
         ''')
