@@ -151,9 +151,11 @@ def run_tests():
 
 def print_funlist(funlist):
     for func in funlist:
+        
         description = "{:>6} {:<20} ({})".format(
             'extern' if func.is_declaration else '   def',
-            func.public_name,
+            getattr(func,'public_name','name'),
+            #func.name,
             ', '.join((f'{arg.name}:{arg.type.describe()}' for arg in func.args))
         )
         cprint(description, 'yellow')
