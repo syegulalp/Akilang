@@ -74,7 +74,8 @@ class ControlFlow():
         self.builder.position_at_start(default)
         if node.default:
             self._codegen(node.default, False)
-        self.builder.branch(exit)
+        if not self.builder.block.is_terminated:
+            self.builder.branch(exit)
         self.builder.function.basic_blocks.append(exit)
         self.builder.position_at_start(exit)
         return cond_item
@@ -171,7 +172,7 @@ class ControlFlow():
         return phi
 
     def _codegen_Break(self, node):
-        exit = self.loop_exit.pop()
+        exit = self.loop_exit[-1][0]
         self.breaks = True
         self.builder.branch(exit)
 
@@ -195,6 +196,7 @@ class ControlFlow():
         # Define blocks
         loopcond_bb = ir.Block(self.builder.function, 'loopcond')
         loopbody_bb = ir.Block(self.builder.function, 'loopbody')
+        loopcounter_bb = ir.Block(self.builder.function, 'loopcounter')
         loopafter_bb = ir.Block(self.builder.function, 'loopafter')
 
         # If this loop has no conditions, codegen it with a manual exit
@@ -203,12 +205,19 @@ class ControlFlow():
             self.builder.branch(loopbody_bb)
             self.builder.function.basic_blocks.append(loopbody_bb)
             self.builder.position_at_start(loopbody_bb)
-            self.loop_exit.append(loopafter_bb)
+            self.loop_exit.append(
+                (loopafter_bb, loopbody_bb)
+            )
             self._codegen(node.body, False)
+            self.loop_exit.pop()            
             self.builder.branch(loopbody_bb)
             self.builder.function.basic_blocks.append(loopafter_bb)
             self.builder.position_at_start(loopafter_bb)
             return
+        else:
+            self.loop_exit.append(
+                (loopafter_bb, loopcounter_bb)
+            )
 
         # ###########
         # loop header
@@ -279,6 +288,15 @@ class ControlFlow():
                                              node.start_expr.name),
                                     Number(None, 1, loop_ctr_type))
 
+        self.builder.branch(loopcounter_bb)
+
+        ###############
+        # loop counter
+        ###############
+
+        self.builder.function.basic_blocks.append(loopcounter_bb)
+        self.builder.position_at_start(loopcounter_bb)
+        
         # Evaluate the step and update the counter
         nextval = self._codegen(node.step_expr)
         self.builder.store(nextval, var_addr)
@@ -301,8 +319,25 @@ class ControlFlow():
         else:
             self.func_symtab[node.start_expr.name] = oldval
 
+        # Remove topmost loop exit/loop continue marker
+        #if self.loop_exit:
+        self.loop_exit.pop()
+
+        #self.loop_counter = None
+        
         # The 'loop' expression returns the last value of the counter
         return self.builder.load(var_addr)
+
+    def _codegen_Continue(self, node):
+        # First, determine if we are in a loop context:
+
+        if not self.loop_exit:
+            raise CodegenError(
+                '"continue" called outside of loop',
+                node.position
+            )
+
+        return self.builder.branch(self.loop_exit[-1][1])
 
     def _codegen_While(self, node):
         # This is a modified version of a For.

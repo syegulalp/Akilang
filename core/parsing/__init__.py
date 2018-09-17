@@ -26,6 +26,7 @@ PARSE_ACTIONS = {
     TokenKind.IF: 'if',
     TokenKind.WHEN: 'when',
     TokenKind.LOOP: 'loop',
+    TokenKind.CONTINUE: 'continue',
     TokenKind.VAR: 'var',
     TokenKind.WITH: 'with',
     TokenKind.UNSAFE: 'unsafe',

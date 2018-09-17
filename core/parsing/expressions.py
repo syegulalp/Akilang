@@ -2,7 +2,7 @@ from core.tokens import TokenKind
 from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe
+    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe, Continue
 )
 #from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.vartypes import CustomClass, ArrayClass
@@ -428,6 +428,11 @@ class Expressions():
         loop_var = Variable(var_pos, id_name, vartype, None, start_expr)
 
         return Loop(start, id_name, loop_var, end_expr, step_expr, body)
+
+    def _parse_continue_expr(self):
+        start = self.cur_tok.position
+        self._get_next_token()
+        return Continue(start)
 
     _if_eq_checks = (
         _parse_if_expr,

@@ -33,6 +33,7 @@ class TokenKind(Enum):
     #LET = -1060
     WITH = -1110
     LOOP = -1115
+    CONTINUE = -1116
     IF = -1200
     WHEN = -1250
     THEN = -1300

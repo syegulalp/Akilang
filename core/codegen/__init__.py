@@ -42,10 +42,11 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # Holds class definitions for codegen.
         self.class_symtab = {}
 
-        # Holds a stack of loop exits.
+        # Holds a stack of tuples:
+        # (loop exit block, loop continue block)
         # Used to track where to break out of a loop.
         self.loop_exit = []
-
+        
         # Holds functions that have optional arguments.
         # This allows them to be looked up efficiently.
         self.opt_args_funcs = {}
@@ -55,7 +56,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         self.gives_alloc = set()
 
         # Flag for unsafe operations.
-        self.allow_unsafe = False
+        self.allow_unsafe = False        
 
         self.vartypes = generate_vartypes()
         

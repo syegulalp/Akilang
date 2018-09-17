@@ -43,12 +43,18 @@ def show(){
         display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
     }
 
+    display[(player.y*(WIDTH+1))+player.x]=232B
+
     print(c_array_ptr(display))
 }
 
 def setup(){
 
     var nx=0, ny=0
+
+    loop(y=0, y<HEIGHT)
+        loop(x=0, x<WIDTH)
+            field[x,y]=0B
 
     loop (x=0, x<HEIGHT){
         field[0,x]=219B
@@ -83,30 +89,46 @@ def setup(){
 
     # Place human
 
-    var p:Player
-    # this is because there's no actual object
-    # allocation to player in uni yet
-    # we need to do that when we create there
-
-    player = p
-    
     player.x=20
     player.y=10
-
-    field[player.x,player.y]=232B
 
     0
 }
 
 def main(){
-
-    setup()
     loop {
-        show()
-        match inkey() {
-            113, 81: break
+        setup()
+        var x:i32
+        loop {
+            show()
+            x=inkey()
+            match x {
+                72: player.y=player.y-1
+                80: player.y=player.y+1
+                75: player.x=player.x-1
+                77: player.x=player.x+1
+                113, 81: break
+                default: continue
+            }
+            if field[player.x,player.y]==177B then {
+                print ("FROTZZZZZ\nYou just stepped into an electrified fence.")
+                break
+            }
+        }
+        loop {
+            print ("Play again? [y/n] > ")
+            x=inkey()
+            match x {
+                121: {x=1 break}
+                110: {x=0 break}
+                default: continue
+            }
+        }
+        if x!=1 then
+        {
+            print ("Goodbye!")
+            break
         }
     }
-    print ("Goodbye!")
     return 0
 }

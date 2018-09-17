@@ -33,6 +33,9 @@ class Return(Expr):
         super().__init__(position)
         self.val = val
 
+class Continue(Expr):
+    pass
+
 class Decorator(Expr):
     def __init__(self, position, name, body):
         super().__init__(position)
