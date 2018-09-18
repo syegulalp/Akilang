@@ -43,11 +43,18 @@ class MyType():
         if not self.is_obj:
             raise Exception("Not an object")
         return f'.object.{self.v_id}.'
+    
+    def del_signature(self):
+        if hasattr(self,'del_id'):
+            return f'.object.{self.del_id}.'
+        else:
+            return self.signature()
 
 ir.types.Type.describe = MyType.describe
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_func = MyType.is_func
 ir.types.Type.signature = MyType.signature
+ir.types.Type.del_signature = MyType.del_signature
 
 class _PointerType(PointerType):
     def __init__(self, *a, **ka):
