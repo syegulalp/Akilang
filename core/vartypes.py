@@ -51,6 +51,7 @@ class Array(ir.ArrayType):
         self.v_id = 'array_' + my_type.v_id
         self.signed = my_type.signed
         self.as_pointer = make_type_as_ptr(self)
+        
 
 class CustomClass():
     def __new__(cls, name, types, v_types):
@@ -76,8 +77,15 @@ class ArrayClass(ir.types.LiteralStructType):
                 arr_type
             ]
         )
+        
         self.v_id = f'array_{my_type.v_id}'
+        self.del_id = 'array'        
         self.as_pointer = make_type_as_ptr(self)
+
+# When we remake string class, we should follow ArrayClass example
+# I just need to know how to initialize the string, load the contents,
+# for a static instance.
+# With a dynamically created instance, I don't think I can do that.
 
 # object types
 
