@@ -200,10 +200,27 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 pass
 
             if v.tracked:
+                
                 ref = self.builder.load(v)
-                sig = v.type.pointee.pointee.signature()
+                sig = v.type.pointee.pointee.del_signature()
+
+                # object deletions should just be a pointer
+                # to the object that can be bitcast as needed
+                # in the delete function
+                # because there are times when we don't know
+                # what sort of object we will receive
+                
+                ref = self.builder.bitcast(
+                    ref,
+                    self.vartypes.u_mem.as_pointer()
+                )
+                
                 self.builder.call(
-                    self.module.globals.get(sig+'__del__'),
+                    self.module.globals.get(
+                        sig+'__del__'+mangle_args(
+                            [self.vartypes.u_mem.as_pointer()]
+                            )
+                        ),
                     [ref],
                     f'{_}.delete'
                     )                    
