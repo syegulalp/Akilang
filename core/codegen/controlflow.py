@@ -47,7 +47,8 @@ class ControlFlow():
         switch_instr = self.builder.switch(cond_item, default)
         cases = []
         exprs = {}
-        for value, expr, in node.match_list:
+        values = set()
+        for value, expr in node.match_list:
             val_codegen = self._codegen(value)
             if not isinstance(val_codegen, ir.values.Constant):
                 raise CodegenError(
@@ -57,12 +58,14 @@ class ControlFlow():
                 raise CodegenError(
                     f'Type of match object ("{cond_item.type.describe()}") and match parameter ("{val_codegen.type.describe()}") must be consistent)',
                     value.position)
-            if expr in exprs:                
-                #switch_instr.add_case(val_codegen, exprs[expr])
+            if val_codegen.constant in values:
                 raise CodegenError(
-                    f'Duplicate match object "{value}"',
+                    f'Match parameter {value} duplicated',
                     value.position
                 )
+            values.add(val_codegen.constant)
+            if expr in exprs:
+                switch_instr.add_case(val_codegen, exprs[expr])
             else:
                 n = ir.Block(self.builder.function, 'match')
                 switch_instr.add_case(val_codegen, n)
