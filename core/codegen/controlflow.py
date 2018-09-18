@@ -57,18 +57,22 @@ class ControlFlow():
                 raise CodegenError(
                     f'Type of match object ("{cond_item.type.describe()}") and match parameter ("{val_codegen.type.describe()}") must be consistent)',
                     value.position)
-            if expr in exprs:
-                switch_instr.add_case(val_codegen, exprs[expr])
+            if expr in exprs:                
+                #switch_instr.add_case(val_codegen, exprs[expr])
+                raise CodegenError(
+                    f'Duplicate match object "{value}"',
+                    value.position
+                )
             else:
                 n = ir.Block(self.builder.function, 'match')
                 switch_instr.add_case(val_codegen, n)
-                exprs[expr] = n
+                exprs[expr] = n                
                 cases.append([n, expr])
         for block, expr in cases:
             self.builder.function.basic_blocks.append(block)
             self.builder.position_at_start(block)
             result = self._codegen(expr, False)
-            if result:
+            if result and not self.builder.block.is_terminated:
                 self.builder.branch(exit)
         self.builder.function.basic_blocks.append(default)
         self.builder.position_at_start(default)
@@ -118,7 +122,7 @@ class ControlFlow():
         self.breaks = False
 
         then_val = self._codegen(node.then_expr, False)
-        if then_val:
+        if then_val and not self.builder.block.is_terminated:
             self.builder.branch(merge_bb)
 
         # Emission of then_val could have generated a new basic block
@@ -134,7 +138,7 @@ class ControlFlow():
             self.builder.function.basic_blocks.append(else_bb)
             self.builder.position_at_start(else_bb)
             else_val = self._codegen(node.else_expr)
-            if else_val:
+            if else_val and not self.builder.block.is_terminated:
                 self.builder.branch(merge_bb)
             else_bb = self.builder.block
 
@@ -595,7 +599,16 @@ class ControlFlow():
     def _codegen_With(self, node):
         new_bindings = [v.name for v in node.vars.vars]
         
-        self._codegen_Var(node.vars, local_alloca=True)
+        # originally we codegenned this to allocate
+        # the variable in the local block,
+        # but I realized that would leak memory.
+        # it's best if we just alloca in the entry
+        # block in all cases.
+        # the autodispose will only dispose of things
+        # that have allocation tracking anyway.
+
+        self._codegen_Var(node.vars)
+
         body_val = self._codegen(node.body)
 
         for n in reversed(new_bindings):
