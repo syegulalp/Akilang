@@ -65,22 +65,20 @@ def stdlib_post(self, module):
 
     obj_del, irbuilder = makefunc(
         module,
-        '.object.array_u64.__del__', VarTypes.bool,
-        [VarTypes.array(VarTypes.u64,0).as_pointer()]
+        '.object.array.__del__', VarTypes.bool,
+        [VarTypes.u_mem.as_pointer()]
     )
-
-    ptr_cast = irbuilder.bitcast(
-        obj_del.args[0],
-        VarTypes.u_mem.as_pointer()
-    )    
 
     result = makecall(
         irbuilder, module,
         'c_free',
-        [ptr_cast]
+        [
+            obj_del.args[0]
+        ]
     )
 
     irbuilder.ret(result)
+
 
     #
     # del for string
@@ -89,27 +87,27 @@ def stdlib_post(self, module):
     obj_del, irbuilder = makefunc(
         module,
         '.object.str.__del__', VarTypes.bool,
-        [VarTypes.str.as_pointer()],
+        [VarTypes.u_mem.as_pointer()],
         no_mangle = True
     )
 
     # this just deletes the string object,
     # not the string data (for now)
 
-    ptr_cast = irbuilder.bitcast(
-        obj_del.args[0],
-        VarTypes.u_mem.as_pointer()
-    )
+    # ptr_cast = irbuilder.bitcast(
+    #     obj_del.args[0],
+    #     VarTypes.u_mem.as_pointer()
+    # )
 
-    # is there any way to determine at compile time
-    # whether or not we need to delete the underlying data?
+    # # is there any way to determine at compile time
+    # # whether or not we need to delete the underlying data?
 
-    #data_ptr = 
+    # #data_ptr = 
 
     result = makecall(
         irbuilder, module,
         'c_free',
-        [ptr_cast]
+        [obj_del.args[0],]
     )
 
     irbuilder.ret(result)
