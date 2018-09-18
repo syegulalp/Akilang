@@ -1,25 +1,28 @@
 class Player {
-    x:i32
+    x:i32,
     y:i32
 }
 
 class Robot{
-    x:i32
-    y:i32
+    x:i32,
+    y:i32,
+    killed:bool
 }
 
 const {
     WIDTH=40,
     HEIGHT=20,
     FIELD_SIZE = (WIDTH+1)*HEIGHT
+    FENCE = 177B
+    WALL = 219B
+    ROBOTS = 10
 }
 
 uni {
     field:byte[WIDTH,HEIGHT],
-    #display:byte[(WIDTH+1)*HEIGHT], # can't do this yet
     display:byte[FIELD_SIZE],
     player:Player,
-    robots:Robot[10]
+    robots:Robot[ROBOTS]
 }
 
 def show(){
@@ -39,13 +42,18 @@ def show(){
 
     display[z]=0B
 
-    loop (x=0, x<9){
+    loop (x=0, x<ROBOTS-1){
+        if robots[x].killed then continue
         display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
     }
 
     display[(player.y*(WIDTH+1))+player.x]=232B
 
     print(c_array_ptr(display))
+}
+
+def location(v) {
+    rnd(v-4)+2
 }
 
 def setup(){
@@ -57,34 +65,36 @@ def setup(){
             field[x,y]=0B
 
     loop (x=0, x<HEIGHT){
-        field[0,x]=219B
-        field[WIDTH-1,x]=219B
+        field[0,x]=WALL
+        field[WIDTH-1,x]=WALL
     }
     loop (x=0, x<WIDTH){
-        field[x,0]=219B
-        field[x,HEIGHT-1]=219B
+        field[x,0]=WALL
+        field[x,HEIGHT-1]=WALL
     }
 
     #Place electrodes
 
-    loop (x=0, x<20){
+    loop (x=0, x<40){
         loop {
-            nx = rnd(WIDTH-4)+2
-            ny = rnd(HEIGHT-4)+2
+            nx = location(WIDTH)
+            ny = location(HEIGHT)
             if field[nx,ny]==0B then break
         }
-        field[nx,ny]=177B
+        field[nx,ny]=FENCE
     }
 
     # Place robots    
-    loop (x=0, x<9) {
+    loop (x=0, x<ROBOTS-1) {
+        var robot = robots[x]
         loop {
-            nx = rnd(WIDTH-4)+2
-            ny = rnd(HEIGHT-4)+2
+            nx = location(WIDTH)
+            ny = location(HEIGHT)
             if field[nx,ny]==0B then break
         }
-        robots[x].x=nx
-        robots[x].y=ny
+        robot.x=nx
+        robot.y=ny
+        robot.killed=0b
     }    
 
     # Place human
@@ -99,21 +109,71 @@ def main(){
     loop {
         setup()
         var x:i32
+        var xvec, yvec
+        var dead=0
         loop {
             show()
             x=inkey()
+            xvec=0
+            yvec=0
+            print (x)
             match x {
-                72: player.y=player.y-1
-                80: player.y=player.y+1
-                75: player.x=player.x-1
-                77: player.x=player.x+1
-                113, 81: break
+                71: {yvec=-1 xvec=-1}
+                73: {yvec=-1 xvec=1}
+                79: {yvec=1 xvec=-1}
+                81: {yvec=1 xvec=1}
+                72: yvec=-1
+                80: yvec=1
+                75: xvec=-1
+                77: xvec=1
+                113: break
                 default: continue
             }
-            if field[player.x,player.y]==177B then {
-                print ("FROTZZZZZ\nYou just stepped into an electrified fence.")
-                break
+            
+            var loc = field[player.x+xvec,player.y+yvec]
+            match loc {
+                FENCE: {
+                    print ("FROTZZZZZ\nYou just stepped into an electrified fence.")
+                    break
+                }
+                WALL: {
+                    print ("Illegal move")
+                    continue
+                }
             }
+
+            player.x=player.x+xvec
+            player.y=player.y+yvec
+
+            loop (x=0, x<ROBOTS-1) {
+                var robot = robots[x]
+                if robot.killed then continue
+
+                if robot.x>player.x then
+                    robot.x=robot.x-1
+                
+                if robot.x<player.x then
+                    robot.x=robot.x+1
+
+                if robot.y>player.y then
+                    robot.y=robot.y-1
+                
+                if robot.y<player.y then
+                    robot.y=robot.y+1
+
+                if field[robot.x,robot.y] == FENCE then
+                    robot.killed=1b
+
+                if robot.x==player.x and robot.y==player.y then {
+                    print ("FROTZZZZZZ\nYou were killed by a robot.")
+                    dead=1
+                    break
+                }
+
+            }
+            
+            if dead then break
+           
         }
         loop {
             print ("Play again? [y/n] > ")
@@ -124,7 +184,7 @@ def main(){
                 default: continue
             }
         }
-        if x!=1 then
+        if x==0 then
         {
             print ("Goodbye!")
             break
