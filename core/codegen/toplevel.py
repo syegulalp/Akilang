@@ -141,7 +141,8 @@ class Toplevel():
         # This is the default with no varargs
 
         if node.varargs is None:
-            func.calling_convention = 'fastcc'
+            if not node.extern:
+                func.calling_convention = 'fastcc'
 
         # Linkage.
         # Default is 'private' if it's not extern, an anonymous function, or main
@@ -180,6 +181,7 @@ class Toplevel():
         # External calls, by default, no recursion
         if node.extern:
             func.attributes.add('norecurse')
+            func.linkage = 'dllimport'
 
         # By default, no lazy binding
         func.attributes.add('nonlazybind')
@@ -216,10 +218,11 @@ class Toplevel():
                 alloca = arg                
             else:
                 alloca = self._alloca(arg.name, arg.type)
-                self.builder.store(arg, alloca)            
+                self.builder.store(arg, alloca)
 
             # We don't shadow existing variables names, ever
             assert not self.func_symtab.get(arg.name) and "arg name redefined: " + arg.name
+
             self.func_symtab[arg.name] = alloca
             
             alloca.input_arg = _            
