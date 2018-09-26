@@ -85,7 +85,7 @@ def setup(){
     }
 
     # Place robots    
-    loop (x=0, x<ROBOTS-1) {
+    loop (x=0, x<ROBOTS) {
         var robot = robots[x]
         loop {
             nx = location(WIDTH)
@@ -111,12 +111,13 @@ def main(){
         var x:i32
         var xvec, yvec
         var dead=0
+        var dead_robots=0
         loop {
             show()
             x=inkey()
             xvec=0
             yvec=0
-            print (x)
+            #print (x)
             match x {
                 71: {yvec=-1 xvec=-1}
                 73: {yvec=-1 xvec=1}
@@ -145,7 +146,7 @@ def main(){
             player.x=player.x+xvec
             player.y=player.y+yvec
 
-            loop (x=0, x<ROBOTS-1) {
+            loop (x=0, x<ROBOTS) {
                 var robot = robots[x]
                 if robot.killed then continue
 
@@ -161,8 +162,10 @@ def main(){
                 if robot.y<player.y then
                     robot.y=robot.y+1
 
-                if field[robot.x,robot.y] == FENCE then
+                if field[robot.x,robot.y] == FENCE then {
                     robot.killed=1b
+                    dead_robots=dead_robots+1
+                }
 
                 if robot.x==player.x and robot.y==player.y then {
                     print ("FROTZZZZZZ\nYou were killed by a robot.")
@@ -170,6 +173,12 @@ def main(){
                     break
                 }
 
+            }
+            out ("Dead robots: {dead_robots}\n")
+
+            if dead_robots == ROBOTS then {
+                print ("You win!")
+                break
             }
             
             if dead then break
