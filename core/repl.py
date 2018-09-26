@@ -310,7 +310,7 @@ def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbos
         command = ""
         while not command in ['exit', 'quit']:
             run_command(k, command, options)
-            print(PROMPT, end="")
+            cprint(PROMPT,'white',end='')
             command = input().strip()
 
 # to add:
