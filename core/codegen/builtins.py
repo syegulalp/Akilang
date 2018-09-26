@@ -113,6 +113,11 @@ class Builtins():
         self.builder.store(value, ptr)
         return ptr
 
+    def _codegen_Builtins_c_ptr_int(self, node):
+        ptr = self._codegen(node.args[0])
+        int_val = self.builder.ptrtoint(ptr, self.vartypes.u_size)
+        return int_val
+
     def _codegen_Builtins_c_size(self, node):
         '''
         Returns the size of the object's descriptor in bytes.
@@ -157,6 +162,16 @@ class Builtins():
 
         return ir.Constant(self.vartypes.u_size, s2)
 
+    def _codegen_Builtins_c_null(self, node):
+        '''
+        Returns a null pointer.
+        '''
+        ptr = self.builder.inttoptr(
+            self._int(0),
+            self.vartypes.u_mem.as_pointer()
+        )
+        return ptr
+    
     def _codegen_Builtins_c_data(self, node):
         '''
         Returns the underlying C-style data element
@@ -191,7 +206,9 @@ class Builtins():
         convert_from = self.builder.load(convert_from)
         gep = self.builder.gep(
             convert_from,
-            [self._i32(0),self._i32(1),]
+            [self._i32(0),
+            self._i32(1),
+            ]
         )
         bc = self.builder.bitcast(gep, self.vartypes.u_mem.as_pointer()) # pylint: disable=E1111
         return bc
