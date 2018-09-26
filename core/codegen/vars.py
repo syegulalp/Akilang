@@ -152,6 +152,10 @@ class Vars():
         if is_func:
             rhs_name = mangle_call(rhs.name, ptr.type.pointee.pointee.args)
             value = self.module.globals.get(rhs_name)
+            if not value:
+                    raise CodegenError(
+                        f'Call to unknown function "{rhs.name}" with signature {[n.describe() for n in ptr.type.pointee.pointee.args]}" (maybe this call signature is not implemented for this function?)',
+                        rhs.position)
             if 'varfunc' not in value.decorators:
                 raise CodegenError(
                     f'Function "{rhs.name}" must be decorated with "@varfunc" to allow variable assignments',
