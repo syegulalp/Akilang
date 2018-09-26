@@ -55,6 +55,7 @@ ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_func = MyType.is_func
 ir.types.Type.signature = MyType.signature
 ir.types.Type.del_signature = MyType.del_signature
+ir.types.Type.is_ptr = MyType.is_ptr
 
 class _PointerType(PointerType):
     def __init__(self, *a, **ka):
