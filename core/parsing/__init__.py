@@ -22,16 +22,16 @@ PARSE_ACTIONS = {
     TokenKind.OPERATOR:'unaryop',
     TokenKind.NUMBER: 'number',
     TokenKind.STRING: 'string',
+    TokenKind.VAR: 'var',
+    TokenKind.WITH: 'with',
     TokenKind.WHILE: 'while',
     TokenKind.IF: 'if',
     TokenKind.WHEN: 'when',
+    TokenKind.MATCH: 'match',
     TokenKind.LOOP: 'loop',
     TokenKind.CONTINUE: 'continue',
-    TokenKind.VAR: 'var',
-    TokenKind.WITH: 'with',
-    TokenKind.UNSAFE: 'unsafe',
-    TokenKind.MATCH: 'match',
     TokenKind.BREAK: 'break',
+    TokenKind.UNSAFE: 'unsafe',     
     TokenKind.VARTYPE: 'standalone_vartype'
 }
 
@@ -187,7 +187,6 @@ class Parser(Expressions, Toplevel):
         return Decorator(start, dec_name, dec_body)
 
     def _parse_primary(self):
-
         if self.top_return and self.level == 1:
             raise ParseError(
                 f'Unreachable code found after top-level "return" in function body',
@@ -207,7 +206,9 @@ class Parser(Expressions, Toplevel):
         else:
             raise ParseError(
                 f'Expression expected but met unknown token: "{self.cur_tok.value}"',
-                self.cur_tok.position)
+                self.cur_tok.position
+            )
+
 
     def _parse_builtin(self, name):
         if name in ('cast', 'convert'):
