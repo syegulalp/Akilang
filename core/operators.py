@@ -15,6 +15,8 @@ BinOpInfo = namedtuple('BinOpInfo', ['precedence', 'associativity'])
 BUILTIN_OP = {
     '=': BinOpInfo(2, Associativity.RIGHT),
     '==': BinOpInfo(10, Associativity.LEFT),
+    '+=': BinOpInfo(10, Associativity.LEFT),
+    '-=': BinOpInfo(10, Associativity.LEFT),
     '!=': BinOpInfo(10, Associativity.LEFT),
     'and': BinOpInfo(5, Associativity.LEFT),
     'or': BinOpInfo(5, Associativity.LEFT),

@@ -79,6 +79,24 @@ class Ops():
 
                 if node.op == '+':
                     return self.builder.add(lhs, rhs, 'addop')
+                elif node.op == '+=':                   
+                    if isinstance(lhs, ir.Constant):
+                        raise CodegenError(
+                            r"Can't assign value to literal",
+                            node.lhs.position
+                        )
+                    operand = self._extract_operand(lhs)                    
+                    value = self.builder.add(lhs, rhs, 'addop')
+                    return self.builder.store(value, operand)
+                elif node.op == '-=':
+                    if isinstance(lhs, ir.Constant):
+                        raise CodegenError(
+                            r"Can't assign value to literal",
+                            node.lhs.position
+                        )
+                    operand = self._extract_operand(lhs)
+                    value = self.builder.sub(lhs, rhs, 'addop')
+                    return self.builder.store(value, operand)
                 elif node.op == '-':
                     return self.builder.sub(lhs, rhs, 'subop')
                 elif node.op == '*':
@@ -128,6 +146,24 @@ class Ops():
 
                 if node.op == '+':
                     return self.builder.fadd(lhs, rhs, 'faddop')
+                elif node.op == '+=':                   
+                    if isinstance(lhs, ir.Constant):
+                        raise CodegenError(
+                            r"Can't assign value to literal",
+                            node.lhs.position
+                        ) 
+                    operand = self._extract_operand(lhs)
+                    value = self.builder.fadd(lhs, rhs, 'faddop')
+                    return self.builder.store(value, operand)
+                elif node.op == '-=':
+                    if isinstance(lhs, ir.Constant):
+                        raise CodegenError(
+                            r"Can't assign value to literal",
+                            node.lhs.position
+                        )
+                    operand = self._extract_operand(lhs)
+                    value = self.builder.fsub(lhs, rhs, 'fsubop')
+                    return self.builder.store(value, operand)
                 elif node.op == '-':
                     return self.builder.fsub(lhs, rhs, 'fsubop')
                 elif node.op == '*':
