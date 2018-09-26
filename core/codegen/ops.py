@@ -80,21 +80,11 @@ class Ops():
                 if node.op == '+':
                     return self.builder.add(lhs, rhs, 'addop')
                 elif node.op == '+=':                   
-                    if isinstance(lhs, ir.Constant):
-                        raise CodegenError(
-                            r"Can't assign value to literal",
-                            node.lhs.position
-                        )
-                    operand = self._extract_operand(lhs)                    
+                    operand = self._get_var(node, lhs)
                     value = self.builder.add(lhs, rhs, 'addop')
                     return self.builder.store(value, operand)
                 elif node.op == '-=':
-                    if isinstance(lhs, ir.Constant):
-                        raise CodegenError(
-                            r"Can't assign value to literal",
-                            node.lhs.position
-                        )
-                    operand = self._extract_operand(lhs)
+                    operand = self._get_var(node, lhs)
                     value = self.builder.sub(lhs, rhs, 'addop')
                     return self.builder.store(value, operand)
                 elif node.op == '-':
@@ -147,21 +137,11 @@ class Ops():
                 if node.op == '+':
                     return self.builder.fadd(lhs, rhs, 'faddop')
                 elif node.op == '+=':                   
-                    if isinstance(lhs, ir.Constant):
-                        raise CodegenError(
-                            r"Can't assign value to literal",
-                            node.lhs.position
-                        ) 
-                    operand = self._extract_operand(lhs)
+                    operand = self._get_var(node, lhs)
                     value = self.builder.fadd(lhs, rhs, 'faddop')
                     return self.builder.store(value, operand)
                 elif node.op == '-=':
-                    if isinstance(lhs, ir.Constant):
-                        raise CodegenError(
-                            r"Can't assign value to literal",
-                            node.lhs.position
-                        )
-                    operand = self._extract_operand(lhs)
+                    operand = self._get_var(node, lhs)
                     value = self.builder.fsub(lhs, rhs, 'fsubop')
                     return self.builder.store(value, operand)
                 elif node.op == '-':

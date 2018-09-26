@@ -103,6 +103,18 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         else:
             return val
 
+    def _get_var(self, node, lhs):
+        '''
+        Retrieves variable, if any, from a load op.
+        Used mainly for += and -= ops.
+        '''
+        if isinstance(lhs, ir.Constant):
+            raise CodegenError(
+                r"Can't assign value to literal",
+                node.lhs.position
+            )
+        return self._extract_operand(lhs)
+    
     def _isize(self):
         '''
         Returns a constant of the pointer size for the currently configured architecture.
