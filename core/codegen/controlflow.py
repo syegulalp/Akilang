@@ -75,7 +75,8 @@ class ControlFlow():
             self.builder.function.basic_blocks.append(block)
             self.builder.position_at_start(block)
             result = self._codegen(expr, False)
-            if result and not self.builder.block.is_terminated:
+            #if result and not self.builder.block.is_terminated:
+            if not self.builder.block.is_terminated:
                 self.builder.branch(exit)
         self.builder.function.basic_blocks.append(default)
         self.builder.position_at_start(default)
@@ -125,8 +126,9 @@ class ControlFlow():
         self.breaks = False
 
         then_val = self._codegen(node.then_expr, False)
-        if then_val and not self.builder.block.is_terminated:
-            self.builder.branch(merge_bb)
+        #if then_val or not self.builder.block.is_terminated:
+        if not self.builder.block.is_terminated:
+            self.builder.branch(merge_bb)           
 
         # Emission of then_val could have generated a new basic block
         # (and thus modified the current basic block).
@@ -141,7 +143,8 @@ class ControlFlow():
             self.builder.function.basic_blocks.append(else_bb)
             self.builder.position_at_start(else_bb)
             else_val = self._codegen(node.else_expr)
-            if else_val and not self.builder.block.is_terminated:
+            #if else_val or not self.builder.block.is_terminated:
+            if not self.builder.block.is_terminated:
                 self.builder.branch(merge_bb)
             else_bb = self.builder.block
 
