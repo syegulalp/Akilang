@@ -158,6 +158,9 @@ class Expressions():
             while True:
                 n = self._parse_vartype_expr()
                 arguments.append(n)
+                if self._cur_tok_is_punctuator(','):
+                    self._get_next_token()
+                    continue
                 if self._cur_tok_is_punctuator(')'):
                     break
 
