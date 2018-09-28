@@ -152,28 +152,28 @@ def main(){
                 }
             }
 
-            player.x=player.x+xvec
-            player.y=player.y+yvec
+            player.x+=xvec
+            player.y+=yvec
 
             loop (x=0, x<ROBOTS) {
                 var robot = robots[x]
                 if robot.killed then continue
 
                 if robot.x>player.x then
-                    robot.x=robot.x-1
+                    robot.x-=1
                 
                 if robot.x<player.x then
-                    robot.x=robot.x+1
+                    robot.x+=1
 
                 if robot.y>player.y then
-                    robot.y=robot.y-1
+                    robot.y-=1
                 
                 if robot.y<player.y then
-                    robot.y=robot.y+1
+                    robot.y+=1
 
                 if field[robot.x,robot.y] == FENCE then {
                     robot.killed=1b
-                    dead_robots=dead_robots+1
+                    dead_robots+=1
                 }
 
                 if robot.x==player.x and robot.y==player.y then {
