@@ -51,11 +51,11 @@ def show() {
                 else 32B
             )
             output[z] = s
-            pop = pop + (if s<33B then 0i else 1i)
-            z=z+1
+            pop += (if s<33B then 0i else 1i)
+            z+=1
         }
         output[z]=10B
-        z=z+1
+        z+=1
     }
     output[z]=0B
     
@@ -81,14 +81,14 @@ def life() {
                         (j+HEIGHT) mod HEIGHT,
                         (k+WIDTH) mod WIDTH]
             t = field[world,y,x]
-            sum=sum-t
+            sum-=t
             field[w2,y,x]={
                 if sum == 3B then 1B
                     elif sum == 2B then t
                     else 0B
             }
         }
-    gen=gen+1U
+    gen+=1U
     world=w2
 }
 
