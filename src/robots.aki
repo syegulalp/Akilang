@@ -26,7 +26,8 @@ uni {
 }
 
 def show(){
-    var z=0
+    var dead_robots = 0, z=0
+
     loop(y=0, y<HEIGHT){
         loop(x=0, x<WIDTH){
             display[z]=(
@@ -43,12 +44,15 @@ def show(){
     display[z]=0B
 
     loop (x=0, x<ROBOTS-1){
-        if robots[x].killed then continue
-        display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
+        when robots[x].killed then
+            dead_robots=dead_robots+1
+        else
+            display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
     }
 
     display[(player.y*(WIDTH+1))+player.x]=232B
 
+    out ("Dead robots: {dead_robots}\n")
     print(c_array_ptr(display))
 }
 
@@ -108,10 +112,12 @@ def setup(){
 def main(){
     loop {
         setup()
-        var x:i32
-        var xvec, yvec
-        var dead=0
-        var dead_robots=0
+        
+        var x:i32,
+            xvec, yvec,
+            dead=0,
+            dead_robots=0
+
         loop {
             show()
             x=inkey()
@@ -127,7 +133,10 @@ def main(){
                 80: yvec=1
                 75: xvec=-1
                 77: xvec=1
-                113: break
+                113: {
+                    print ("Quitting (wimp!)")
+                    break
+                }
                 default: continue
             }
             
@@ -174,7 +183,6 @@ def main(){
                 }
 
             }
-            out ("Dead robots: {dead_robots}\n")
 
             if dead_robots == ROBOTS then {
                 print ("You win!")
