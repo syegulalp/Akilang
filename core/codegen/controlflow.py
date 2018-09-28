@@ -220,7 +220,8 @@ class ControlFlow():
             )
             self._codegen(node.body, False)
             self.loop_exit.pop()            
-            self.builder.branch(loopbody_bb)
+            if not self.builder.block.is_terminated:
+                self.builder.branch(loopbody_bb)
             self.builder.function.basic_blocks.append(loopafter_bb)
             self.builder.position_at_start(loopafter_bb)
             return
