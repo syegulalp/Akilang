@@ -35,10 +35,10 @@ def show(){
                     then 32B
                     else field[x,y]
             )
-            z=z+1
+            z+=1
         }
         display[z]=10B
-        z=z+1
+        z+=1
     }
 
     display[z]=0B
