@@ -82,11 +82,13 @@ class Ops():
                 elif node.op == '+=':                   
                     operand = self._get_var(node, lhs)
                     value = self.builder.add(lhs, rhs, 'addop')
-                    return self.builder.store(value, operand)
+                    self.builder.store(value, operand)
+                    return value
                 elif node.op == '-=':
                     operand = self._get_var(node, lhs)
                     value = self.builder.sub(lhs, rhs, 'addop')
-                    return self.builder.store(value, operand)
+                    self.builder.store(value, operand)
+                    return value
                 elif node.op == '-':
                     return self.builder.sub(lhs, rhs, 'subop')
                 elif node.op == '*':
@@ -139,11 +141,13 @@ class Ops():
                 elif node.op == '+=':                   
                     operand = self._get_var(node, lhs)
                     value = self.builder.fadd(lhs, rhs, 'faddop')
-                    return self.builder.store(value, operand)
+                    self.builder.store(value, operand)
+                    return value
                 elif node.op == '-=':
                     operand = self._get_var(node, lhs)
                     value = self.builder.fsub(lhs, rhs, 'fsubop')
-                    return self.builder.store(value, operand)
+                    self.builder.store(value, operand)
+                    return value
                 elif node.op == '-':
                     return self.builder.fsub(lhs, rhs, 'fsubop')
                 elif node.op == '*':
