@@ -237,6 +237,30 @@ class TestEvaluator(unittest.TestCase):
             pass
         self.assertEqual(_.value, 0)
 
+    def test_incr_decr(self):
+        e = AkilangEvaluator()
+        n = '''
+        def main() {
+            var x=1, f=1.0, y=0
+            x+=1
+            if x!=2 then y=1
+            x=0
+            x-=1
+            if x!=-1 then y=1
+            f+=1.0
+            if f!=2.0 then y=1
+            f=0.0
+            f-=1.0
+            if f!=-1.0 then y=1
+            y
+        }
+        main()
+        '''
+        for _ in e.eval_generator(n):
+            pass
+        self.assertEqual(_.value, 0)
+
+    
     def test_function_pointer(self):
         e = AkilangEvaluator()
         n = '''
