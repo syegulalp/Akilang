@@ -260,6 +260,24 @@ class TestEvaluator(unittest.TestCase):
             pass
         self.assertEqual(_.value, 0)
 
+    def test_continue_and_break(self):
+        e = AkilangEvaluator()
+        n = '''
+        def main() {
+            var x=1,y=1
+            loop {
+                x+=1
+                if x<10 then continue
+                y=0
+                break
+            }
+            y+x
+        }
+        main()
+        '''
+        for _ in e.eval_generator(n):
+            pass
+        self.assertEqual(_.value, 10)
     
     def test_function_pointer(self):
         e = AkilangEvaluator()
