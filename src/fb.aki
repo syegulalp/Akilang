@@ -1,0 +1,12 @@
+# FizzBuzz
+
+def main(){
+    # Loops auto-increment by 1 if no incrementor is specified
+    loop (x=1,x<101) {
+        if x mod 15 == 0 then print ("FizzBuzz")
+            elif x mod 3 == 0 then print ("Fizz")
+            elif x mod 5 == 0 then print ("Buzz")
+            else print (x)
+    }
+    return 0
+}
