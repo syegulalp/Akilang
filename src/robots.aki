@@ -25,8 +25,8 @@ uni {
     robots:Robot[ROBOTS]
 }
 
-def show(){
-    var dead_robots = 0, z=0
+def show(dead_robots){
+    var z=0
 
     loop(y=0, y<HEIGHT){
         loop(x=0, x<WIDTH){
@@ -44,10 +44,8 @@ def show(){
     display[z]=0B
 
     loop (x=0, x<ROBOTS-1){
-        when robots[x].killed then
-            dead_robots=dead_robots+1
-        else
-            display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
+        when not robots[x].killed then
+        display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
     }
 
     display[(player.y*(WIDTH+1))+player.x]=232B
@@ -83,7 +81,7 @@ def setup(){
         loop {
             nx = location(WIDTH)
             ny = location(HEIGHT)
-            if field[nx,ny]==0B then break
+            when field[nx,ny]==0B then break
         }
         field[nx,ny]=FENCE
     }
@@ -94,7 +92,7 @@ def setup(){
         loop {
             nx = location(WIDTH)
             ny = location(HEIGHT)
-            if field[nx,ny]==0B then break
+            when field[nx,ny]==0B then break
         }
         robot.x=nx
         robot.y=ny
@@ -119,7 +117,7 @@ def main(){
             dead_robots=0
 
         loop {
-            show()
+            show(dead_robots)
             x=inkey()
             xvec=0
             yvec=0
@@ -157,27 +155,26 @@ def main(){
 
             loop (x=0, x<ROBOTS) {
                 var robot = robots[x]
-                if robot.killed then continue
 
-                if robot.x>player.x then
+                when robot.killed then continue
+
+                when robot.x>player.x then
                     robot.x-=1
-                
-                if robot.x<player.x then
+                else when robot.x<player.x then
                     robot.x+=1
 
-                if robot.y>player.y then
+                when robot.y>player.y then
                     robot.y-=1
-                
-                if robot.y<player.y then
+                else when robot.y<player.y then
                     robot.y+=1
 
-                if field[robot.x,robot.y] == FENCE then {
+                when field[robot.x,robot.y] == FENCE then {
                     robot.killed=1b
                     dead_robots+=1
                     continue
                 }
 
-                if robot.x==player.x and robot.y==player.y then {
+                when robot.x==player.x and robot.y==player.y then {
                     print ("FROTZZZZZZ\nYou were killed by a robot.")
                     dead=1
                     break
@@ -185,12 +182,12 @@ def main(){
 
             }
 
-            if dead_robots == ROBOTS then {
+            when dead_robots == ROBOTS then {
                 print ("You win!")
                 break
             }
             
-            if dead then break
+            when dead then break
            
         }
         loop {
@@ -202,7 +199,7 @@ def main(){
                 default: continue
             }
         }
-        if x==0 then
+        when x==0 then
         {
             print ("Goodbye!")
             break
