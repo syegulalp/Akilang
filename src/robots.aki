@@ -43,9 +43,9 @@ def show(dead_robots){
 
     display[z]=0B
 
-    loop (x=0, x<ROBOTS-1){
+    loop (x=0, x<ROBOTS){
         when not robots[x].killed then
-        display[(robots[x].y*(WIDTH+1))+robots[x].x]=72B
+        display[(robots[x].y*(WIDTH+1))+robots[x].x]=cast(x+48,i8)
     }
 
     display[(player.y*(WIDTH+1))+player.x]=232B
@@ -171,13 +171,14 @@ def main(){
                 when field[robot.x,robot.y] == FENCE then {
                     robot.killed=1b
                     dead_robots+=1
+                    out ("Robot {x} killed!\n")
                     continue
                 }
 
-                when robot.killed then print ("Killed")
+                #when robot.killed then 
 
                 when robot.x==player.x and robot.y==player.y then {
-                    print ("FROTZZZZZZ\nYou were killed by a robot.")
+                    out ("FROTZZZZZZ\nYou were killed by robot {x}.\n")
                     dead=1
                     break
                 }
