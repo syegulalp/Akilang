@@ -8,6 +8,8 @@ Eventually, this might become something useful for production. Right now, it's s
 
 [This document](language.md) is a work-in-progress tour of the language's syntax.
 
+You can see a short demo movie of the language in action [here.](https://www.youtube.com/watch?v=9vZ4oFCFOl8)
+
 # Goals and ideals
 
 The language's syntax and goals are in heavy flux, but this is the basic idea I want to aim for:
