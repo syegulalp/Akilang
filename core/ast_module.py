@@ -220,6 +220,22 @@ class Match(Expr):
             conditional expression)
         '''
 
+class Try(Expr):
+    def __init__(self, position, try_expr, except_expr, else_expr=None, finally_expr=None):
+        super().__init__(position)
+        self.try_expr = try_expr
+        self.except_expr = except_expr
+        self.else_expr = else_expr
+        self.finally_expr = finally_expr
+
+    def flatten(self):
+        return [
+            self.__class__.__name__,
+            self.try_expr.flatten(),
+            self.except_expr.flatten(),
+            self.else_expr.flatten(),
+            self.finally_expr.flatten()
+        ]
 
 class If(Expr):
     def __init__(self, position, cond_expr, then_expr, else_expr):
