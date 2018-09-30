@@ -38,7 +38,10 @@ class TokenKind(Enum):
     WHEN = -1250
     THEN = -1300
     ELSE = -1400
-    ELIF = -1401
+    TRY = -1410
+    EXCEPT = -1420
+    FINALLY = -1430
+    ELIF = -1450
     FOR = -1500
     IN = -1600
     WHILE = -1650
