@@ -10,7 +10,39 @@ import llvmlite.ir as ir
 
 class ControlFlow():
     def _codegen_Try(self, node):
-        return self._codegen(node.try_expr)
+        # create Try, Except, (Else), Exit blocks
+        # Try branches to Else, or Exit
+        # Except branches to Exit if it isn't already terminated
+        # during codegen for Try, set the Except block
+        # as our handler for any incoming exceptions
+        
+        try_block = ir.Block(self.builder.function, 'try')
+        except_block = ir.Block(self.builder.function, 'except')
+        exit_block = ir.Block(self.builder.function, 'end_try')
+        if node.else_expr:
+            else_block = ir.Block(self.builder.function, 'else')
+        
+        self.builder.function.basic_blocks.append(try_block)
+        self.builder.branch(try_block)
+        self.builder.position_at_start(try_block)
+
+        return_val = self._codegen(node.try_expr)
+
+        # if return value of expression is an exception type
+        # and exception handling is enabled.... where to put this?
+
+        self.builder.function.basic_blocks.append(exit_block)
+        if not self.builder.block.is_terminated:
+            self.builder.branch(exit_block)
+        self.builder.position_at_start(exit_block)
+        
+        return return_val
+
+    
+    def _codegen_Raise(self, node):
+        return self._codegen_Return(node)
+        # Raise interrupts control flow destructively
+        # ("expression does not return value along code paths")
         
     def _codegen_Return(self, node):
         '''

@@ -2,7 +2,7 @@ from core.tokens import TokenKind
 from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe, Continue, Try
+    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe, Continue, Try, Raise
 )
 #from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.vartypes import CustomClass, ArrayClass
@@ -44,6 +44,12 @@ class Expressions():
         
         return Try(start, try_expr, except_expr, else_expr, finally_expr)
 
+    def _parse_raise_expr(self):
+        start = self.cur_tok.position
+        self._get_next_token()
+        body = self._parse_expression()
+        return Raise(start, body)
+    
     def _parse_identifier_expr(self):
         start = self.cur_tok.position
         id_name = self.cur_tok.value

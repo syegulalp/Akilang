@@ -31,6 +31,7 @@ PARSE_ACTIONS = {
     TokenKind.LOOP: 'loop',
     TokenKind.CONTINUE: 'continue',
     TokenKind.TRY: 'try',
+    TokenKind.RAISE: 'raise',
     TokenKind.BREAK: 'break',
     TokenKind.UNSAFE: 'unsafe',     
     TokenKind.VARTYPE: 'standalone_vartype'

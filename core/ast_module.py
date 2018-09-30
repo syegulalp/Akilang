@@ -22,6 +22,8 @@ class Node(object):
 class Expr(Node):
     pass
 
+class Continue(Expr):
+    pass
 
 class Unsafe(Expr):
     def __init__(self, position, body):
@@ -33,8 +35,10 @@ class Return(Expr):
         super().__init__(position)
         self.val = val
 
-class Continue(Expr):
-    pass
+class Raise(Expr):
+    def __init__(self, position, val):
+        super().__init__(position)
+        self.val = val  
 
 class Decorator(Expr):
     def __init__(self, position, name, body):
