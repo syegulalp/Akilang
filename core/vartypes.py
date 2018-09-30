@@ -111,6 +111,17 @@ ErrType.v_id = 'err'
 ErrType.is_obj = True # ?
 ErrType.signed = False
 
+OKType = ir.global_context.get_identified_type('.object.ok')
+OKType.elements = (ir.IntType(1),)
+OKType.v_id = 'ok'
+OKType.is_obj = True # ?
+OKType.signed = False
+
+#ResultType = ir.global_context.get_identified_type('.object.result')
+#ResultType.elements = (OKType, ErrType)
+#third element should be the actual result?
+#how to encode that?
+
 # types for singleton objects
 
 NoneType = ir.global_context.get_identified_type('.object.none')
@@ -120,11 +131,7 @@ NoneType.is_obj = True
 NoneType.signed = False
 NoneType.ext_ptr = ir.IntType(8).as_pointer()
 
-OKType = ir.global_context.get_identified_type('.object.ok')
-OKType.elements = (ir.IntType(1),)
-OKType.v_id = 'ok'
-OKType.is_obj = True # ?
-OKType.signed = False
+
 
 # module doesn't exist yet
 # OKProto = ir.GlobalValue(ir.module, OKType, '.object.ok1')
