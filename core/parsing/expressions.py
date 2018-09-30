@@ -2,7 +2,7 @@ from core.tokens import TokenKind
 from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe, Continue
+    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe, Continue, Try
 )
 #from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.vartypes import CustomClass, ArrayClass
@@ -13,6 +13,37 @@ from core.tokens import Builtins, Dunders
 # pylint: disable=E1101
 
 class Expressions():
+    def _parse_try_expr(self):
+        start = self.cur_tok.position
+        
+        self._get_next_token()
+        self._compare(TokenKind.PUNCTUATOR,'{')
+        try_expr = self._parse_do_expr()
+        
+        self._match(TokenKind.EXCEPT)
+        self._compare(TokenKind.PUNCTUATOR,'{')
+        except_expr = self._parse_do_expr()        
+        
+        try:
+            self._compare(TokenKind.ELSE)
+        except ParseError:
+            return Try(start, try_expr, except_expr)
+
+        self._match(TokenKind.ELSE)
+        self._compare(TokenKind.PUNCTUATOR,'{')
+        else_expr = self._parse_do_expr()
+
+        try:
+            self._compare(TokenKind.FINALLY)
+        except ParseError:
+            return Try(start, try_expr, except_expr, else_expr)
+
+        self._match(TokenKind.FINALLY)
+        self._compare(TokenKind.PUNCTUATOR,'{')
+        else_expr = self._parse_do_expr()
+        
+        return Try(start, try_expr, except_expr, else_expr, finally_expr)
+
     def _parse_identifier_expr(self):
         start = self.cur_tok.position
         id_name = self.cur_tok.value
