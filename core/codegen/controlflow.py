@@ -138,12 +138,16 @@ class ControlFlow():
         # Emit the 'else' part, if needed
 
         if node.else_expr is None:
+            codegen_when = True
             else_val = None
+            self.builder.function.basic_blocks.append(else_bb)
+            self.builder.position_at_start(else_bb)
+            self.builder.branch(merge_bb)
+            else_bb = self.builder.block
         else:
             self.builder.function.basic_blocks.append(else_bb)
             self.builder.position_at_start(else_bb)
             else_val = self._codegen(node.else_expr)
-            #if else_val or not self.builder.block.is_terminated:
             if not self.builder.block.is_terminated:
                 self.builder.branch(merge_bb)
             else_bb = self.builder.block
@@ -154,9 +158,16 @@ class ControlFlow():
         self.builder.function.basic_blocks.append(merge_bb)
         self.builder.position_at_start(merge_bb)
 
+        # the problem:
+        # an if/elif still expects a value returned
+        # we can't mix when/if in the same compound statement
+
+        if codegen_when:
+            return cond_val
+
         if then_val is None and else_val is None:
             # returns are present in each branch
-            return
+            return        
         elif not else_val:
             # return present in 1st branch only
             return then_val.type
@@ -164,9 +175,6 @@ class ControlFlow():
             # return present in 2nd branch only
             return else_val.type
         # otherwise no returns in any branch
-
-        if codegen_when:
-            return cond_val
 
         # make sure then/else are in agreement
         # so we're returning consistent types
@@ -230,7 +238,7 @@ class ControlFlow():
                 (loopafter_bb, loopcounter_bb)
             )
 
-        # ###########
+        #############
         # loop header
         #############
 
