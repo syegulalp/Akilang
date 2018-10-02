@@ -15,7 +15,6 @@ from core.ast_module import Function
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
 
-
 def dump(str, filename):
     """Dump a string to a file name."""
     with open(filename, 'w') as file:
@@ -64,12 +63,11 @@ class AkilangEvaluator(object):
     def reset(self, history=[]):
         import os
         self._reset_base()
-
         if self.basiclib_dir:
 
             # First, load the platform library
             self._add_platform_lib(self.codegen.module)
-
+            
             # Now load the non-platform dependent basiclib
             self.load_file(
                 os.path.join(
@@ -90,7 +88,6 @@ class AkilangEvaluator(object):
 
     def _reset_base(self):
         self.codegen = LLVMCodeGenerator()
-        #self._add_builtins(self.codegen.module)
 
     def evaluate(self, codestr, options=dict()):
         """Evaluates only the first top level expression in codestr.
