@@ -35,9 +35,45 @@ def makecall(irbuilder, module, funcname, func_sig):
     )
 
 
-def stdlib_post(self, module):
+def platform_lib(self, module):
+
+    # Eventually this will be written out to bitcode
+    # and cached on disk
 
     n = r'''
+# Microsoft Win32/NT library interfaces
+
+extern SetConsoleOutputCP(codepage :u32) :bool
+extern GetConsoleOutputCP() :u32
+
+extern MultiByteToWideChar(
+    CodePage: u32, dwFlags: u32, 
+    lpMultiByteStr:ptr u8,
+    cbMultiByte: i32,
+    lpWideCharStr: ptr u8,
+    cchWideChar: i32
+)
+
+extern printf(str_fmt :ptr i8, *va) :i32
+extern _snprintf(str_buf: ptr u_mem, str_size:u_size, str_fmt: ptr i8, *va): i32
+extern strlen(str_to_check: ptr u_mem): u_size
+
+extern rand():i32
+
+extern GetProcessHeap():u_size
+extern HeapAlloc(handle:u_size, flags:u32, bytes:u_size):ptr u_mem
+extern HeapFree(handle:u_size, flags:u32, m:ptr u_mem): bool
+
+extern memcpy_s(dest:ptr u_size, size:u_size, source: ptr u_mem, count: u_size)
+
+extern _getwch():i32
+extern gets_s(input:ptr u_mem, bytes:u_size)
+extern atoi(string: ptr u_mem): i32
+
+extern _get_errno(errno:ptr i32) :i32
+
+extern memset(item:ptr u_mem, v:u8, size:u64)
+
 @inline
 def c_strlen(str_to_check: ptr u_mem): u_size
     strlen(str_to_check)
@@ -312,7 +348,45 @@ def utf_to_wide(in_str:str):ptr u8 {
     )
 
     return out_data
-}'''    
+}
+
+# general cross-platform functions
+
+def inkey():i32 {
+    var key:i32
+    key=_getwch()
+    if (key==0 or key==224) then key=_getwch()
+    return key
+}
+
+def input(bufsize:i32=1024):str{
+    var buf=c_alloc(bufsize)
+    var err:i32
+    
+    gets_s(
+        buf, cast(bufsize,u64)
+    )
+    
+    # we don't do anything with this yet,
+    # but in time we will
+    _get_errno(c_ref(err))
+
+    var s_len = strlen(buf)-1U
+    
+    var cr=c_ptr_math(
+        buf, s_len
+    )
+
+    # NT compatibility - strip CRs
+    if (c_deref(cr) == 13B) then
+        unsafe {
+        c_ptr_mod(cr, 0B)
+    }
+
+    return str(buf)   
+}
+
+'''    
 
     for _ in self.eval_generator(n):
         pass

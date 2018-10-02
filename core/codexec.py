@@ -66,23 +66,16 @@ class AkilangEvaluator(object):
         self._reset_base()
 
         if self.basiclib_dir:
-            # Load basic language library,
-            # first loading its arch-specific sublib
-            files = [
-                os.path.join(
-                    self.basiclib_dir, 'arch', os.name, self.basiclib_file
-                ),
+
+            # First, load the platform library
+            self._add_platform_lib(self.codegen.module)
+
+            # Now load the non-platform dependent basiclib
+            self.load_file(
                 os.path.join(
                     self.basiclib_dir, self.basiclib_file
                 )
-            ]
-
-            self.load_file(files[0]) # Platform arch
-            self._add_post_builtins(self.codegen.module)
-            self.load_file(files[1]) # Core library
-
-        # with open('llvmlib.ll') as file:
-        # self.eval_llasm(file.read())
+            )
 
         if history:
             # Run history
@@ -232,14 +225,8 @@ class AkilangEvaluator(object):
                 return Result(-1, ast, rawIR, optIR)
             return Result(result, ast, rawIR, optIR)
 
-    def _add_builtins(self, module):
+    def _add_platform_lib(self, module):
         import os
         import importlib
         builtins = importlib.import_module(f'core.stdlib.{os.name}')
-        builtins.stdlib(self, module)
-
-    def _add_post_builtins(self, module):
-        import os
-        import importlib
-        builtins = importlib.import_module(f'core.stdlib.{os.name}')
-        builtins.stdlib_post(self, module)        
+        builtins.platform_lib(self, module)        
