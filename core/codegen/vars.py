@@ -21,23 +21,46 @@ class Vars():
         '''
         Returns a pointer to the requested element of an array.
         '''
+
+        elements = [self._codegen(n) for n in node.elements]
+
         accessor = [
             self._i32(0),
             self._i32(1),
-        ] + [self._codegen(n) for n in node.elements]
+        ] + elements
 
-        # FIXME: This is intended to trap wrongly sized array accessors
-        # but we should find a more elegant way to do it in the parsing
-        # phase if possible
-
+        # First, try to obtain a conventional array accessor element
+        
         try:
             ptr = self.builder.gep(array, accessor, True, f'{array.name}')
-        except (AttributeError, IndexError):
+        except Exception as e:
+            pass
+        else:
+            return ptr
+        
+        # If that fails, assume we're trying to manually index an object
+        
+        if not self.allow_unsafe:
             raise CodegenError(
-                f'Invalid array accessor for "{array.name}" (maybe wrong number of dimensions?)',
+                f'Accessor "{array.name}" into unindexed object requires "unsafe" block',
                 node.position)
+        try:
+            ptr = self.builder.gep(array, [self._i32(0)] + elements , False, f'{array.name}')
+        except AttributeError as e:
+            raise CodegenError(
+                f'Unindexed accessor for "{array.name}" requires a constant',
+                node.position)
+        except Exception:
+            pass
+        else:
+            return ptr
 
-        return ptr
+        # If that fails, abort
+
+        raise CodegenError(
+            f'Invalid array accessor for "{array.name}" (maybe wrong number of dimensions?)',
+            node.position)
+
 
     def _codegen_Variable(self, node, noload=False):
 
@@ -68,7 +91,7 @@ class Vars():
                 else:
                     if not isinstance(latest, ir.instructions.LoadInstr):
                         # if the array object is not yet loaded,
-                        # then we need to allocate and store ptr
+                        # then we need to allocate and sore ptr
                         array_element = self.builder.alloca(latest.type)
                         self.builder.store(latest, array_element)
                     else:
