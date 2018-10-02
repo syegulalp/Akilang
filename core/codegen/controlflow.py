@@ -10,12 +10,9 @@ import llvmlite.ir as ir
 
 class ControlFlow():
     def _codegen_Try(self, node):
-        # create Try, Except, (Else), Exit blocks
-        # Try branches to Else, or Exit
-        # Except branches to Exit if it isn't already terminated
-        # during codegen for Try, set the Except block
-        # as our handler for any incoming exceptions
-        
+        # Try blocks do NOT return a value,
+        # at least not yet
+
         try_block = ir.Block(self.builder.function, 'try')
         except_block = ir.Block(self.builder.function, 'except')
         exit_block = ir.Block(self.builder.function, 'end_try')
@@ -26,19 +23,57 @@ class ControlFlow():
         self.builder.branch(try_block)
         self.builder.position_at_start(try_block)
 
+        # Push the current exception handling block onto the stack
+        # If we need to throw, this is where we branch to
+
+        # find out if we can change a function signature
+        # after the fact... I think we can, that'll save us
+        # some effort
+
+        # if we encounter any function that's tagged as
+        # @throwable then we convert the current function to
+        # @throwable as well
+
+        # encode calls as invoke
+        # set up landing pad for unwinding, in which we place
+        # object destructors
+        # is there any way to have that landing pad code
+        # not redundant with the regular object destructor code?
+
+        # and what about nondeterministic object destruction?
+        # in other words, how do we unwind objects created in an if branch?
+        # do we just check if their pointers have been freed already?
+        # that seems easiest, just check in reverse order of creation
+        # NOTE: unassigned pointers should be zeroinitalized!
+
+        self.try_except.append(except_block)
+
         return_val = self._codegen(node.try_expr)
 
-        # if return value of expression is an exception type
-        # and exception handling is enabled.... where to put this?
+        self.try_except.pop()
 
+        self.builder.function.basic_blocks.append(except_block)
+        self.builder.position_at_start(except_block)
+        except_val = self._codegen(node.except_expr)
+        if not self.builder.block.is_terminated:
+            self.builder.branch(exit_block)
+
+        if node.else_expr:            
+            self.builder.function.basic_blocks.append(else_block)
+            self.builder.position_at_end(try_block)
+            if not self.builder.block.is_terminated:
+                self.builder.branch(else_block)
+            self.builder.position_at_start(else_block)
+            else_val = self._codegen(node.else_expr)
+
+        # this will eventually become the 'finally' block
+        # when the semantics support it
+        
         self.builder.function.basic_blocks.append(exit_block)
         if not self.builder.block.is_terminated:
             self.builder.branch(exit_block)
         self.builder.position_at_start(exit_block)
         
-        return return_val
-
-    
     def _codegen_Raise(self, node):
         return self._codegen_Return(node)
         # Raise interrupts control flow destructively

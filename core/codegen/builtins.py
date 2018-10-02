@@ -82,6 +82,8 @@ class Builtins():
                  [Number(node.position, addr2,
             self.vartypes.u_mem.as_pointer())]))        
 
+        # TODO: zero after free, automatically
+        
         return call
 
     def _codegen_Builtins_c_obj_ref(self, node):

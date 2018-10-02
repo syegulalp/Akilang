@@ -56,7 +56,10 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         self.gives_alloc = set()
 
         # Flag for unsafe operations.
-        self.allow_unsafe = False        
+        self.allow_unsafe = False    
+
+        # Context for current try/except block (if any)
+        self.try_except = []
 
         self.vartypes = generate_vartypes()
         
