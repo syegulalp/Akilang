@@ -29,44 +29,4 @@ extern atoi(string: ptr u_mem): i32
 
 extern _get_errno(errno:ptr i32) :i32
 
-# implementations of above
-# plus expected platform services
-
-@inline
-def c_strlen(str_to_check: ptr u_mem): u_size
-    strlen(str_to_check)
-
-@inline
-def c_alloc(bytes:u_size):ptr u_mem
-    HeapAlloc(GetProcessHeap(), 8u, bytes)
-
-@inline
-def c_alloc(bytes:i32):ptr u_mem
-    c_alloc(cast(bytes, u_size))
-
-@inline
-@unsafe_req
-def c_free(m:ptr u_mem):bool
-    HeapFree(GetProcessHeap(), 0u, m)
-
-@inline
-def set_codepage(codepage :u32) :bool
-    SetConsoleOutputCP(codepage)
-
-@inline
-def get_codepage() :u32
-    GetConsoleOutputCP()
-
-
-def int_to_c_str(my_int:i32): ptr u_mem {
-    var size = c_size(my_int) * 4U + 1U
-    var buffer = c_alloc(size)
-    _snprintf(buffer, size, c_data('%i'),my_int)
-    return buffer
-}
-
-@nomod
-def c_str_to_int(my_str:str) :i32 {
-    atoi(c_data(my_str))
-}
-
+extern memset(item:ptr u_mem, v:u8, size:u64)

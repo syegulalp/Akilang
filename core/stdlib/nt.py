@@ -37,6 +37,52 @@ def makecall(irbuilder, module, funcname, func_sig):
 
 def stdlib_post(self, module):
 
+    n = r'''
+@inline
+def c_strlen(str_to_check: ptr u_mem): u_size
+    strlen(str_to_check)
+
+@inline
+def c_alloc(bytes:u_size):ptr u_mem
+    HeapAlloc(GetProcessHeap(), 8u, bytes)
+
+@inline
+def c_alloc(bytes:i32):ptr u_mem
+    c_alloc(cast(bytes, u_size))
+
+@inline
+@unsafe_req
+def c_free(m:ptr u_mem):bool {
+    var free_call = HeapFree(GetProcessHeap(), 0u, m)
+    var result = (free_call !=0b)
+    when result then memset(m, 0B, c_size(m))    
+    result
+}
+
+@inline
+def set_codepage(codepage :u32) :bool
+    SetConsoleOutputCP(codepage)
+
+@inline
+def get_codepage() :u32
+    GetConsoleOutputCP()
+
+def int_to_c_str(my_int:i32): ptr u_mem {
+    var size = c_size(my_int) * 4U + 1U
+    var buffer = c_alloc(size)
+    _snprintf(buffer, size, c_data('%i'),my_int)
+    return buffer
+}
+
+@nomod
+def c_str_to_int(my_str:str) :i32 {
+    atoi(c_data(my_str))
+}
+    '''
+
+    for _ in self.eval_generator(n):
+        pass
+
     # This is all the instructions that have to come AFTER
     # the platform libraries are loaded
     # for instance, because we don't know how malloc or free work
@@ -241,3 +287,32 @@ def stdlib_post(self, module):
     )    
 
     irbuilder.ret(result)
+
+    n = r'''
+
+def utf_to_wide(in_str:str):ptr u8 {
+  
+    # TODO: untracked, b/c raw c_alloc calls
+    # don't flag for tracking
+
+    # TODO: a good test case for auto-promotion
+    # of ints?
+
+    var str_len = len(in_str)
+    var out_size = str_len*2U
+
+    var out_data=c_alloc(out_size)
+
+    MultiByteToWideChar(
+        65001u, 0, 
+        c_data(in_str),
+        cast(str_len,i32),
+        out_data,
+        cast(out_size,i32)
+    )
+
+    return out_data
+}'''    
+
+    for _ in self.eval_generator(n):
+        pass
