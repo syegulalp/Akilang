@@ -746,6 +746,8 @@ A `@varfunc`-decorated function cannot be decorated with `@nomod`.
 
 The following built-ins are largely for the sake of interoperability with C, and for bootstrapping the language to full functionality.
 
+> ⚠ These functions are likely to be highly unstable.
+
 ## c_addr
 
 Returns the location of an object in memory, as an integer. The bitwidth of the integer matches the platform in use.
@@ -773,6 +775,10 @@ def main(){
     MessageBoxA(0,c_data('Hi'),c_data('Yo there'),0B)
 }
 ```
+
+## c_gep
+
+Provides an interface to LLVM's `getelementpointer` instruction; used for indexing into structures.
 
 ## c_ref / c_deref
 
@@ -812,6 +818,10 @@ Like `c_ref/c_deref`, but for complex objects like strings.
 ## c_obj_size
 
 Like `c_size` but used to return the size of an object structure. For instance, for a string, this would not be the length of the string data itself, but rather the structure that holds the pointer to the string data and the string's byte length.
+
+## c_ptr_int
+
+Converts a pointer to an integer of the length dictated by the platform (e.g., 64 bits for a platform with a 64-bit pointer size).
 
 ## c_ptr_math
 
@@ -854,16 +864,18 @@ var y:byte=32B
 x = convert(y,i32)
 ```
 
-# len
+# Methods
 
-Returns the length of an object's actual data. For a string, this would be the size of the underlying string data in bytes, including the terminating null.
+## len
+
+Returns the length of an object. This depends entirely on what the object is.
+
+For a string, this would be the size of the underlying string data in bytes, including the terminating null.
 
 ```
 len("Hi!")
 ```
 yields `4`.
-
-Eventually, this will yield the results of an object's `__len__` method, when those are implemented.
 
 
 # Library functions
