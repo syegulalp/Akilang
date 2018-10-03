@@ -79,12 +79,42 @@ ir.PointerType = _PointerType
 
 Old_IntType = ir.types.IntType
 
+import ctypes
+
 class _IntType(Old_IntType):
     """
     The type for integers.
     """
     null = '0'
     _instance_cache = {}
+
+    _unsigned_ctype = {
+        1:ctypes.c_bool,
+        8:ctypes.c_ubyte,
+        16:ctypes.c_short,
+        32:ctypes.c_ulong,
+        64:ctypes.c_ulonglong
+    }
+    _signed_ctype = {
+        1:ctypes.c_bool,
+        8:ctypes.c_byte,
+        16:ctypes.c_short,
+        32:ctypes.c_long,
+        64:ctypes.c_longlong        
+    }
+    
+    @property
+    def c_type(self):
+        
+        if self.v_id == 'u_size':
+            return ctypes.c_voidp
+        if self.v_id == 'u_mem':
+            return ctypes.c_uint8
+
+        if self.signed:
+            return self._signed_ctype[self.width]
+        else:
+            return self._unsigned_ctype[self.width]
 
     def __new__(cls, bits, force=False, signed=True, v_id=None):
         signature = (bits, signed, v_id)

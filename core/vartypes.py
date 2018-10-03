@@ -185,14 +185,8 @@ def generate_vartypes(module=None):
     })
     
 
-    _vartypes.u1.c_type = ctypes.c_bool
-    _vartypes.u8.c_type = ctypes.c_ubyte
-    _vartypes.i16.c_type = ctypes.c_short
-    _vartypes.u16.c_type = ctypes.c_short
-    _vartypes.i32.c_type = ctypes.c_long
-    _vartypes.i64.c_type = ctypes.c_longlong
-    _vartypes.u32.c_type = ctypes.c_ulong
-    _vartypes.u64.c_type = ctypes.c_ulonglong
+    # TODO: add c_type to native llvmlite float
+    # as we did with int
     _vartypes.f64.c_type = ctypes.c_longdouble
 
     # add these types in manually, since they just shadow existing ones
@@ -224,9 +218,6 @@ def generate_vartypes(module=None):
     
     _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_bitwidth)
     _vartypes['u_mem'] = UnsignedInt(_vartypes._pointer_size)
-
-    _vartypes.u_size.c_type = ctypes.c_voidp
-    _vartypes.u_mem.c_type = ctypes.c_uint8
 
     for _, n in enumerate(_vartypes):
         if not n.startswith('_'):
