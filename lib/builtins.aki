@@ -1,0 +1,54 @@
+# forward declarations
+
+def c_free(m:ptr u_mem):bool {0b}
+def c_strlen(str_to_check: ptr u_mem): u_size {0U}
+def c_alloc(bytes:u_size):ptr u_mem {unsafe c_ptr(0U)}
+def int_to_c_str(my_int:i32): ptr u_mem {unsafe c_ptr(0U)}
+def c_str_to_int(my_str:str) :i32 {0}
+
+# actual builtins
+
+def '.object.str.__len__'(my_str:str):u64{
+    var f1 = c_gep(my_str,0)
+    #var f1=unsafe c_ptr(my_str, u_size)    
+    c_deref(f1)
+}
+
+# TODO: untested
+def '.object.array.__del__'(my_obj:ptr u_mem):bool {
+    unsafe c_free(my_obj)
+}
+
+# TODO: untested
+def '.object.str.__del__'(my_obj: ptr u_mem):bool {
+    unsafe c_free(my_obj)
+}
+
+def '.object.str.__new__'(my_obj:ptr u_mem):str {
+    # Determine the string length since this is raw data
+    var str_len = c_strlen(my_obj)
+    
+    # Allocate an object of the correct size and type
+    var alloc = c_obj_alloc(with var x:str{x})
+
+    # Insert the length
+    var len_ptr = c_gep(alloc,0)
+    unsafe c_ptr_mod(len_ptr, str_len)
+
+    # Point to the data
+    var data_ptr = c_gep(alloc,1)    
+    unsafe c_ptr_mod(data_ptr, my_obj)
+    
+    # Return the string object
+    return alloc
+
+    # Note that we do not add tracking data yet.
+}
+
+def '.object.str.__new__'(my_obj:i32):str {
+    str(int_to_c_str(my_obj))
+}
+
+def '.i32.__new__'(my_obj:str):i32 {
+    c_str_to_int(my_obj)
+}

@@ -63,15 +63,32 @@ class AkilangEvaluator(object):
     def reset(self, history=[]):
         import os
         self._reset_base()
+
         if self.basiclib_dir:
 
-            # First, load the platform library
-            self._add_platform_lib(self.codegen.module)
-            
-            # Now load the non-platform dependent basiclib
+            # First, load the builtins
             self.load_file(
                 os.path.join(
-                    self.basiclib_dir, self.basiclib_file
+                    self.basiclib_dir,
+                    'builtins.aki'
+                )
+            )
+
+            # Next, load the platform library
+            self.load_file(
+                os.path.join(
+                    self.basiclib_dir,
+                    'platform',
+                    os.name,
+                    'platformlib.aki'
+                )
+            )
+            
+            # Finally, load the non-platform dependent basiclib
+            self.load_file(
+                os.path.join(
+                    self.basiclib_dir,
+                    self.basiclib_file
                 )
             )
 
