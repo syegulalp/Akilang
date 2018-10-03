@@ -82,6 +82,42 @@ def int_to_c_str(my_int:i32): ptr u_mem {
 def c_str_to_int(my_str:str) :i32 {
     atoi(c_data(my_str))
 }
+
+def '.object.str.__len__'(my_str:str):u64{
+    var f1=unsafe c_ptr(my_str, u_size)
+    c_deref(f1)
+}
+
+# TODO: untested
+def '.object.array.__del__'(my_obj:ptr u_mem):bool {
+    unsafe c_free(my_obj)
+}
+
+# TODO: untested
+def '.object.str.__del__'(my_obj: ptr u_mem):bool {
+    unsafe c_free(my_obj)
+}
+
+# TODO: untested
+def '.object.str.__new__'(my_obj:ptr u_mem):str {
+    # Determine the string length since this is raw data
+    var str_len = c_strlen(my_obj)
+    
+    # Allocate an object of the correct size and type
+    var alloc = c_obj_alloc(with var x:str{x})
+
+    # Insert the length
+    var len_ptr = c_gep(alloc,0)
+    unsafe c_ptr_mod(len_ptr, str_len)
+
+    # Point to the data
+    var data_ptr = c_gep(alloc,1)    
+    unsafe c_ptr_mod(data_ptr, my_obj)
+    
+    # Return the string object
+    return alloc
+}
+
     '''
 
     for _ in self.eval_generator(n):
@@ -95,72 +131,72 @@ def c_str_to_int(my_str:str) :i32 {
     # len for string object
     #
 
-    strlen, irbuilder = makefunc(
-        module,
-        '.object.str.__len__',
-        VarTypes.u64, [VarTypes.str.as_pointer()]
-    )
+    # strlen, irbuilder = makefunc(
+    #     module,
+    #     '.object.str.__len__',
+    #     VarTypes.u64, [VarTypes.str.as_pointer()]
+    # )
 
-    s1 = strlen.args[0]
-    s2 = irbuilder.gep(
-        s1,
-        [self.codegen._i32(0),
-         self.codegen._i32(0), ]
-    )
-    s3 = irbuilder.load(s2)
+    # s1 = strlen.args[0]
+    # s2 = irbuilder.gep(
+    #     s1,
+    #     [self.codegen._i32(0),
+    #      self.codegen._i32(0), ]
+    # )
+    # s3 = irbuilder.load(s2)
 
-    irbuilder.ret(s3)
+    # irbuilder.ret(s3)
 
     # del for array:
 
-    obj_del, irbuilder = makefunc(
-        module,
-        '.object.array.__del__', VarTypes.bool,
-        [VarTypes.u_mem.as_pointer()]
-    )
+    # obj_del, irbuilder = makefunc(
+    #     module,
+    #     '.object.array.__del__', VarTypes.bool,
+    #     [VarTypes.u_mem.as_pointer()]
+    # )
 
-    result = makecall(
-        irbuilder, module,
-        'c_free',
-        [
-            obj_del.args[0]
-        ]
-    )
+    # result = makecall(
+    #     irbuilder, module,
+    #     'c_free',
+    #     [
+    #         obj_del.args[0]
+    #     ]
+    # )
 
-    irbuilder.ret(result)
+    # irbuilder.ret(result)
 
 
     #
     # del for string
     #
 
-    obj_del, irbuilder = makefunc(
-        module,
-        '.object.str.__del__', VarTypes.bool,
-        [VarTypes.u_mem.as_pointer()],
-        no_mangle = True
-    )
-
-    # this just deletes the string object,
-    # not the string data (for now)
-
-    # ptr_cast = irbuilder.bitcast(
-    #     obj_del.args[0],
-    #     VarTypes.u_mem.as_pointer()
+    # obj_del, irbuilder = makefunc(
+    #     module,
+    #     '.object.str.__del__', VarTypes.bool,
+    #     [VarTypes.u_mem.as_pointer()],
+    #     no_mangle = True
     # )
 
-    # # is there any way to determine at compile time
-    # # whether or not we need to delete the underlying data?
+    # # this just deletes the string object,
+    # # not the string data (for now)
 
-    # #data_ptr = 
+    # # ptr_cast = irbuilder.bitcast(
+    # #     obj_del.args[0],
+    # #     VarTypes.u_mem.as_pointer()
+    # # )
 
-    result = makecall(
-        irbuilder, module,
-        'c_free',
-        [obj_del.args[0],]
-    )
+    # # # is there any way to determine at compile time
+    # # # whether or not we need to delete the underlying data?
 
-    irbuilder.ret(result)
+    # # #data_ptr = 
+
+    # result = makecall(
+    #     irbuilder, module,
+    #     'c_free',
+    #     [obj_del.args[0],]
+    # )
+
+    # irbuilder.ret(result)
 
     #
     # new string from raw pointer:
@@ -168,7 +204,7 @@ def c_str_to_int(my_str:str) :i32 {
 
     str_fn, irbuilder = makefunc(
         module,
-        '.object.str.__new__', VarTypes.str.as_pointer(),
+        '.object.xstr.__new__', VarTypes.str.as_pointer(),
         [VarTypes.u_mem.as_pointer()]
     )
 
