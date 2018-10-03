@@ -1,5 +1,6 @@
 # Project-specific
 
+.obsolete
 output/
 dump/
 _work
@@ -15,6 +16,7 @@ __dump__*
 *.py[cod]
 *$py.class
 **/*.dll
+dump.ll
 
 # # C extensions
 # *.so
