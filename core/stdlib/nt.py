@@ -84,7 +84,7 @@ def c_str_to_int(my_str:str) :i32 {
 }
 
 def '.object.str.__len__'(my_str:str):u64{
-    var f1=unsafe c_ptr(my_str, u_size)
+    var f1 = c_gep(my_str,0)
     c_deref(f1)
 }
 
@@ -98,7 +98,6 @@ def '.object.str.__del__'(my_obj: ptr u_mem):bool {
     unsafe c_free(my_obj)
 }
 
-# TODO: untested
 def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Determine the string length since this is raw data
     var str_len = c_strlen(my_obj)
@@ -116,6 +115,16 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     
     # Return the string object
     return alloc
+
+    # Note that we do not add tracking data yet.
+}
+
+def '.object.str.__new__'(my_obj:i32):str {
+    str(int_to_c_str(my_obj))
+}
+
+def '.i32.__new__'(my_obj:str):i32 {
+    c_str_to_int(my_obj)
 }
 
     '''
@@ -202,131 +211,131 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # new string from raw pointer:
     #
 
-    str_fn, irbuilder = makefunc(
-        module,
-        '.object.xstr.__new__', VarTypes.str.as_pointer(),
-        [VarTypes.u_mem.as_pointer()]
-    )
+    # str_fn, irbuilder = makefunc(
+    #     module,
+    #     '.object.xstr.__new__', VarTypes.str.as_pointer(),
+    #     [VarTypes.u_mem.as_pointer()]
+    # )
 
-    str_ptr = str_fn.args[0]
+    # str_ptr = str_fn.args[0]
 
-    # XXX: unsafe
-    # if we are doing this from an array or buffer,
-    # we need to pass the max dimensions of the buffer
+    # # XXX: unsafe
+    # # if we are doing this from an array or buffer,
+    # # we need to pass the max dimensions of the buffer
 
-    str_len = makecall(
-        irbuilder, module,
-        'c_strlen',
-        [str_ptr]
-    )
+    # str_len = makecall(
+    #     irbuilder, module,
+    #     'c_strlen',
+    #     [str_ptr]
+    # )
 
-    # Use the ABI to determine the size of the string structure
+    # # Use the ABI to determine the size of the string structure
 
-    size_of_struct = ir.Constant(
-        VarTypes.u64,
-        self.codegen._obj_size_type(
-            VarTypes.str
-        )
-    )
+    # size_of_struct = ir.Constant(
+    #     VarTypes.u64,
+    #     self.codegen._obj_size_type(
+    #         VarTypes.str
+    #     )
+    # )
 
-    # Allocate memory for one string structure
+    # # Allocate memory for one string structure
 
-    struct_alloc = makecall(
-        irbuilder, module,
-        'c_alloc',
-        [size_of_struct]
-    )
+    # struct_alloc = makecall(
+    #     irbuilder, module,
+    #     'c_alloc',
+    #     [size_of_struct]
+    # )
 
-    # Bitcast the pointer to the string structure
-    # so it's the correct type
+    # # Bitcast the pointer to the string structure
+    # # so it's the correct type
 
-    struct_reference = irbuilder.bitcast(
-        struct_alloc,
-        VarTypes.str.as_pointer()
-    )
+    # struct_reference = irbuilder.bitcast(
+    #     struct_alloc,
+    #     VarTypes.str.as_pointer()
+    # )
 
-    # Obtain element 0, length.
+    # # Obtain element 0, length.
 
-    size_ptr = irbuilder.gep(
-        struct_reference,
-        [self.codegen._i32(0), self.codegen._i32(0)]
-    )
+    # size_ptr = irbuilder.gep(
+    #     struct_reference,
+    #     [self.codegen._i32(0), self.codegen._i32(0)]
+    # )
 
-    # Set the length
+    # # Set the length
 
-    irbuilder.store(
-        str_len,
-        size_ptr
-    )
+    # irbuilder.store(
+    #     str_len,
+    #     size_ptr
+    # )
 
-    # Obtain element 1, the pointer to the data
+    # # Obtain element 1, the pointer to the data
 
-    data_ptr = irbuilder.gep(
-        struct_reference,
-        [self.codegen._i32(0), self.codegen._i32(1)]
-    )
+    # data_ptr = irbuilder.gep(
+    #     struct_reference,
+    #     [self.codegen._i32(0), self.codegen._i32(1)]
+    # )
 
-    # Set the data, return the object
+    # # Set the data, return the object
 
-    str_ptr_conv = irbuilder.bitcast(
-        str_ptr,
-        VarTypes.i8.as_pointer()
-    )
+    # str_ptr_conv = irbuilder.bitcast(
+    #     str_ptr,
+    #     VarTypes.i8.as_pointer()
+    # )
 
-    irbuilder.store(
-        str_ptr_conv,
-        data_ptr
-    )
+    # irbuilder.store(
+    #     str_ptr_conv,
+    #     data_ptr
+    # )
 
-    # Note that we do not add tracking information
-    # to this string yet.
+    # # Note that we do not add tracking information
+    # # to this string yet.
 
-    irbuilder.ret(struct_reference)
+    # irbuilder.ret(struct_reference)
 
     #
     # new string from i32
     #
 
-    str_fn, irbuilder = makefunc(
-        module,
-        '.object.str.__new__', VarTypes.str.as_pointer(),
-        [VarTypes.i32]
-    )
+    # str_fn, irbuilder = makefunc(
+    #     module,
+    #     '.object.str.__new__', VarTypes.str.as_pointer(),
+    #     [VarTypes.i32]
+    # )
 
-    result = makecall(
-        irbuilder, module,
-        'int_to_c_str',
-        [str_fn.args[0]]
-    )
+    # result = makecall(
+    #     irbuilder, module,
+    #     'int_to_c_str',
+    #     [str_fn.args[0]]
+    # )
 
-    result = makecall(
-        irbuilder, module,
-        '.object.str.__new__',
-        [result]
-    )
+    # result = makecall(
+    #     irbuilder, module,
+    #     '.object.str.__new__',
+    #     [result]
+    # )
 
-    str_fn.tracked = True
-    str_fn.do_not_allocate = True
+    # str_fn.tracked = True
+    # str_fn.do_not_allocate = True
 
-    irbuilder.ret(result)
+    # irbuilder.ret(result)
 
     #
     # new i32 from string
     #
 
-    str_fn, irbuilder = makefunc(
-        module,
-        '.i32.__new__', VarTypes.i32,
-        [VarTypes.str.as_pointer()]
-    )    
+    # str_fn, irbuilder = makefunc(
+    #     module,
+    #     '.i32.x__new__', VarTypes.i32,
+    #     [VarTypes.str.as_pointer()]
+    # )    
 
-    result = makecall(
-        irbuilder, module,
-        'c_str_to_int',
-        [str_fn.args[0]]
-    )    
+    # result = makecall(
+    #     irbuilder, module,
+    #     'c_str_to_int',
+    #     [str_fn.args[0]]
+    # )    
 
-    irbuilder.ret(result)
+    # irbuilder.ret(result)
 
     n = r'''
 
