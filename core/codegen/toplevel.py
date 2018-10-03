@@ -79,16 +79,19 @@ class Toplevel():
 
             # We only allow the case in which a declaration exists and now the
             # function is defined (or redeclared) with the same number of args.
-            # TODO: I think this rule should be dropped and ANY prior
-            # function version should never be overridden
+
             func = existing_func = self.module.globals[funcname]
 
             if not isinstance(existing_func, ir.Function):
                 raise CodegenError(f'Function/universal name collision {funcname}',
                                    node.position)
+            
+            # If we're redefining a forward declaration,
+            # erase the existing function body
+
             if not existing_func.is_declaration:
-                raise CodegenError(
-                    f'Redefinition of function "{public_name}"', node.position)
+                existing_func.blocks = []
+
             if len(existing_func.function_type.args) != len(functype.args):
                 raise CodegenError(
                     f'Redefinition of function "{public_name}" with different number of arguments',
