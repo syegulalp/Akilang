@@ -233,9 +233,7 @@ class TestEvaluator(unittest.TestCase):
             }
             main()
             '''
-        for _ in e.eval_generator(n):
-            pass
-        self.assertEqual(_.value, 0)
+        self.assertEqual(e.eval_all(n), 0)
 
     def test_incr_decr(self):
         e = AkilangEvaluator()
@@ -256,9 +254,7 @@ class TestEvaluator(unittest.TestCase):
         }
         main()
         '''
-        for _ in e.eval_generator(n):
-            pass
-        self.assertEqual(_.value, 0)
+        self.assertEqual(e.eval_all(n), 0)
 
     def test_continue_and_break(self):
         e = AkilangEvaluator()
@@ -275,9 +271,7 @@ class TestEvaluator(unittest.TestCase):
         }
         main()
         '''
-        for _ in e.eval_generator(n):
-            pass
-        self.assertEqual(_.value, 10)
+        self.assertEqual(e.eval_all(n), 10)
     
     def test_function_pointer(self):
         e = AkilangEvaluator()
@@ -303,9 +297,8 @@ class TestEvaluator(unittest.TestCase):
         }
 
         main()'''
-        for _ in e.eval_generator(n):
-            pass
-        self.assertEqual(_.value, 5)
+
+        self.assertEqual(e.eval_all(n), 5)
 
     def test_object_pass_array(self):
         e = AkilangEvaluator()
@@ -323,22 +316,68 @@ class TestEvaluator(unittest.TestCase):
         }
 
         main()'''
-        for _ in e.eval_generator(n):
-            pass
-        self.assertEqual(_.value, 64)
+
+        self.assertEqual(e.eval_all(n), 64)
 
     def test_strlen_inline(self):
-        from core.repl import config
-        cfg = config()
-        paths = cfg['paths']
-        e = AkilangEvaluator(paths['lib_dir'], paths['basiclib'])
-
-        opts = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}
-
-        e.evaluate('def main():u64{len("Hello there")}')
-        self.assertEqual(e.evaluate('main()', opts), 12)
+        e = AkilangEvaluator(True)        
+        opts = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}        
+        self.assertEqual(
+            e.evaluate('len("Hello there")', opts),
+            12
+        )
         
         # includes terminating null, do we want that?
+
+    def test_int_to_str_and_back(self):
+        e = AkilangEvaluator(True)
+
+        n = '''
+        def str_to_int(){
+            var x="32767"
+            var y=i32(x)
+            y
+        }
+        str_to_int()
+        '''
+
+        self.assertEqual(e.eval_all(n), 32767)
+
+        n = '''
+        def int_to_str():u64{
+            var x=32767
+            var y=str(x)
+            len(y)
+        }
+        int_to_str()
+        '''
+
+        self.assertEqual(e.eval_all(n), 5)
+
+        n = '''
+        def int_to_str_and_back(){
+            var x=32767
+            var y=str(x)
+            var z=i32(y)
+            z
+        }
+        int_to_str_and_back()
+        '''
+
+        self.assertEqual(e.eval_all(n), 32767)
+
+        n = '''
+        def str_to_int_and_back():u64{
+            var x="32767"
+            var y=i32(x)
+            var z=str(y)
+            len(z)
+        }
+        str_to_int_and_back()
+        '''
+        
+        self.assertEqual(e.eval_all(n), 5)
+        
     
     def test_auto_free(self):
         '''

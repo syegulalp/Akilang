@@ -16,26 +16,41 @@ from core.ast_module import Function
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
 
 def dump(str, filename):
-    """Dump a string to a file name."""
+    '''
+    Dump a string to a file name.
+    '''
+
     with open(filename, 'w') as file:
         file.write(str)
 
 
 def lastIR(module, index=-1):
-    """Returns the last bunch of code added to a module. 
-    Thus gets the lastly generated IR for the top-level expression"""
+    '''
+    Returns the last bunch of code added to a module. 
+    This retrieves the most recent generated IR for the top-level expression
+    '''
+
     return str(module).split('\n\n')[index]
 
 
 class AkilangEvaluator(object):
-    """Evaluator for Akilang expressions.
+    '''
+    Evaluator for Akilang expressions.
     Once an object is created, calls to evaluate() add new expressions to the
     module. Definitions (including externs) are only added into the IR - no
     JIT compilation occurs. When a toplevel expression is evaluated, the whole
     module is JITed and the result of the expression is returned.
-    """
+    '''
 
-    def __init__(self, basiclib_dir=None, basiclib_file=None):
+    def __init__(self, use_default_basiclib = False, basiclib_dir=None, basiclib_file=None):
+
+        if use_default_basiclib:
+            from core.repl import config
+            cfg = config()
+            paths = cfg['paths']
+            basiclib_dir = paths['lib_dir']
+            basiclib_file = paths['basiclib']
+
         llvm.initialize()
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
@@ -120,6 +135,14 @@ class AkilangEvaluator(object):
         anon_vartype = options.get('anon_vartype', DEFAULT_TYPE)
         for ast in Parser(anon_vartype=anon_vartype).parse_generator(codestr):
             yield self._eval_ast(ast, **options)
+
+    def eval_all(self, codestr, options=dict()):
+        '''
+        Evaluate multiple top-level statements and return the final value.
+        '''
+        for _ in self.eval_generator(codestr, options):
+            pass
+        return _.value
 
     def eval_llasm(self, llvm_asm):
         '''
@@ -210,6 +233,7 @@ class AkilangEvaluator(object):
         # Create a MCJIT execution engine to JIT-compile the module. Note that
         # ee takes ownership of target_machine, so it has to be recreated anew
         # each time we call create_mcjit_compiler.
+
         target_machine = self.target.create_target_machine(
             opt=3, codemodel='large')
         with llvm.create_mcjit_compiler(llvmmod, target_machine) as ee:
