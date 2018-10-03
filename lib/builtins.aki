@@ -1,4 +1,6 @@
-# forward declarations
+# Definitions for builtins
+
+# Forward declarations for functions supplied by platformlib.
 
 def c_free(m:ptr u_mem):bool {0b}
 def c_strlen(str_to_check: ptr u_mem): u_size {0U}
@@ -6,7 +8,7 @@ def c_alloc(bytes:u_size):ptr u_mem {unsafe c_ptr(0U)}
 def int_to_c_str(my_int:i32): ptr u_mem {unsafe c_ptr(0U)}
 def c_str_to_int(my_str:str) :i32 {0}
 
-# actual builtins
+# The actual builtins.
 
 def '.object.str.__len__'(my_str:str):u64{
     var f1 = c_gep(my_str,0)
@@ -19,6 +21,14 @@ def '.object.array.__del__'(my_obj:ptr u_mem):bool {
 }
 
 # TODO: untested
+
+# doesn't yet selectively free the underlying object
+# we may want to have either a separate type for
+# strings made from statically allocated objects,
+# or a flag in the string object that indicates
+# whether or not the string's data is dynamically
+# allocated
+
 def '.object.str.__del__'(my_obj: ptr u_mem):bool {
     unsafe c_free(my_obj)
 }
@@ -51,3 +61,8 @@ def '.object.str.__new__'(my_obj:i32):str {
 def '.i32.__new__'(my_obj:str):i32 {
     c_str_to_int(my_obj)
 }
+
+# TODO:
+# string obj eq testing
+# test data pointers, length, then the strings themselves
+# indexing support for objects
