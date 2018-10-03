@@ -1,1 +1,1 @@
-python aki.py
+python aki.py %1
