@@ -110,8 +110,9 @@ class Toplevel():
                         Function.Anonymous(start, init))
 
                     # Extract the variable type of that function
-                    r_type = self.evaluator.codegen.module.globals[Prototype.anon_name(
-                        Prototype)].return_value.type
+                    r_type = self.evaluator.codegen.module.globals[
+                        Prototype.anon_name(Prototype)
+                    ].return_value.type
 
                     # Run the function with the proper return type
                     e = self.evaluator._eval_ast(
@@ -174,7 +175,12 @@ class Toplevel():
         prec = DEFAULT_PREC
         vartype = None
 
-        if self.cur_tok.kind == TokenKind.IDENTIFIER:
+        if self.cur_tok.kind == TokenKind.STRING:
+            name = self.cur_tok.value
+            r_name = name
+            self._get_next_token()
+
+        elif self.cur_tok.kind == TokenKind.IDENTIFIER:
             self._check_builtins()
             name = self.cur_tok.value
             r_name = name

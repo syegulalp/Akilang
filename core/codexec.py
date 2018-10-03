@@ -169,7 +169,7 @@ class AkilangEvaluator(object):
         if def_or_extern and not verbose:
             return Result(None, ast, rawIR, optIR)
 
-        if ast.is_anonymous():
+        if ast.is_anonymous():            
             return_type = self.codegen.module.globals[ast.proto.name].return_value.type.c_type
         
         # Convert LLVM IR into in-memory representation and verify the code
