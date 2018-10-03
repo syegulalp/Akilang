@@ -10,7 +10,6 @@ def c_str_to_int(my_str:str) :i32 {0}
 
 def '.object.str.__len__'(my_str:str):u64{
     var f1 = c_gep(my_str,0)
-    #var f1=unsafe c_ptr(my_str, u_size)    
     c_deref(f1)
 }
 

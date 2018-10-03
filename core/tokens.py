@@ -66,7 +66,7 @@ Token = namedtuple('Token', 'kind value vartype position')
 
 Builtins = {
     'c_addr',
-    # c_alloc/c_free are provided by core.stdlib.nt
+    # c_alloc/c_free are provided by platformlib
     'c_array_ptr',
     'c_data',
     'c_gep',
