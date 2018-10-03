@@ -69,6 +69,8 @@ Builtins = {
     # c_alloc/c_free are provided by core.stdlib.nt
     'c_array_ptr',
     'c_data',
+    'c_gep',
+    'c_raw_obj',
     'c_null',
     'c_ref', 'c_deref',
     'c_size', 

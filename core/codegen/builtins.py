@@ -115,6 +115,17 @@ class Builtins():
         self.builder.store(value, ptr)
         return ptr
 
+    def _codegen_Builtins_c_gep(self, node):
+        obj = self._codegen(node.args[0])
+        index = [self._i32(0)]
+                
+        for n in range(1,len(node.args)):
+            # TODO: constant values should be cast as int or float in python
+            node.args[n].val = int(node.args[n].val)
+            index.append(self._codegen(node.args[n]))
+
+        return self.builder.gep(obj, index)
+
     def _codegen_Builtins_c_ptr_int(self, node):
         ptr = self._codegen(node.args[0])
         int_val = self.builder.ptrtoint(ptr, self.vartypes.u_size)
@@ -221,7 +232,15 @@ class Builtins():
         '''
         self._if_unsafe(node)
         address_of = self._codegen(node.args[0])
-        return self.builder.bitcast(address_of, self.vartypes.u_mem.as_pointer())
+        
+        if len(node.args)>1:
+            use_type = self._codegen(node.args[1], False)
+        else:
+            use_type = self.vartypes.u_mem
+        
+        return self.builder.bitcast(address_of, use_type.as_pointer())
+        
+
 
     def _codegen_Builtins_c_addr(self, node):
         '''
@@ -249,6 +268,7 @@ class Builtins():
                 f'"{node.args[0].name}" is not a reference to a scalar (use c_obj_deref for references to objects instead of scalars)',
                 node.args[0].position)
 
+        # XXX: self.builder.load clobbers with core._llvmlite_custom._IntType
         return ptr2
 
     def _codegen_Builtins_c_ref(self, node):
