@@ -196,7 +196,7 @@ def run_repl_command(ak, command, options):
             file.write(output)
         print(f'{len(output)} bytes written to {filename}')
     elif command in ('compile', 'cp'):
-        compiler.compile(ak.codegen.module, 'output')
+        compiler.compile(ak.codegen, 'output')
     elif command in ('export','ex') or command.startswith('export '):
         try:
             filename = command.split(' ')[1]
@@ -240,7 +240,7 @@ def run_repl_command(ak, command, options):
         if command == 'rlr':
             print_eval(ak, 'main()', options)
         elif command == 'rlc':
-            compiler.compile(ak.codegen.module, 'output')
+            compiler.compile(ak.codegen, 'output')
     elif command in ('test', 'tests'):
         run_tests()
     elif command in ('version', 'ver'):

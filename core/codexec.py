@@ -1,4 +1,4 @@
-from ctypes import CFUNCTYPE, c_int32, c_double
+from ctypes import CFUNCTYPE, c_int32, c_double, c_void_p
 from collections import namedtuple
 import colorama
 colorama.init()
@@ -11,7 +11,7 @@ from core.repl import paths
 from core.vartypes import Str, DEFAULT_TYPE
 # TODO: make sure these are eventually supplied 
 # by way of the module instance
-from core.ast_module import Function
+from core.ast_module import Function, Prototype
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
 
@@ -219,7 +219,7 @@ class AkilangEvaluator(object):
         # Optimize the module
         if optimize:
             from core.compiler import optimize
-            llvmmod, _ = optimize(llvmmod)
+            llvmmod, _ = optimize(llvmmod, self.codegen.metas)
 
             if llvmdump:
                 dump(
@@ -268,3 +268,30 @@ class AkilangEvaluator(object):
         import importlib
         builtins = importlib.import_module(f'core.stdlib.{os.name}')
         builtins.platform_lib(self, module)        
+
+    def eval_and_return(self, node):
+        '''
+        Evaluate a single node and return its value.
+        '''
+
+        # Codegen a function that obtains the computed result
+        # for this constant
+        self.codegen.generate_code(
+            Function.Anonymous(node.position, node)
+        )
+        
+        # Extract the variable type of that function
+        r_type = self.codegen.module.globals[
+            Prototype.anon_name(Prototype)
+        ].return_value.type
+
+        if not hasattr(r_type, 'c_type'):
+            r_type.c_type = c_void_p
+
+        # Run the function with the proper return type
+        e = self._eval_ast(
+            Function.Anonymous(node.position, node, vartype=r_type),
+            return_type=r_type.c_type
+        )
+        
+        return e

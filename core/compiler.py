@@ -6,19 +6,19 @@ import pathlib
 from core.repl import paths
 
 
-def optimize(llvm_module):
+def optimize(llvm_module, metas={}):    
     import llvmlite.binding as llvm
 
     pmb = llvm.create_pass_manager_builder()
-    pmb.opt_level = 3
     
-    # TODO: take in optimization directives
-    # from module, apply those
+    pmb.loop_vectorize = metas.get('loop_vectorize', True)
+    pmb.slp_vectorize = metas.get('slp_vectorize', True)
+    
+    pmb.opt_level = metas.get('opt_level', 3)
+    pmb.size_level = metas.get('size_level', 0)
 
-    pmb.loop_vectorize = True
-    pmb.slp_vectorize = True
-    #pmb.disable_unroll_loops = True
-    
+    pmb.disable_unroll_loops = not (metas.get('unroll_loops', True))
+
     pm = llvm.create_module_pass_manager()
     pmb.populate(pm)
     pm.run(llvm_module)
@@ -26,7 +26,8 @@ def optimize(llvm_module):
     return llvm_module, pm
 
 
-def compile(module, filename):
+def compile(codegen, filename):
+    module = codegen.module
 
     print('Parsing source.')
 
@@ -38,7 +39,7 @@ def compile(module, filename):
 
     llvm_module = llvm.parse_assembly(str(module))
 
-    llvm_module, pm = optimize(llvm_module)
+    llvm_module, pm = optimize(llvm_module, codegen.metas)
 
     import os
     import errno
