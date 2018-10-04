@@ -302,7 +302,7 @@ The `10` is the operator precedence, with lower numbers having higher precedence
 
 ## const
 
-A `const` block is used to define compile-time constants for a module. Right now only numerical constants can be defined. There is currently no constant folding in the compiler, however, so expressions involving multiple constants are not consolidated into a single constant (yet).
+A `const` block is used to define compile-time constants for a module. 
 
 There should only be one `const` block per module, at the top, but this rule is not strictly enforced by the compiler; it's just good etiquette.
 
@@ -317,6 +317,18 @@ def main(){
 }
 ```
 
+It's also possible for constants to be defined at compile time based on previous constants:
+
+```
+const {
+    WIDTH=80,
+    HEIGHT=32,
+    FIELD_SIZE = (WIDTH+1)*(HEIGHT+1)
+    DIVIDER_WIDTH = WIDTH+1
+}
+```
+
+In this example, `FIELD_SIZE` would be defined as `2673`, and `DIVIDER_WIDTH` would be `81`.
 
 ## class
 
