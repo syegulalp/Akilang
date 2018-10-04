@@ -50,21 +50,25 @@ This is a document of Aki syntax and usage.
     - [@inline](#inline)
     - [@noinline](#noinline)
     - [@nomod](#nomod)
+    - [@unsafe_req](#unsafe_req)
     - [@varfunc](#varfunc)
 - [Builtin functions](#builtin-functions)
     - [c_addr](#c_addr)
     - [c_alloc / c_free](#c_alloc--c_free)
     - [c_array_ptr](#c_array_ptr)
     - [c_data](#c_data)
+    - [c_gep](#c_gep)
     - [c_ref / c_deref](#c_ref--c_deref)
     - [c_size](#c_size)
     - [c_obj_alloc / c_obj_dealloc](#c_obj_alloc--c_obj_dealloc)
     - [c_obj_ref / c_obj_deref](#c_obj_ref--c_obj_deref)
     - [c_obj_size](#c_obj_size)
+    - [c_ptr_int](#c_ptr_int)
     - [c_ptr_math](#c_ptr_math)
     - [c_ptr_mod](#c_ptr_mod)
     - [cast/convert](#castconvert)
-- [len](#len)
+- [Methods](#methods)
+    - [len](#len)
 - [Library functions](#library-functions)
     - [inkey](#inkey)
     - [print](#print)
@@ -595,6 +599,12 @@ def main(){
 
 Running `main()` here would yield `32`.
 
+`unsafe` can also work as an inline declaration as long as you're only designating a single expression as `unsafe`:
+
+```
+unsafe c_ptr_mod(y,32)
+```
+
 ## var
 
 Defines a variable for use within the scope of a function.
@@ -725,6 +735,9 @@ An entire function must be decorated with this. It is not possible to indicate t
 
 A `@varfunc`-decorated function cannot be decorated with `@nomod`.
 
+## @unsafe_req
+
+Indicates that the function in question can only be called from within an [`unsafe`](#unsafe) block.
 
 ## @varfunc
 
