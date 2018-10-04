@@ -1,4 +1,4 @@
-from core.ast_module import _ANONYMOUS
+from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number
 import llvmlite.ir as ir
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 from core.errors import CodegenError
@@ -7,6 +7,56 @@ from core.tokens import decorator_collisions
 # pylint: disable=E1101
 
 class Toplevel():
+
+    def _codegen_Meta(self, node):
+        '''
+        Iterate through a `meta` block and register each
+        name/value pair with the module's metadata.
+        ''' 
+
+        # At some point we'll just make this into an extension of
+        # `const`, but I think we need special processing for now
+        # esp. since I'd like to find a more elegant way of dealing
+        # w/finding existing vars in a subeval, maybe by way of
+        # passing it the current eval as a parameter?
+
+        from core.codexec import AkilangEvaluator
+        
+        e = AkilangEvaluator(True)
+
+        for n in node.metas:
+            if not isinstance(n, Binary):
+                raise CodegenError(
+                    'Invalid "meta" declaration (must be in the format "<identifier> = <value>")',
+                    n.position
+                )
+            
+            if isinstance(n.rhs,Variable):
+                val = e.eval_and_return(n.rhs).value
+            
+            # an inline string literal doesn't need to be evaled
+            elif isinstance(n.rhs, String):
+                val = n.rhs.val
+            
+            # ditto numbers, integers only tho
+            elif isinstance(n.rhs, Number):
+                try:
+                    val = int(n.rhs.val)
+                except:
+                    raise CodegenError(
+                        'Invalid "meta" declaration (value must be a string or integer)',
+                        n.rhs.position
+                    )    
+
+            else:
+                raise CodegenError(
+                    'Invalid "meta" declaration (value must be a string or integer)',
+                    n.rhs.position
+                )
+            
+            self.metas[n.lhs.name] = val
+        
+        #print (self.metas)
 
     def _codegen_Decorator(self, node):
         '''

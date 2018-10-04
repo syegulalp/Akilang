@@ -1,4 +1,4 @@
-from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call
+from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call, Meta
 from core.vartypes import generate_vartypes
 from core.errors import CodegenError
 from core.mangling import mangle_args
@@ -61,8 +61,13 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # Context for current try/except block (if any)
         self.try_except = []
 
+        # Metadatas for this module
+        self.metas = {}
+
         self.vartypes = generate_vartypes()
         
+        # Create the general None object
+        # (not used for anything yet)
         self.noneobj = ir.GlobalVariable(
             self.module,
             self.vartypes['None'],
@@ -89,7 +94,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         return ir.Constant(self.vartypes.u32, int(pyval))
 
     def generate_code(self, node):
-        assert isinstance(node, (Prototype, Function, Uni, Class, Decorator))
+        assert isinstance(node, (Prototype, Function, Uni, Class, Decorator, Meta))
         return self._codegen(node, False)
 
     def _extract_operand(self, val):
@@ -163,6 +168,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 return None
             raise CodegenError(f"Undefined variable: {node.name}",
                                node.position)
+        
         return v
         
     def _codegen(self, node, check_for_type=True):
@@ -197,7 +203,6 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         if func is None:
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], 'userbinop')
-
 
 
     def _codegen_autodispose(self, item_list, to_check):
@@ -238,7 +243,4 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                         ),
                     [ref],
                     f'{_}.delete'
-                    )                    
-
-
-
+                    )
