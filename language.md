@@ -148,7 +148,7 @@ def f1(x:i32):i32 x
 
 Function definitions need to have:
 
-* a name that does not shadow any existing name or keyword (except for functions with varying type signatures, where the same name can be reused)
+* a name that does not shadow any existing name or keyword (except for functions with varying type signatures, where the same name can be reused, or where a bare prototype is redefined with the same type signature and an actual function body)
 * zero or more explicitly-typed arguments
 * a return type
 * and a function body.
@@ -197,7 +197,7 @@ Note that optional arguments must always follow mandatory arguments.
 
 There is no shadowing of variable names permitted anywhere. You cannot have the same name for a variable in both the universal and current scope.
 
-Scalar types -- integers, floats, booleans -- are passed by value. All other objects (classes, strings, etc.) are passed by reference, by way of a pointer to the object.
+Scalar types -- integers, floats, booleans -- are passed by value. All other objects (classes, strings, etc.) are automatically passed by reference, by way of a pointer to the object.
 
 ## Symbols
 
@@ -575,9 +575,13 @@ def main(){
     unsafe {
         c_ptr_mod(y,32)
     }
+
+    x[1]
 }
 
 ```
+
+Running `main()` here would yield `32`.
 
 ## var
 
@@ -641,7 +645,7 @@ with var y = 2 {
 
 If a given expression yields `True`, then use the value of one expression; if `False`, use the value of another.
 
-Differs from `if/then/else` in that the `else` clause is optional, and that the value yielded is that of the *deciding expression*, not the `then/else` expressions.
+Differs from `if/then/else` in that the `else` clause is optional, and that the value yielded is that of the *deciding expression*, not the `then/else` expressions. This way, the values of the `then/else` expressions can be of entirely different types if needed.
 
 ```
 when x=1 then
@@ -887,6 +891,11 @@ Waits indefinitely for a keypress from the console, then returns a byte value th
 ```
 var x:byte
 x=inkey()
+
+# you can also just say ...
+
+var y=inkey()
+
 ```
 
 ## print
@@ -980,4 +989,4 @@ hello = "Hello \"world\"! \n"
 
 ## ptr
 
-Type prefix to indicate the value in question is a pointer to the stated type, e.g. `var x=ptr i32`. This is currently used mainly in library functions and demos, so its casual use isn't recommended.
+Type prefix to indicate the value in question is a pointer to the stated type, e.g. `var x:ptr i32`. This is currently used mainly in library functions and demos, so its casual use isn't recommended.
