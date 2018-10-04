@@ -14,6 +14,8 @@ class TokenKind(Enum):
 
     # Keywords are less than -100
 
+    PASS = -1001
+    
     DEF = -1010
 
     BINARY = -1011
@@ -23,6 +25,7 @@ class TokenKind(Enum):
     CONST = -1030
     UNI = -1040
     CLASS = -1041
+    META = -1042
 
     PTR = -1045
 

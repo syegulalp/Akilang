@@ -18,12 +18,19 @@ class Node(object):
     def dump(self, indent=0):
         return dump(self.flatten(), indent)
 
-
+class Pass(Node):
+    pass
+    
 class Expr(Node):
     pass
 
 class Continue(Expr):
     pass
+
+class Meta(Node):
+    def __init__(self, position, metas):
+        super().__init__(position)
+        self.metas = metas
 
 class Unsafe(Expr):
     def __init__(self, position, body):
