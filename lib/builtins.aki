@@ -1,11 +1,11 @@
 # Definitions for builtins
 
-# Forward declarations for functions supplied by platformlib.
-
-uni {
+const {
     False=0b
     True=1b
 }
+
+# Forward declarations for functions supplied by platformlib.
 
 def c_free(m:ptr u_mem):bool {0b}
 def c_strlen(str_to_check: ptr u_mem): u_size {0U}
