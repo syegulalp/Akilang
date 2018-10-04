@@ -33,7 +33,7 @@ PARSE_ACTIONS = {
     TokenKind.TRY: 'try',
     TokenKind.RAISE: 'raise',
     TokenKind.BREAK: 'break',
-    TokenKind.UNSAFE: 'unsafe',     
+    TokenKind.UNSAFE: 'unsafe',
     TokenKind.VARTYPE: 'standalone_vartype'
 }
 
@@ -84,6 +84,8 @@ class Parser(Expressions, Toplevel):
     def _generate_toplevel(self):
         if self.cur_tok.kind == TokenKind.EXTERN:
             return self._parse_external()
+        elif self.cur_tok.kind == TokenKind.META:
+            return self._parse_meta_expr()
         elif self.cur_tok.kind == TokenKind.UNI:
             return self._parse_uni_expr()
         elif self.cur_tok.kind == TokenKind.CONST:
