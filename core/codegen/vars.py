@@ -153,7 +153,16 @@ class Vars():
             return latest
 
         if current_load:
+            
+            # Extract constants from uni declarations
+
+            possible_constant=self._extract_operand(latest)
+            if isinstance(possible_constant, ir.GlobalVariable) and possible_constant.global_constant is True:
+                return possible_constant.initializer
+
+            # if no constant, just return a load instr
             return self.builder.load(latest, node.name)
+
         else:
             return latest        
 
