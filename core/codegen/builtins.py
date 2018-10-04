@@ -7,9 +7,9 @@ import re
 
 class Builtins():
     
-    def _if_unsafe(self, node):
+    def _if_unsafe(self, node, explanation=''):
         if not self.allow_unsafe:
-            raise CodegenError('Operation must be enclosed in an "unsafe" block', node.position)
+            raise CodegenError(f'Operation must be enclosed in an "unsafe" block{explanation}', node.position)
     
     def _check_pointer(self, obj, node):
         '''
@@ -527,8 +527,19 @@ class Builtins():
                     'c_data',
                     [Variable(node.position, n[1])]
                 )
-            else:
+            
+            elif n[0] in ('%u','%i','%f'):
                 var_app = Variable(node.position, n[1])
+            
+            else:
+                self._if_unsafe(node, f' (variable "{n[1]}" is potentially raw data)')
+                n[0]='%s'
+                format_string[-1]='%s'
+                var_app = Call(
+                    node.position,
+                    'c_array_ptr',
+                    [Variable(node.position, n[1])]
+                )
 
             variable_list.append(var_app)
 
