@@ -51,7 +51,7 @@ def show() {
                 else 32B
             )
             output[z] = s
-            pop += (if s<33B then 0i else 1i)
+            pop += (if s<33B then 0 else 1)
             z+=1
         }
         output[z]=10B
@@ -59,12 +59,7 @@ def show() {
     }
     output[z]=0B
     
-    printf(c_data('Generation: %i -- Population: %i\n%s\n%s%s\n'),
-        gen, cast(pop,u64),
-        c_array_ptr(divider),
-        c_array_ptr(output),
-        c_array_ptr(divider)
-    )
+    unsafe out('Generation: {gen} -- Population: {pop}\n{divider}\n{output}\n{divider}\n')
        
 }
 
@@ -112,10 +107,10 @@ def main(){
         match inkey() {
             113, 81: break
             114, 82: {
-                print("Randomize!\n\n")
+                print("Randomize!\n")
                 randomize()                
             }
-            default: print("Next gen")            
+            default: print("Next gen\n")            
         }
         life()
     }
