@@ -2,6 +2,11 @@
 
 # Forward declarations for functions supplied by platformlib.
 
+uni {
+    False=0b
+    True=1b
+}
+
 def c_free(m:ptr u_mem):bool {0b}
 def c_strlen(str_to_check: ptr u_mem): u_size {0U}
 def c_alloc(bytes:u_size):ptr u_mem {unsafe c_ptr(0U)}
