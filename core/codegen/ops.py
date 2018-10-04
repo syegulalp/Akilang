@@ -48,6 +48,31 @@ class Ops():
         lhs = self._codegen(node.lhs)
         rhs = self._codegen(node.rhs)
 
+        # Autopromotion of integer constants
+        # must both be positive integers
+
+        if isinstance(lhs,ir.Constant) and isinstance(rhs,ir.Constant):
+            try:
+                if int(lhs.constant)>0 and int(rhs.constant)>0:
+                    if lhs.type.width>rhs.type.width:
+                        rhs = self.builder.zext(rhs, lhs.type)
+                    else:
+                        lhs = self.builder.zext(lhs, rhs.type)
+            except ValueError:
+                # wrong constant type
+                pass
+
+        # next will be autopromotion of variables
+        # same signing, one has a lesser bitwidth than the other        
+        
+        # for issues where one is signed and the other is unsigned,
+        # we would need to ensure the signed value is greater than zero
+        # I'm not sure we can enforce that for vars at compile time
+
+        # release mode, or some other "strict" compiler directive,
+        # should disable these behaviors unless they are specifically
+        # re-enabled
+        
         if lhs.type != rhs.type:
             raise CodegenError(
                 f'"{lhs.type.describe()}" ({node.lhs.name}) and "{rhs.type.describe()}" ({node.rhs.name}) are incompatible types for operation',
