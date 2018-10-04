@@ -11,8 +11,14 @@ def optimize(llvm_module):
 
     pmb = llvm.create_pass_manager_builder()
     pmb.opt_level = 3
+    
+    # TODO: take in optimization directives
+    # from module, apply those
+
     pmb.loop_vectorize = True
     pmb.slp_vectorize = True
+    #pmb.disable_unroll_loops = True
+    
     pm = llvm.create_module_pass_manager()
     pmb.populate(pm)
     pm.run(llvm_module)
