@@ -995,9 +995,25 @@ String escaping functions are not yet robustly defined, but you can use `\n` in 
 hello = "Hello \"world\"! \n"
 ```
 
+The `str()` function can create a new string at runtime, and accepts the following forms of input:
+
+* A pointer to a null-terminated string.
+* An `i32` (other scalar types to follow later).
+
+The `input()` builtin returns a `str` object.
+
+```
+var x:str
+x=input()
+
+# or:
+
+var y=str() # y is now type `str`
+
+```
+
 > ⚠ There is as yet no way to perform string slicing or concantenation.
 
-> ⚠ There is as yet no way to create strings from user input.
 
 ## ptr
 
