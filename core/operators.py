@@ -1,6 +1,5 @@
 from collections import namedtuple
 from enum import Enum, unique
-from functools import lru_cache
 
 from core.errors import ParseError
 
