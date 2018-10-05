@@ -22,6 +22,9 @@ dump.ll
 # *.so
 
 # # Distribution / packaging
+__build
+_build
+_dist
 # .Python
 # env/
 # build/
