@@ -4,6 +4,7 @@ from core.parsing import Parser
 from core.ast_module import Function, Number, DEFAULT_TYPE, DEFAULT_PREC, Prototype
 from core.vartypes import VarTypes
 
+
 class TestParser(unittest.TestCase):
 
     maxDiff = None
@@ -72,12 +73,12 @@ class TestParser(unittest.TestCase):
         self.assertEqual(ast.flatten(), [
             'Function', ['Prototype', 'foo', 'i32 x'], [
                 'Binary', '+', ['Number', '1', DEFAULT_TYPE],
-                    ['Variable','bar',None,
-                        ['Call', 'bar', None,
-                            [['Variable', 'x', None, None]]
-                ]
-            ]
-        ]]
+                ['Variable', 'bar', None,
+                 ['Call', 'bar', None,
+                  [['Variable', 'x', None, None]]
+                  ]
+                 ]
+            ]]
         )
 
     def test_unary(self):
@@ -148,7 +149,7 @@ class TestParser(unittest.TestCase):
                 ]
             ]
         ])
-    
+
     # def test_xx(self):
     #     ast = Parser().parse_toplevel('def foo(x) {str(x)}')
     #     print(ast.flatten())

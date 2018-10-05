@@ -160,7 +160,7 @@ class TestEvaluator(unittest.TestCase):
                 ; x + 2 * y + 3 * z
             }
             ''')
-        self.assertEqual(e.evaluate('foo(5)'), 30)          
+        self.assertEqual(e.evaluate('foo(5)'), 30)
 
     def test_array_assignment(self):
         e = AkilangEvaluator()
@@ -207,11 +207,11 @@ class TestEvaluator(unittest.TestCase):
         e.evaluate('def f2(x:i32=1) x')
         e.evaluate('def main(){f1(4)+f1(1,2)+f2()+f2(8)}')
         self.assertEqual(e.evaluate('main()'), 43)
-        
+
     def test_class_assignment(self):
         e = AkilangEvaluator()
 
-        n='''class myClass {
+        n = '''class myClass {
                 x:i32
                 prop:u32
                 other:u32
@@ -272,7 +272,7 @@ class TestEvaluator(unittest.TestCase):
         main()
         '''
         self.assertEqual(e.eval_all(n), 10)
-    
+
     def test_function_pointer(self):
         e = AkilangEvaluator()
         n = '''
@@ -320,18 +320,18 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(e.eval_all(n), 64)
 
     def test_strlen_inline(self):
-        e = AkilangEvaluator(True)        
-        opts = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}        
+        e = AkilangEvaluator(True)
+        opts = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}
         self.assertEqual(
             e.evaluate('len("Hello there")', opts),
             12
         )
-        
+
         # includes terminating null, do we want that?
 
     def test_constant_promotion(self):
         e = AkilangEvaluator(True)
-        
+
         # autopromote i1 to i64
         self.assertEqual(e.eval_all('1b+4I'), 5)
 
@@ -345,7 +345,6 @@ class TestEvaluator(unittest.TestCase):
         with self.assertRaises(CodegenError):
             e.eval_all('4u+4I')
 
-    
     def test_int_to_str_and_back(self):
         e = AkilangEvaluator(True)
 
@@ -392,10 +391,9 @@ class TestEvaluator(unittest.TestCase):
         }
         str_to_int_and_back()
         '''
-        
+
         self.assertEqual(e.eval_all(n), 5)
-        
-    
+
     def test_auto_free(self):
         '''
         Placeholder. This test is intended to determine if
