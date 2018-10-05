@@ -26,61 +26,67 @@ This is a document of Aki syntax and usage.
     - [Hash symbol `#`](#hash-symbol-)
     - [Decorator symbol `@`](#decorator-symbol-)
 - [Top-level keywords](#top-level-keywords)
-    - [binary](#binary)
-    - [const](#const)
-    - [class](#class)
-    - [def](#def)
-    - [extern](#extern)
-    - [unary](#unary)
-    - [uni](#uni)
+    - [`binary`](#binary)
+    - [`const`](#const)
+    - [`class`](#class)
+    - [`def`](#def)
+    - [`extern`](#extern)
+    - [`meta`](#meta)
+        - [`loop_vectorize`](#loop_vectorize)
+        - [`size_level`](#size_level)
+        - [`slp_vectorize`](#slp_vectorize)
+        - [`opt_level`](#opt_level)
+        - [`unroll_loops`](#unroll_loops)
+    - [`unary`](#unary)
+    - [`uni`](#uni)
 - [Keywords](#keywords)
-    - [break](#break)
-    - [default](#default)
-    - [if / then / elif / else](#if--then--elif--else)
-    - [loop](#loop)
-    - [match](#match)
-    - [not](#not)
-    - [return](#return)
-    - [unsafe](#unsafe)
-    - [var](#var)
-    - [while](#while)
-    - [with](#with)
-    - [when](#when)
+    - [`break`](#break)
+    - [`default`](#default)
+    - [`if` / `then` / `elif` / `else`](#if--then--elif--else)
+    - [`loop`](#loop)
+    - [`match`](#match)
+    - [`not`](#not)
+    - [`return`](#return)
+    - [`unsafe`](#unsafe)
+    - [`var`](#var)
+    - [`while`](#while)
+    - [`with`](#with)
+    - [`when`](#when)
 - [Decorators](#decorators)
-    - [@inline](#inline)
-    - [@noinline](#noinline)
-    - [@nomod](#nomod)
-    - [@unsafe_req](#unsafe_req)
-    - [@varfunc](#varfunc)
+    - [`@inline`](#inline)
+    - [`@noinline`](#noinline)
+    - [`@nomod`](#nomod)
+    - [`@unsafe_req`](#unsafe_req)
+    - [`@varfunc`](#varfunc)
 - [Builtin functions](#builtin-functions)
-    - [c_addr](#c_addr)
-    - [c_alloc / c_free](#c_alloc--c_free)
-    - [c_array_ptr](#c_array_ptr)
-    - [c_data](#c_data)
-    - [c_gep](#c_gep)
-    - [c_ref / c_deref](#c_ref--c_deref)
-    - [c_size](#c_size)
-    - [c_obj_alloc / c_obj_dealloc](#c_obj_alloc--c_obj_dealloc)
-    - [c_obj_ref / c_obj_deref](#c_obj_ref--c_obj_deref)
-    - [c_obj_size](#c_obj_size)
-    - [c_ptr_int](#c_ptr_int)
-    - [c_ptr_math](#c_ptr_math)
-    - [c_ptr_mod](#c_ptr_mod)
-    - [cast/convert](#castconvert)
+    - [`c_addr`](#c_addr)
+    - [`c_alloc` / `c_free`](#c_alloc--c_free)
+    - [`c_array_ptr`](#c_array_ptr)
+    - [`c_data`](#c_data)
+    - [`c_gep`](#c_gep)
+    - [`c_ref` / `c_deref`](#c_ref--c_deref)
+    - [`c_size`](#c_size)
+    - [`c_obj_alloc` / `c_obj_dealloc`](#c_obj_alloc--c_obj_dealloc)
+    - [`c_obj_ref` / `c_obj_deref`](#c_obj_ref--c_obj_deref)
+    - [`c_obj_size`](#c_obj_size)
+    - [`c_ptr_int`](#c_ptr_int)
+    - [`c_ptr_math`](#c_ptr_math)
+    - [`c_ptr_mod`](#c_ptr_mod)
+    - [`cast` / `convert`](#cast--convert)
 - [Methods](#methods)
-    - [len](#len)
+    - [`len`](#len)
 - [Library functions](#library-functions)
-    - [inkey](#inkey)
-    - [print](#print)
+    - [`inkey`](#inkey)
+    - [`print`](#print)
 - [Types:](#types)
-    - [bool (u1)](#bool-u1)
-    - [byte (u8)](#byte-u8)
-    - [i8/32/64](#i83264)
-    - [u8/32/64](#u83264)
-    - [f64](#f64)
-    - [array](#array)
-    - [str](#str)
-    - [ptr](#ptr)
+    - [`bool (u1)`](#bool-u1)
+    - [`byte (u8)`](#byte-u8)
+    - [`i8/32/64`](#i83264)
+    - [`u8/32/64`](#u83264)
+    - [`f64`](#f64)
+    - [`array`](#array)
+    - [`str`](#str)
+    - [`ptr`](#ptr)
 
 # Introduction
 
@@ -289,7 +295,7 @@ The `@` symbol is used to indicate a [decorator](#decorators).
 "Top-level" keywords can only appear as the first level of keywords encountered by the compiler in a module. E.g., you can have a `def` as a top-level keyword, but you cannot enclose another `def` or a `const` block inside a `def`. (At least, not yet!)
 
 
-## binary 
+## `binary`
 
 The `binary` keyword is used in a function signature to define a binary operator, with an optional precedence.
 
@@ -304,7 +310,7 @@ This defines a binary named `mod` (equivalent to the `%` operator in Python).
 
 The `10` is the operator precedence, with lower numbers having higher precedence.
 
-## const
+## `const`
 
 A `const` block is used to define compile-time constants for a module. 
 
@@ -334,7 +340,7 @@ const {
 
 In this example, `FIELD_SIZE` would be defined as `2673`, and `DIVIDER_WIDTH` would be `81`.
 
-## class
+## `class`
 
 Defines a structure composed of various scalar primitives that can be addressed by name.
 
@@ -361,7 +367,7 @@ def main(){
 
 ```
 
-## def
+## `def`
 
 Define a function signature and its body.
 
@@ -383,7 +389,7 @@ def add(a:u64, b:u64):u64{
 }
 ```
 
-## extern
+## `extern`
 
 Defines an external function to be linked in at compile time.
 
@@ -397,7 +403,45 @@ def main(){
 }
 ```
 
-## unary
+## `meta`
+
+The `meta` keyword defines a set of key-value pairs used by the compiler to guide the compilation process.
+
+The keys and values must both be constants.
+
+```
+meta {
+    unroll_loops = True
+    loop_vectorize = True
+    slp_vectorize = True
+    opt_level = 3
+    size_level = 0
+}
+```
+
+Right now the options are little more than one-to-one correspondants to the optimization controls exposed through Aki's LLVM layer:
+
+### `loop_vectorize`
+
+A boolean value that indicates whether the compiler should use loop vectorization optimizations. Default is `True`.
+
+### `size_level`
+
+An integer from 0 to 2 that indicates how aggressively the compiler optimizes for program size. Default is `0`.
+
+### `slp_vectorize`
+
+A boolean value that indicates whether the compiler should apply SLP vectorization to loops. Default is `True`.
+
+### `opt_level`
+
+An integer from 0 to 3 that indicates the overall optimization level for the compiler. Default is `3`.
+
+### `unroll_loops`
+
+A boolean value that indicates whether the compiler should unroll loops for speed. Default is `True`.
+
+## `unary`
 
 The `unary` keyword is used in a function signature to define a unary operator, which uses any currently unreserved single character symbol.
 
@@ -412,7 +456,7 @@ def unary $(val)
 x = $x
 ```
 
-## uni
+## `uni`
 
 A `uni` block defines *universals*, or variables available throughout a module. The syntax is the same as a `var` assignment.
 
@@ -437,7 +481,7 @@ uni {
 
 These keywords are valid within the body of a function.
 
-## break
+## `break`
 
 Exit a `loop` manually.
 
@@ -454,11 +498,11 @@ print (x)
 11
 ```
 
-## default
+## `default`
 
 See [`match`](#match).
 
-## if / then / elif / else
+## `if` / `then` / `elif` / `else`
 
 If a given expression yields `True`, then yield the value of one expression; if `False`, yield the value of another. Each `then` clause is an expression.
 
@@ -489,9 +533,9 @@ Here, `print` yields the number of characters printed, but in this example it's 
 
 Note that if we didn't have the `return 0` at the bottom of `main`, the last value yielded by the `if` would be the value returned from `main`.
 
-**Each branch of an if must yield the same type.** For operations where the types of each decision might mismatch, or where some possible decisions might not yield a result at all, use [`when/then/elif/else`](#when).
+**Each branch of an `if` must yield the same type.** For operations where the types of each decision might mismatch, or where some possible decisions might not yield a result at all, use [`when/then/elif/else`](#when).
 
-## loop
+## `loop`
 
 Defines a loop operation. The default is a loop that is infinite and needs to be exited manually with a `break`.
 
@@ -531,7 +575,7 @@ with x loop (x = 1, x < 11) {
 # x is not valid outside of this block
 ```
 
-## match
+## `match`
 
 Evaluates an expression based on whether or not a value matches one of a given set of constants (*not* expressions).
 
@@ -556,7 +600,7 @@ match t {
 }
 ```
 
-## not
+## `not`
 
 A built-in unary for negating values.
 
@@ -565,7 +609,7 @@ x = 1
 y = not x # 0
 ```
 
-## return
+## `return`
 
 Provides early exit from a function and returns a value. The value must match the function's return type signature.
 
@@ -576,7 +620,7 @@ def fn(x):u64{
 }
 ```
 
-## unsafe
+## `unsafe`
 
 Designates an expression or block where direct manipulation of memory is performed.
 
@@ -605,7 +649,7 @@ Running `main()` here would yield `32`.
 unsafe c_ptr_mod(y,32)
 ```
 
-## var
+## `var`
 
 Defines a variable for use within the scope of a function.
 
@@ -627,7 +671,7 @@ def main(){
 
 For a variable that only is valid within a specific scope in a function, use `with`.
 
-## while
+## `while`
 
 Defines a loop condition that continues as long as a given condition is true.
 
@@ -638,7 +682,7 @@ while x<100 {
 }
 ```
 
-## with
+## `with`
 
 Provides a context, or closure, for variable assignments.
 
@@ -663,7 +707,7 @@ with var y = 2 {
 }
 ```
 
-## when 
+## `when`
 
 If a given expression yields `True`, then use the value of one expression; if `False`, use the value of another.
 
@@ -707,7 +751,7 @@ Multiple top-level expressions can be grouped together under a single decorator 
 
 Here, both `inline_func` and `other_inline_func` will be decorated with `@inline`.
 
-## @inline
+## `@inline`
 
 Indicates that the decorated function is always to be inlined. Inlining replaces any calls to the function with the function body, to speed up the call process.
 
@@ -717,7 +761,7 @@ A function decorated with `@inline` cannot be decorated with `@varfunc`, and vic
 
 A function decorated with `@inline` cannot be decorated with `@noinline`, and vice versa.
 
-## @noinline
+## `@noinline`
 
 Indicates that the decorated function is never to be inlined. Inlining replaces any calls to the function with the function body, to speed up the call process.
 
@@ -725,7 +769,7 @@ Functions defined as [`binary`](#binary) or [`unary`](#unary) are automatically 
 
 A function decorated with `@inline` cannot be decorated with `@noinline`, and vice versa.
 
-## @nomod
+## `@nomod`
 
 Indicates that the compiler should assume the decorated function does not modify any of the arguments passed to it, such as a s tring's underlying data.
 
@@ -735,11 +779,11 @@ An entire function must be decorated with this. It is not possible to indicate t
 
 A `@varfunc`-decorated function cannot be decorated with `@nomod`.
 
-## @unsafe_req
+## `@unsafe_req`
 
 Indicates that the function in question can only be called from within an [`unsafe`](#unsafe) block.
 
-## @varfunc
+## `@varfunc`
 
 Designates a top-level function that can be assigned to a variable and invoked through the variable.
 
@@ -777,21 +821,21 @@ The following built-ins are largely for the sake of interoperability with C, and
 
 > ⚠ These functions are likely to be highly unstable.
 
-## c_addr
+## `c_addr`
 
 Returns the location of an object in memory, as an integer. The bitwidth of the integer matches the platform in use.
 
-## c_alloc / c_free
+## `c_alloc` / `c_free`
 
 Allocate *n* bytes from the heap to a pointer; free bytes associated with a given pointer.
 
-## c_array_ptr
+## `c_array_ptr`
 
 Returns a raw u8 pointer to the start of an array or structure.
 
 > ⚠ This function is likely to be removed.
 
-## c_data
+## `c_data`
 
 Returns a pointer to the data component for an object, such as a string or an array. This can be used, for instance, to pass a pointer to a null-terminated string to a C library function that needs it.
 
@@ -805,16 +849,16 @@ def main(){
 }
 ```
 
-## c_gep
+## `c_gep`
 
 Provides an interface to LLVM's `getelementpointer` instruction; used for indexing into structures.
 
-## c_ref / c_deref
+## `c_ref` / `c_deref`
 
 `c_ref` returns a typed pointer to a scalar, like an int; `c_deref` dereferences such a pointer.
 
 
-## c_size
+## `c_size`
 
 Returns the size in bytes of a scalar type, or of the descriptor for an object. For a string, for instance, this would *not* be the length of the actual string data (for that, use `len`), but the size of the whole structure that describes a string.
 
@@ -823,8 +867,7 @@ var y:u64
 x=c_size(u) # 8
 ```
 
-
-## c_obj_alloc / c_obj_dealloc
+## `c_obj_alloc` / `c_obj_dealloc`
 
 > ⚠ This function's implementation is unstable and likely to change.
 
@@ -837,22 +880,22 @@ x=c_obj_alloc({with var q:u64[64] q})
 This allocates the memory needed to store a single object of `q`'s type.
 
 
-## c_obj_ref / c_obj_deref
+## `c_obj_ref` / `c_obj_deref`
 
 Like `c_ref/c_deref`, but for complex objects like strings.
 
 > ⚠ This may eventually be merged into `c_ref/c_deref` for simplicity.
 
 
-## c_obj_size
+## `c_obj_size`
 
 Like `c_size` but used to return the size of an object structure. For instance, for a string, this would not be the length of the string data itself, but rather the structure that holds the pointer to the string data and the string's byte length.
 
-## c_ptr_int
+## `c_ptr_int`
 
 Converts a pointer to an integer of the length dictated by the platform (e.g., 64 bits for a platform with a 64-bit pointer size).
 
-## c_ptr_math
+## `c_ptr_math`
 
 Takes a pointer and adds to its position by the number of bytes specified. Returns a newly modifed pointer.
 
@@ -862,7 +905,7 @@ var y=c_ref(x)
 var z=c_ptr_math(y,1)
 ```
 
-## c_ptr_mod
+## `c_ptr_mod`
 
 > ⚠ This requires the `unsafe` keyword.
 
@@ -874,8 +917,7 @@ var y=c_ref(x)
 unsafe c_ptr_mod(y,128) # returns y with a modified underlying value
 ```
 
-
-## cast/convert
+## `cast` / `convert`
 
 `cast` casts one data type as another, such as a pointer to a u64, or an i8 to a u32. Ignores signing and truncates bitwidths without warning.
 
@@ -895,7 +937,7 @@ x = convert(y,i32)
 
 # Methods
 
-## len
+## `len`
 
 Returns the length of an object. This depends entirely on what the object is.
 
@@ -909,7 +951,7 @@ yields `4`.
 
 # Library functions
 
-## inkey
+## `inkey`
 
 Waits indefinitely for a keypress from the console, then returns a byte value that corresponds to the character returned.
 
@@ -923,7 +965,7 @@ var y=inkey()
 
 ```
 
-## print
+## `print`
 
 Prints a scalar type or a string to the console.
 
@@ -939,19 +981,21 @@ print (y)
 
 # Types:
 
-## bool (u1)
+## `bool (u1)`
 
 An unsigned bit (true or false).
 
 Constant representation of 1: `1b`
 
-## byte (u8)
+Note that any number assigned a `bool` type will only have the first bit of the number evaluated. Therefore, `2b` is `False`, but `3b` is `True`.
+
+## `byte (u8)`
 
 An unsigned byte.
 
 Constant representation of 1: `1B`
 
-## i8/32/64
+## `i8/32/64`
 
 Signed integers of 8, 32, or 64 bit widths.
 
@@ -959,19 +1003,19 @@ Constant representation of 1: `1b, 1i, 1u`
 
 The default variable type is a 32-bit signed integer (`1i`).
 
-## u8/32/64
+## `u8/32/64`
 
 Unsigned integers of 8, 32, or 64 bit widths.
 
 Constant representation of 1: `1B, 1I, 1U`
 
-## f64
+## `f64`
 
 Floats of 64 bit widths.
 
 Constant representation of 1: `1.` or `1.0`.
 
-## array
+## `array`
 
 An array of scalar (integer or float) types.
 
@@ -989,9 +1033,9 @@ For a multidimensional array of bytes:
 
 > ⚠ There is as yet no way to perform array slicing or concantenation.
 
-## str
+## `str`
 
-A constant string, defined at compile time:
+A string of characters, defined either at compile time or runtime.
 
 ```
 hello = "Hello World!"
@@ -1028,6 +1072,6 @@ var y=str() # y is now type `str`
 > ⚠ There is as yet no way to perform string slicing or concantenation.
 
 
-## ptr
+## `ptr`
 
 Type prefix to indicate the value in question is a pointer to the stated type, e.g. `var x:ptr i32`. This is currently used mainly in library functions and demos, so its casual use isn't recommended.
