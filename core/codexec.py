@@ -1,4 +1,4 @@
-from ctypes import CFUNCTYPE, c_int32, c_double, c_void_p
+from ctypes import CFUNCTYPE, c_int32, c_double, c_void_p, c_char_p, cast, POINTER, string_at
 from collections import namedtuple
 import colorama
 colorama.init()
@@ -11,7 +11,7 @@ from core.repl import paths
 from core.vartypes import Str, DEFAULT_TYPE
 # TODO: make sure these are eventually supplied
 # by way of the module instance
-from core.ast_module import Function, Prototype
+from core.ast_module import Function, Prototype, Do
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
 
@@ -211,7 +211,12 @@ class AkilangEvaluator(object):
             return Result(None, ast, rawIR, optIR)
 
         if ast.is_anonymous():
-            return_type = self.codegen.module.globals[ast.proto.name].return_value.type.c_type
+            return_value = self.codegen.module.globals[ast.proto.name].return_value
+
+        if not hasattr(return_value.type, 'c_type'):
+            return_type = c_void_p
+        else:
+            return_type = return_value.type.c_type
 
         # Convert LLVM IR into in-memory representation and verify the code
         llvmmod = llvm.parse_assembly(str(self.codegen.module))
@@ -262,6 +267,12 @@ class AkilangEvaluator(object):
             except OSError as e:
                 print(colored(f'OS error: {e}', 'red'))
                 return Result(-1, ast, rawIR, optIR)
+            
+            if return_value.type.v_id == "ptr_str":
+                result = cast(result+self.codegen.vartypes._pointer_size, POINTER(c_char_p))
+                result = cast(result.contents, POINTER(c_char_p))
+                result = f'"{str(string_at(result),"utf8")}"'
+
             return Result(result, ast, rawIR, optIR)
 
     def _add_platform_lib(self, module):
@@ -287,12 +298,14 @@ class AkilangEvaluator(object):
         ].return_value.type
 
         if not hasattr(r_type, 'c_type'):
-            r_type.c_type = c_void_p
+            r_type = c_void_p
+        else:
+            r_type = r_type.c_type
 
         # Run the function with the proper return type
         e = self._eval_ast(
             Function.Anonymous(node.position, node, vartype=r_type),
-            return_type=r_type.c_type
+            return_type=r_type
         )
 
         return e

@@ -330,7 +330,7 @@ class TestEvaluator(unittest.TestCase):
         # includes terminating null, do we want that?
 
     def test_constant_promotion(self):
-        e = AkilangEvaluator(True)
+        e = AkilangEvaluator()
 
         # autopromote i1 to i64
         self.assertEqual(e.eval_all('1b+4I'), 5)
@@ -394,6 +394,10 @@ class TestEvaluator(unittest.TestCase):
 
         self.assertEqual(e.eval_all(n), 5)
 
+    def test_return_string_from_repl(self):
+        e = AkilangEvaluator()
+        self.assertEqual(e.eval_all("'Hi there'"), '"Hi there"')
+    
     def test_auto_free(self):
         '''
         Placeholder. This test is intended to determine if
