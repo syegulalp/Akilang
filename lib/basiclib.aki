@@ -1,5 +1,5 @@
 # non-platform specific
-
+@nomod
 def rnd(max:i32):i32
     rand()/(32767/max)
 
@@ -50,17 +50,22 @@ def print(data :ptr u_mem) :i32
 
 # in time we'll make these builtins too, as I think they are supported by way of LLVM intrinsics - it'll also be easier to provide support for multiple types that way
 
+@nomod
 def max(a, b)
     if a < b then b else a
 
+@nomod
 def min(a, b)
     if a < b then a else b
 
+@nomod
 def abs(a)
     if a < 0 then -a else a
 
+@nomod
 def factorial(n) 
     if n < 2 then 1 else n * factorial(n-1)
 
+@nomod
 def binary mod 10 (lhs, rhs)
     lhs - (lhs/rhs) * rhs

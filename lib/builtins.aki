@@ -15,6 +15,7 @@ def c_str_to_int(my_str:str) :i32 {0}
 
 # The actual builtins.
 
+@nomod
 def '.object.str.__len__'(my_str:str):u64{
     var f1 = c_gep(my_str,0)
     c_deref(f1)
