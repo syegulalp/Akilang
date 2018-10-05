@@ -9,11 +9,12 @@ from core.codegen import llvm, LLVMCodeGenerator
 from core.errors import CodegenError, ParseError
 from core.repl import paths
 from core.vartypes import Str, DEFAULT_TYPE
-# TODO: make sure these are eventually supplied 
+# TODO: make sure these are eventually supplied
 # by way of the module instance
 from core.ast_module import Function, Prototype
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
+
 
 def dump(str, filename):
     '''
@@ -42,7 +43,7 @@ class AkilangEvaluator(object):
     module is JITed and the result of the expression is returned.
     '''
 
-    def __init__(self, use_default_basiclib = False, basiclib_dir=None, basiclib_file=None):
+    def __init__(self, use_default_basiclib=False, basiclib_dir=None, basiclib_file=None):
 
         if use_default_basiclib:
             from core.repl import config
@@ -63,7 +64,7 @@ class AkilangEvaluator(object):
         self.target = llvm.Target.from_default_triple()
         self.reset()
 
-    def load_file(self,f):
+    def load_file(self, f):
         try:
             with open(f) as file:
                 for _ in self.eval_generator(file.read()):
@@ -74,7 +75,7 @@ class AkilangEvaluator(object):
                 f)
             self._reset_base()
             raise err
-    
+
     def reset(self, history=[]):
         import os
         self._reset_base()
@@ -98,7 +99,7 @@ class AkilangEvaluator(object):
                     'platformlib.aki'
                 )
             )
-            
+
             # Finally, load the non-platform dependent basiclib
             self.load_file(
                 os.path.join(
@@ -211,7 +212,7 @@ class AkilangEvaluator(object):
 
         if ast.is_anonymous():
             return_type = self.codegen.module.globals[ast.proto.name].return_value.type.c_type
-        
+
         # Convert LLVM IR into in-memory representation and verify the code
         llvmmod = llvm.parse_assembly(str(self.codegen.module))
         llvmmod.verify()
@@ -267,7 +268,7 @@ class AkilangEvaluator(object):
         import os
         import importlib
         builtins = importlib.import_module(f'core.stdlib.{os.name}')
-        builtins.platform_lib(self, module)        
+        builtins.platform_lib(self, module)
 
     def eval_and_return(self, node):
         '''
@@ -279,7 +280,7 @@ class AkilangEvaluator(object):
         self.codegen.generate_code(
             Function.Anonymous(node.position, node)
         )
-        
+
         # Extract the variable type of that function
         r_type = self.codegen.module.globals[
             Prototype.anon_name(Prototype)
@@ -293,5 +294,5 @@ class AkilangEvaluator(object):
             Function.Anonymous(node.position, node, vartype=r_type),
             return_type=r_type.c_type
         )
-        
+
         return e

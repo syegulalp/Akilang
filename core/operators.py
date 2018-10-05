@@ -3,11 +3,13 @@ from enum import Enum, unique
 
 from core.errors import ParseError
 
+
 @unique
 class Associativity(Enum):
     UNDEFINED = 0
     LEFT = 1
     RIGHT = 2
+
 
 BinOpInfo = namedtuple('BinOpInfo', ['precedence', 'associativity'])
 
@@ -36,15 +38,18 @@ BUILTIN_UNARY_OP = {
 }
 
 UNASSIGNED = {
-    '!','$','%','`','^','&','|','\','
+    '!', '$', '%', '`', '^', '&', '|', '\','
 }
 
 FALSE_BINOP_INFO = BinOpInfo(-1, Associativity.UNDEFINED)
 
+
 def builtin_operators():
     return sorted(BUILTIN_OP.keys())
 
+
 _binop_map = dict(BUILTIN_OP)
+
 
 def binop_info(tok):
     kind, value, _, position = tok

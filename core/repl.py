@@ -1,5 +1,6 @@
 from core.constants import PRODUCT, VERSION, COPYRIGHT, CONFIG_INI_DEFAULTS
 
+
 def config():
     import configparser
     cfg = configparser.ConfigParser()
@@ -32,6 +33,7 @@ from termcolor import colored, cprint
 colorama.init()
 
 from core import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
+
 
 class ReloadException(Exception):
     pass
@@ -151,12 +153,13 @@ def run_tests():
 
 def print_funlist(funlist):
     for func in funlist:
-        
+
         description = "{:>6} {:<20} ({})".format(
             'extern' if func.is_declaration else '   def',
-            getattr(func,'public_name','name'),
-            #func.name,
-            ', '.join((f'{arg.name}:{arg.type.describe()}' for arg in func.args))
+            getattr(func, 'public_name', 'name'),
+            # func.name,
+            ', '.join(
+                (f'{arg.name}:{arg.type.describe()}' for arg in func.args))
         )
         cprint(description, 'yellow')
 
@@ -197,7 +200,7 @@ def run_repl_command(ak, command, options):
         print(f'{len(output)} bytes written to {filename}')
     elif command in ('compile', 'cp'):
         compiler.compile(ak.codegen, 'output')
-    elif command in ('export','ex') or command.startswith('export '):
+    elif command in ('export', 'ex') or command.startswith('export '):
         try:
             filename = command.split(' ')[1]
             if '.' not in filename:
@@ -310,7 +313,7 @@ def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbos
         command = ""
         while not command in ['exit', 'quit']:
             run_command(k, command, options)
-            cprint(PROMPT,'white',end='')
+            cprint(PROMPT, 'white', end='')
             command = input().strip()
 
 # to add:

@@ -1,9 +1,9 @@
 class MessageError(Exception):
-    def __init__(self,msg,position):
+    def __init__(self, msg, position):
         super().__init__(msg)
-        self.msg=msg
-        self.position=position        
-        end = position.buffer.find('\n',position.lineposition+1)
+        self.msg = msg
+        self.position = position
+        end = position.buffer.find('\n', position.lineposition+1)
         if end == -1:
             end = len(position.buffer)
         self.excerpt = position.buffer[position.lineposition:end]
@@ -12,14 +12,18 @@ class MessageError(Exception):
     def __str__(self):
         return f"{self.position}\n{self.msg}\n{self.excerpt}\n{self.caret}"
 
+
 class ParseError(MessageError):
     pass
+
 
 class AkiSyntaxError(MessageError):
     pass
 
+
 class CodegenError(MessageError):
-    pass    
+    pass
+
 
 class CodegenWarning(CodegenError):
     def __init__(self, msg, position):

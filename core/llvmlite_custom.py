@@ -1,6 +1,7 @@
 from llvmlite.ir.types import PointerType, Type
 import llvmlite.ir as ir
 
+
 class MyType():
     pointee = None
     v_id = None
@@ -9,7 +10,7 @@ class MyType():
 
     def is_ptr(self):
         return isinstance(self, ir.types.PointerType)
-    
+
     def is_func(self):
         '''
         Reports whether or not a given type
@@ -43,12 +44,13 @@ class MyType():
         if not self.is_obj:
             raise Exception("Not an object")
         return f'.object.{self.v_id}.'
-    
+
     def del_signature(self):
-        if hasattr(self,'del_id'):
+        if hasattr(self, 'del_id'):
             return f'.object.{self.del_id}.'
         else:
             return self.signature()
+
 
 ir.types.Type.describe = MyType.describe
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
@@ -58,6 +60,7 @@ ir.types.Type.del_signature = MyType.del_signature
 ir.types.Type.is_ptr = MyType.is_ptr
 ir.types.Type.v_id = MyType.v_id
 
+
 class _PointerType(PointerType):
     def __init__(self, *a, **ka):
         v_id = ka.pop('v_id', '')
@@ -66,11 +69,12 @@ class _PointerType(PointerType):
         self.v_id = "ptr_" + v_id
         self.signed = signed
         self.descr = lambda: "ptr " + v_id
-        self.p_fmt = getattr(a[0],'p_fmt',None)
+        self.p_fmt = getattr(a[0], 'p_fmt', None)
 
     def as_pointer(self, addrspace=0):
         return _PointerType(
             self, addrspace, v_id=self.v_id, signed=self.signed)
+
 
 _PointerType.is_ptr = MyType.is_ptr
 
@@ -81,6 +85,7 @@ Old_IntType = ir.types.IntType
 
 import ctypes
 
+
 class _IntType(Old_IntType):
     """
     The type for integers.
@@ -89,23 +94,23 @@ class _IntType(Old_IntType):
     _instance_cache = {}
 
     _unsigned_ctype = {
-        1:ctypes.c_bool,
-        8:ctypes.c_ubyte,
-        16:ctypes.c_short,
-        32:ctypes.c_ulong,
-        64:ctypes.c_ulonglong
+        1: ctypes.c_bool,
+        8: ctypes.c_ubyte,
+        16: ctypes.c_short,
+        32: ctypes.c_ulong,
+        64: ctypes.c_ulonglong
     }
     _signed_ctype = {
-        1:ctypes.c_bool,
-        8:ctypes.c_byte,
-        16:ctypes.c_short,
-        32:ctypes.c_long,
-        64:ctypes.c_longlong        
+        1: ctypes.c_bool,
+        8: ctypes.c_byte,
+        16: ctypes.c_short,
+        32: ctypes.c_long,
+        64: ctypes.c_longlong
     }
-    
+
     @property
     def c_type(self):
-        
+
         if self.v_id == 'u_size':
             return ctypes.c_voidp
         if self.v_id == 'u_mem':
@@ -132,7 +137,7 @@ class _IntType(Old_IntType):
     @classmethod
     def __new(cls, bits, signed, v_id):
         assert isinstance(bits, int) and bits >= 0
-        self = super(Old_IntType, cls).__new__(cls) # pylint: disable=E1003
+        self = super(Old_IntType, cls).__new__(cls)  # pylint: disable=E1003
         self.width = bits
         self.signed = signed
         if v_id is not None:
@@ -144,10 +149,12 @@ class _IntType(Old_IntType):
     def as_pointer(self, addrspace=0):
         return _PointerType(self, addrspace, v_id=self.v_id)
 
+
 ir.types.IntType = _IntType
 ir.IntType = _IntType
 
 old_NamedValue_init = ir.values.NamedValue.__init__
+
 
 def NamedValue_init(self, parent, type, name):
     old_NamedValue_init(self, parent, type, name)
@@ -156,27 +163,33 @@ def NamedValue_init(self, parent, type, name):
     self.do_not_allocate = False
     self.input_arg = None
 
+
 ir.values.NamedValue.__init__ = NamedValue_init
 
 old_Constant_init = ir.values.Constant.__init__
 
+
 def Constant_init(self, typ, constant):
-    old_Constant_init(self,typ,constant)
+    old_Constant_init(self, typ, constant)
     self.heap_alloc = False
     self.tracked = False
     self.do_not_allocate = False
     self.input_arg = None
 
+
 ir.values.Constant.__init__ = Constant_init
 
 OldInit = ir.Function.__init__
 
-def __init(self, *a, **ka):    
+
+def __init(self, *a, **ka):
     OldInit(self, *a, **ka)
     self.decorators = []
     self.raises_exception = False
 
+
 ir.Function.__init__ = __init
+
 
 class Map(dict):
     # https://stackoverflow.com/a/32107024

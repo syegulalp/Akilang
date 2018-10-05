@@ -1,6 +1,6 @@
 from collections import namedtuple
 from core.vartypes import DEFAULT_TYPE, VarTypes
-# TODO: make sure these are eventually supplied 
+# TODO: make sure these are eventually supplied
 # by way of the module instance
 
 import llvmlite.ir as ir
@@ -18,40 +18,49 @@ class Node(object):
     def dump(self, indent=0):
         return dump(self.flatten(), indent)
 
+
 class Pass(Node):
     pass
-    
+
+
 class Expr(Node):
     pass
 
+
 class Continue(Expr):
     pass
+
 
 class Meta(Node):
     def __init__(self, position, metas):
         super().__init__(position)
         self.metas = metas
 
+
 class Unsafe(Expr):
     def __init__(self, position, body):
         super().__init__(position)
         self.body = body
+
 
 class Return(Expr):
     def __init__(self, position, val):
         super().__init__(position)
         self.val = val
 
+
 class Raise(Expr):
     def __init__(self, position, val):
         super().__init__(position)
-        self.val = val  
+        self.val = val
+
 
 class Decorator(Expr):
     def __init__(self, position, name, body):
         super().__init__(position)
         self.name = name
         self.body = body
+
 
 class Break(Expr):
     def __init__(self, position):
@@ -231,6 +240,7 @@ class Match(Expr):
             conditional expression)
         '''
 
+
 class Try(Expr):
     def __init__(self, position, try_expr, except_expr, else_expr=None, finally_expr=None):
         super().__init__(position)
@@ -247,6 +257,7 @@ class Try(Expr):
             self.else_expr.flatten(),
             self.finally_expr.flatten()
         ]
+
 
 class If(Expr):
     def __init__(self, position, cond_expr, then_expr, else_expr):

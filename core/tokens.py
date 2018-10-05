@@ -1,6 +1,7 @@
 from enum import Enum, unique
 from collections import namedtuple
 
+
 @unique
 class TokenKind(Enum):
     EOF = -1
@@ -15,7 +16,7 @@ class TokenKind(Enum):
     # Keywords are less than -100
 
     PASS = -1001
-    
+
     DEF = -1010
 
     BINARY = -1011
@@ -57,9 +58,9 @@ ESCAPES = {
     'n': chr(10),
     'r': chr(13),
     "'": "'",
-    '"':'"',
-    '{':r'\{',
-    '}':r'\}'
+    '"': '"',
+    '{': r'\{',
+    '}': r'\}'
 }
 
 PUNCTUATORS = r'()[]{},:@'
@@ -76,13 +77,13 @@ Builtins = {
     'c_raw_obj',
     'c_null',
     'c_ref', 'c_deref',
-    'c_size', 
+    'c_size',
     'c_obj_alloc', 'c_obj_free',
-    'c_obj_ref', 'c_obj_deref',    
-    'c_obj_size',    
+    'c_obj_ref', 'c_obj_deref',
+    'c_obj_size',
     'c_ptr',
     'c_ptr_int',
-    'c_ptr_math','c_ptr_mod',
+    'c_ptr_math', 'c_ptr_mod',
     'cast', 'convert',
     'out',
     'dummy'
@@ -104,5 +105,5 @@ Decorators = {
 decorator_collisions = (
     ('inline', 'noinline'),
     ('inline', 'varfunc'),
-    ('nomod','varfunc')
+    ('nomod', 'varfunc')
 )

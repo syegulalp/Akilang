@@ -6,14 +6,14 @@ import pathlib
 from core.repl import paths
 
 
-def optimize(llvm_module, metas={}):    
+def optimize(llvm_module, metas={}):
     import llvmlite.binding as llvm
 
     pmb = llvm.create_pass_manager_builder()
-    
+
     pmb.loop_vectorize = metas.get('loop_vectorize', True)
     pmb.slp_vectorize = metas.get('slp_vectorize', True)
-    
+
     pmb.opt_level = metas.get('opt_level', 3)
     pmb.size_level = metas.get('size_level', 0)
 
@@ -77,8 +77,8 @@ def compile(codegen, filename):
         cmds = [
             r"pushd .",
             r'call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64',
-            r'popd',            
-            f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF', 
+            r'popd',
+            f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
             r'exit %errorlevel%',
         ]
 
@@ -99,7 +99,7 @@ def compile(codegen, filename):
         for cmd in cmds:
             for line in p.stdout:
                 ln = line.decode('utf-8').strip()
-                if len(ln)==0:
+                if len(ln) == 0:
                     break
                 print(ln)
 
@@ -109,7 +109,7 @@ def compile(codegen, filename):
                 break
 
             print()
-            
+
             p.stdin.write(bytes(cmd+'\n', 'utf-8'))
             p.stdin.flush()
 

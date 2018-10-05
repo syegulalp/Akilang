@@ -7,6 +7,7 @@ from llvmlite import binding
 
 # Singleton types (these do not require an invocation, they're only created once)
 
+
 def make_type_as_ptr(my_type):
     def type_as_ptr(addrspace=0):
         t = _PointerType(my_type, addrspace, v_id=my_type.v_id)
@@ -17,20 +18,24 @@ def make_type_as_ptr(my_type):
 
 class Bool(ir.IntType):
     p_fmt = '%i'
+
     def __new__(cls):
         return super().__new__(cls, 1, False, True)
 
 
 class SignedInt(ir.IntType):
     p_fmt = '%i'
+
     def __new__(cls, bits, force=True):
         return super().__new__(cls, bits, force, True)
 
 
 class UnsignedInt(ir.IntType):
     p_fmt = '%u'
+
     def __new__(cls, bits, force=True):
         return super().__new__(cls, bits, force, False)
+
 
 class Float64(ir.DoubleType):
     def __new__(cls):
@@ -42,16 +47,19 @@ class Float64(ir.DoubleType):
         t.p_fmt = '%f'
         return t
 
+
 ir.IntType.is_obj = False
+
 
 class Array(ir.ArrayType):
     is_obj = False
+
     def __init__(self, my_type, my_len):
         super().__init__(my_type, my_len)
         self.v_id = 'array_' + my_type.v_id
         self.signed = my_type.signed
         self.as_pointer = make_type_as_ptr(self)
-        
+
 
 class CustomClass():
     def __new__(cls, name, types, v_types):
@@ -67,6 +75,7 @@ class CustomClass():
 
 class ArrayClass(ir.types.LiteralStructType):
     is_obj = True
+
     def __init__(self, my_type, elements):
         arr_type = my_type
         for n in reversed(elements):
@@ -77,9 +86,9 @@ class ArrayClass(ir.types.LiteralStructType):
                 arr_type
             ]
         )
-        
+
         self.v_id = f'array_{my_type.v_id}'
-        self.del_id = 'array'        
+        self.del_id = 'array'
         self.as_pointer = make_type_as_ptr(self)
 
 # When we remake string class, we should follow ArrayClass example
@@ -88,6 +97,7 @@ class ArrayClass(ir.types.LiteralStructType):
 # With a dynamically created instance, I don't think I can do that.
 
 # object types
+
 
 Ptr = ir.global_context.get_identified_type('.object.ptr')
 Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
@@ -108,19 +118,19 @@ Str.as_pointer = make_type_as_ptr(Str)
 ErrType = ir.global_context.get_identified_type('.object.err')
 ErrType.elements = (Str,)
 ErrType.v_id = 'err'
-ErrType.is_obj = True # ?
+ErrType.is_obj = True  # ?
 ErrType.signed = False
 
 OKType = ir.global_context.get_identified_type('.object.ok')
 OKType.elements = (ir.IntType(1),)
 OKType.v_id = 'ok'
-OKType.is_obj = True # ?
+OKType.is_obj = True  # ?
 OKType.signed = False
 
 #ResultType = ir.global_context.get_identified_type('.object.result')
 #ResultType.elements = (OKType, ErrType)
-#third element should be the actual result?
-#how to encode that?
+# third element should be the actual result?
+# how to encode that?
 
 # types for singleton objects
 
@@ -130,7 +140,6 @@ NoneType.v_id = 'none'
 NoneType.is_obj = True
 NoneType.signed = False
 NoneType.ext_ptr = ir.IntType(8).as_pointer()
-
 
 
 # module doesn't exist yet
@@ -154,10 +163,11 @@ Obj.ext_ptr = ir.IntType(8).as_pointer()
 # create an instance of this, so they are all instance-local
 # and not simply imported from this module
 
+
 def generate_vartypes(module=None):
-    
+
     _vartypes = Map({
-        
+
         # singleton
         'u1': Bool(),
         'i8': SignedInt(8),
@@ -183,7 +193,6 @@ def generate_vartypes(module=None):
 
         # 'any': Any
     })
-    
 
     # TODO: add c_type to native llvmlite float
     # as we did with int
@@ -203,7 +212,7 @@ def generate_vartypes(module=None):
 
     if not module:
         module = ir.Module()
-    
+
     # Initialize target data for the module.
     target_data = binding.create_target_data(module.data_layout)
 
@@ -215,7 +224,7 @@ def generate_vartypes(module=None):
     _vartypes._pointer_bitwidth = _vartypes._pointer_size * 8
 
     _vartypes._target_data = target_data
-    
+
     _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_bitwidth)
     _vartypes['u_mem'] = UnsignedInt(_vartypes._pointer_size)
 
@@ -224,6 +233,7 @@ def generate_vartypes(module=None):
             _vartypes[n].box_id = _
 
     return _vartypes
+
 
 VarTypes = generate_vartypes()
 

@@ -1,4 +1,4 @@
-# These functions convert a function name into its "mangled" eqivalent
+F# These functions convert a function name into its "mangled" eqivalent
 # based on its type signature, to allow for multiple dispatch.
 
 # new mangle type:

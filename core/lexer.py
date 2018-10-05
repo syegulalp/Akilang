@@ -10,6 +10,7 @@ import llvmlite.ir as ir
 
 from core.tokens import Token, TokenKind, ESCAPES, COMMENT, PUNCTUATORS
 
+
 class Position():
     def __init__(self, buffer, line=1, col=0, absposition=0, lineposition=0):
         self.line = line
@@ -17,7 +18,6 @@ class Position():
         self.absposition = absposition
         self.lineposition = lineposition
         self.buffer = buffer
-        
 
     def advance(self, newline=False):
         if newline:
@@ -109,7 +109,7 @@ class Lexer(object):
                     if self.lastchar in ('\\',):
                         self._advance()
                         if self.lastchar in ESCAPES:
-                            #new_str.append(chr(ESCAPES[self.lastchar]))
+                            # new_str.append(chr(ESCAPES[self.lastchar]))
                             new_str.append((ESCAPES[self.lastchar]))
                         elif self.lastchar in 'x':
                             hex = []
