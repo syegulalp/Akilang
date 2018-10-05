@@ -335,6 +335,9 @@ class TestEvaluator(unittest.TestCase):
         # autopromote i1 to i64
         self.assertEqual(e.eval_all('1b+4I'), 5)
 
+        # autopromote u8 to u64
+        self.assertEqual(e.eval_all('1B+4U'), 5)
+
         # autopromote i32 to i64
         self.assertEqual(e.eval_all('4i+4I'), 8)
 
