@@ -8,25 +8,26 @@ from core.errors import ParseError
 
 # pylint: disable=E1101
 
+
 class Toplevel():
     def _parse_meta_expr(self):
-        
+
         start = self.cur_tok.position
-        
+
         # first, consume "meta"
         self._get_next_token()
 
-        self._match(TokenKind.PUNCTUATOR,'{')
+        self._match(TokenKind.PUNCTUATOR, '{')
 
         metas = []
-        
+
         while True:
             t = self._parse_expression()
             metas.append(t)
             if self._cur_tok_is_punctuator('}'):
                 self._get_next_token()
                 break
-        
+
         return Meta(start, metas)
 
     def _parse_var_declaration(self):
@@ -168,8 +169,8 @@ class Toplevel():
             else:
                 raise ParseError(
                     f'Expected variable declaration but got "{self.cur_tok.value}" instead',
-                    self.cur_tok.position)    
-    
+                    self.cur_tok.position)
+
     def _parse_expression(self):
         self.level += 1
         lhs = self._parse_primary()
@@ -232,9 +233,9 @@ class Toplevel():
 
             # Add the new operator to our precedence table so we can properly
             # parse it.
-            
+
             #set_binop_info(name[-1], prec, Associativity.LEFT)
-            
+
             # we previously used the above when operators were only a single character
 
             set_binop_info(r_name, prec, Associativity.LEFT)

@@ -18,8 +18,8 @@ from core.parsing.toplevel import Toplevel
 
 PARSE_ACTIONS = {
     TokenKind.RETURN: 'return',
-    TokenKind.IDENTIFIER:'identifier',
-    TokenKind.OPERATOR:'unaryop',
+    TokenKind.IDENTIFIER: 'identifier',
+    TokenKind.OPERATOR: 'unaryop',
     TokenKind.NUMBER: 'number',
     TokenKind.STRING: 'string',
     TokenKind.VAR: 'var',
@@ -38,6 +38,7 @@ PARSE_ACTIONS = {
 }
 
 # pylint: disable=E1101
+
 
 class Parser(Expressions, Toplevel):
     '''
@@ -151,10 +152,10 @@ class Parser(Expressions, Toplevel):
                 f'"{self.cur_tok.value}" cannot be used as an identifier (variable type)',
                 self.cur_tok.position)
 
-    def _parse_argument_list(self, args_required = False):
+    def _parse_argument_list(self, args_required=False):
         args = []
         self._get_next_token()
-        while True:            
+        while True:
             if self._cur_tok_is_punctuator(')'):
                 break
             arg = self._parse_expression()
@@ -162,13 +163,13 @@ class Parser(Expressions, Toplevel):
             if not self._cur_tok_is_punctuator(','):
                 break
             self._get_next_token()
-        if args_required and len(args)==0:
+        if args_required and len(args) == 0:
             raise ParseError(
                 f'At least one argument is required',
                 self.cur_tok.position
             )
         return args
-    
+
     def _parse_decorator(self):
         start = self.cur_tok.position
         self._get_next_token()
@@ -201,9 +202,9 @@ class Parser(Expressions, Toplevel):
         elif self._cur_tok_is_punctuator('{'):
             return self._parse_do_expr()
         elif self.cur_tok.kind in self.parse_actions:
-            return getattr(self, 
-                f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr'
-            )()
+            return getattr(self,
+                           f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr'
+                           )()
         elif self.cur_tok.kind == TokenKind.EOF:
             raise ParseError('Expression expected but reached end of code',
                              self.cur_tok.position)
@@ -212,7 +213,6 @@ class Parser(Expressions, Toplevel):
                 f'Expression expected but met unknown token: "{self.cur_tok.value}"',
                 self.cur_tok.position
             )
-
 
     def _parse_builtin(self, name):
         if name in ('cast', 'convert'):
@@ -226,8 +226,7 @@ class Parser(Expressions, Toplevel):
         return Call(start, name, args)
 
     # TODO: eventually we will be able to recognize
-    # vartypes as args without this kind of hackery                
-
+    # vartypes as args without this kind of hackery
 
     def _parse_array_accessor(self):
         self._match(TokenKind.PUNCTUATOR, '[')
