@@ -8,6 +8,7 @@ import llvmlite.ir as ir
 
 # pylint: disable=E1101
 
+
 class ControlFlow():
     def _codegen_Try(self, node):
         # Try blocks do NOT return a value,
@@ -18,7 +19,7 @@ class ControlFlow():
         exit_block = ir.Block(self.builder.function, 'end_try')
         if node.else_expr:
             else_block = ir.Block(self.builder.function, 'else')
-        
+
         self.builder.function.basic_blocks.append(try_block)
         self.builder.branch(try_block)
         self.builder.position_at_start(try_block)
@@ -58,7 +59,7 @@ class ControlFlow():
         if not self.builder.block.is_terminated:
             self.builder.branch(exit_block)
 
-        if node.else_expr:            
+        if node.else_expr:
             self.builder.function.basic_blocks.append(else_block)
             self.builder.position_at_end(try_block)
             if not self.builder.block.is_terminated:
@@ -68,17 +69,17 @@ class ControlFlow():
 
         # this will eventually become the 'finally' block
         # when the semantics support it
-        
+
         self.builder.function.basic_blocks.append(exit_block)
         if not self.builder.block.is_terminated:
             self.builder.branch(exit_block)
         self.builder.position_at_start(exit_block)
-        
+
     def _codegen_Raise(self, node):
         return self._codegen_Return(node)
         # Raise interrupts control flow destructively
         # ("expression does not return value along code paths")
-        
+
     def _codegen_Return(self, node):
         '''
         Generates a return from within a function, and 
@@ -88,8 +89,8 @@ class ControlFlow():
 
         retval = self._codegen(node.val)
         if self.func_returntype is None:
-            raise CodegenError(f'Unknown return declaration error', 
-                node.position)
+            raise CodegenError(f'Unknown return declaration error',
+                               node.position)
 
         if retval.type != self.func_returntype:
             raise CodegenError(
@@ -139,13 +140,13 @@ class ControlFlow():
             else:
                 n = ir.Block(self.builder.function, 'match')
                 switch_instr.add_case(val_codegen, n)
-                exprs[expr] = n                
+                exprs[expr] = n
                 cases.append([n, expr])
         for block, expr in cases:
             self.builder.function.basic_blocks.append(block)
             self.builder.position_at_start(block)
             result = self._codegen(expr, False)
-            #if result and not self.builder.block.is_terminated:
+            # if result and not self.builder.block.is_terminated:
             if not self.builder.block.is_terminated:
                 self.builder.branch(exit)
         self.builder.function.basic_blocks.append(default)
@@ -196,9 +197,9 @@ class ControlFlow():
         self.breaks = False
 
         then_val = self._codegen(node.then_expr, False)
-        #if then_val or not self.builder.block.is_terminated:
+        # if then_val or not self.builder.block.is_terminated:
         if not self.builder.block.is_terminated:
-            self.builder.branch(merge_bb)           
+            self.builder.branch(merge_bb)
 
         # Emission of then_val could have generated a new basic block
         # (and thus modified the current basic block).
@@ -237,7 +238,7 @@ class ControlFlow():
 
         if then_val is None and else_val is None:
             # returns are present in each branch
-            return        
+            return
         elif not else_val:
             # return present in 1st branch only
             return then_val.type
@@ -297,7 +298,7 @@ class ControlFlow():
                 (loopafter_bb, loopbody_bb)
             )
             self._codegen(node.body, False)
-            self.loop_exit.pop()            
+            self.loop_exit.pop()
             if not self.builder.block.is_terminated:
                 self.builder.branch(loopbody_bb)
             self.builder.function.basic_blocks.append(loopafter_bb)
@@ -385,7 +386,7 @@ class ControlFlow():
 
         self.builder.function.basic_blocks.append(loopcounter_bb)
         self.builder.position_at_start(loopcounter_bb)
-        
+
         # Evaluate the step and update the counter
         nextval = self._codegen(node.step_expr)
         self.builder.store(nextval, var_addr)
@@ -409,11 +410,11 @@ class ControlFlow():
             self.func_symtab[node.start_expr.name] = oldval
 
         # Remove topmost loop exit/loop continue marker
-        #if self.loop_exit:
+        # if self.loop_exit:
         self.loop_exit.pop()
 
         #self.loop_counter = None
-        
+
         # The 'loop' expression returns the last value of the counter
         return self.builder.load(var_addr)
 
@@ -513,7 +514,7 @@ class ControlFlow():
             if node.name in Dunders:
                 return self._codegen_dunder_methods(node)
             if node.name in Builtins:
-                return getattr(self, '_codegen_Builtins_' + node.name)(node)            
+                return getattr(self, '_codegen_Builtins_' + node.name)(node)
 
         call_args = []
         possible_opt_args_funcs = set()
@@ -568,7 +569,7 @@ class ControlFlow():
         # Determine if this is a function pointer
 
         try:
-            
+
             # if we don't yet have a reference,
             # since this might be a function pointer,
             # attempt to obtain one from the variable list
@@ -579,9 +580,9 @@ class ControlFlow():
             if callee_func.type.is_func():
                 # retrieve actual function pointer from the variable ref
                 func_to_check = callee_func.type.pointee.pointee
-                final_call = self.builder.load(callee_func)                
+                final_call = self.builder.load(callee_func)
                 ftype = func_to_check
-                
+
                 final_call.decorators = []
                 #final_call.decorators = callee_func.decorators
 
@@ -609,17 +610,17 @@ class ControlFlow():
                 raise CodegenError(
                     f'Call argument length mismatch for "{node.name}" (expected at least {len(callee_func.args)}, got {len(node.args)})',
                     node.position)
-        
+
         nomod = 'nomod' in final_call.decorators
-        
+
         for x, n in enumerate(zip(call_args, func_to_check.args)):
             type0 = n[0].type
-            
+
             # in some cases, such as with a function pointer,
             # the argument is not an Argument but a core.vartypes instance
             # so this check is necessary
 
-            if type(n[1])==ir.values.Argument:
+            if type(n[1]) == ir.values.Argument:
                 type1 = n[1].type
             else:
                 type1 = n[1]
@@ -632,7 +633,7 @@ class ControlFlow():
             # if this is a traced object, and we give it away,
             # then we can't delete it in this scope anymore
             # because we no longer have ownership of it
-            
+
             if not nomod:
                 to_check = self._extract_operand(n[0])
                 if to_check.heap_alloc:
@@ -648,7 +649,7 @@ class ControlFlow():
             call_to_return.tracked = True
 
         # FIXME: There ought to be a better way to assign this
-        
+
         if callee_func.tracked == True:
             call_to_return.heap_alloc = True
             call_to_return.tracked = True
@@ -658,7 +659,7 @@ class ControlFlow():
                 f'Function "{node.name}" is decorated with "@unsafe_req" and requires an "unsafe" block"',
                 node.position
             )
-        
+
         # if callee_func.do_not_allocate == True:
         #     call_to_return.do_not_allocate = True
 
@@ -680,10 +681,10 @@ class ControlFlow():
         body_val = self._codegen(node.body)
         self.allow_unsafe = False
         return body_val
-    
+
     def _codegen_With(self, node):
         new_bindings = [v.name for v in node.vars.vars]
-        
+
         # originally we codegenned this to allocate
         # the variable in the local block,
         # but I realized that would leak memory.
@@ -699,9 +700,9 @@ class ControlFlow():
         for n in reversed(new_bindings):
             self._codegen_autodispose(
                 [
-                [n, self.func_symtab[n]]
+                    [n, self.func_symtab[n]]
                 ],
                 None)
             del self.func_symtab[n]
-    
-        return body_val        
+
+        return body_val

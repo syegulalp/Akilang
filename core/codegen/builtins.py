@@ -5,12 +5,14 @@ import re
 
 # pylint: disable=E1101
 
+
 class Builtins():
-    
+
     def _if_unsafe(self, node, explanation=''):
         if not self.allow_unsafe:
-            raise CodegenError(f'Operation must be enclosed in an "unsafe" block{explanation}', node.position)
-    
+            raise CodegenError(
+                f'Operation must be enclosed in an "unsafe" block{explanation}', node.position)
+
     def _check_pointer(self, obj, node):
         '''
         Determines if a given item is a pointer or object.
@@ -31,7 +33,7 @@ class Builtins():
         if ptr_check:
             self._check_pointer(codegen, node)
         return codegen
-    
+
     def _codegen_Builtins_c_obj_alloc(self, node):
         '''
         Allocates bytes for an object of the type submitted.
@@ -52,7 +54,7 @@ class Builtins():
             Call(node.position, 'c_alloc',
                  [Number(node.position, sizeof, self.vartypes.u_size)]))
 
-        b1 = self.builder.bitcast(call, expr.type) # pylint: disable=E1111
+        b1 = self.builder.bitcast(call, expr.type)  # pylint: disable=E1111
         b2 = self.builder.alloca(b1.type)
         self.builder.store(b1, b2)
 
@@ -69,21 +71,23 @@ class Builtins():
         expr = self._get_obj_noload(node)
 
         if not expr.tracked:
-            raise CodegenError(f'{node.args[0].name} is not an allocated object',node.args[0].position)
+            raise CodegenError(
+                f'{node.args[0].name} is not an allocated object', node.args[0].position)
 
         # Mark the variable in question as untracked
         expr.tracked = False
 
         addr = self.builder.load(expr)
-        addr2 = self.builder.bitcast(addr, self.vartypes.u_mem.as_pointer()).get_reference()
+        addr2 = self.builder.bitcast(
+            addr, self.vartypes.u_mem.as_pointer()).get_reference()
 
         call = self._codegen_Call(
             Call(node.position, 'c_free',
                  [Number(node.position, addr2,
-            self.vartypes.u_mem.as_pointer())]))        
+                         self.vartypes.u_mem.as_pointer())]))
 
         # TODO: zero after free, automatically
-        
+
         return call
 
     def _codegen_Builtins_c_obj_ref(self, node):
@@ -111,15 +115,15 @@ class Builtins():
         self._if_unsafe(node)
 
         ptr = self._codegen(node.args[0])
-        value = self._codegen(node.args[1])        
+        value = self._codegen(node.args[1])
         self.builder.store(value, ptr)
         return ptr
 
     def _codegen_Builtins_c_gep(self, node):
         obj = self._codegen(node.args[0])
         index = [self._i32(0)]
-                
-        for n in range(1,len(node.args)):
+
+        for n in range(1, len(node.args)):
             # TODO: constant values should be cast as int or float in python
             node.args[n].val = int(node.args[n].val)
             index.append(self._codegen(node.args[n]))
@@ -184,7 +188,7 @@ class Builtins():
             self.vartypes.u_mem.as_pointer()
         )
         return ptr
-    
+
     def _codegen_Builtins_c_data(self, node):
         '''
         Returns the underlying C-style data element
@@ -220,10 +224,11 @@ class Builtins():
         gep = self.builder.gep(
             convert_from,
             [self._i32(0),
-            self._i32(1),
-            ]
+             self._i32(1),
+             ]
         )
-        bc = self.builder.bitcast(gep, self.vartypes.u_mem.as_pointer()) # pylint: disable=E1111
+        bc = self.builder.bitcast(
+            gep, self.vartypes.u_mem.as_pointer())  # pylint: disable=E1111
         return bc
 
     def _codegen_Builtins_c_ptr(self, node):
@@ -232,15 +237,13 @@ class Builtins():
         '''
         self._if_unsafe(node)
         address_of = self._codegen(node.args[0])
-        
-        if len(node.args)>1:
+
+        if len(node.args) > 1:
             use_type = self._codegen(node.args[1], False)
         else:
             use_type = self.vartypes.u_mem
-        
-        return self.builder.bitcast(address_of, use_type.as_pointer())
-        
 
+        return self.builder.bitcast(address_of, use_type.as_pointer())
 
     def _codegen_Builtins_c_addr(self, node):
         '''
@@ -320,7 +323,7 @@ class Builtins():
 
                 # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr():
-                    #if cast_from.type.v_id != 'ptr_str':
+                    # if cast_from.type.v_id != 'ptr_str':
                     raise cast_exception
 
                 # but it can be cast to another pointer
@@ -486,32 +489,32 @@ class Builtins():
         result = op(convert_from, convert_to)
         result.type = convert_to
         return result
-    
+
     def _codegen_Builtins_out(self, node):
         in_template = re.split(r'([{}])', node.args[0].val)
-        
-        var_names = []        
+
+        var_names = []
         escape = False
         open_br = False
 
         for n in in_template:
-            if n==r'{' and not escape:
+            if n == r'{' and not escape:
                 open_br = True
                 continue
-            if n==r'}' and not escape:
+            if n == r'}' and not escape:
                 open_br = False
                 continue
             if open_br:
-                var_ref = self._varaddr(n,False)
-                var_names.append([var_ref.type.p_fmt,n])
+                var_ref = self._varaddr(n, False)
+                var_names.append([var_ref.type.p_fmt, n])
                 continue
-            escape=False            
-            if n and n[-1]=='\\':
-                escape=True
-                n=n[0:-1]
-            n = n.replace('%','%%')
-            var_names.append([n,None])
-        
+            escape = False
+            if n and n[-1] == '\\':
+                escape = True
+                n = n[0:-1]
+            n = n.replace('%', '%%')
+            var_names.append([n, None])
+
         format_string = []
         variable_list = []
 
@@ -527,14 +530,15 @@ class Builtins():
                     'c_data',
                     [Variable(node.position, n[1])]
                 )
-            
-            elif n[0] in ('%u','%i','%f'):
+
+            elif n[0] in ('%u', '%i', '%f'):
                 var_app = Variable(node.position, n[1])
-            
+
             else:
-                self._if_unsafe(node, f' (variable "{n[1]}" is potentially raw data)')
-                n[0]='%s'
-                format_string[-1]='%s'
+                self._if_unsafe(
+                    node, f' (variable "{n[1]}" is potentially raw data)')
+                n[0] = '%s'
+                format_string[-1] = '%s'
                 var_app = Call(
                     node.position,
                     'c_array_ptr',
@@ -551,7 +555,7 @@ class Builtins():
             [str_to_extract]
         )
 
-        variable_list.insert(0,convert)
+        variable_list.insert(0, convert)
 
         return self._codegen(
             Call(

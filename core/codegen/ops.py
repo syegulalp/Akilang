@@ -7,6 +7,7 @@ from core.vartypes import VarTypes, Str
 
 # pylint: disable=E1101
 
+
 class Ops():
 
     def _codegen_Unary(self, node):
@@ -51,12 +52,12 @@ class Ops():
         # Autopromotion of integer constants
         # must both be positive integers
 
-        if isinstance(lhs,ir.Constant) and isinstance(rhs,ir.Constant):
+        if isinstance(lhs, ir.Constant) and isinstance(rhs, ir.Constant):
             try:
                 if lhs.type.signed != rhs.type.signed:
                     raise ValueError
-                if int(lhs.constant)>0 and int(rhs.constant)>0:
-                    if lhs.type.width>rhs.type.width:
+                if int(lhs.constant) > 0 and int(rhs.constant) > 0:
+                    if lhs.type.width > rhs.type.width:
                         rhs = self.builder.zext(rhs, lhs.type)
                     else:
                         lhs = self.builder.zext(lhs, rhs.type)
@@ -65,8 +66,8 @@ class Ops():
                 pass
 
         # next will be autopromotion of variables
-        # same signing, one has a lesser bitwidth than the other        
-        
+        # same signing, one has a lesser bitwidth than the other
+
         # for issues where one is signed and the other is unsigned,
         # we would need to ensure the signed value is greater than zero
         # I'm not sure we can enforce that for vars at compile time
@@ -74,7 +75,7 @@ class Ops():
         # release mode, or some other "strict" compiler directive,
         # should disable these behaviors unless they are specifically
         # re-enabled
-        
+
         if lhs.type != rhs.type:
             raise CodegenError(
                 f'"{lhs.type.describe()}" ({node.lhs.name}) and "{rhs.type.describe()}" ({node.rhs.name}) are incompatible types for operation',
@@ -106,7 +107,7 @@ class Ops():
 
                 if node.op == '+':
                     return self.builder.add(lhs, rhs, 'addop')
-                elif node.op == '+=':                   
+                elif node.op == '+=':
                     operand = self._get_var(node, lhs)
                     value = self.builder.add(lhs, rhs, 'addop')
                     self.builder.store(value, operand)
@@ -146,14 +147,17 @@ class Ops():
                     return x
                 elif node.op == '/':
                     if int(getattr(rhs, 'constant', 1)) == 0:
-                        raise CodegenError('Integer division by zero', node.rhs.position)
+                        raise CodegenError(
+                            'Integer division by zero', node.rhs.position)
                     return self.builder.sdiv(lhs, rhs, 'divop')
                 elif node.op == 'and':
-                    x = self.builder.and_(lhs, rhs, 'andop') # pylint: disable=E1111
+                    x = self.builder.and_(
+                        lhs, rhs, 'andop')  # pylint: disable=E1111
                     x.type = VarTypes.bool
                     return x
                 elif node.op == 'or':
-                    x = self.builder.or_(lhs, rhs, 'orop') # pylint: disable=E1111
+                    x = self.builder.or_(
+                        lhs, rhs, 'orop')  # pylint: disable=E1111
                     x.type = VarTypes.bool
                     return x
                 else:
@@ -165,7 +169,7 @@ class Ops():
 
                 if node.op == '+':
                     return self.builder.fadd(lhs, rhs, 'faddop')
-                elif node.op == '+=':                   
+                elif node.op == '+=':
                     operand = self._get_var(node, lhs)
                     value = self.builder.fadd(lhs, rhs, 'faddop')
                     self.builder.store(value, operand)
@@ -227,4 +231,4 @@ class Ops():
         except NotImplementedError:
             raise CodegenError(
                 f'Unknown binary operator {node.op} for {vartype}',
-                node.position)            
+                node.position)

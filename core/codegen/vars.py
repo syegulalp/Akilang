@@ -6,6 +6,7 @@ from core.mangling import mangle_call
 
 # pylint: disable=E1101
 
+
 class Vars():
     def _codegen_NoneType(self, node):
         pass
@@ -30,22 +31,23 @@ class Vars():
         ] + elements
 
         # First, try to obtain a conventional array accessor element
-        
+
         try:
             ptr = self.builder.gep(array, accessor, True, f'{array.name}')
         except Exception as e:
             pass
         else:
             return ptr
-        
+
         # If that fails, assume we're trying to manually index an object
-        
+
         if not self.allow_unsafe:
             raise CodegenError(
                 f'Accessor "{array.name}" into unindexed object requires "unsafe" block',
                 node.position)
         try:
-            ptr = self.builder.gep(array, [self._i32(0)] + elements , False, f'{array.name}')
+            ptr = self.builder.gep(
+                array, [self._i32(0)] + elements, False, f'{array.name}')
         except AttributeError as e:
             raise CodegenError(
                 f'Unindexed accessor for "{array.name}" requires a constant',
@@ -60,7 +62,6 @@ class Vars():
         raise CodegenError(
             f'Invalid array accessor for "{array.name}" (maybe wrong number of dimensions?)',
             node.position)
-
 
     def _codegen_Variable(self, node, noload=False):
 
@@ -83,7 +84,7 @@ class Vars():
 
             elif isinstance(current_node, ArrayAccessor):
                 # eventually this will be coded as a call
-                # to __index__ method of the element in question                
+                # to __index__ method of the element in question
 
                 if latest.type.is_obj_ptr():
                     # objects are passed by reference
@@ -96,7 +97,7 @@ class Vars():
                         self.builder.store(latest, array_element)
                     else:
                         # otherwise, just point to the existing allocation
-                        array_element = self._varaddr(previous_node)    
+                        array_element = self._varaddr(previous_node)
 
                 latest = self._codegen_ArrayElement(
                     current_node, array_element)
@@ -116,7 +117,8 @@ class Vars():
                 try:
                     oo = latest.type.pointee
                 except AttributeError:
-                    raise CodegenError(f'Not a pointer or object', current_node.position)
+                    raise CodegenError(
+                        f'Not a pointer or object', current_node.position)
 
                 _latest_vid = oo.v_id
                 _cls = self.class_symtab[_latest_vid]
@@ -137,7 +139,8 @@ class Vars():
 
             # pathological case
             else:
-                raise CodegenError(f'Unknown variable instance', current_node.position)
+                raise CodegenError(
+                    f'Unknown variable instance', current_node.position)
 
             child = getattr(current_node, 'child', None)
             if child is None:
@@ -153,10 +156,10 @@ class Vars():
             return latest
 
         if current_load:
-            
+
             # Extract constants from uni declarations
 
-            possible_constant=self._extract_operand(latest)
+            possible_constant = self._extract_operand(latest)
             if isinstance(possible_constant, ir.GlobalVariable) and possible_constant.global_constant is True:
                 return possible_constant.initializer
 
@@ -164,7 +167,7 @@ class Vars():
             return self.builder.load(latest, node.name)
 
         else:
-            return latest        
+            return latest
 
     def _codegen_Assignment(self, lhs, rhs):
         if not isinstance(lhs, Variable):
@@ -185,9 +188,9 @@ class Vars():
             rhs_name = mangle_call(rhs.name, ptr.type.pointee.pointee.args)
             value = self.module.globals.get(rhs_name)
             if not value:
-                    raise CodegenError(
-                        f'Call to unknown function "{rhs.name}" with signature {[n.describe() for n in ptr.type.pointee.pointee.args]}" (maybe this call signature is not implemented for this function?)',
-                        rhs.position)
+                raise CodegenError(
+                    f'Call to unknown function "{rhs.name}" with signature {[n.describe() for n in ptr.type.pointee.pointee.args]}" (maybe this call signature is not implemented for this function?)',
+                    rhs.position)
             if 'varfunc' not in value.decorators:
                 raise CodegenError(
                     f'Function "{rhs.name}" must be decorated with "@varfunc" to allow variable assignments',
@@ -216,7 +219,7 @@ class Vars():
         self.builder.store(value, ptr)
 
         return value
-        
+
     def _codegen_String(self, node):
         return self._string_base(node.val)
 
@@ -247,7 +250,8 @@ class Vars():
         # Get pointer to first element in string's byte array
         # and bitcast it to a ptr i8.
 
-        spt = str_const.gep([self._int(0)]).bitcast(self.vartypes.u8.as_pointer())
+        spt = str_const.gep([self._int(0)]).bitcast(
+            self.vartypes.u8.as_pointer())
 
         # Create the string object that points to the constant.
 
@@ -261,7 +265,7 @@ class Vars():
 
         return str_val
 
-    def _codegen_Var(self, node, local_alloca = False):
+    def _codegen_Var(self, node, local_alloca=False):
         for v in node.vars:
 
             name = v.name
@@ -282,7 +286,7 @@ class Vars():
                     f'"{name}" already defined in universal scope', position)
 
             var_ref = self._alloca(name, v_type, current_block=local_alloca)
-            
+
             if val:
                 var_ref.heap_alloc = val.heap_alloc
                 var_ref.input_arg = val.input_arg
@@ -338,4 +342,4 @@ class Vars():
 
             final_type = val.type
 
-        return val, final_type        
+        return val, final_type

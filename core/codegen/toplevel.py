@@ -6,13 +6,14 @@ from core.tokens import decorator_collisions
 
 # pylint: disable=E1101
 
+
 class Toplevel():
 
     def _codegen_Meta(self, node):
         '''
         Iterate through a `meta` block and register each
         name/value pair with the module's metadata.
-        ''' 
+        '''
 
         # At some point we'll just make this into an extension of
         # `const`, but I think we need special processing for now
@@ -21,7 +22,7 @@ class Toplevel():
         # passing it the current eval as a parameter?
 
         from core.codexec import AkilangEvaluator
-        
+
         e = AkilangEvaluator(True)
 
         for n in node.metas:
@@ -30,14 +31,14 @@ class Toplevel():
                     'Invalid "meta" declaration (must be in the format "<identifier> = <value>")',
                     n.position
                 )
-            
-            if isinstance(n.rhs,Variable):
+
+            if isinstance(n.rhs, Variable):
                 val = e.eval_and_return(n.rhs).value
-            
+
             # an inline string literal doesn't need to be evaled
             elif isinstance(n.rhs, String):
                 val = n.rhs.val
-            
+
             # ditto numbers, integers only tho
             elif isinstance(n.rhs, Number):
                 try:
@@ -46,16 +47,16 @@ class Toplevel():
                     raise CodegenError(
                         'Invalid "meta" declaration (value must be a string or integer)',
                         n.rhs.position
-                    )    
+                    )
 
             else:
                 raise CodegenError(
                     'Invalid "meta" declaration (value must be a string or integer)',
                     n.rhs.position
                 )
-            
+
             self.metas[n.lhs.name] = val
-        
+
         #print (self.metas)
 
     def _codegen_Decorator(self, node):
@@ -135,7 +136,7 @@ class Toplevel():
             if not isinstance(existing_func, ir.Function):
                 raise CodegenError(f'Function/universal name collision {funcname}',
                                    node.position)
-            
+
             # If we're redefining a forward declaration,
             # erase the existing function body
 
@@ -180,7 +181,7 @@ class Toplevel():
         # and use that to set up other attributes
 
         decorators = [n.name for n in self.func_decorators]
-        
+
         varfunc = 'varfunc' in decorators
 
         for a, b in decorator_collisions:
@@ -253,7 +254,7 @@ class Toplevel():
         self.func_symtab = {}
 
         # Create the function skeleton from the prototype.
-        func = self._codegen(node.proto, False)        
+        func = self._codegen(node.proto, False)
 
         # Create the entry BB in the function and set a new builder to it.
         bb_entry = func.append_basic_block('entry')
@@ -268,17 +269,18 @@ class Toplevel():
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
             if arg.type.is_obj_ptr():
-                alloca = arg                
+                alloca = arg
             else:
                 alloca = self._alloca(arg.name, arg.type)
                 self.builder.store(arg, alloca)
 
             # We don't shadow existing variables names, ever
-            assert not self.func_symtab.get(arg.name) and "arg name redefined: " + arg.name
+            assert not self.func_symtab.get(
+                arg.name) and "arg name redefined: " + arg.name
 
             self.func_symtab[arg.name] = alloca
-            
-            alloca.input_arg = _            
+
+            alloca.input_arg = _
             alloca.tracked = False
 
         # Generate code for the body
@@ -312,13 +314,13 @@ class Toplevel():
             self.builder.branch(self.func_returnblock)
 
         self.builder = ir.IRBuilder(self.func_returnblock)
-        
+
         # Check for the presence of a returned object
         # that requires memory tracing
         # if so, add it to the set of functions that returns a trackable object
 
         to_check = retval
-        
+
         if retval:
             to_check = self._extract_operand(retval)
             if to_check.tracked:
@@ -326,7 +328,7 @@ class Toplevel():
                 self.func_returnblock.parent.returns.append(to_check)
 
         # Determine which variables need to be automatically disposed
-        
+
         if to_check:
             self._codegen_autodispose(
                 reversed(list(self.func_symtab.items())),
@@ -339,7 +341,7 @@ class Toplevel():
         self.func_returntype = None
         self.func_returnarg = None
         self.func_returnblock = None
-        self.func_returncalled = None     
+        self.func_returncalled = None
 
     def _codegen_Uni(self, node, const=False):
         for name, vartype, expr, position in node.vars:
@@ -380,4 +382,4 @@ class Toplevel():
                 str1.initializer = val
 
     def _codegen_Const(self, node):
-        return self._codegen_Uni(node, True)        
+        return self._codegen_Uni(node, True)

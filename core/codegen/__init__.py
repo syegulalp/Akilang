@@ -46,7 +46,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # (loop exit block, loop continue block)
         # Used to track where to break out of a loop.
         self.loop_exit = []
-        
+
         # Holds functions that have optional arguments.
         # This allows them to be looked up efficiently.
         self.opt_args_funcs = {}
@@ -56,7 +56,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         self.gives_alloc = set()
 
         # Flag for unsafe operations.
-        self.allow_unsafe = False    
+        self.allow_unsafe = False
 
         # Context for current try/except block (if any)
         self.try_except = []
@@ -65,7 +65,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         self.metas = {}
 
         self.vartypes = generate_vartypes()
-        
+
         # Create the general None object
         # (not used for anything yet)
         self.noneobj = ir.GlobalVariable(
@@ -73,7 +73,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
             self.vartypes['None'],
             '.none.'
         )
-        self.noneobj.initializer = ir.Constant(self.vartypes['None'],None)
+        self.noneobj.initializer = ir.Constant(self.vartypes['None'], None)
         self.noneobj.global_constant = True
         self.noneobj.unnamed_addr = True
         self.noneobj.storage_class = 'private'
@@ -94,7 +94,8 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         return ir.Constant(self.vartypes.u32, int(pyval))
 
     def generate_code(self, node):
-        assert isinstance(node, (Prototype, Function, Uni, Class, Decorator, Meta))
+        assert isinstance(node, (Prototype, Function,
+                                 Uni, Class, Decorator, Meta))
         return self._codegen(node, False)
 
     def _extract_operand(self, val):
@@ -122,7 +123,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 node.lhs.position
             )
         return self._extract_operand(lhs)
-    
+
     def _isize(self):
         '''
         Returns a constant of the pointer size for the currently configured architecture.
@@ -168,9 +169,9 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 return None
             raise CodegenError(f"Undefined variable: {node.name}",
                                node.position)
-        
+
         return v
-        
+
     def _codegen(self, node, check_for_type=True):
         '''
         Node visitor. Dispatches upon node type.
@@ -204,23 +205,22 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], 'userbinop')
 
-
     def _codegen_autodispose(self, item_list, to_check):
-        for _,v in item_list:
+        for _, v in item_list:
             if v is to_check:
                 continue
-            
+
             # if this is an input argument,
             # and it's still being tracked (e.g., not given away),
             # and the variable in question has not been deleted
-            # manually at any time, 
+            # manually at any time,
             # ...?
-            
+
             if v.input_arg is not None:
                 pass
 
             if v.tracked:
-                
+
                 ref = self.builder.load(v)
                 sig = v.type.pointee.pointee.del_signature()
 
@@ -229,18 +229,18 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 # in the delete function
                 # because there are times when we don't know
                 # what sort of object we will receive
-                
+
                 ref = self.builder.bitcast(
                     ref,
                     self.vartypes.u_mem.as_pointer()
                 )
-                
+
                 self.builder.call(
                     self.module.globals.get(
                         sig+'__del__'+mangle_args(
                             [self.vartypes.u_mem.as_pointer()]
-                            )
-                        ),
+                        )
+                    ),
                     [ref],
                     f'{_}.delete'
-                    )
+                )
