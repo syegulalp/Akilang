@@ -271,6 +271,8 @@ def load_command(command, ak, options):
 
     except FileNotFoundError:
         errprint("File or command not found: " + command)
+    except OSError:
+        errprint("File or command not found: " + command)
 
 
 def run_command(ak, command, options):
