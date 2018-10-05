@@ -12,6 +12,8 @@ from core.errors import ParseError
 class Toplevel():
     def _parse_meta_expr(self):
 
+        # TODO: untested
+
         start = self.cur_tok.position
 
         # first, consume "meta"
