@@ -53,6 +53,8 @@ class Ops():
 
         if isinstance(lhs,ir.Constant) and isinstance(rhs,ir.Constant):
             try:
+                if lhs.type.signed != rhs.type.signed:
+                    raise ValueError
                 if int(lhs.constant)>0 and int(rhs.constant)>0:
                     if lhs.type.width>rhs.type.width:
                         rhs = self.builder.zext(rhs, lhs.type)

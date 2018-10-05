@@ -3,7 +3,7 @@ from ctypes import c_double, c_longlong
 
 from core.codexec import AkilangEvaluator
 from core.vartypes import VarTypes
-from core.errors import ParseError
+from core.errors import ParseError, CodegenError
 
 
 ret_u64 = {'return_type': c_double, 'anon_vartype': VarTypes.f64}
@@ -329,6 +329,20 @@ class TestEvaluator(unittest.TestCase):
         
         # includes terminating null, do we want that?
 
+    def test_constant_promotion(self):
+        e = AkilangEvaluator(True)
+        
+        # autopromote i1 to i64
+        self.assertEqual(e.eval_all('1b+4I'), 5)
+
+        # autopromote i32 to i64
+        self.assertEqual(e.eval_all('4i+4I'), 8)
+
+        # autopromote u32 to i64 (invalid)
+        with self.assertRaises(CodegenError):
+            e.eval_all('4u+4I')
+
+    
     def test_int_to_str_and_back(self):
         e = AkilangEvaluator(True)
 
