@@ -50,8 +50,7 @@ def show(dead_robots){
 
     display[(player.y*(WIDTH+1))+player.x]=232B
 
-    out ("Dead robots: {dead_robots}\n")
-    print(c_array_ptr(display))
+    unsafe out ("Dead robots: {dead_robots}\n{display}")
 }
 
 def location(v) {

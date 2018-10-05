@@ -59,7 +59,7 @@ def show() {
     }
     output[z]=0B
     
-    unsafe out('Generation: {gen} -- Population: {pop}\n{divider}\n{output}\n{divider}\n')
+    unsafe out('Generation: {gen} -- Population: {pop}\n{divider}\n{output}{divider}\n')
        
 }
 
