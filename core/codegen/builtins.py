@@ -121,11 +121,16 @@ class Builtins():
 
     def _codegen_Builtins_c_gep(self, node):
         obj = self._codegen(node.args[0])
+
+        if (len(node.args))<2:
+            return self.builder.load(obj)
+
         index = [self._i32(0)]
 
         for n in range(1, len(node.args)):
             # TODO: constant values should be cast as int or float in python
-            node.args[n].val = int(node.args[n].val)
+            if hasattr(node.args[n],'val'):
+                node.args[n].val = int(node.args[n].val)
             index.append(self._codegen(node.args[n]))
 
         return self.builder.gep(obj, index)

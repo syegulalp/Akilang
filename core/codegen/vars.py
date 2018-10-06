@@ -3,6 +3,7 @@ from core.errors import CodegenError
 from core.ast_module import Variable, Call, ArrayAccessor
 from core.mangling import mangle_call
 #from core.vartypes import VarTypes, DEFAULT_TYPE
+from core.vartypes import ArrayClass
 
 # pylint: disable=E1101
 
@@ -63,10 +64,14 @@ class Vars():
             f'Invalid array accessor for "{array.name}" (maybe wrong number of dimensions?)',
             node.position)
 
+    def _codegen_LoadInstr(self, node):
+        return node
+
     def _codegen_Variable(self, node, noload=False):
 
         current_node = node
         previous_node = None
+        previous = None
 
         # At the bottom of each iteration of the loop,
         # we should return a DIRECT pointer to an object
@@ -92,16 +97,32 @@ class Vars():
                 else:
                     if not isinstance(latest, ir.instructions.LoadInstr):
                         # if the array object is not yet loaded,
-                        # then we need to allocate and sore ptr
+                        # then we need to allocate and store ptr
                         array_element = self.builder.alloca(latest.type)
                         self.builder.store(latest, array_element)
                     else:
                         # otherwise, just point to the existing allocation
                         array_element = self._varaddr(previous_node)
+                
+                if isinstance(latest.type.pointee, ArrayClass):
 
-                latest = self._codegen_ArrayElement(
-                    current_node, array_element)
-                current_load = not latest.type.is_obj_ptr()
+                    latest = self._codegen_ArrayElement(
+                        current_node, array_element)
+                    current_load = not latest.type.is_obj_ptr()
+                
+                else:
+                    latest = self._codegen_Call(
+                        Call(
+                            previous_node.position,
+                            "index",
+                            [
+                                previous
+                            ]+current_node.elements,
+                        ),
+                        obj_method=True,                        
+                    )
+                    current_load = False
+
 
             elif isinstance(current_node, Call):
                 # eventually, when we have function pointers,
@@ -151,6 +172,7 @@ class Vars():
 
             previous_node = current_node
             current_node = child
+            previous = latest
 
         if noload is True:
             return latest

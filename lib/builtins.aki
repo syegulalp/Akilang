@@ -26,6 +26,13 @@ def '.object.array.__del__'(my_obj:ptr u_mem):bool {
     unsafe c_free(my_obj)
 }
 
+def '.object.str.__index__'(my_str:str, index:i32) :u8 {
+  var f1 = c_gep(my_str,1)
+  var f2 = c_gep(f1)
+  var f3 = c_ptr_math(f2, cast(index,u64))
+  c_gep(f3)
+}
+
 # TODO: untested
 
 # doesn't yet selectively free the underlying object
