@@ -51,20 +51,11 @@ class Expressions():
         body = self._parse_expression()
         return Raise(start, body)
 
-    def _parse_identifier_expr(self):
-        start = self.cur_tok.position
-        id_name = self.cur_tok.value
-
-        if id_name in Builtins or id_name in Dunders:
-            return self._parse_builtin(id_name)
-
-        if id_name in self.consts:
-            self._get_next_token()
-            return self.consts[id_name]
-
-        current = Variable(start, id_name, self.cur_tok.vartype)
+    def _parse_modifiers(self, current):
+        start = current.position
+        id_name = current.name
         toplevel = current
-
+        
         while True:
             self._get_next_token()
 
@@ -90,6 +81,21 @@ class Expressions():
                 break
 
         return toplevel
+
+    def _parse_identifier_expr(self):
+        start = self.cur_tok.position
+        id_name = self.cur_tok.value
+
+        if id_name in Builtins or id_name in Dunders:
+            return self._parse_builtin(id_name)
+
+        if id_name in self.consts:
+            self._get_next_token()
+            return self.consts[id_name]
+
+        current = Variable(start, id_name, self.cur_tok.vartype)
+        current = self._parse_modifiers(current)
+        return current 
 
     def _parse_number_expr(self):
         result = Number(self.cur_tok.position, self.cur_tok.value,
@@ -163,8 +169,10 @@ class Expressions():
 
     def _parse_string_expr(self):
         cur = self.cur_tok
-        self._get_next_token()
-        return String(cur.position, cur.value)
+        #self._get_next_token()
+        current = String(cur.position, cur.value)
+        current = self._parse_modifiers(current)
+        return current 
 
     def _parse_vartype_expr(self):
         # This is an exception - it doesn't return an AST node,
