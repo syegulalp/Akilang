@@ -308,17 +308,18 @@ class Vars():
         # so it has something to point to.
         # Otherwise expressions like "Hi there"[1] don't work.
 
-        # local_instance = self.builder.alloca(str_val.type)
-        # local_instance.initializer = self.vartypes.str(
-        #     [ir.Constant(self.vartypes.u64, string_length), spt])
+        # local_instance = self.builder.alloca(self.vartypes.str.as_pointer())
+        # self.builder.store(str_val, local_instance)
 
-        #local_instance = self.builder.alloca(str_val.type)
-        #self.builder.store(str_val, local_instance)
+        #local_instance_ptr = self.builder.alloca(local_instance.type)
+        #self.builder.store(local_instance, local_instance_ptr)
 
         #self.last_inline = local_instance
         self.last_inline = str_val
+        #print (type(str_val.type))
 
         return str_val
+        #return local_instance_ptr
         #return local_instance
 
     def _codegen_Var(self, node, local_alloca=False):
