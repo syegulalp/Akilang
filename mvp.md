@@ -16,7 +16,7 @@
     - [ ] String operations.
         - [ ] Comparisons.
         - [x] `len()` of strings.
-        - [ ] `str()` for creating strings from other types.
+        - [x] `str()` for creating strings from other types.
 - [x] Constants.
     - [x] Constant definitions.
     - [x] Constant folding/lowering.
@@ -55,9 +55,11 @@
     - [ ] Command-line parameters for binaries.
 - [x] Print statement that supports scalar types, and strings too.
     - [ ] Variable argument printing.
-    - [ ] F-string style syntaxing.
+    - [X] F-string style syntaxing.
 - [ ] Overflow detection for math, and minimal error handling.
-- [ ] Integers of abritrary length, for bignum support.
+- [X] Decorator syntax.
+- [ ] Meta/pragma syntax.
+- [ ] Integers of arbitrary length, for bignum support.
 - [ ] Documentation.
 
 # Next phase
@@ -66,8 +68,6 @@
     - [ ] Use a parser generator so we can also generate a grammar for the language (e.g., for use by syntax highlighters)
 - [ ] Robust error handling inside the language (object-based exceptions).
 - [ ] More robust memory management details, including optional garbage collected objects.
-- [ ] Decorator syntax.
-- [ ] Meta/pragma syntax.
 - [ ] More object types.
 - [ ] File I/O.
 - [ ] Proof-of-concept standard library with math functions.
