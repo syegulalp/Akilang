@@ -397,6 +397,10 @@ class TestEvaluator(unittest.TestCase):
     def test_return_string_from_repl(self):
         e = AkilangEvaluator()
         self.assertEqual(e.eval_all("'Hi there'"), '"Hi there"')
+
+    def test_string_index(self):
+        e = AkilangEvaluator(True)
+        self.assertEqual(e.eval_all("{var x='Hi there' x[1]}"), 105)
     
     def test_auto_free(self):
         '''
