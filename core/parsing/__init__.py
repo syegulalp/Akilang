@@ -201,12 +201,11 @@ class Parser(Expressions, Toplevel):
             return self._parse_paren_expr()
         elif self._cur_tok_is_punctuator('{'):
             return self._parse_do_expr()
-        elif self._cur_tok_is_punctuator('['):
-            # XXX: inconsistent
-            # 
-            result =  self._parse_array_accessor()            
-            self._get_next_token()
-            return result
+        # elif self._cur_tok_is_punctuator('['):
+        #     # XXX: inconsistent
+        #     result =  self._parse_array_accessor()
+        #     self._get_next_token()
+        #     return result
 
         elif self.cur_tok.kind in self.parse_actions:
             return getattr(self,
