@@ -64,6 +64,9 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # Metadatas for this module
         self.metas = {}
 
+        # Last codegenned instruction
+        self.previous = None
+
         self.vartypes = generate_vartypes()
 
         # Create the general None object
@@ -187,6 +190,8 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 f'Expression does not return a value along all code paths, or expression returns an untyped value',
                 node.position)
 
+        self.previous = result
+        
         return result
 
     def _codegen_dunder_methods(self, node):

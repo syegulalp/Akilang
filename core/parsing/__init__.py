@@ -201,6 +201,8 @@ class Parser(Expressions, Toplevel):
             return self._parse_paren_expr()
         elif self._cur_tok_is_punctuator('{'):
             return self._parse_do_expr()
+        # elif self._cur_tok_is_punctuator('['):
+        #     return self._parse_array_accessor()
         elif self.cur_tok.kind in self.parse_actions:
             return getattr(self,
                            f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr'

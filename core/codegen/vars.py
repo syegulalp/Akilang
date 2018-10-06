@@ -285,6 +285,11 @@ class Vars():
         str_val.initializer = self.vartypes.str(
             [ir.Constant(self.vartypes.u64, string_length), spt])
 
+        # Note: If this is being invoked as a standalone
+        # expression, we need to create a temp variable
+        # so it has something to point to.
+        # Otherwise expressions like "Hi there"[1] don't work.
+        
         return str_val
 
     def _codegen_Var(self, node, local_alloca=False):
