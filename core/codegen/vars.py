@@ -19,6 +19,24 @@ class Vars():
     def _codegen_VariableType(self, node):
         return node.vartype
 
+    def _codegen_AllocaInstr(self, node):
+        return node
+
+    def _codegen_GlobalVariable(self, node):
+        return node
+    
+    def _codegen_ArrayAccessor(self, node):
+        return self._codegen_Call(
+            Call(
+                node.position,
+                "index",
+                [
+                    self.last_inline
+                ]+node.elements,
+            ),
+            obj_method=True,                        
+        )
+
     def _codegen_ArrayElement(self, node, array):
         '''
         Returns a pointer to the requested element of an array.
@@ -289,8 +307,19 @@ class Vars():
         # expression, we need to create a temp variable
         # so it has something to point to.
         # Otherwise expressions like "Hi there"[1] don't work.
-        
+
+        # local_instance = self.builder.alloca(str_val.type)
+        # local_instance.initializer = self.vartypes.str(
+        #     [ir.Constant(self.vartypes.u64, string_length), spt])
+
+        #local_instance = self.builder.alloca(str_val.type)
+        #self.builder.store(str_val, local_instance)
+
+        #self.last_inline = local_instance
+        self.last_inline = str_val
+
         return str_val
+        #return local_instance
 
     def _codegen_Var(self, node, local_alloca=False):
         for v in node.vars:

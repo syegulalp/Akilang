@@ -66,6 +66,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
         # Last codegenned instruction
         self.previous = None
+        self.last_inline = None
 
         self.vartypes = generate_vartypes()
 

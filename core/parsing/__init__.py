@@ -201,8 +201,13 @@ class Parser(Expressions, Toplevel):
             return self._parse_paren_expr()
         elif self._cur_tok_is_punctuator('{'):
             return self._parse_do_expr()
-        # elif self._cur_tok_is_punctuator('['):
-        #     return self._parse_array_accessor()
+        elif self._cur_tok_is_punctuator('['):
+            # XXX: inconsistent
+            # 
+            result =  self._parse_array_accessor()            
+            self._get_next_token()
+            return result
+
         elif self.cur_tok.kind in self.parse_actions:
             return getattr(self,
                            f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr'
@@ -245,6 +250,7 @@ class Parser(Expressions, Toplevel):
                 self._get_next_token()
                 continue
             elif self._cur_tok_is_punctuator(']'):
+                #self._get_next_token()
                 break
             else:
                 raise ParseError('Unclosed array accessor',
