@@ -158,49 +158,43 @@ class Builtins():
 
         return ir.Constant(self.vartypes.u_size, s2)
 
-    def _codegen_Builtins_c_obj_size(self, node):
-        # eventually we'll extract this information from
-        # the object headers once we start using those regularly
+    # def _codegen_Builtins_c_obj_size(self, node):
+    #     convert_from = self._get_obj_noload(node)
 
-        convert_from = self._get_obj_noload(node)
+    #     # get direct pointer to object
+    #     s0 = self.builder.load(convert_from)
 
-        # get direct pointer to object
-        s0 = self.builder.load(convert_from)
+    #     # get actual data element pointer
+    #     s1 = self.builder.gep(
+    #         s0,
+    #         [
+    #             self._i32(0),
+    #             self._i32(1)
+    #         ]
+    #     )
 
-        # get actual data element pointer
-        s1 = self.builder.gep(
-            s0,
-            [
-                self._i32(0),
-                self._i32(1)
-            ]
-        )
+    #     # dereference that to get the underlying data element
+    #     s1 = self.builder.load(s1)
 
-        # dereference that to get the underlying data element
-        s1 = self.builder.load(s1)
+    #     # determine its size
+    #     s2 = self._obj_size_type(s1.type)
 
-        # determine its size
-        s2 = self._obj_size_type(s1.type)
+    #     return ir.Constant(self.vartypes.u_size, s2)
 
-        return ir.Constant(self.vartypes.u_size, s2)
-
-    def _codegen_Builtins_c_null(self, node):
-        '''
-        Returns a null pointer.
-        '''
-        ptr = self.builder.inttoptr(
-            self._int(0),
-            self.vartypes.u_mem.as_pointer()
-        )
-        return ptr
+    # def _codegen_Builtins_c_null(self, node):
+    #     '''
+    #     Returns a null pointer.
+    #     '''
+    #     ptr = self.builder.inttoptr(
+    #         self._int(0),
+    #         self.vartypes.u_mem.as_pointer()
+    #     )
+    #     return ptr
 
     def _codegen_Builtins_c_data(self, node):
         '''
         Returns the underlying C-style data element
         for an object.
-        This will eventually be normalized to be element 1 in the
-        GEP structure for the object, to make it easy to extract
-        that element universally.
         '''
 
         convert_from = self._codegen(node.args[0])
@@ -219,9 +213,6 @@ class Builtins():
     def _codegen_Builtins_c_array_ptr(self, node):
         '''
         Returns a raw u_mem pointer to the start of an array object.
-        NOTE: I think we can merge this with c_data,
-        since they are essentially the same thing, once we normalize
-        the layout of string and array objects.
         '''
         convert_from = self._get_obj_noload(node)
 

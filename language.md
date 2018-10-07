@@ -887,10 +887,6 @@ Like `c_ref/c_deref`, but for complex objects like strings.
 > ⚠ This may eventually be merged into `c_ref/c_deref` for simplicity.
 
 
-## `c_obj_size`
-
-Like `c_size` but used to return the size of an object structure. For instance, for a string, this would not be the length of the string data itself, but rather the structure that holds the pointer to the string data and the string's byte length.
-
 ## `c_ptr_int`
 
 Converts a pointer to an integer of the length dictated by the platform (e.g., 64 bits for a platform with a 64-bit pointer size).
