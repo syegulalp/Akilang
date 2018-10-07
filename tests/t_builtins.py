@@ -4,19 +4,6 @@ from core.codexec import AkilangEvaluator
 from ctypes import c_longlong
 from core.vartypes import VarTypes
 
-
-def evallib():
-    from core.repl import config
-    cfg = config()
-    paths = cfg['paths']
-    e = AkilangEvaluator(paths['lib_dir'], paths['basiclib'])
-    e.reset()
-    return e
-
-
-ret_u64 = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}
-
-
 class TestEvaluator(unittest.TestCase):
     def test_c_ref(self):
         e = AkilangEvaluator()
@@ -84,7 +71,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(e.evaluate('main()'), 0)
 
     def test_alloc_free(self):
-        e = evallib()
+        e = AkilangEvaluator(True)
         e.evaluate('''
         def main(){
             var
@@ -131,11 +118,11 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(e.evaluate('main()'), 128)
 
     def test_c_strlen(self):
-        e = evallib()
+        e = AkilangEvaluator(True)
         e.evaluate('''
             def main():u64{
                 var x="Hi there"
                 len(x)
             }
         ''')
-        self.assertEqual(e.evaluate('main()', ret_u64), 9)
+        self.assertEqual(e.evaluate('main()'), 9)

@@ -6,9 +6,6 @@ from core.vartypes import VarTypes
 from core.errors import ParseError, CodegenError
 
 
-ret_u64 = {'return_type': c_double, 'anon_vartype': VarTypes.f64}
-
-
 class TestEvaluator(unittest.TestCase):
     def test_basic(self):
         e = AkilangEvaluator()
@@ -23,11 +20,11 @@ class TestEvaluator(unittest.TestCase):
     def test_use_libc(self):
         e = AkilangEvaluator()
         self.assertIsNone(e.evaluate('extern ceil(x:f64):f64'))
-        self.assertEqual(e.evaluate('ceil(4.5)', ret_u64), 5.0)
+        self.assertEqual(e.evaluate('ceil(4.5)'), 5.0)
         self.assertIsNone(e.evaluate('extern floor(x:f64):f64'))
         self.assertIsNone(
             e.evaluate('def cfadder(x:f64):f64 ceil(x) + floor(x)'))
-        self.assertEqual(e.evaluate('cfadder(3.14)', ret_u64), 7.0)
+        self.assertEqual(e.evaluate('cfadder(3.14)'), 7.0)
 
     def test_basic_if(self):
         e = AkilangEvaluator()
@@ -79,8 +76,8 @@ class TestEvaluator(unittest.TestCase):
     def test_custom_binop(self):
         e = AkilangEvaluator()
         e.evaluate('def binary % (a:f64, b:f64):f64 a - b')
-        self.assertEqual(e.evaluate('10. % 5.', ret_u64), 5.)
-        self.assertEqual(e.evaluate('100. % 5.5', ret_u64), 94.5)
+        self.assertEqual(e.evaluate('10. % 5.',), 5.)
+        self.assertEqual(e.evaluate('100. % 5.5',), 94.5)
 
     def test_custom_unop(self):
         e = AkilangEvaluator()
