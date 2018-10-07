@@ -211,7 +211,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], 'userbinop')
 
-    def _codegen_autodispose(self, item_list, to_check):
+    def _codegen_autodispose(self, item_list, to_check, node=None):
         for _, v in item_list:
             if v is to_check:
                 continue
@@ -226,9 +226,11 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 pass
 
             if v.tracked:
-
+                
                 ref = self.builder.load(v)
                 sig = v.type.pointee.pointee.del_signature()
+
+                #ref = v
 
                 # object deletions should just be a pointer
                 # to the object that can be bitcast as needed
@@ -241,12 +243,24 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                     self.vartypes.u_mem.as_pointer()
                 )
 
-                self.builder.call(
-                    self.module.globals.get(
+                del_name = self.module.globals.get(
                         sig+'__del__'+mangle_args(
                             [self.vartypes.u_mem.as_pointer()]
                         )
-                    ),
+                )
+                
+                # TODO: symtab should contain the position
+                # for the first creation of a class object
+
+                if del_name is None:
+                    raise CodegenError(
+                        f'no delete method "{sig}__del__"',
+                        node.position
+                    )
+
+                
+                self.builder.call(
+                    del_name,
                     [ref],
                     f'{_}.delete'
                 )

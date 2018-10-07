@@ -245,6 +245,9 @@ class Toplevel():
 
         func.decorators = decorators
 
+        if 'track' in decorators:
+            func.tracked=True
+
         return func
 
     def _codegen_Function(self, node):
@@ -328,18 +331,23 @@ class Toplevel():
 
         to_check = retval
 
+        #print ("Decs?",func.decorators)
+        #print ('track' in func.decorators)
+
         if retval:
             to_check = self._extract_operand(retval)
-            if to_check.tracked:
+            if to_check.tracked: # or 'track' in func.decorators:
                 self.gives_alloc.add(self.func_returnblock.parent)
                 self.func_returnblock.parent.returns.append(to_check)
 
         # Determine which variables need to be automatically disposed
-
+        # Be sure to exclude anything we return!
+       
         if to_check:
             self._codegen_autodispose(
                 reversed(list(self.func_symtab.items())),
-                to_check
+                to_check,
+                node
             )
 
         self.builder.ret(self.builder.load(self.func_returnarg))

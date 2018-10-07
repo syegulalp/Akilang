@@ -26,6 +26,7 @@ def '.object.array.__del__'(my_obj:ptr u_mem):bool {
     unsafe c_free(my_obj)
 }
 
+@nomod
 def '.object.str.__index__'(my_str:str, index:i32) :u8 {
     var f1 = c_gep(my_str,1)
     var f2 = c_gep(f1)
@@ -46,6 +47,7 @@ def '.object.str.__del__'(my_obj: ptr u_mem):bool {
     unsafe c_free(my_obj)
 }
 
+@track
 def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Determine the string length since this is raw data
     var str_len = c_strlen(my_obj)
@@ -67,6 +69,7 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Note that we do not add tracking data yet.
 }
 
+@track
 def '.object.str.__new__'(my_obj:i32):str {
     str(int_to_c_str(my_obj))
 }
