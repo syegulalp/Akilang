@@ -122,8 +122,6 @@ class Vars():
                 current_load = not latest.type.is_obj_ptr()
 
             elif isinstance(current_node, ArrayAccessor):
-                # eventually this will be coded as a call
-                # to __index__ method of the element in question
 
                 if latest.type.is_obj_ptr():
                     # objects are passed by reference
@@ -139,12 +137,13 @@ class Vars():
                         array_element = self._varaddr(previous_node)
                 
                 if isinstance(latest.type.pointee, ArrayClass):
-
+                    # manually generate array index lookup                    
                     latest = self._codegen_ArrayElement(
                         current_node, array_element)
                     current_load = not latest.type.is_obj_ptr()
                 
                 else:
+                    # attempt __index__ call on the object
                     latest = self._codegen_Call(
                         Call(
                             previous_node.position,
@@ -179,8 +178,6 @@ class Vars():
                 _cls = self.class_symtab[_latest_vid]
                 _pos = _cls.v_types[current_node.name]['pos']
 
-                # for some reason we can't use i64 gep here
-
                 index = [
                     self._i32(0),
                     self._i32(_pos)
@@ -214,7 +211,6 @@ class Vars():
         if current_load:
 
             # Extract constants from uni declarations
-
             possible_constant = self._extract_operand(latest)
             if isinstance(possible_constant, ir.GlobalVariable) and possible_constant.global_constant is True:
                 return possible_constant.initializer
@@ -325,15 +321,12 @@ class Vars():
         str_val.unnamed_addr = True
         str_val.global_constant = True
 
+        # Set the string object data.
+
         str_val.initializer = self.vartypes.str(
             [ir.Constant(self.vartypes.u64, string_length), spt])
 
         return str_val        
-
-        # Note: If this is being invoked as a standalone
-        # expression, we need to create a temp variable
-        # so it has something to point to.
-        # Otherwise expressions like "Hi there"[1] don't work.
 
     def _codegen_Var(self, node, local_alloca=False):
         for v in node.vars:
