@@ -85,11 +85,27 @@ class Vars():
     def _codegen_LoadInstr(self, node):
         return node
 
-    def _codegen_Variable(self, node, noload=False):
+    def _codegen_Variable(
+            self, node,
+            noload=False,
+            start_with=None
+        ):
 
         current_node = node
-        previous_node = None
-        previous = None
+
+        # If we're not starting with a root variable,
+        # such as an inline string, we need to use
+        # `start_with` to indicate that
+        
+        if start_with:
+            previous_node, previous, latest = start_with
+        else:
+            previous_node = None
+            # previous AST node
+            previous = None
+            # previous codegenned variable
+            latest = None
+            # latest codegenned variable
 
         # At the bottom of each iteration of the loop,
         # we should return a DIRECT pointer to an object
@@ -261,7 +277,16 @@ class Vars():
         return value
 
     def _codegen_String(self, node):
-        return self._string_base(node.val)
+        current = self._string_base(node.val)
+        if hasattr(node,"child"):
+            return self._codegen_Variable(node.child,
+                start_with=[
+                    node,
+                    current,
+                    current,
+                ]
+            )
+        return current
 
     def _string_base(self, string, global_constant=True):
         '''
@@ -303,24 +328,12 @@ class Vars():
         str_val.initializer = self.vartypes.str(
             [ir.Constant(self.vartypes.u64, string_length), spt])
 
+        return str_val        
+
         # Note: If this is being invoked as a standalone
         # expression, we need to create a temp variable
         # so it has something to point to.
         # Otherwise expressions like "Hi there"[1] don't work.
-
-        # local_instance = self.builder.alloca(self.vartypes.str.as_pointer())
-        # self.builder.store(str_val, local_instance)
-
-        #local_instance_ptr = self.builder.alloca(local_instance.type)
-        #self.builder.store(local_instance, local_instance_ptr)
-
-        #self.last_inline = local_instance
-        self.last_inline = str_val
-        #print (type(str_val.type))
-
-        return str_val
-        #return local_instance_ptr
-        #return local_instance
 
     def _codegen_Var(self, node, local_alloca=False):
         for v in node.vars:

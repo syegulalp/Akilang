@@ -212,6 +212,7 @@ class Builtins():
                 self._i32(1),
             ]
         )        
+
         gep = self.builder.load(gep)
         return gep
 
