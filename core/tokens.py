@@ -74,23 +74,25 @@ Builtins = {
     'c_array_ptr',
     'c_data',
     'c_gep',
-    'c_raw_obj',
-    'c_null',
+    #'c_raw_obj',
+    #'c_null',
     'c_ref', 'c_deref',
     'c_size',
     'c_obj_alloc', 'c_obj_free',
     'c_obj_ref', 'c_obj_deref',
-    'c_obj_size',
+    #'c_obj_size',
     'c_ptr',
     'c_ptr_int',
-    'c_ptr_math', 'c_ptr_mod',
+    'c_ptr_math',
+    'c_ptr_mod',
     'cast', 'convert',
     'out',
     'dummy'
 }
 
 Dunders = {
-    'len'
+    'len',
+    'index'
 }
 
 Decorators = {

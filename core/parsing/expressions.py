@@ -87,7 +87,7 @@ class Expressions():
         start = self.cur_tok.position
         id_name = self.cur_tok.value
 
-        if id_name in Builtins or id_name in Dunders:
+        if id_name in Builtins: # or id_name in Dunders:
             return self._parse_builtin(id_name)
 
         if id_name in self.consts:
