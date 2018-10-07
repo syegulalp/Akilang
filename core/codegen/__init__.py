@@ -213,6 +213,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
     def _codegen_autodispose(self, item_list, to_check, node=None):
         for _, v in item_list:
+
             if v is to_check:
                 continue
 
@@ -230,18 +231,13 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 ref = self.builder.load(v)
                 sig = v.type.pointee.pointee.del_signature()
 
-                #ref = v
-
-                # object deletions should just be a pointer
-                # to the object that can be bitcast as needed
-                # in the delete function
-                # because there are times when we don't know
-                # what sort of object we will receive
-
                 ref = self.builder.bitcast(
                     ref,
                     self.vartypes.u_mem.as_pointer()
                 )
+
+                # TODO: merge this with the existing
+                # dunder-method call mechanism
 
                 del_name = self.module.globals.get(
                         sig+'__del__'+mangle_args(
@@ -251,10 +247,11 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 
                 # TODO: symtab should contain the position
                 # for the first creation of a class object
+                # so we can indicate errors like this precisely
 
                 if del_name is None:
                     raise CodegenError(
-                        f'no delete method "{sig}__del__"',
+                        f'No delete method for "{sig}"',
                         node.position
                     )
 

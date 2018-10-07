@@ -99,7 +99,7 @@ r - randomize
 q - quit
 Any other key will evolve the pattern
 
-Press any key to begin")
+Press any key to begin ... ")
     inkey()
 }
 

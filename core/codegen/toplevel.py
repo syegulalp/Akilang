@@ -331,9 +331,6 @@ class Toplevel():
 
         to_check = retval
 
-        #print ("Decs?",func.decorators)
-        #print ('track' in func.decorators)
-
         if retval:
             to_check = self._extract_operand(retval)
             if to_check.tracked: # or 'track' in func.decorators:
@@ -342,14 +339,14 @@ class Toplevel():
 
         # Determine which variables need to be automatically disposed
         # Be sure to exclude anything we return!
-       
+
         if to_check:
             self._codegen_autodispose(
                 reversed(list(self.func_symtab.items())),
                 to_check,
                 node
             )
-
+        
         self.builder.ret(self.builder.load(self.func_returnarg))
 
         self.func_incontext = None

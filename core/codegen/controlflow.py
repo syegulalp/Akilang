@@ -650,8 +650,6 @@ class ControlFlow():
             call_to_return.heap_alloc = True
             call_to_return.tracked = True
 
-        # FIXME: There ought to be a better way to assign this
-
         if callee_func.tracked == True:
             call_to_return.heap_alloc = True
             call_to_return.tracked = True
