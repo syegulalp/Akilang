@@ -188,7 +188,7 @@ class Parser(Expressions, Toplevel):
                     self._get_next_token()
                     break
         else:
-            dec_body = [self._generate_toplevel()]
+            dec_body = [self._generate_toplevel()]            
         return Decorator(start, dec_name, dec_body)
 
     def _parse_primary(self):
@@ -198,27 +198,24 @@ class Parser(Expressions, Toplevel):
                 self.cur_tok.position)
 
         if self._cur_tok_is_punctuator('('):
-            return self._parse_paren_expr()
+            result = self._parse_paren_expr()
         elif self._cur_tok_is_punctuator('{'):
-            return self._parse_do_expr()
-        # elif self._cur_tok_is_punctuator('['):
-        #     # XXX: inconsistent
-        #     result =  self._parse_array_accessor()
-        #     self._get_next_token()
-        #     return result
-
+            result = self._parse_do_expr()
         elif self.cur_tok.kind in self.parse_actions:
-            return getattr(self,
-                           f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr'
-                           )()
+            result = getattr(
+                self,
+                f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr')()
         elif self.cur_tok.kind == TokenKind.EOF:
-            raise ParseError('Expression expected but reached end of code',
-                             self.cur_tok.position)
+            raise ParseError(
+                'Expression expected but reached end of code',
+                self.cur_tok.position)
         else:
             raise ParseError(
                 f'Expression expected but met unknown token: "{self.cur_tok.value}"',
                 self.cur_tok.position
             )
+
+        return self._parse_modifiers(result)
 
     def _parse_builtin(self, name):
         if name in ('cast', 'convert'):

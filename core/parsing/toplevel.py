@@ -176,6 +176,7 @@ class Toplevel():
     def _parse_expression(self):
         self.level += 1
         lhs = self._parse_primary()
+        
         # Start with precedence 0 because we want to bind any operator to the
         # expression at this point.
         self.level -= 1

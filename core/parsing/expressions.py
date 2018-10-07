@@ -53,32 +53,33 @@ class Expressions():
 
     def _parse_modifiers(self, current):
         start = current.position
-        id_name = current.name
+        id_name = getattr(current,'name',None)
         toplevel = current
         
         while True:
-            self._get_next_token()
+            child = None
 
             if self._cur_tok_is_punctuator('['):
-                current.child = self._parse_array_accessor()
-                current = current.child
-                continue
+                child = self._parse_array_accessor()
 
             elif self._cur_tok_is_punctuator('('):
                 args = self._parse_argument_list()
-                current.child = Call(start, id_name, args,
-                                     self.cur_tok.vartype)
-                current = current.child
-                continue
+                child = Call(
+                    start, id_name, args,
+                    self.cur_tok.vartype
+                )
 
             elif self.cur_tok.value == '.':
                 self._get_next_token()
-                current.child = Variable(start, self.cur_tok.value)
+                child = Variable(start, self.cur_tok.value)
+
+            if child:
+                current.child = child
                 current = current.child
+                self._get_next_token()
                 continue
 
-            else:
-                break
+            break
 
         return toplevel
 
@@ -93,9 +94,10 @@ class Expressions():
             self._get_next_token()
             return self.consts[id_name]
 
-        current = Variable(start, id_name, self.cur_tok.vartype)
-        current = self._parse_modifiers(current)
-        return current 
+        self._get_next_token()
+        result = Variable(start, id_name, self.cur_tok.vartype)
+        result = self._parse_modifiers(result)
+        return result
 
     def _parse_number_expr(self):
         result = Number(self.cur_tok.position, self.cur_tok.value,
@@ -169,10 +171,8 @@ class Expressions():
 
     def _parse_string_expr(self):
         cur = self.cur_tok
-        #self._get_next_token()
-        current = String(cur.position, cur.value)
-        current = self._parse_modifiers(current)
-        return current 
+        self._get_next_token()
+        return String(cur.position, cur.value)        
 
     def _parse_vartype_expr(self):
         # This is an exception - it doesn't return an AST node,
