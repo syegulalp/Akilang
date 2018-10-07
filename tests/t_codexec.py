@@ -319,16 +319,6 @@ class TestEvaluator(unittest.TestCase):
 
         self.assertEqual(e.eval_all(n), 64)
 
-    def test_strlen_inline(self):
-        e = AkilangEvaluator(True)
-        opts = {'return_type': c_longlong, 'anon_vartype': VarTypes.u64}
-        self.assertEqual(
-            e.evaluate('len("Hello there")', opts),
-            12
-        )
-
-        # includes terminating null, do we want that?
-
     def test_constant_promotion(self):
         e = AkilangEvaluator()
 
@@ -394,13 +384,20 @@ class TestEvaluator(unittest.TestCase):
 
         self.assertEqual(e.eval_all(n), 5)
 
-    def test_return_string_from_repl(self):
-        e = AkilangEvaluator()
-        self.assertEqual(e.eval_all("'Hi there'"), '"Hi there"')
-
-    def test_string_index(self):
+    def test_string_behaviors(self):
         e = AkilangEvaluator(True)
+        
+        # return from REPL
+        self.assertEqual(e.eval_all("'Hi there'"), '"Hi there"')
+        # slicing
         self.assertEqual(e.eval_all("{var x='Hi there' x[1]}"), 105)
+        # slicing inine instance
+        self.assertEqual(e.eval_all('"Hi there"[1]'), 105)
+        # string length
+        self.assertEqual(
+            e.evaluate('len("Hello there")'),
+            12
+        )
     
     def test_auto_free(self):
         '''
