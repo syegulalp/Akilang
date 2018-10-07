@@ -7,11 +7,11 @@ const {
 
 # Forward declarations for functions supplied by platformlib.
 
-def c_free(m:ptr u_mem):bool {0b}
-def c_strlen(str_to_check: ptr u_mem): u_size {0U}
-def c_alloc(bytes:u_size):ptr u_mem {unsafe c_ptr(0U)}
-def int_to_c_str(my_int:i32): ptr u_mem {unsafe c_ptr(0U)}
-def c_str_to_int(my_str:str) :i32 {0}
+def c_free(m:ptr u_mem):bool pass
+def c_strlen(str_to_check: ptr u_mem): u_size pass
+def c_alloc(bytes:u_size):ptr u_mem pass
+def int_to_c_str(my_int:i32): ptr u_mem pass
+def c_str_to_int(my_str:str) :i32 pass
 
 # The actual builtins.
 

@@ -2,7 +2,9 @@ from core.tokens import TokenKind
 from core.ast_module import (
     Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe, Continue, Try, Raise
+    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number,
+    VariableType, Unsafe, Continue, Try, Raise,
+    Pass
 )
 #from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
 from core.vartypes import CustomClass, ArrayClass
@@ -14,6 +16,8 @@ from core.tokens import Builtins, Dunders
 
 
 class Expressions():
+    def _parse_pass_expr(self):
+        return Pass(self.cur_tok.position)
     def _parse_try_expr(self):
         start = self.cur_tok.position
 

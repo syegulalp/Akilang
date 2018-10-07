@@ -34,6 +34,7 @@ PARSE_ACTIONS = {
     TokenKind.RAISE: 'raise',
     TokenKind.BREAK: 'break',
     TokenKind.UNSAFE: 'unsafe',
+    TokenKind.PASS: 'pass',
     TokenKind.VARTYPE: 'standalone_vartype'
 }
 

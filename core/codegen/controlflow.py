@@ -10,6 +10,8 @@ import llvmlite.ir as ir
 
 
 class ControlFlow():
+    def _codegen_Pass(self,node):
+        return
     def _codegen_Try(self, node):
         # Try blocks do NOT return a value,
         # at least not yet

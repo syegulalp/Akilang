@@ -313,6 +313,10 @@ class Toplevel():
         self._get_next_token()  # consume 'def'
         proto = self._parse_prototype()
 
+        if self.cur_tok.kind == TokenKind.PASS:
+            self._get_next_token()
+            return Function(start, proto, None)
+        
         if self._cur_tok_is_punctuator('{'):
             expr = self._parse_do_expr()
         else:

@@ -249,6 +249,13 @@ class Toplevel():
 
     def _codegen_Function(self, node):
 
+        # For functions with an empty body,
+        # typically a forward declaration,
+        # just generate the prototype.
+        if not node.body:
+            func = self._codegen(node.proto, False)
+            return func
+
         # Reset the symbol table. Prototype generation will pre-populate it with
         # function arguments.
         self.func_symtab = {}
