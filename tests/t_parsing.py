@@ -149,7 +149,3 @@ class TestParser(unittest.TestCase):
                 ]
             ]
         ])
-
-    # def test_xx(self):
-    #     ast = Parser().parse_toplevel('def foo(x) {str(x)}')
-    #     print(ast.flatten())
