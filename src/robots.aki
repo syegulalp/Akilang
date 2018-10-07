@@ -74,12 +74,18 @@ def setup(){
         field[x,HEIGHT-1]=WALL
     }
 
+    # Place human
+
+    player.x=20
+    player.y=10
+
     #Place electrodes
 
     loop (x=0, x<40){
         loop {
             nx = location(WIDTH)
             ny = location(HEIGHT)
+            when nx==20 and ny==10 then continue
             when field[nx,ny]==0B then break
         }
         field[nx,ny]=FENCE
@@ -91,6 +97,7 @@ def setup(){
         loop {
             nx = location(WIDTH)
             ny = location(HEIGHT)
+            when nx==20 and ny==10 then continue
             when field[nx,ny]==0B then break
         }
         robot.x=nx
@@ -98,10 +105,7 @@ def setup(){
         robot.killed=0b
     }    
 
-    # Place human
 
-    player.x=20
-    player.y=10
 
     0
 }
