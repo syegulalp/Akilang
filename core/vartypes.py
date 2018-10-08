@@ -7,7 +7,6 @@ from llvmlite import binding
 
 # Singleton types (these do not require an invocation, they're only created once)
 
-
 def make_type_as_ptr(my_type):
     def type_as_ptr(addrspace=0):
         t = _PointerType(my_type, addrspace, v_id=my_type.v_id)
@@ -99,12 +98,12 @@ class ArrayClass(ir.types.LiteralStructType):
 # object types
 
 # I don't think we're using this for anything anymore
-Ptr = ir.global_context.get_identified_type('.object.ptr')
-Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
-Ptr.v_id = "ptrobj"
-Ptr.is_obj = True
-Ptr.signed = False
-Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
+# Ptr = ir.global_context.get_identified_type('.object.ptr')
+# Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
+# Ptr.v_id = "ptrobj"
+# Ptr.is_obj = True
+# Ptr.signed = False
+# Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
 
 Str = ir.global_context.get_identified_type('.object.str')
 Str.elements = (ir.IntType(64), ir.IntType(8).as_pointer())
@@ -115,17 +114,17 @@ Str.ext_ptr = UnsignedInt(8, True).as_pointer()
 Str.p_fmt = '%s'
 Str.as_pointer = make_type_as_ptr(Str)
 
-ErrType = ir.global_context.get_identified_type('.object.err')
-ErrType.elements = (Str,)
-ErrType.v_id = 'err'
-ErrType.is_obj = True  # ?
-ErrType.signed = False
+# ErrType = ir.global_context.get_identified_type('.object.err')
+# ErrType.elements = (Str,)
+# ErrType.v_id = 'err'
+# ErrType.is_obj = True  # ?
+# ErrType.signed = False
 
-OKType = ir.global_context.get_identified_type('.object.ok')
-OKType.elements = (ir.IntType(1),)
-OKType.v_id = 'ok'
-OKType.is_obj = True  # ?
-OKType.signed = False
+# OKType = ir.global_context.get_identified_type('.object.ok')
+# OKType.elements = (ir.IntType(1),)
+# OKType.v_id = 'ok'
+# OKType.is_obj = True  # ?
+# OKType.signed = False
 
 #ResultType = ir.global_context.get_identified_type('.object.result')
 #ResultType.elements = (OKType, ErrType)
@@ -134,12 +133,12 @@ OKType.signed = False
 
 # types for singleton objects
 
-NoneType = ir.global_context.get_identified_type('.object.none')
-NoneType.elements = (ir.IntType(1), )
-NoneType.v_id = 'none'
-NoneType.is_obj = True
-NoneType.signed = False
-NoneType.ext_ptr = ir.IntType(8).as_pointer()
+# NoneType = ir.global_context.get_identified_type('.object.none')
+# NoneType.elements = (ir.IntType(1), )
+# NoneType.v_id = 'none'
+# NoneType.is_obj = True
+# NoneType.signed = False
+# NoneType.ext_ptr = ir.IntType(8).as_pointer()
 
 
 # module doesn't exist yet
@@ -147,15 +146,15 @@ NoneType.ext_ptr = ir.IntType(8).as_pointer()
 
 # Object wrapper
 
-Obj = ir.global_context.get_identified_type('.object.base')
-Obj.elements = (
-    ir.IntType(8),  # pointer to object prototype list
-    ir.IntType(8).as_pointer()  # pointer to the object data itself
-    # eventually, a pointer to a dict obj for properties
-)
-Obj.v_id = 'obj'
-Obj.is_obj = True
-Obj.ext_ptr = ir.IntType(8).as_pointer()
+# Obj = ir.global_context.get_identified_type('.object.base')
+# Obj.elements = (
+#     ir.IntType(8),  # pointer to object prototype list
+#     ir.IntType(8).as_pointer()  # pointer to the object data itself
+#     # eventually, a pointer to a dict obj for properties
+# )
+# Obj.v_id = 'obj'
+# Obj.is_obj = True
+# Obj.ext_ptr = ir.IntType(8).as_pointer()
 
 # This will take in a target data,
 # or failing that, just default to the platform running
@@ -195,8 +194,8 @@ def generate_vartypes(module=None):
 
         # object types
         'str': Str,
-        'ptrobj': Ptr,
-        'None': NoneType,
+        #'ptrobj': Ptr,
+        #'None': NoneType,
 
         # 'any': Any
     })

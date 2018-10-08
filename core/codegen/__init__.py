@@ -72,15 +72,15 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
         # Create the general None object
         # (not used for anything yet)
-        self.noneobj = ir.GlobalVariable(
-            self.module,
-            self.vartypes['None'],
-            '.none.'
-        )
-        self.noneobj.initializer = ir.Constant(self.vartypes['None'], None)
-        self.noneobj.global_constant = True
-        self.noneobj.unnamed_addr = True
-        self.noneobj.storage_class = 'private'
+        # self.noneobj = ir.GlobalVariable(
+        #     self.module,
+        #     self.vartypes['None'],
+        #     '.none.'
+        # )
+        # self.noneobj.initializer = ir.Constant(self.vartypes['None'], None)
+        # self.noneobj.global_constant = True
+        # self.noneobj.unnamed_addr = True
+        # self.noneobj.storage_class = 'private'
 
     def _int(self, pyval):
         '''
