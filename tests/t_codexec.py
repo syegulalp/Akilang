@@ -408,6 +408,25 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(e.eval_all(n), 0)
 
+        n='''
+        def m2(){
+            var x
+            x
+        }
+        m2()
+        '''
+        self.assertEqual(e.eval_all(n), 0)
+
+        n='''
+        def m3():f64{
+            var x:f64
+            x
+        }
+        m3()
+        '''
+        self.assertEqual(e.eval_all(n), 0.0)
+
+
     
     def test_auto_free(self):
         '''

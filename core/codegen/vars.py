@@ -371,6 +371,9 @@ class Vars():
                     self.builder.store(val, var_ref)
 
             else:
+                # if this is an object pointer,
+                # allocate an empty object to it
+
                 if v_type.is_obj_ptr():
                     if not isinstance(v_type.pointee, ir.FunctionType):
                         # allocate the actual object, not just a pointer to it
@@ -378,7 +381,14 @@ class Vars():
                         obj = self._alloca('obj', v_type.pointee)
                         self.builder.store(obj, var_ref)
 
-                #  any uninitialized pointer should be nulled
+                        # this will eventually be a __init__ call
+                        # to the object, which by default will just
+                        # call __new__ (zero-allocate everything)
+                       
+
+                # if this is another kind of pointer,
+                # any uninitialized pointer should be nulled
+
                 elif v_type.is_ptr():                    
                     zeroinit = self._codegen(
                         Number(
@@ -390,6 +400,19 @@ class Vars():
                     z2 = self.builder.inttoptr(zeroinit,
                         var_ref.type.pointee)
                     self.builder.store(z2, var_ref)
+                
+                # null any existing scalar types
+                # note that we don't zero arrays yet
+
+                else:
+                    zeroinit = self._codegen(
+                        Number(
+                            v.position,
+                            0,
+                            v_type
+                        )
+                    )
+                    self.builder.store(zeroinit, var_ref)
 
     def _codegen_VarDef(self, expr, vartype):
         if expr is None:
