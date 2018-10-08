@@ -98,7 +98,7 @@ class ArrayClass(ir.types.LiteralStructType):
 
 # object types
 
-
+# I don't think we're using this for anything anymore
 Ptr = ir.global_context.get_identified_type('.object.ptr')
 Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
 Ptr.v_id = "ptrobj"
@@ -165,6 +165,13 @@ Obj.ext_ptr = ir.IntType(8).as_pointer()
 
 
 def generate_vartypes(module=None):
+
+    # set up pointer data here
+    # create any types that depend on pointer sizes
+    # export them to the module at large by way of _vartypes
+
+    # also prune anything we aren't using right now, move it to obsolete
+    # this place is getting cluttered
 
     _vartypes = Map({
 
@@ -245,3 +252,18 @@ DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
 DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
 
 dunder_methods = set([f'__{n}__' for n in Dunders])
+
+# another idea I'm considering is a new standard layout for *all* objects:
+# [[1,2,3][4]]
+# 1: length of data element
+# 2: is_external for data: 1=yes, it's externally stored, see pointer, needs separate dealloc
+# 3: pointer to data (if stored externally)
+# 4: actual data (if any)
+
+# maybe also a pointer to an object prototype for DIY objects ... need to think more about that
+
+# ObjHeader = ir.global_context.get_identified_type('.object_header')
+# ObjHeader.elements = (_vartypes.u64,_vartypes.bool,_vartypes.u_mem.as_pointer())
+
+# we would need to get the pointer size BEFORE we do the object inits,
+# but that's not hard -- just move it up

@@ -66,7 +66,6 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Return the string object
     return alloc
 
-    # Note that we do not add tracking data yet.
 }
 
 @track
@@ -81,4 +80,4 @@ def '.i32.__new__'(my_obj:str):i32 {
 # TODO:
 # string obj eq testing
 # test data pointers, length, then the strings themselves
-# indexing support for objects
+

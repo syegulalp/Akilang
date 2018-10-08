@@ -49,10 +49,12 @@ def c_free(m:ptr u_mem):bool {
     result
 }
 
+# move to win32 library
 @inline
 def set_codepage(codepage :u32) :bool
     SetConsoleOutputCP(codepage)
 
+# move to win32 library
 @inline
 def get_codepage() :u32
     GetConsoleOutputCP()
@@ -69,6 +71,8 @@ def c_str_to_int(my_str:str) :i32 {
     atoi(c_data(my_str))
 }
 
+# move to win32 library
+@nomod
 def utf_to_wide(in_str:str):ptr u8 {
   
     # TODO: untracked, b/c raw c_alloc calls
