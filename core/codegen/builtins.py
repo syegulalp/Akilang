@@ -181,15 +181,26 @@ class Builtins():
 
     #     return ir.Constant(self.vartypes.u_size, s2)
 
-    # def _codegen_Builtins_c_null(self, node):
+    # def _codegen_Builtins_c_ptr_set(self, node):
     #     '''
-    #     Returns a null pointer.
+    #     Sets a pointer to a region of memory specified by
+    #     an integer.
     #     '''
-    #     ptr = self.builder.inttoptr(
-    #         self._int(0),
-    #         self.vartypes.u_mem.as_pointer()
-    #     )
-    #     return ptr
+
+    #     ptr = self._codegen(node.args[0])
+    #     if len(node.args)<2:
+    #         target = self._codegen(
+    #             Number(
+    #                 node.position,
+    #                 0,
+    #                 self.vartypes.u_size
+    #             )
+    #         )
+    #     else:    
+    #         target = self._codegen(node.args[1])
+    #     t2 = self.builder.inttoptr(target, ptr.type)
+    #     return t2
+    
 
     def _codegen_Builtins_c_data(self, node):
         '''

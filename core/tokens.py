@@ -75,7 +75,7 @@ Builtins = {
     'c_data',
     'c_gep',
     #'c_raw_obj',
-    #'c_null',
+    #'c_ptr_set',
     'c_ref', 'c_deref',
     'c_size',
     'c_obj_alloc', 'c_obj_free',
