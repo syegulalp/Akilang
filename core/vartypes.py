@@ -90,6 +90,120 @@ class ArrayClass(ir.types.LiteralStructType):
         self.del_id = 'array'
         self.as_pointer = make_type_as_ptr(self)
 
+
+def generate_vartypes(module=None):
+
+    # if no module, assume platform
+    if not module:
+        module = ir.Module()
+
+    # Initialize target data for the module.
+    target_data = binding.create_target_data(module.data_layout)
+
+    # Set up pointer size and u_size vartype for current hardware.
+    _pointer_size = (
+        ir.PointerType(ir.IntType(8)).get_abi_size(target_data)
+    )
+
+    _pointer_bitwidth = _pointer_size * 8
+
+    # create objects dependent on the ABI size
+
+    Str = ir.global_context.get_identified_type('.object.str')
+    Str.elements = (ir.IntType(_pointer_bitwidth), ir.IntType(8).as_pointer())
+    Str.v_id = 'str'
+    Str.is_obj = True
+    Str.signed = False
+    Str.ext_ptr = UnsignedInt(8, True).as_pointer()
+    Str.p_fmt = '%s'
+    Str.as_pointer = make_type_as_ptr(Str)
+
+    _vartypes = Map({
+
+        # singleton
+        'u1': Bool(),
+        'i8': SignedInt(8),
+        'i16': SignedInt(16),
+        'i32': SignedInt(32),
+        'i64': SignedInt(64),
+        'u8': UnsignedInt(8),
+        'u16': UnsignedInt(16),
+        'u32': UnsignedInt(32),
+        'u64': UnsignedInt(64),
+        'f64': Float64(),
+
+        # u_size is set on init
+        'u_size': None,
+
+        # non-singleton        
+        'array': Array,
+        'func': ir.FunctionType,
+
+        # object types
+        'str': Str,
+
+    })
+
+    # set platform-dependent sizes
+    _vartypes._pointer_size = _pointer_size
+    _vartypes._pointer_bitwidth = _pointer_bitwidth
+    
+    _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_bitwidth)
+    _vartypes['u_mem'] = UnsignedInt(_vartypes._pointer_size)
+
+    # add these types in manually, since they just shadow existing ones
+    _vartypes['bool'] = _vartypes.u1
+    _vartypes['byte'] = _vartypes.u8
+
+    # TODO: this should be moved back into the underlying types?
+    _vartypes.f64.c_type = ctypes.c_longdouble
+    _vartypes.func.is_obj = True
+
+    # set defaults for functions and variables
+    _vartypes._DEFAULT_TYPE = _vartypes.i32
+    _vartypes._DEFAULT_RETURN_VALUE = ir.Constant(_vartypes.i32, 0)
+
+    # set the target data reference
+    _vartypes._target_data = target_data
+
+    # box_id - possibly to be used for boxing and unboxing types
+    for _, n in enumerate(_vartypes):
+        if not n.startswith('_'):
+            _vartypes[n].box_id = _
+
+    return _vartypes
+
+VarTypes = generate_vartypes()
+
+DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
+DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
+
+dunder_methods = set([f'__{n}__' for n in Dunders])
+
+Str = VarTypes.str
+
+# ---------------------------------
+# new standard layout for *all* objects headers
+
+# [[1,2,3][4]]
+# 1: length of data element
+# 2: is_external for data: 1=yes, it's externally stored, see pointer, needs separate dealloc
+# 3: pointer to data (if stored externally)
+# 4: actual data (if any)
+
+# maybe also a pointer to an object prototype for DIY objects ... need to think more about that
+
+# ObjHeader = ir.global_context.get_identified_type('.object_header')
+# ObjHeader.elements = (_vartypes.u64,_vartypes.bool,_vartypes.u_mem.as_pointer())
+
+# we would need to get the pointer size BEFORE we do the object inits,
+# but that's not hard -- just move it up
+
+
+
+# ---------------------------------
+# Obsolete stuff for now
+
 # When we remake string class, we should follow ArrayClass example
 # I just need to know how to initialize the string, load the contents,
 # for a static instance.
@@ -105,14 +219,14 @@ class ArrayClass(ir.types.LiteralStructType):
 # Ptr.signed = False
 # Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
 
-Str = ir.global_context.get_identified_type('.object.str')
-Str.elements = (ir.IntType(64), ir.IntType(8).as_pointer())
-Str.v_id = 'str'
-Str.is_obj = True
-Str.signed = False
-Str.ext_ptr = UnsignedInt(8, True).as_pointer()
-Str.p_fmt = '%s'
-Str.as_pointer = make_type_as_ptr(Str)
+# Str = ir.global_context.get_identified_type('.object.str')
+# Str.elements = (ir.IntType(64), ir.IntType(8).as_pointer())
+# Str.v_id = 'str'
+# Str.is_obj = True
+# Str.signed = False
+# Str.ext_ptr = UnsignedInt(8, True).as_pointer()
+# Str.p_fmt = '%s'
+# Str.as_pointer = make_type_as_ptr(Str)
 
 # ErrType = ir.global_context.get_identified_type('.object.err')
 # ErrType.elements = (Str,)
@@ -161,108 +275,3 @@ Str.as_pointer = make_type_as_ptr(Str)
 # The lexer, parser, and codegen objects will each
 # create an instance of this, so they are all instance-local
 # and not simply imported from this module
-
-
-def generate_vartypes(module=None):
-
-    # set up pointer data here
-    # create any types that depend on pointer sizes
-    # export them to the module at large by way of _vartypes
-
-    # also prune anything we aren't using right now, move it to obsolete
-    # this place is getting cluttered
-
-    _vartypes = Map({
-
-        # singleton
-        'u1': Bool(),
-        'i8': SignedInt(8),
-        'i16': SignedInt(16),
-        'i32': SignedInt(32),
-        'i64': SignedInt(64),
-        'u8': UnsignedInt(8),
-        'u16': UnsignedInt(16),
-        'u32': UnsignedInt(32),
-        'u64': UnsignedInt(64),
-        'f64': Float64(),
-        'u_size': None,
-        # u_size is set on init
-
-        # non-singleton
-        'array': Array,
-        'func': ir.FunctionType,
-
-        # object types
-        'str': Str,
-        #'ptrobj': Ptr,
-        #'None': NoneType,
-
-        # 'any': Any
-    })
-
-    # TODO: add c_type to native llvmlite float
-    # as we did with int
-    _vartypes.f64.c_type = ctypes.c_longdouble
-
-    # add these types in manually, since they just shadow existing ones
-
-    _vartypes['bool'] = _vartypes.u1
-    _vartypes['byte'] = _vartypes.u8
-
-    _vartypes.func.is_obj = True
-
-    _vartypes._DEFAULT_TYPE = _vartypes.i32
-    _vartypes._DEFAULT_RETURN_VALUE = ir.Constant(_vartypes.i32, 0)
-
-    # if no module, assume platform
-
-    if not module:
-        module = ir.Module()
-
-    # Initialize target data for the module.
-    target_data = binding.create_target_data(module.data_layout)
-
-    # Set up pointer size and u_size vartype for current hardware.
-    _vartypes._pointer_size = (
-        ir.PointerType(_vartypes.u8).get_abi_size(target_data)
-    )
-
-    _vartypes._pointer_bitwidth = _vartypes._pointer_size * 8
-
-    _vartypes._target_data = target_data
-
-    _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_bitwidth)
-    _vartypes['u_mem'] = UnsignedInt(_vartypes._pointer_size)
-
-    for _, n in enumerate(_vartypes):
-        if not n.startswith('_'):
-            _vartypes[n].box_id = _
-
-    return _vartypes
-
-
-VarTypes = generate_vartypes()
-
-# platform VarTypes is the default
-# we can just import from here if we want that
-# and most of the time, we do
-
-DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
-DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
-
-dunder_methods = set([f'__{n}__' for n in Dunders])
-
-# another idea I'm considering is a new standard layout for *all* objects:
-# [[1,2,3][4]]
-# 1: length of data element
-# 2: is_external for data: 1=yes, it's externally stored, see pointer, needs separate dealloc
-# 3: pointer to data (if stored externally)
-# 4: actual data (if any)
-
-# maybe also a pointer to an object prototype for DIY objects ... need to think more about that
-
-# ObjHeader = ir.global_context.get_identified_type('.object_header')
-# ObjHeader.elements = (_vartypes.u64,_vartypes.bool,_vartypes.u_mem.as_pointer())
-
-# we would need to get the pointer size BEFORE we do the object inits,
-# but that's not hard -- just move it up
