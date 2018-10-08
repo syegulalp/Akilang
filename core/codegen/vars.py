@@ -1,6 +1,6 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError
-from core.ast_module import Variable, Call, ArrayAccessor
+from core.ast_module import Variable, Call, ArrayAccessor, Number
 from core.mangling import mangle_call
 #from core.vartypes import VarTypes, DEFAULT_TYPE
 from core.vartypes import ArrayClass
@@ -377,6 +377,19 @@ class Vars():
                         # beacuse it doesn't actually exist yet!
                         obj = self._alloca('obj', v_type.pointee)
                         self.builder.store(obj, var_ref)
+
+                #  any uninitialized pointer should be nulled
+                elif v_type.is_ptr():                    
+                    zeroinit = self._codegen(
+                        Number(
+                            v.position,
+                            0,
+                            self.vartypes.u_size
+                        )
+                    )
+                    z2 = self.builder.inttoptr(zeroinit,
+                        var_ref.type.pointee)
+                    self.builder.store(z2, var_ref)
 
     def _codegen_VarDef(self, expr, vartype):
         if expr is None:

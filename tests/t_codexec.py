@@ -395,6 +395,19 @@ class TestEvaluator(unittest.TestCase):
             e.evaluate('len("Hello there")'),
             12
         )
+
+    def test_zeroinit(self):
+        e = AkilangEvaluator()
+        n='''
+        def main():u64{
+            var x:ptr byte
+            var x2=c_ptr_int(x)
+            x2
+        }
+        main()
+        '''
+        self.assertEqual(e.eval_all(n), 0)
+
     
     def test_auto_free(self):
         '''
