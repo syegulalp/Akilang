@@ -238,6 +238,11 @@ class Parser(Expressions, Toplevel):
         start = self.cur_tok.position
         elements = []
 
+        # Parse empty array accessor
+        if self._cur_tok_is_punctuator(']'):
+            elements = [Number(start, 0)]
+            return ArrayAccessor(start, elements)
+
         while True:
             dimension = self._parse_expression()
             if hasattr(dimension, 'val'):
@@ -247,7 +252,6 @@ class Parser(Expressions, Toplevel):
                 self._get_next_token()
                 continue
             elif self._cur_tok_is_punctuator(']'):
-                #self._get_next_token()
                 break
             else:
                 raise ParseError('Unclosed array accessor',
