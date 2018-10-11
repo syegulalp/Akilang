@@ -426,7 +426,23 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(e.eval_all(n), 0.0)
 
+    def test_pragma(self):
+        # TODO: This isn't yet a very robust test
+        # It doesn't yet check that the pragmas
+        # in the module are in fact set
+        # It's mostly to make sure pragmas are 
+        # parsed 
 
+        e = AkilangEvaluator(True)
+        n = '''
+        pragma {    
+            unroll_loops = True
+            loop_vectorize = True
+            diaml = 32
+            whatever = 'thingy'
+        }'''
+
+        self.assertEqual(e.eval_all(n), None)
     
     def test_auto_free(self):
         '''
