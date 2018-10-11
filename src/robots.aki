@@ -152,7 +152,6 @@ Press Space to pass a turn without making a move.
             var key=inkey()
             xvec=0
             yvec=0
-            print (key)
             match key {
                 71: {yvec=-1 xvec=-1}
                 73: {yvec=-1 xvec=1}
