@@ -17,6 +17,7 @@ from core.tokens import Builtins, Dunders
 
 class Expressions():
     def _parse_pass_expr(self):
+        self._get_next_token()
         return Pass(self.cur_tok.position)
     def _parse_try_expr(self):
         start = self.cur_tok.position

@@ -135,6 +135,7 @@ lure the robots into running into the electric fences without
 electrocuting yourself as well.
 
 Use the number pad to move in eight directions, including diagonals.
+Press Space to pass a turn without making a move.
 ')
         }
     }
@@ -151,6 +152,7 @@ Use the number pad to move in eight directions, including diagonals.
             var key=inkey()
             xvec=0
             yvec=0
+            print (key)
             match key {
                 71: {yvec=-1 xvec=-1}
                 73: {yvec=-1 xvec=1}
@@ -164,6 +166,7 @@ Use the number pad to move in eight directions, including diagonals.
                     print ("Quitting (wimp!)")
                     break
                 }
+                32: pass
                 default: continue
             }
             
