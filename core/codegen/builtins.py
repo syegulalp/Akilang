@@ -70,6 +70,8 @@ class Builtins():
         '''
         expr = self._get_obj_noload(node)
 
+        
+
         if not expr.tracked:
             raise CodegenError(
                 f'{node.args[0].name} is not an allocated object', node.args[0].position)
@@ -213,6 +215,7 @@ class Builtins():
         gep = self.builder.gep(
             convert_from,
             [
+                self._i32(0),
                 self._i32(0),
                 self._i32(1),
             ]

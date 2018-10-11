@@ -312,7 +312,7 @@ class Vars():
         # and bitcast it to a ptr i8.
 
         spt = str_const.gep([self._int(0)]).bitcast(
-            self.vartypes.u8.as_pointer())
+            self.vartypes.u_mem.as_pointer())
 
         # Create the string object that points to the constant.
 
@@ -322,9 +322,18 @@ class Vars():
         str_val.global_constant = True
 
         # Set the string object data.
+        #t1 = self.builder.inttoptr(None,self.vartypes.u_mem.as_pointer())
 
         str_val.initializer = self.vartypes.str(
-            [ir.Constant(self.vartypes.u64, string_length), spt])
+            [[
+                ir.Constant(self.vartypes.u64, string_length),
+                spt,
+                self._int(0),
+                ir.Constant(self.vartypes.u_size.as_pointer(), None),
+                ir.Constant(self.vartypes.bool, 0),
+                ir.Constant(self.vartypes.bool, 0)
+                ]
+            ,])
 
         return str_val        
 

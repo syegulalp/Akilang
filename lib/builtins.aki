@@ -16,8 +16,8 @@ def c_str_to_int(my_str:str) :i32 pass
 # The actual builtins.
 
 @nomod
-def '.object.str.__len__'(my_str:str):u64{
-    var f1 = c_gep(my_str,0)
+def '.object.str.__len__'(my_str:str):u64{    
+    var f1 = c_gep(my_str,0,0)
     c_deref(f1)
 }
 
@@ -28,7 +28,7 @@ def '.object.array.__del__'(my_obj:ptr u_mem):bool {
 
 @nomod
 def '.object.str.__index__'(my_str:str, index:i32) :u8 {
-    var f1 = c_gep(my_str,1)
+    var f1 = c_gep(my_str,0,1)
     var f2 = c_gep(f1)
     var f3 = c_ptr_math(f2, cast(index,u64))
     c_gep(f3)
@@ -36,15 +36,15 @@ def '.object.str.__index__'(my_str:str, index:i32) :u8 {
 
 # TODO: untested
 
-# doesn't yet selectively free the underlying object
-# we may want to have either a separate type for
-# strings made from statically allocated objects,
-# or a flag in the string object that indicates
-# whether or not the string's data is dynamically
-# allocated
-
-def '.object.str.__del__'(my_obj: ptr u_mem):bool {
-    unsafe c_free(my_obj)
+def '.object.str.__del__'(my_str: str):bool {
+    var f1 = c_gep(my_str,0,4)
+    when c_deref(f1) then {
+        # free the data element
+        unsafe c_free(c_data(my_str))
+    }
+    # free the data container
+    # TODO: check flag first
+    unsafe c_free(c_ptr(my_str))
 }
 
 @track
@@ -56,12 +56,20 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     var alloc = c_obj_alloc(with var x:str{x})
 
     # Insert the length
-    var len_ptr = c_gep(alloc,0)
+    var len_ptr = c_gep(alloc,0 ,0)
     unsafe c_ptr_mod(len_ptr, str_len)
 
     # Point to the data
-    var data_ptr = c_gep(alloc,1)    
+    var data_ptr = c_gep(alloc,0, 1)
     unsafe c_ptr_mod(data_ptr, my_obj)
+
+    # the object data is not malloc'd (yet)
+    var obj_data_ptr = c_gep(alloc,0, 4)
+    unsafe c_ptr_mod(obj_data_ptr, False)
+
+    # the object itself is malloc'd
+    var h_data_ptr = c_gep(alloc,0, 5)
+    unsafe c_ptr_mod(h_data_ptr, True)
     
     # Return the string object
     return alloc
