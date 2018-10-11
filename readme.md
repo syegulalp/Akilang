@@ -8,6 +8,8 @@ Eventually, this might become something useful for production. Right now, it's s
 
 [This document](language.md) is a work-in-progress tour of the language's syntax.
 
+[This document](memory.md) discusses Aki's aims in terms of memory management.
+
 You can see a short demo movie of the language in action [here.](https://www.youtube.com/watch?v=9vZ4oFCFOl8)
 
 # Goals and ideals
