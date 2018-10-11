@@ -86,8 +86,8 @@ class Parser(Expressions, Toplevel):
     def _generate_toplevel(self):
         if self.cur_tok.kind == TokenKind.EXTERN:
             return self._parse_external()
-        elif self.cur_tok.kind == TokenKind.META:
-            return self._parse_meta_expr()
+        elif self.cur_tok.kind == TokenKind.PRAGMA:
+            return self._parse_pragma_expr()
         elif self.cur_tok.kind == TokenKind.UNI:
             return self._parse_uni_expr()
         elif self.cur_tok.kind == TokenKind.CONST:

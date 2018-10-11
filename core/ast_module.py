@@ -31,10 +31,10 @@ class Continue(Expr):
     pass
 
 
-class Meta(Node):
-    def __init__(self, position, metas):
+class Pragma(Node):
+    def __init__(self, position, pragmas):
         super().__init__(position)
-        self.metas = metas
+        self.pragmas = pragmas
 
 
 class Unsafe(Expr):

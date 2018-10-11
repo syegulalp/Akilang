@@ -31,19 +31,22 @@ This is a document of Aki syntax and usage.
     - [`class`](#class)
     - [`def`](#def)
     - [`extern`](#extern)
-    - [`meta`](#meta)
+    - [`pragma`](#pragma)
         - [`loop_vectorize`](#loop_vectorize)
         - [`size_level`](#size_level)
         - [`slp_vectorize`](#slp_vectorize)
         - [`opt_level`](#opt_level)
         - [`unroll_loops`](#unroll_loops)
     - [`unary`](#unary)
+- [usage](#usage)
     - [`uni`](#uni)
 - [Keywords](#keywords)
     - [`break`](#break)
     - [`default`](#default)
     - [`if` / `then` / `elif` / `else`](#if--then--elif--else)
+- [FizzBuzz](#fizzbuzz)
     - [`loop`](#loop)
+- [x is not valid outside of this block](#x-is-not-valid-outside-of-this-block)
     - [`match`](#match)
     - [`not`](#not)
     - [`return`](#return)
@@ -51,6 +54,8 @@ This is a document of Aki syntax and usage.
     - [`var`](#var)
     - [`while`](#while)
     - [`with`](#with)
+- [y is valid from here on down](#y-is-valid-from-here-on-down)
+- [this is invalid](#this-is-invalid)
     - [`when`](#when)
 - [Decorators](#decorators)
     - [`@inline`](#inline)
@@ -68,7 +73,6 @@ This is a document of Aki syntax and usage.
     - [`c_size`](#c_size)
     - [`c_obj_alloc` / `c_obj_dealloc`](#c_obj_alloc--c_obj_dealloc)
     - [`c_obj_ref` / `c_obj_deref`](#c_obj_ref--c_obj_deref)
-    - [`c_obj_size`](#c_obj_size)
     - [`c_ptr_int`](#c_ptr_int)
     - [`c_ptr_math`](#c_ptr_math)
     - [`c_ptr_mod`](#c_ptr_mod)
@@ -77,6 +81,7 @@ This is a document of Aki syntax and usage.
     - [`len`](#len)
 - [Library functions](#library-functions)
     - [`inkey`](#inkey)
+- [you can also just say ...](#you-can-also-just-say-)
     - [`print`](#print)
 - [Types:](#types)
     - [`bool (u1)`](#bool-u1)
@@ -86,6 +91,7 @@ This is a document of Aki syntax and usage.
     - [`f64`](#f64)
     - [`array`](#array)
     - [`str`](#str)
+- [or:](#or)
     - [`ptr`](#ptr)
 
 # Introduction
@@ -403,14 +409,14 @@ def main(){
 }
 ```
 
-## `meta`
+## `pragma`
 
-The `meta` keyword defines a set of key-value pairs used by the compiler to guide the compilation process.
+The `pragma` keyword defines a set of key-value pairs used by the compiler to guide the compilation process.
 
 The keys and values must both be constants.
 
 ```
-meta {
+pragma {
     unroll_loops = True
     loop_vectorize = True
     slp_vectorize = True
@@ -419,7 +425,7 @@ meta {
 }
 ```
 
-Right now the options are little more than one-to-one correspondants to the optimization controls exposed through Aki's LLVM layer:
+Right now the available options are little more than one-to-one correspondants to the optimization controls exposed through Aki's LLVM layer:
 
 ### `loop_vectorize`
 

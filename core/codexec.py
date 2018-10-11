@@ -225,7 +225,7 @@ class AkilangEvaluator(object):
         # Optimize the module
         if optimize:
             from core.compiler import optimize
-            llvmmod, _ = optimize(llvmmod, self.codegen.metas)
+            llvmmod, _ = optimize(llvmmod, self.codegen.pragmas)
 
             if llvmdump:
                 dump(
@@ -293,18 +293,18 @@ class AkilangEvaluator(object):
         )
 
         # Extract the variable type of that function
-        r_type = self.codegen.module.globals[
+        f_type = self.codegen.module.globals[
             Prototype.anon_name(Prototype)
         ].return_value.type
 
-        if not hasattr(r_type, 'c_type'):
+        if not hasattr(f_type, 'c_type'):
             r_type = c_void_p
         else:
-            r_type = r_type.c_type
+            r_type = f_type.c_type
 
         # Run the function with the proper return type
         e = self._eval_ast(
-            Function.Anonymous(node.position, node, vartype=r_type),
+            Function.Anonymous(node.position, node, vartype=f_type),
             return_type=r_type
         )
 

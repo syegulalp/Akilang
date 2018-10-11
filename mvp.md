@@ -58,7 +58,7 @@
     - [X] F-string style syntaxing.
 - [ ] Overflow detection for math, and minimal error handling.
 - [X] Decorator syntax.
-- [ ] Meta/pragma syntax.
+- [X] Pragma syntax.
 - [ ] Integers of arbitrary length, for bignum support.
 - [ ] Documentation.
 

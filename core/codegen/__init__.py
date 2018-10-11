@@ -1,4 +1,4 @@
-from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call, Meta
+from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call, Pragma
 from core.vartypes import generate_vartypes
 from core.errors import CodegenError
 from core.mangling import mangle_args
@@ -61,8 +61,8 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # Context for current try/except block (if any)
         self.try_except = []
 
-        # Metadatas for this module
-        self.metas = {}
+        # Pragmas for this module
+        self.pragmas = {}
 
         # Last codegenned instruction
         self.previous = None
@@ -99,7 +99,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
     def generate_code(self, node):
         assert isinstance(node, (Prototype, Function,
-                                 Uni, Class, Decorator, Meta))
+                                 Uni, Class, Decorator, Pragma))
         return self._codegen(node, False)
 
     def _extract_operand(self, val):

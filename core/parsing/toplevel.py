@@ -1,7 +1,7 @@
 from core.lexer import TokenKind
 from core.ast_module import (
     Array, Const, Uni, String, Function, Prototype, Number,
-    Variable, DEFAULT_TYPE, DEFAULT_PREC, Unary, Meta
+    Variable, DEFAULT_TYPE, DEFAULT_PREC, Unary, Pragma
 )
 from core.operators import UNASSIGNED, set_binop_info, Associativity
 from core.errors import ParseError
@@ -10,27 +10,24 @@ from core.errors import ParseError
 
 
 class Toplevel():
-    def _parse_meta_expr(self):
-
-        # TODO: untested
-
+    def _parse_pragma_expr(self):
         start = self.cur_tok.position
 
-        # first, consume "meta"
+        # first, consume "pragma"
         self._get_next_token()
 
         self._match(TokenKind.PUNCTUATOR, '{')
 
-        metas = []
+        pragmas = []
 
         while True:
             t = self._parse_expression()
-            metas.append(t)
+            pragmas.append(t)
             if self._cur_tok_is_punctuator('}'):
                 self._get_next_token()
                 break
 
-        return Meta(start, metas)
+        return Pragma(start, pragmas)
 
     def _parse_var_declaration(self):
         '''

@@ -26,7 +26,8 @@ class TokenKind(Enum):
     CONST = -1030
     UNI = -1040
     CLASS = -1041
-    META = -1042
+    #META = -1042
+    PRAGMA = -1043
 
     PTR = -1045
 

@@ -9,9 +9,9 @@ from core.tokens import decorator_collisions
 
 class Toplevel():
 
-    def _codegen_Meta(self, node):
+    def _codegen_Pragma(self, node):
         '''
-        Iterate through a `meta` block and register each
+        Iterate through a `pragma` block and register each
         name/value pair with the module's metadata.
         '''
 
@@ -25,10 +25,10 @@ class Toplevel():
 
         e = AkilangEvaluator(True)
 
-        for n in node.metas:
+        for n in node.pragmas:
             if not isinstance(n, Binary):
                 raise CodegenError(
-                    'Invalid "meta" declaration (must be in the format "<identifier> = <value>")',
+                    'Invalid "pragma" declaration (must be in the format "<identifier> = <value>")',
                     n.position
                 )
 
@@ -45,19 +45,17 @@ class Toplevel():
                     val = int(n.rhs.val)
                 except:
                     raise CodegenError(
-                        'Invalid "meta" declaration (value must be a string or integer)',
+                        'Invalid "pragma" declaration (value must be a string or integer)',
                         n.rhs.position
                     )
 
             else:
                 raise CodegenError(
-                    'Invalid "meta" declaration (value must be a string or integer)',
+                    'Invalid "pragma" declaration (value must be a string or integer)',
                     n.rhs.position
                 )
 
-            self.metas[n.lhs.name] = val
-
-        #print (self.metas)
+            self.pragmas[n.lhs.name] = val
 
     def _codegen_Decorator(self, node):
         '''
