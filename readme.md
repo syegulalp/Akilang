@@ -42,7 +42,7 @@ Some guidelines about what we want Aki to be, by way of aphorisms (also in flux)
 * You should be able to lift the hood if you *need* to, but the vast majority of the time you shouldn't *have* to.
 * Solve the right problems at the right level, and in a way that helps as many others as possible.
 * Don't include *now* what we don't need *now*.
-* Eschew ambiguity. (The best grammars in life are context-free.)
+* Eschew ambiguity, but embrace practical brevity.
 
 # Code examples
 
