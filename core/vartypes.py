@@ -88,6 +88,7 @@ class ArrayClass(ir.types.LiteralStructType):
 
         self.v_id = f'array_{my_type.v_id}'
         self.del_id = 'array'
+        self.del_as_ptr = True
         self.as_pointer = make_type_as_ptr(self)
 
 
@@ -107,10 +108,80 @@ def generate_vartypes(module=None):
 
     _pointer_bitwidth = _pointer_size * 8
 
+    U_MEM = UnsignedInt(_pointer_size)
+    U_SIZE = UnsignedInt(_pointer_bitwidth)
+
+    # create universal object header
+    # the first element in this structure:
+
+    # [[1,2,3][4]]
+    # 1: length of data element
+    # 2: is_external for data: 1=yes, it's externally stored, see pointer, needs separate dealloc
+    # 3: pointer to data (if stored externally)
+    # 4: actual object data (if any)    
+
+    Header = ir.global_context.get_identified_type('.object_header.')
+    Header.elements = (
+        # total length of data element in bytes as u64
+        U_SIZE,
+        # pointer to object data
+        U_MEM.as_pointer(), # generic ptr void
+        
+        # array dimensions
+        # not used for anything other than n-dimensional arrays
+        # we may not want to keep this as part of a universal header
+        
+        # total number of dimensions for an array as u64
+        U_SIZE,
+        # pointer to start of list of dimensions as u64
+        U_SIZE.as_pointer(),
+        
+        # flag for whether or not obj is dynamically allocated (bool)
+        # default is 0
+        ir.IntType(1),
+
+        # flag for whether or not header-bearing obj is dynam. alloc.
+        # default is also 0
+        ir.IntType(1),
+
+    )
+
+    Header.packed = True
+
+    # for arrays at compile time, we can encode the dimensions at compile time
+    # and any calls will be optimized out to constants anyway
+    # need to see if the .initializer property works for runtime
+
+    # Result type
+
+    Result = ir.global_context.get_identified_type('.result.')
+    Result.elements = (
+        # OK or err?
+        ir.IntType(1),
+        # if false
+        ir.IntType(_pointer_size).as_pointer(),
+        # if true
+        ir.IntType(_pointer_size).as_pointer(),
+    )
+
+    # ? should result type be treated as an object w/header?
+
+    # when we compile,
+    # we bitcast the ptr to #1 to the appropriate object type
+    # based on what we expect
+    # for instance, if we have a function that returns an i64
+    # but can throw an exception,
+    # then any results returned from that have element 1 bitcast
+    # as a pointer to an i64 somewhere (malloc'd)
+    # it may be possible to return the data directly inside the structure
+    # depending on how funky we want to get...
+    # basically, we generate the result structure on the fly each time?
+
+
     # create objects dependent on the ABI size
 
     Str = ir.global_context.get_identified_type('.object.str')
-    Str.elements = (ir.IntType(_pointer_bitwidth), ir.IntType(8).as_pointer())
+    Str.elements = (Header,) 
     Str.v_id = 'str'
     Str.is_obj = True
     Str.signed = False
@@ -170,7 +241,7 @@ def generate_vartypes(module=None):
     for _, n in enumerate(_vartypes):
         if not n.startswith('_'):
             _vartypes[n].box_id = _
-
+    
     return _vartypes
 
 VarTypes = generate_vartypes()
@@ -181,97 +252,3 @@ DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
 dunder_methods = set([f'__{n}__' for n in Dunders])
 
 Str = VarTypes.str
-
-# ---------------------------------
-# new standard layout for *all* objects headers
-
-# [[1,2,3][4]]
-# 1: length of data element
-# 2: is_external for data: 1=yes, it's externally stored, see pointer, needs separate dealloc
-# 3: pointer to data (if stored externally)
-# 4: actual data (if any)
-
-# maybe also a pointer to an object prototype for DIY objects ... need to think more about that
-
-# ObjHeader = ir.global_context.get_identified_type('.object_header')
-# ObjHeader.elements = (_vartypes.u64,_vartypes.bool,_vartypes.u_mem.as_pointer())
-
-# we would need to get the pointer size BEFORE we do the object inits,
-# but that's not hard -- just move it up
-
-
-
-# ---------------------------------
-# Obsolete stuff for now
-
-# When we remake string class, we should follow ArrayClass example
-# I just need to know how to initialize the string, load the contents,
-# for a static instance.
-# With a dynamically created instance, I don't think I can do that.
-
-# object types
-
-# I don't think we're using this for anything anymore
-# Ptr = ir.global_context.get_identified_type('.object.ptr')
-# Ptr.elements = (UnsignedInt(8, True).as_pointer(), )
-# Ptr.v_id = "ptrobj"
-# Ptr.is_obj = True
-# Ptr.signed = False
-# Ptr.ext_ptr = UnsignedInt(8, True).as_pointer()
-
-# Str = ir.global_context.get_identified_type('.object.str')
-# Str.elements = (ir.IntType(64), ir.IntType(8).as_pointer())
-# Str.v_id = 'str'
-# Str.is_obj = True
-# Str.signed = False
-# Str.ext_ptr = UnsignedInt(8, True).as_pointer()
-# Str.p_fmt = '%s'
-# Str.as_pointer = make_type_as_ptr(Str)
-
-# ErrType = ir.global_context.get_identified_type('.object.err')
-# ErrType.elements = (Str,)
-# ErrType.v_id = 'err'
-# ErrType.is_obj = True  # ?
-# ErrType.signed = False
-
-# OKType = ir.global_context.get_identified_type('.object.ok')
-# OKType.elements = (ir.IntType(1),)
-# OKType.v_id = 'ok'
-# OKType.is_obj = True  # ?
-# OKType.signed = False
-
-#ResultType = ir.global_context.get_identified_type('.object.result')
-#ResultType.elements = (OKType, ErrType)
-# third element should be the actual result?
-# how to encode that?
-
-# types for singleton objects
-
-# NoneType = ir.global_context.get_identified_type('.object.none')
-# NoneType.elements = (ir.IntType(1), )
-# NoneType.v_id = 'none'
-# NoneType.is_obj = True
-# NoneType.signed = False
-# NoneType.ext_ptr = ir.IntType(8).as_pointer()
-
-
-# module doesn't exist yet
-# OKProto = ir.GlobalValue(ir.module, OKType, '.object.ok1')
-
-# Object wrapper
-
-# Obj = ir.global_context.get_identified_type('.object.base')
-# Obj.elements = (
-#     ir.IntType(8),  # pointer to object prototype list
-#     ir.IntType(8).as_pointer()  # pointer to the object data itself
-#     # eventually, a pointer to a dict obj for properties
-# )
-# Obj.v_id = 'obj'
-# Obj.is_obj = True
-# Obj.ext_ptr = ir.IntType(8).as_pointer()
-
-# This will take in a target data,
-# or failing that, just default to the platform running
-# The lexer, parser, and codegen objects will each
-# create an instance of this, so they are all instance-local
-# and not simply imported from this module

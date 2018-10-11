@@ -45,11 +45,12 @@ class MyType():
             raise Exception("Not an object")
         return f'.object.{self.v_id}.'
 
-    def del_signature(self):
+    def del_signature(self):        
         if hasattr(self, 'del_id'):
-            return f'.object.{self.del_id}.'
+            sig = f'.object.{self.del_id}.'
         else:
-            return self.signature()
+            sig = self.signature()
+        return sig, getattr(self,'del_as_ptr', None)
 
 
 ir.types.Type.describe = MyType.describe
