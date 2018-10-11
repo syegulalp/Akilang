@@ -1,5 +1,5 @@
 import llvmlite.ir as ir
-from core.errors import CodegenError
+from core.errors import CodegenError, BlockExit
 from core.operators import BUILTIN_UNARY_OP
 from core.ast_module import Binary, Number, If
 from core.mangling import mangle_args
@@ -52,18 +52,45 @@ class Ops():
         # Autopromotion of integer constants
         # must both be positive integers
 
-        if isinstance(lhs, ir.Constant) and isinstance(rhs, ir.Constant):
-            try:
-                if lhs.type.signed != rhs.type.signed:
-                    raise ValueError
-                if int(lhs.constant) > 0 and int(rhs.constant) > 0:
-                    if lhs.type.width > rhs.type.width:
-                        rhs = self.builder.zext(rhs, lhs.type)
-                    else:
-                        lhs = self.builder.zext(lhs, rhs.type)
-            except ValueError:
-                # wrong constant type
-                pass
+        try:
+            if not (isinstance(lhs, ir.Constant) and isinstance(rhs, ir.Constant)):
+                raise BlockExit
+
+            if not (isinstance(lhs.type, ir.IntType) and isinstance(rhs.type, ir.IntType)):
+                raise BlockExit
+                
+            # future note: unsigned-to-signed is OK as long as the
+            # unsigned quantity is half or less the bitwidth of signed
+            # eg. u8 to i16 is OK, u8 to i32 is OK
+            # but u8 to i8 is not
+            
+            # and signed-to-unsigned, the target bitwidth must be double
+            # i8 to u16 OK, i8 to u32 OK
+            # but i8 to u8, not OK
+
+            # be sure to use sext and zext correctly in the above
+            
+            if lhs.type.signed != rhs.type.signed:
+                raise BlockExit
+                
+            # eventually replace this with tests of the size of the 
+            # constant vs. the target bitwidth
+            
+            if not (int(lhs.constant) > 0 and int(rhs.constant) > 0):
+                raise BlockExit
+            
+            if lhs.type.width > rhs.type.width:
+                rhs = self.builder.zext(rhs, lhs.type)
+                rhs.type = lhs.type
+            else:
+                lhs = self.builder.zext(lhs, rhs.type)
+                lhs.type = rhs.type
+
+        except BlockExit:
+            pass
+
+        # the above should be made into a function
+        # so it can be used in, for instance, call sites
 
         # next will be autopromotion of variables
         # same signing, one has a lesser bitwidth than the other
@@ -187,16 +214,24 @@ class Ops():
                     return self.builder.fdiv(lhs, rhs, 'fdivop')
                 elif node.op == '<':
                     cmp = self.builder.fcmp_ordered('<', lhs, rhs, 'fltop')
-                    return self.builder.uitofp(cmp, vartype, 'fltoptodouble')
+                    #return self.builder.uitofp(cmp, vartype, 'fltoptodouble')
+                    cmp.type = VarTypes.bool
+                    return cmp                    
                 elif node.op == '>':
                     cmp = self.builder.fcmp_ordered('>', lhs, rhs, 'fgtop')
-                    return self.builder.uitofp(cmp, vartype, 'flgoptodouble')
+                    #return self.builder.uitofp(cmp, vartype, 'flgoptodouble')
+                    cmp.type = VarTypes.bool
+                    return cmp
                 elif node.op == '>=':
                     cmp = self.builder.fcmp_ordered('>=', lhs, rhs, 'fgeqop')
-                    return self.builder.uitofp(cmp, vartype, 'fgeqopdouble')
+                    #return self.builder.uitofp(cmp, vartype, 'fgeqopdouble')
+                    cmp.type = VarTypes.bool
+                    return cmp
                 elif node.op == '<=':
                     cmp = self.builder.fcmp_ordered('<=', lhs, rhs, 'fleqop')
-                    return self.builder.uitofp(cmp, vartype, 'fleqopdouble')
+                    #return self.builder.uitofp(cmp, vartype, 'fleqopdouble')
+                    cmp.type = VarTypes.bool
+                    return cmp
                 elif node.op == '==':
                     x = self.builder.fcmp_ordered('==', lhs, rhs, 'feqop')
                     x.type = VarTypes.bool
@@ -205,7 +240,7 @@ class Ops():
                     x = self.builder.fcmp_ordered('!=', lhs, rhs, 'fneqop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op in ('and', 'or'):
+                elif node.op in ('and', 'or', 'xor'):
                     raise CodegenError(
                         'Operator not supported for "float" or "double" types',
                         node.lhs.position)
