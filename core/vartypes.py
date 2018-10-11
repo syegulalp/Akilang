@@ -36,6 +36,16 @@ class UnsignedInt(ir.IntType):
         return super().__new__(cls, bits, force, False)
 
 
+class Float32(ir.FloatType):
+    def __new__(cls):
+        t = super().__new__(cls)
+        t.signed = True
+        t.v_id = 'f32'
+        t.width = 32
+        t.is_obj = False
+        t.p_fmt = '%f'
+        return t
+
 class Float64(ir.DoubleType):
     def __new__(cls):
         t = super().__new__(cls)
@@ -201,6 +211,7 @@ def generate_vartypes(module=None):
         'u16': UnsignedInt(16),
         'u32': UnsignedInt(32),
         'u64': UnsignedInt(64),
+        'f32': Float32(),
         'f64': Float64(),
 
         # u_size is set on init
@@ -227,7 +238,9 @@ def generate_vartypes(module=None):
     _vartypes['byte'] = _vartypes.u8
 
     # TODO: this should be moved back into the underlying types?
+    _vartypes.f32.c_type = ctypes.c_double
     _vartypes.f64.c_type = ctypes.c_longdouble
+
     _vartypes.func.is_obj = True
 
     # set defaults for functions and variables

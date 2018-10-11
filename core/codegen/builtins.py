@@ -81,12 +81,12 @@ class Builtins():
 
         addr = self.builder.load(expr)
         addr2 = self.builder.bitcast(
-            addr, self.vartypes.u_mem.as_pointer()).get_reference()
+            addr, self.vartypes.u_mem.as_pointer())
+            #.get_reference()
 
         call = self._codegen_Call(
-            Call(node.position, 'c_free',
-                 [Number(node.position, addr2,
-                         self.vartypes.u_mem.as_pointer())]))
+            Call(node.position, 'c_free', [addr2])
+        )
 
         # TODO: zero after free, automatically
 

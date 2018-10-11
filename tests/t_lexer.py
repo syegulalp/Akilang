@@ -24,7 +24,7 @@ class TestLexer(unittest.TestCase):
 
         pos = Position(l.buf, 1, 2)
         self.assertEqual(toks[2],
-                         Token(TokenKind.NUMBER, '1.', VarTypes.f64, pos))
+                         Token(TokenKind.NUMBER, 1.0, VarTypes.f64, pos))
 
         pos = Position(l.buf, 1, 3)
         self.assertEqual(toks[3], Token(TokenKind.EOF, '', None, pos))
@@ -33,7 +33,7 @@ class TestLexer(unittest.TestCase):
         l = Lexer('0.1519')
         toks = list(l.tokens())
         self.assertEqual(toks[0],
-                         Token(TokenKind.NUMBER, '0.1519', VarTypes.f64,
+                         Token(TokenKind.NUMBER, 0.1519, VarTypes.f64,
                                pos))
 
     def test_token_kinds(self):
@@ -52,27 +52,27 @@ class TestLexer(unittest.TestCase):
             ])
 
     def test_var_assignments(self):
-        l = Lexer('10. 10 10.0 1b 10B')
+        l = Lexer('10. 10 10.0f 1b 10B')
         toks = list(l.tokens())
 
         pos = Position(l.buf, 1, 0)
         self.assertEqual(toks[0],
-                         Token(TokenKind.NUMBER, '10.', VarTypes.f64, pos))
+                         Token(TokenKind.NUMBER, 10.0, VarTypes.f64, pos))
         pos = Position(l.buf, 1, 4)
         self.assertEqual(toks[1],
-                         Token(TokenKind.NUMBER, '10', VarTypes.i32, pos))
+                         Token(TokenKind.NUMBER, 10, VarTypes.i32, pos))
 
         pos = Position(l.buf, 1, 7)
         self.assertEqual(toks[2],
-                         Token(TokenKind.NUMBER, '10.0', VarTypes.f64, pos))
+                         Token(TokenKind.NUMBER, 10.0, VarTypes.f32, pos))
 
-        pos = Position(l.buf, 1, 12)
+        pos = Position(l.buf, 1, 13)
         self.assertEqual(toks[3],
-                         Token(TokenKind.NUMBER, '1', VarTypes.bool, pos))
+                         Token(TokenKind.NUMBER, 1, VarTypes.bool, pos))
 
-        pos = Position(l.buf, 1, 15)
+        pos = Position(l.buf, 1, 16)
         self.assertEqual(toks[4],
-                         Token(TokenKind.NUMBER, '10', VarTypes.i8, pos))
+                         Token(TokenKind.NUMBER, 10, VarTypes.i8, pos))
 
     def test_string_assignment(self):
         l = Lexer('"Hello world"')

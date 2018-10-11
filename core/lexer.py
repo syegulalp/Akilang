@@ -161,44 +161,71 @@ class Lexer(object):
             elif self.lastchar.isdigit():
                 num_str = []
                 while self.lastchar and (self.lastchar.isdigit()
-                                         or self.lastchar in '.bBiIUu'):
+                                         or self.lastchar in '.bBiIUufF'):
                     num_str.append(self.lastchar)
                     self._advance()
                 num = ''.join(num_str)
 
                 if '.' in num:
-                    if num[:-1].isalpha():
+                    last_num= num[-1]
+                    if last_num.isalpha():
+                        num = num[0:-1]
+                        num=float(num)
+                        if last_num=='F':
+                            vartype = VarTypes.f64
+                        elif last_num=='f':
+                            vartype = VarTypes.f32
+                        else:
+                            last_num=None
+                    else:
+                        vartype = VarTypes.f64
+                        num=float(num)
+                    if last_num is None:
                         raise AkiSyntaxError(
                             f'Invalid floating-point literal format "{num}"',
-                            pos)
+                        pos)
+                
+                elif num[-1] == 'F':
                     vartype = VarTypes.f64
+                    num = float(num[0:-1])
+
+                elif num[-1] == 'f':
+                    vartype = VarTypes.f32
+                    num = float(num[0:-1])
 
                 elif num[-1] == 'B':
                     vartype = VarTypes.byte
                     num = num[0:-1 - (num[-2] == '.')]
+                    num = int(num)
 
                 elif num[-1] == 'b':
                     vartype = VarTypes.bool
                     num = num[0:-1]
+                    num = int(num)
 
                 elif num[-1] == 'I':
                     vartype = VarTypes.i64
                     num = num[0:-1]
+                    num = int(num)
 
                 elif num[-1] == 'i':
                     vartype = VarTypes.i32
                     num = num[0:-1]
+                    num = int(num)
 
                 elif num[-1] == 'U':
                     vartype = VarTypes.u64
                     num = num[0:-1]
+                    num = int(num)
 
                 elif num[-1] == 'u':
                     vartype = VarTypes.u32
                     num = num[0:-1]
+                    num = int(num)
 
                 else:
                     vartype = VarTypes.i32
+                    num = int(num)
 
                 yield Token(TokenKind.NUMBER, num, vartype, pos)
 

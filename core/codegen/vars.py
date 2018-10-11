@@ -13,6 +13,8 @@ class Vars():
         pass
 
     def _codegen_Number(self, node):
+        if type(node.val)==str:
+            raise Exception()
         num = ir.Constant(node.vartype, node.val)
         return num
 
@@ -20,6 +22,9 @@ class Vars():
         return node.vartype
 
     def _codegen_AllocaInstr(self, node):
+        return node
+
+    def _codegen_CastInstr(self, node):
         return node
 
     def _codegen_GlobalVariable(self, node):

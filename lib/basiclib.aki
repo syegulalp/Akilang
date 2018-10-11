@@ -36,6 +36,10 @@ def print(number :f64) :i32
     printf(c_data('%f\n'), cast(number, u64))
 
 @nomod
+def print(number :f32) :i32
+    printf(c_data('%f\n'), number)
+
+@nomod
 def print(string :str) :i32
     printf(c_data('%s\n'), cast(c_data(string), u64))
 

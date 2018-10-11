@@ -20,11 +20,11 @@ class TestEvaluator(unittest.TestCase):
     def test_use_libc(self):
         e = AkilangEvaluator()
         self.assertIsNone(e.evaluate('extern ceil(x:f64):f64'))
-        self.assertEqual(e.evaluate('ceil(4.5)'), 5.0)
+        self.assertEqual(e.evaluate('ceil(4.5F)'), 5.0)
         self.assertIsNone(e.evaluate('extern floor(x:f64):f64'))
         self.assertIsNone(
             e.evaluate('def cfadder(x:f64):f64 ceil(x) + floor(x)'))
-        self.assertEqual(e.evaluate('cfadder(3.14)'), 7.0)
+        self.assertEqual(e.evaluate('cfadder(3.14F)'), 7.0)
 
     def test_basic_if(self):
         e = AkilangEvaluator()
@@ -238,15 +238,15 @@ class TestEvaluator(unittest.TestCase):
         def main() {
             var x=1, f=1.0, y=0
             x+=1
-            if x!=2 then y=1
+            when x!=2 then y=1
             x=0
             x-=1
-            if x!=-1 then y=1
+            when x!=-1 then y=1
             f+=1.0
-            if f!=2.0 then y=1
+            when f!=2.0 then y=1
             f=0.0
             f-=1.0
-            if f!=-1.0 then y=1
+            when f!=-1.0 then y=1
             y
         }
         main()
