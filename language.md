@@ -86,9 +86,9 @@ This is a document of Aki syntax and usage.
 - [Types:](#types)
     - [`bool (u1)`](#bool-u1)
     - [`byte (u8)`](#byte-u8)
-    - [`i8/32/64`](#i83264)
-    - [`u8/32/64`](#u83264)
-    - [`f64`](#f64)
+    - [`i8/16/32/64`](#i8163264)
+    - [`u8/16/32/64`](#u8163264)
+    - [`f32/64`](#f3264)
     - [`array`](#array)
     - [`str`](#str)
 - [or:](#or)
@@ -997,23 +997,23 @@ An unsigned byte.
 
 Constant representation of 1: `1B`
 
-## `i8/32/64`
+## `i8/16/32/64`
 
-Signed integers of 8, 32, or 64 bit widths.
+Signed integers of 8, 16, 32, or 64 bit widths.
 
 Constant representation of 1: `1b, 1i, 1u`
 
 The default variable type is a 32-bit signed integer (`1i`).
 
-## `u8/32/64`
+## `u8/16/32/64`
 
-Unsigned integers of 8, 32, or 64 bit widths.
+Unsigned integers of 8, 16, 32, or 64 bit widths.
 
 Constant representation of 1: `1B, 1I, 1U`
 
-## `f64`
+## `f32/64`
 
-Floats of 64 bit widths.
+Floats of 32 or 64 bit widths: `3.2f`/ `3.2F`.
 
 Constant representation of 1: `1.` or `1.0`.
 
