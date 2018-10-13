@@ -34,6 +34,35 @@ class Builtins():
             self._check_pointer(codegen, node)
         return codegen
 
+    def _codegen_Builtins_make(self, node):
+
+        # experimental rework of c_obj_alloc to accept a type
+
+        v1 = node.args[0].vartype
+        
+        if v1.is_pointer:
+            v1 = v1.pointee
+        
+        sizeof = (v1.get_abi_size(self.vartypes._target_data))
+
+        call = self._codegen_Call(
+            Call(node.position, 'c_alloc',
+                 [Number(node.position, sizeof, self.vartypes.u_size)]))
+
+        b1 = self.builder.bitcast(call, v1.as_pointer())  # pylint: disable=E1111
+
+        if v1.is_pointer:
+            b2 = self.builder.alloca(b1.type)
+            self.builder.store(b1, b2)
+            b2.do_not_allocate = True
+            b2.heap_alloc = True
+            b2.tracked = True
+        else:
+            b2=b1
+            b2.do_not_allocate = True        
+
+        return b2
+
     def _codegen_Builtins_c_obj_alloc(self, node):
         '''
         Allocates bytes for an object of the type submitted.

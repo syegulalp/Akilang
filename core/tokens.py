@@ -87,6 +87,7 @@ Builtins = {
     'c_ptr_math',
     'c_ptr_mod',
     'cast', 'convert',
+    'make',
     'out',
     'dummy'
 }
