@@ -46,7 +46,6 @@ This is a document of Aki syntax and usage.
     - [`if` / `then` / `elif` / `else`](#if--then--elif--else)
 - [FizzBuzz](#fizzbuzz)
     - [`loop`](#loop)
-- [x is not valid outside of this block](#x-is-not-valid-outside-of-this-block)
     - [`match`](#match)
     - [`not`](#not)
     - [`return`](#return)
@@ -54,8 +53,6 @@ This is a document of Aki syntax and usage.
     - [`var`](#var)
     - [`while`](#while)
     - [`with`](#with)
-- [y is valid from here on down](#y-is-valid-from-here-on-down)
-- [this is invalid](#this-is-invalid)
     - [`when`](#when)
 - [Decorators](#decorators)
     - [`@inline`](#inline)
@@ -81,7 +78,6 @@ This is a document of Aki syntax and usage.
     - [`len`](#len)
 - [Library functions](#library-functions)
     - [`inkey`](#inkey)
-- [you can also just say ...](#you-can-also-just-say-)
     - [`print`](#print)
 - [Types:](#types)
     - [`bool (u1)`](#bool-u1)
@@ -91,7 +87,6 @@ This is a document of Aki syntax and usage.
     - [`f32/64`](#f3264)
     - [`array`](#array)
     - [`str`](#str)
-- [or:](#or)
     - [`ptr`](#ptr)
 
 # Introduction
@@ -577,8 +572,7 @@ If you want to constrain the use of the loop variable to only the loop, use `wit
 ```
 with x loop (x = 1, x < 11) {
     print (x)
-}
-# x is not valid outside of this block
+} # x is not valid outside of this block
 ```
 
 ## `match`
@@ -693,8 +687,7 @@ while x<100 {
 Provides a context, or closure, for variable assignments.
 
 ```
-y=1
-# y is valid from here on down
+y=1 # y is valid from here on down
 
 with var x = 32 {
     print (y)
@@ -706,9 +699,8 @@ with var x = 32 {
 As with variables generally, a variable name in a `with` block cannot "shadow" one outside.
 
 ```
-# this is invalid
-y=1
-with var y = 2 {
+y=1 
+with var y = 2 { # this is invalid
     ...
 }
 ```
@@ -961,9 +953,7 @@ Waits indefinitely for a keypress from the console, then returns a byte value th
 var x:byte
 x=inkey()
 
-# you can also just say ...
-
-var y=inkey()
+var y=inkey() # you can also just say this
 
 ```
 
@@ -1065,9 +1055,7 @@ The `input()` builtin returns a `str` object.
 var x:str
 x=input()
 
-# or:
-
-var y=str() # y is now type `str`
+var y=str() # y is now an empty string of type `str`
 
 ```
 
