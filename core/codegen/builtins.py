@@ -69,43 +69,41 @@ class Builtins():
 
         return b2
 
-    def _codegen_Builtins_c_obj_alloc(self, node):
-        '''
-        Allocates bytes for an object of the type submitted.
-        Eventually we will be able to submit a type directly.
-        For now, use a throwaway closure that generates
-        an object of the type you want to use
-        E.g., for an i32[8]:
-        var x=c_obj_alloc({with var z:i32[8] z})
-        (the contents of the closure are optimized out
-        at compile time)
-        '''
+    # def _codegen_Builtins_c_obj_alloc(self, node):
+    #     '''
+    #     Allocates bytes for an object of the type submitted.
+    #     Eventually we will be able to submit a type directly.
+    #     For now, use a throwaway closure that generates
+    #     an object of the type you want to use
+    #     E.g., for an i32[8]:
+    #     var x=c_obj_alloc({with var z:i32[8] z})
+    #     (the contents of the closure are optimized out
+    #     at compile time)
+    #     '''
 
-        expr = self._get_obj_noload(node)
-        e2 = self.builder.load(expr)
-        sizeof = self._obj_size(e2)
+    #     expr = self._get_obj_noload(node)
+    #     e2 = self.builder.load(expr)
+    #     sizeof = self._obj_size(e2)
 
-        call = self._codegen_Call(
-            Call(node.position, 'c_alloc',
-                 [Number(node.position, sizeof, self.vartypes.u_size)]))
+    #     call = self._codegen_Call(
+    #         Call(node.position, 'c_alloc',
+    #              [Number(node.position, sizeof, self.vartypes.u_size)]))
 
-        b1 = self.builder.bitcast(call, expr.type)  # pylint: disable=E1111
-        b2 = self.builder.alloca(b1.type)
-        self.builder.store(b1, b2)
+    #     b1 = self.builder.bitcast(call, expr.type)  # pylint: disable=E1111
+    #     b2 = self.builder.alloca(b1.type)
+    #     self.builder.store(b1, b2)
 
-        b2.do_not_allocate = True
-        b2.heap_alloc = True
-        b2.tracked = True
+    #     b2.do_not_allocate = True
+    #     b2.heap_alloc = True
+    #     b2.tracked = True
 
-        return b2
+    #     return b2
 
     def _codegen_Builtins_c_obj_free(self, node):
         '''
         Deallocates memory for an object created with c_obj_alloc.
         '''
         expr = self._get_obj_noload(node)
-
-        
 
         if not expr.tracked:
             raise CodegenError(

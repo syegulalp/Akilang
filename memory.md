@@ -8,7 +8,7 @@ These are statically created at compile time and thus do not need to be memory-m
 
 ## Manually allocated objects
 
-Anything allocated with `c_alloc` or `c_obj_alloc` is your responsibility. You must `c_free` or `c_obj_free` such things yourself.
+Anything allocated with `c_alloc` is your responsibility. You must `c_free` such things yourself.
 
 ## Scalars (`int`, etc.)
 
@@ -26,7 +26,7 @@ Any *object* created in a function is by default tagged as "trackable," meaning 
 
 If an object is *returned* from a function, the function is marked by the compiler with the `@track` decorator, which indicates that anything returned from that function should be tracked.
 
-(Note: If you manually allocate objects by way of `c_alloc` or `c_obj_alloc`, and return those objects from their originating function, you can ensure those objects are tracked by decorating that function with `@track`.)
+(Note: If you manually allocate objects by way of `c_alloc`, and return those objects from their originating function, you can ensure those objects are tracked by decorating that function with `@track`.)
 
 ### Giveaways
 
