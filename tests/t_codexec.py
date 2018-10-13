@@ -446,6 +446,8 @@ class TestEvaluator(unittest.TestCase):
     
     def test_array_type_coercion(self):
 
+        # test dimensioned return, implicit and explicit
+
         e= AkilangEvaluator(True)
         n = '''
         def fn1(x:i32[]):i32[] {
@@ -471,6 +473,8 @@ class TestEvaluator(unittest.TestCase):
         main()
         '''
         self.assertEqual(e.eval_all(n), 64+32)
+
+        # test dimensionless return, both explicit and implicit
 
         # TODO: make this test pass
         # w/o the use of explicit obj alloc
@@ -502,6 +506,27 @@ class TestEvaluator(unittest.TestCase):
         main()
         '''
         self.assertEqual(e.eval_all(n), 64+32)
+
+        # test conversion of dimensionless array to dimensioned array
+        # using `unsafe` assignment
+
+        n= '''
+        @track
+        def fn4():i32[] {
+            var x=c_obj_alloc(with var _:i32[12,12,12]{_})
+            x[0,0,6]=48
+            x
+        }
+
+        def main(){
+            var y:i32[12,12,12]
+            unsafe y=fn4()
+            y[0,0,6]
+        }
+        main()
+        '''
+
+        self.assertEqual(e.eval_all(n), 48)
     
     def test_auto_free(self):
         '''

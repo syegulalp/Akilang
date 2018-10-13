@@ -266,6 +266,13 @@ class Vars():
         else:
             value = self._codegen(rhs)
 
+        if self.allow_unsafe:
+            if ptr.type.pointee != value.type:
+                value = self.builder.bitcast(
+                    value,
+                    ptr.type.pointee
+                )
+
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
                 error_string = f'Cannot assign value of type "{value.type.describe()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.describe()}"'

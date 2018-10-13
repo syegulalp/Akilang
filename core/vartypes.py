@@ -92,7 +92,8 @@ class ArrayClass(ir.types.LiteralStructType):
             arr_type = VarTypes.array(arr_type, n)
 
         master_type = [
-                VarTypes.array(VarTypes.u_size, len(elements)),
+                #VarTypes.array(VarTypes.u_size, len(elements)),
+                VarTypes._header,
                 arr_type
             ]
             
@@ -105,6 +106,7 @@ class ArrayClass(ir.types.LiteralStructType):
         self.del_as_ptr = True
         self.as_pointer = make_type_as_ptr(self)
         self.master_type = master_type
+        self.arr_type = my_type
 
 
 
@@ -231,6 +233,8 @@ def generate_vartypes(module=None):
         'str': Str,
 
     })
+
+    _vartypes._header = Header
 
     # set platform-dependent sizes
     _vartypes._pointer_size = _pointer_size

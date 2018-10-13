@@ -1,6 +1,6 @@
 from core.ast_module import Var, Binary, Variable, Number
 from core.vartypes import SignedInt, ArrayClass
-from core.errors import CodegenError, ParseError
+from core.errors import CodegenError, ParseError, BlockExit
 from core.tokens import Builtins, Dunders
 from core.mangling import mangle_types
 
@@ -90,19 +90,29 @@ class ControlFlow():
 
     # arrays need to be moved to the common header first
 
+    # also, we need to make sure we're going from n-dim to 0-dim,
+    # NOT the reverse!
+
     def _check_array_return_type_compatibility(self, returnval, returntype):
         try:
             t0=returnval.type.pointee
             t1=returntype.pointee
-            if isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass):
-                if t0.elements[1].element.v_id == t1.elements[1].element.v_id:
-                    new_returnval = self.builder.bitcast(              
-                        returnval,
-                        returntype
-                    )
-                    return new_returnval
+            
+            if not (isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass)):
+                raise BlockExit
+
+            if t0.arr_type == t1.arr_type:
+                new_returnval = self.builder.bitcast(              
+                    returnval,
+                    returntype
+                )
+                return new_returnval
+
+        except BlockExit:
+            pass
         except AttributeError:
             pass
+        
         return returnval
 
     
@@ -657,16 +667,11 @@ class ControlFlow():
             else:
                 type1 = n[1]
 
-            # this allows an array of n dimensions to be passed to 
-            # a receiver of arrays of 0 dimensions
-            # right now it only works on 1-dimensional arrays, I think;
-            # in other words it's not inwardly recursive
-
             try:
                 t0=type0.pointee
                 t1=type1.pointee
                 if isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass):
-                    if t0.elements[1].element.v_id == t1.elements[1].element.v_id:
+                    if t0.arr_type == t1.arr_type:
                         call_args[x]= self.builder.bitcast(
                             call_args[x],
                             ir.types.LiteralStructType(type1.pointee.master_type).as_pointer()
