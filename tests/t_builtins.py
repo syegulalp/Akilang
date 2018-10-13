@@ -75,7 +75,7 @@ class TestEvaluator(unittest.TestCase):
         e.evaluate('''
         def main(){
             var
-                x=c_obj_alloc({with var q:u64[64] q}),
+                x=make(u64[64]),
                 y=0U,
                 z=0
             x[0]=c_addr(x)

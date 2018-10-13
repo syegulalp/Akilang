@@ -482,14 +482,16 @@ class TestEvaluator(unittest.TestCase):
         n = '''        
         @track
         def fn2():i32[] {
-            var x=c_obj_alloc(with var _:i32[12]{_})
+            var x=make(i32[12])
+            #c_obj_alloc(with var _:i32[12]{_})
             x[6]=64
             return x
         }
 
         @track
         def fn3():i32[] {
-            var x=c_obj_alloc(with var _:i32[12]{_})
+            #var x=c_obj_alloc(with var _:i32[12]{_})
+            var x=make(i32[12])
             x[3]=32
             x
         }
@@ -513,7 +515,8 @@ class TestEvaluator(unittest.TestCase):
         n= '''
         @track
         def fn4():i32[] {
-            var x=c_obj_alloc(with var _:i32[12,12,12]{_})
+            #var x=c_obj_alloc(with var _:i32[12,12,12]{_})
+            var x=make(i32[12,12,12])
             x[0,0,6]=48
             x
         }

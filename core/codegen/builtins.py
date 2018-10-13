@@ -51,7 +51,13 @@ class Builtins():
 
         b1 = self.builder.bitcast(call, v1.as_pointer())  # pylint: disable=E1111
 
-        if v1.is_pointer:
+        #print (node.args[0].vartype.is_obj_ptr())
+        #print (v1.is_obj)
+
+        #if v1.is_pointer:
+        #if node.args[0].vartype.is_obj_ptr():
+        
+        if v1.is_obj:
             b2 = self.builder.alloca(b1.type)
             self.builder.store(b1, b2)
             b2.do_not_allocate = True
