@@ -82,20 +82,26 @@ class ControlFlow():
         # Raise interrupts control flow destructively
         # ("expression does not return value along code paths")
 
+    # recursive unpack
+    # start with elements[1] as the call to the unpacker
+    # look at its element descendent
+    # if that element isn't an array, go down a level and repeat
+    # if it is, return that element type
+
+    # arrays need to be moved to the common header first
+
     def _check_array_return_type_compatibility(self, returnval, returntype):
         try:
             t0=returnval.type.pointee
             t1=returntype.pointee
             if isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass):
                 if t0.elements[1].element.v_id == t1.elements[1].element.v_id:
-                    #tracked= returnval.operands[0].tracked
                     new_returnval = self.builder.bitcast(              
                         returnval,
                         returntype
                     )
-                    #new_returnval.operands[0].tracked = tracked
-                    #print ("OK")
                     return new_returnval
+                else:
         except AttributeError:
             pass
         return returnval
