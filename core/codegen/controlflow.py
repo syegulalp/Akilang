@@ -101,7 +101,6 @@ class ControlFlow():
                         returntype
                     )
                     return new_returnval
-                else:
         except AttributeError:
             pass
         return returnval
