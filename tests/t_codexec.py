@@ -444,6 +444,65 @@ class TestEvaluator(unittest.TestCase):
 
         self.assertEqual(e.eval_all(n), None)
     
+    def test_array_type_coercion(self):
+
+        e= AkilangEvaluator(True)
+        n = '''
+        def fn1(x:i32[]):i32[] {
+            x[12]=64
+            return x
+        }
+
+        def fn0(x:i32[]):i32[] {
+            x[6]=32
+            x
+        }
+
+        def main(){
+            var y:i32=0
+            var xx:i32[31]
+            fn1(xx)
+            y+=xx[12]
+            var zz:i32[16]
+            fn0(zz)
+            y+=zz[6]
+
+        }
+        main()
+        '''
+        self.assertEqual(e.eval_all(n), 64+32)
+
+        # TODO: make this test pass
+        # w/o the use of explicit obj alloc
+
+        n = '''        
+        @track
+        def fn2():i32[] {
+            var x=c_obj_alloc(with var _:i32[12]{_})
+            x[6]=64
+            return x
+        }
+
+        @track
+        def fn3():i32[] {
+            var x=c_obj_alloc(with var _:i32[12]{_})
+            x[3]=32
+            x
+        }
+
+        def main(){
+            var y:i32=0
+            var xx=fn2()
+            y+=xx[6]
+            var xy=fn3()
+            y+=xy[3]
+            y
+        }
+
+        main()
+        '''
+        self.assertEqual(e.eval_all(n), 64+32)
+    
     def test_auto_free(self):
         '''
         Placeholder. This test is intended to determine if

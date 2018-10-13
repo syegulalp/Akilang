@@ -1,5 +1,5 @@
 from core.ast_module import Var, Binary, Variable, Number
-from core.vartypes import SignedInt
+from core.vartypes import SignedInt, ArrayClass
 from core.errors import CodegenError, ParseError
 from core.tokens import Builtins, Dunders
 from core.mangling import mangle_types
@@ -82,6 +82,25 @@ class ControlFlow():
         # Raise interrupts control flow destructively
         # ("expression does not return value along code paths")
 
+    def _check_array_return_type_compatibility(self, returnval, returntype):
+        try:
+            t0=returnval.type.pointee
+            t1=returntype.pointee
+            if isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass):
+                if t0.elements[1].element.v_id == t1.elements[1].element.v_id:
+                    #tracked= returnval.operands[0].tracked
+                    new_returnval = self.builder.bitcast(              
+                        returnval,
+                        returntype
+                    )
+                    #new_returnval.operands[0].tracked = tracked
+                    #print ("OK")
+                    return new_returnval
+        except AttributeError:
+            pass
+        return returnval
+
+    
     def _codegen_Return(self, node):
         '''
         Generates a return from within a function, and 
@@ -91,8 +110,14 @@ class ControlFlow():
 
         retval = self._codegen(node.val)
         if self.func_returntype is None:
-            raise CodegenError(f'Unknown return declaration error',
-                               node.position)
+            raise CodegenError(
+                f'Unknown return declaration error',
+                node.position
+        )
+
+        retval = self._check_array_return_type_compatibility(
+            retval, self.func_returntype
+        )
 
         if retval.type != self.func_returntype:
             raise CodegenError(
@@ -627,6 +652,25 @@ class ControlFlow():
             else:
                 type1 = n[1]
 
+            # this allows an array of n dimensions to be passed to 
+            # a receiver of arrays of 0 dimensions
+            # right now it only works on 1-dimensional arrays, I think;
+            # in other words it's not inwardly recursive
+
+            try:
+                t0=type0.pointee
+                t1=type1.pointee
+                if isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass):
+                    if t0.elements[1].element.v_id == t1.elements[1].element.v_id:
+                        call_args[x]= self.builder.bitcast(
+                            call_args[x],
+                            ir.types.LiteralStructType(type1.pointee.master_type).as_pointer()
+                        )
+                        type0=type1
+
+            except AttributeError:
+                pass
+            
             if type0 != type1:
                 raise CodegenError(
                     f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.describe()})',

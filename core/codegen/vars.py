@@ -57,7 +57,7 @@ class Vars():
         # First, try to obtain a conventional array accessor element
 
         try:
-            ptr = self.builder.gep(array, accessor, True, f'{array.name}')
+            ptr = self.builder.gep(array, accessor, False, f'{array.name}')
         except Exception as e:
             pass
         else:
@@ -391,13 +391,16 @@ class Vars():
                 if v_type.is_obj_ptr():
                     if not isinstance(v_type.pointee, ir.FunctionType):
                         # allocate the actual object, not just a pointer to it
-                        # beacuse it doesn't actually exist yet!
+                        # because it doesn't actually exist yet!
+
                         obj = self._alloca('obj', v_type.pointee)
                         self.builder.store(obj, var_ref)
 
-                        # this will eventually be a __init__ call
+                        # TODO: make this an __init__ call
                         # to the object, which by default will just
                         # call __new__ (zero-allocate everything)
+                        # also, this way we can do things like properly
+                        # malloc array objects
                        
 
                 # if this is another kind of pointer,

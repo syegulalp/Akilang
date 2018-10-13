@@ -299,6 +299,7 @@ class Toplevel():
             # because it's implied that there's an early return
             pass
         else:
+            
             if not hasattr(retval, 'type'):
                 raise CodegenError(
                     f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.describe()}" but no concluding expression with an explicit return type was supplied',
@@ -309,7 +310,16 @@ class Toplevel():
                     f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.describe()}" but no expression with an explicit return type was supplied',
                     node.position)
 
-            if func.return_value.type != retval.type:
+            # We need to have return type compatibility checking
+            # performed on a separate instance of the object,
+            # otherwise the tracking functions break and
+            # the object is incorrectly auto-deleted
+
+            retval2 = self._check_array_return_type_compatibility(
+                retval, self.func_returntype
+            )
+            
+            if func.return_value.type != retval2.type:
                 if node.proto.name.startswith(_ANONYMOUS):
                     func.return_value.type = retval.type
                     self.func_returnarg = self._alloca('%_return', retval.type)
@@ -318,7 +328,7 @@ class Toplevel():
                         f'Prototype for function "{node.proto.name}" has return type "{func.return_value.type.describe()}", but returns "{retval.type.describe()}" instead (maybe an implicit return?)',
                         node.proto.position)
 
-            self.builder.store(retval, self.func_returnarg)
+            self.builder.store(retval2, self.func_returnarg)
             self.builder.branch(self.func_returnblock)
 
         self.builder = ir.IRBuilder(self.func_returnblock)

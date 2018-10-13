@@ -86,20 +86,26 @@ class ArrayClass(ir.types.LiteralStructType):
     is_obj = True
 
     def __init__(self, my_type, elements):
+        
         arr_type = my_type
         for n in reversed(elements):
             arr_type = VarTypes.array(arr_type, n)
-        super().__init__(
-            [
+
+        master_type = [
                 VarTypes.array(VarTypes.u_size, len(elements)),
                 arr_type
             ]
+            
+        super().__init__(
+            master_type
         )
 
         self.v_id = f'array_{my_type.v_id}'
         self.del_id = 'array'
         self.del_as_ptr = True
         self.as_pointer = make_type_as_ptr(self)
+        self.master_type = master_type
+
 
 
 def generate_vartypes(module=None):
