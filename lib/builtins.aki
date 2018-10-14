@@ -3,6 +3,10 @@
 const {
     False=0b
     True=1b
+    ELEMENT_LEN = 0
+    ELEMENT_PTR = 1
+    ELEMENT_PTR_ALLOC = 2
+    ELEMENT_ALLOC = 3
 }
 
 # Forward declarations for functions supplied by platformlib.
@@ -17,7 +21,7 @@ def c_str_to_int(my_str:str) :i32 pass
 
 @nomod
 def '.object.str.__len__'(my_str:str):u64{    
-    var f1 = c_gep(my_str,0,0)
+    var f1 = c_gep(my_str,0,ELEMENT_LEN)
     c_deref(f1)
 }
 
@@ -28,7 +32,7 @@ def '.object.array.__del__'(my_obj:ptr u_mem):bool {
 
 @nomod
 def '.object.str.__index__'(my_str:str, index:i32) :u8 {
-    var f1 = c_gep(my_str,0,1)
+    var f1 = c_gep(my_str,0,ELEMENT_PTR)
     var f2 = c_gep(f1)
     var f3 = c_ptr_math(f2, cast(index,u64))
     c_gep(f3)
@@ -37,7 +41,7 @@ def '.object.str.__index__'(my_str:str, index:i32) :u8 {
 # TODO: untested
 
 def '.object.str.__del__'(my_str: str):bool {
-    var f1 = c_gep(my_str,0,2)
+    var f1 = c_gep(my_str,0,ELEMENT_PTR_ALLOC)
     when c_deref(f1) then {
         # free the data element
         unsafe c_free(c_data(my_str))
@@ -57,19 +61,19 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     var alloc = make(str)
 
     # Insert the length
-    var len_ptr = c_gep(alloc,0 ,0)
+    var len_ptr = c_gep(alloc,0 ,ELEMENT_LEN)
     unsafe c_ptr_mod(len_ptr, str_len)
 
     # Point to the data
-    var data_ptr = c_gep(alloc,0, 1)
+    var data_ptr = c_gep(alloc,0, ELEMENT_PTR)
     unsafe c_ptr_mod(data_ptr, my_obj)
 
     # the object data is not malloc'd (yet)
-    var obj_data_ptr = c_gep(alloc,0, 2)
+    var obj_data_ptr = c_gep(alloc,0, ELEMENT_PTR_ALLOC)
     unsafe c_ptr_mod(obj_data_ptr, False)
 
     # the object itself is malloc'd
-    var h_data_ptr = c_gep(alloc,0, 3)
+    var h_data_ptr = c_gep(alloc,0, ELEMENT_ALLOC)
     unsafe c_ptr_mod(h_data_ptr, True)
     
     # Return the string object

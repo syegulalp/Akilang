@@ -164,11 +164,11 @@ def generate_vartypes(module=None):
         # default is 0
         ir.IntType(1),
 
-        # flag for whether or not this obj obj is dynam. alloc.
+        # flag for whether or not this obj is dynam. alloc.
         # default is also 0
         ir.IntType(1),
 
-    )    
+    )
 
     Header.packed = True
 
