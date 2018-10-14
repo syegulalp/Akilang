@@ -37,7 +37,7 @@ def '.object.str.__index__'(my_str:str, index:i32) :u8 {
 # TODO: untested
 
 def '.object.str.__del__'(my_str: str):bool {
-    var f1 = c_gep(my_str,0,4)
+    var f1 = c_gep(my_str,0,2)
     when c_deref(f1) then {
         # free the data element
         unsafe c_free(c_data(my_str))
@@ -65,11 +65,11 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     unsafe c_ptr_mod(data_ptr, my_obj)
 
     # the object data is not malloc'd (yet)
-    var obj_data_ptr = c_gep(alloc,0, 4)
+    var obj_data_ptr = c_gep(alloc,0, 2)
     unsafe c_ptr_mod(obj_data_ptr, False)
 
     # the object itself is malloc'd
-    var h_data_ptr = c_gep(alloc,0, 5)
+    var h_data_ptr = c_gep(alloc,0, 3)
     unsafe c_ptr_mod(h_data_ptr, True)
     
     # Return the string object

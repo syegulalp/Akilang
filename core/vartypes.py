@@ -160,24 +160,11 @@ def generate_vartypes(module=None):
         # pointer to object data
         U_MEM.as_pointer(), # generic ptr void
         
-        # array dimensions
-        # not used for anything other than n-dimensional arrays
-        
-        # we may not want to keep this as part of a universal header
-        # instead, we may want to move it into a header *specifically*
-        # for array objects that are sized at runtime?
-        # they'll be their own type, anyway
-        
-        # total number of dimensions for an array as u64
-        U_SIZE,
-        # pointer to start of list of dimensions as u64
-        U_SIZE.as_pointer(),
-        
-        # flag for whether or not obj is dynamically allocated (bool)
+        # flag for whether or not pointed-to obj (by way of element 1) is dynamically allocated (bool)
         # default is 0
         ir.IntType(1),
 
-        # flag for whether or not header-bearing obj is dynam. alloc.
+        # flag for whether or not this obj obj is dynam. alloc.
         # default is also 0
         ir.IntType(1),
 

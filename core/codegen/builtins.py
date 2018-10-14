@@ -162,7 +162,11 @@ class Builtins():
                 node.args[n].val = int(node.args[n].val)
             index.append(self._codegen(node.args[n]))
 
-        return self.builder.gep(obj, index)
+        try:
+            gep = self.builder.gep(obj, index)
+        except IndexError:
+            raise CodegenError(f'Index "{index}" is not valid',node.position)
+        return gep
 
     def _codegen_Builtins_c_ptr_int(self, node):
         ptr = self._codegen(node.args[0])
