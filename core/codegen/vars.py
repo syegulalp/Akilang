@@ -401,7 +401,23 @@ class Vars():
                         # because it doesn't actually exist yet!
 
                         obj = self._alloca('obj', v_type.pointee)
+                        self.builder.store(obj, var_ref)
                         
+                        # TODO:
+                        # right now, there are two kinds of objects, it seems
+                        # 1. things like fixed-dim arrays
+                        # 2. arrays with runtime dimensions
+                        # 
+                        # they need to be handled as separate kinds of objects
+                        #
+                        # make this an __init__ call
+                        # to the object, which by default will just
+                        # call __new__ (zero-allocate everything)
+                        # also, this way we can do things like properly
+                        # malloc array objects
+
+                        # return Call(pos, v+'.__new__', args, vartype)
+
                         # need to supply call arguments appropriate to
                         # the type in question
 
@@ -421,15 +437,6 @@ class Vars():
                         #     )
                         # )
 
-                        self.builder.store(obj, var_ref)
-
-                        # TODO: make this an __init__ call
-                        # to the object, which by default will just
-                        # call __new__ (zero-allocate everything)
-                        # also, this way we can do things like properly
-                        # malloc array objects
-
-                        # return Call(pos, v+'.__new__', args, vartype)
                        
 
                 # if this is another kind of pointer,

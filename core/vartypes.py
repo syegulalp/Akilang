@@ -83,6 +83,9 @@ class CustomClass():
 
 
 class ArrayClass(ir.types.LiteralStructType):
+    '''
+    Type for arrays whose dimensions are defined at compile time.
+    '''
     is_obj = True
 
     def __init__(self, my_type, elements):
@@ -92,7 +95,6 @@ class ArrayClass(ir.types.LiteralStructType):
             arr_type = VarTypes.array(arr_type, n)
 
         master_type = [
-                #VarTypes.array(VarTypes.u_size, len(elements)),
                 VarTypes._header,
                 arr_type
             ]
@@ -107,7 +109,20 @@ class ArrayClass(ir.types.LiteralStructType):
         self.as_pointer = make_type_as_ptr(self)
         self.master_type = master_type
         self.arr_type = my_type
+    
+    def new_signature(self):
+        return (
+            '.object.array.__new__',
+            self.my_type
+        )
+    
+    def post_new_bitcast(self, builder, obj):
+        obj = builder.bitcast(
+            obj,
+            self.master_type
+        )
 
+        return obj
 
 
 def generate_vartypes(module=None):
@@ -147,7 +162,11 @@ def generate_vartypes(module=None):
         
         # array dimensions
         # not used for anything other than n-dimensional arrays
+        
         # we may not want to keep this as part of a universal header
+        # instead, we may want to move it into a header *specifically*
+        # for array objects that are sized at runtime?
+        # they'll be their own type, anyway
         
         # total number of dimensions for an array as u64
         U_SIZE,
@@ -162,7 +181,7 @@ def generate_vartypes(module=None):
         # default is also 0
         ir.IntType(1),
 
-    )
+    )    
 
     Header.packed = True
 
