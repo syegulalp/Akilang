@@ -46,11 +46,20 @@ class MyType():
         return f'.object.{self.v_id}.'
 
     def del_signature(self):        
+        _del = '__del__'
         if hasattr(self, 'del_id'):
-            sig = f'.object.{self.del_id}.'
+            sig = f'.object.{self.del_id}.{_del}'
         else:
-            sig = self.signature()
-        return sig, getattr(self,'del_as_ptr', None)
+            sig = f'{self.signature()}{_del}'
+        return sig
+
+    def new_signature(self):
+        _new = '__new__'
+        if self.is_obj_ptr():
+            v = f'.object.{self.pointee.v_id}.{_new}'
+        else:
+            v = f'.{self.v_id}.{_new}'
+        return v
 
 
 ir.types.Type.describe = MyType.describe
@@ -58,8 +67,11 @@ ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_func = MyType.is_func
 ir.types.Type.signature = MyType.signature
 ir.types.Type.del_signature = MyType.del_signature
+ir.types.Type.new_signature = MyType.new_signature
 ir.types.Type.is_ptr = MyType.is_ptr
 ir.types.Type.v_id = MyType.v_id
+ir.types.Type.del_as_ptr = False
+
 
 
 class _PointerType(PointerType):

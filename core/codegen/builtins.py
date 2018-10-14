@@ -43,19 +43,13 @@ class Builtins():
         if v1.is_pointer:
             v1 = v1.pointee
         
-        sizeof = (v1.get_abi_size(self.vartypes._target_data))
+        sizeof = v1.get_abi_size(self.vartypes._target_data)
 
         call = self._codegen_Call(
             Call(node.position, 'c_alloc',
                  [Number(node.position, sizeof, self.vartypes.u_size)]))
 
         b1 = self.builder.bitcast(call, v1.as_pointer())  # pylint: disable=E1111
-
-        #print (node.args[0].vartype.is_obj_ptr())
-        #print (v1.is_obj)
-
-        #if v1.is_pointer:
-        #if node.args[0].vartype.is_obj_ptr():
         
         if v1.is_obj:
             b2 = self.builder.alloca(b1.type)

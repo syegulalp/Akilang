@@ -229,9 +229,10 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
             if v.tracked:
                 
                 ref = self.builder.load(v)
-                sig, del_as_ptr = v.type.pointee.pointee.del_signature()
+                v_target = v.type.pointee.pointee
+                sig = v_target.del_signature()
 
-                if del_as_ptr:
+                if v_target.del_as_ptr:
                     ref = self.builder.bitcast(
                         ref,
                         self.vartypes.u_mem.as_pointer()
@@ -241,7 +242,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 # dunder-method call mechanism
 
                 del_name = self.module.globals.get(
-                    sig+'__del__'+mangle_args([ref.type])
+                    sig+mangle_args([ref.type])
                 )
                 
                 # TODO: symtab should contain the position
@@ -250,7 +251,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
                 if del_name is None:
                     raise CodegenError(
-                        f'No "__del__" method found for "{sig}"',
+                        f'No "__del__" method found for "{v_target.signature()}"',
                         node.position
                     )
                 

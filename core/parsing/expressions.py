@@ -132,13 +132,11 @@ class Expressions():
         if self._cur_tok_is_punctuator('('):
             args = self._parse_argument_list(True)
             self._get_next_token()
-            if vartype.is_obj_ptr():
-                v = vartype.pointee
-                v = '.object.'+v.v_id
-            else:
-                v = vartype
-                v = '.'+v.v_id
-            return Call(pos, v+'.__new__', args, vartype)
+            return Call(
+                pos,
+                vartype.new_signature(),
+                args, vartype
+            )
 
         return VariableType(pos, vartype)
 

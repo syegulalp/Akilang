@@ -401,6 +401,26 @@ class Vars():
                         # because it doesn't actually exist yet!
 
                         obj = self._alloca('obj', v_type.pointee)
+                        
+                        # need to supply call arguments appropriate to
+                        # the type in question
+
+                        # for each object type we need
+                        # 1. a constructor string
+                        # 2. a constructor argument list (e.g., size of array)
+                        # 3. a post-return bitcast constructor (if applicable)
+                        # e.g., for things like an array, so it can be
+                        # automatically cast to the right type
+                        
+                        # self._codegen(
+                        #     Call(
+                        #         node.position,
+                        #         '.object.'+v_type.v_id+'.__new__',
+                        #         args,
+                        #         vartype
+                        #     )
+                        # )
+
                         self.builder.store(obj, var_ref)
 
                         # TODO: make this an __init__ call
@@ -408,6 +428,8 @@ class Vars():
                         # call __new__ (zero-allocate everything)
                         # also, this way we can do things like properly
                         # malloc array objects
+
+                        # return Call(pos, v+'.__new__', args, vartype)
                        
 
                 # if this is another kind of pointer,
