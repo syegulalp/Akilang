@@ -34,7 +34,7 @@ class Builtins():
             self._check_pointer(codegen, node)
         return codegen
 
-    def _codegen_Builtins_make(self, node):
+    def _codegen_Builtins_c_obj_alloc(self, node):
 
         # experimental rework of c_obj_alloc to accept a type
 

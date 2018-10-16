@@ -4,7 +4,7 @@ from core.lexer import Lexer, TokenKind, Token
 from core.ast_module import (
     Decorator, Variable, Call, Number, Break, Return, String, Match,
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe,
+    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number, VariableType, Unsafe, ItemList,
     _ANONYMOUS
 )
 
@@ -206,6 +206,8 @@ class Parser(Expressions, Toplevel):
             result = getattr(
                 self,
                 f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr')()
+        elif self._cur_tok_is_punctuator('['):
+            result = self._parse_itemlist_expr()
         elif self.cur_tok.kind == TokenKind.EOF:
             raise ParseError(
                 'Expression expected but reached end of code',
@@ -229,6 +231,32 @@ class Parser(Expressions, Toplevel):
         self._get_next_token()
         return Call(start, name, args)
 
+    def _parse_itemlist_expr(self):
+        self._match(TokenKind.PUNCTUATOR, '[')
+        start = self.cur_tok.position
+        elements = []
+
+        if self._cur_tok_is_punctuator(']'):
+            elements = None
+            return ItemList(start, elements)
+        
+        while True:
+            item = self._parse_expression()
+            elements.append(item)
+
+            if self._cur_tok_is_punctuator(','):
+                self._get_next_token()
+                continue
+            elif self._cur_tok_is_punctuator(']'):
+                break
+            else:
+                raise ParseError('Unclosed item list definition',
+                                 self.cur_tok.position)
+
+        self._get_next_token()
+        
+        return ItemList(start, elements)
+    
     # TODO: eventually we will be able to recognize
     # vartypes as args without this kind of hackery
 

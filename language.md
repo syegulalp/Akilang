@@ -68,12 +68,12 @@ This is a document of Aki syntax and usage.
     - [`c_gep`](#c_gep)
     - [`c_ref` / `c_deref`](#c_ref--c_deref)
     - [`c_size`](#c_size)
+    - [`c_obj_alloc` / `c_obj_free`](#c_obj_alloc--c_obj_free)
     - [`c_obj_ref` / `c_obj_deref`](#c_obj_ref--c_obj_deref)
     - [`c_ptr_int`](#c_ptr_int)
     - [`c_ptr_math`](#c_ptr_math)
     - [`c_ptr_mod`](#c_ptr_mod)
     - [`cast` / `convert`](#cast--convert)
-    - [`make`](#make)
 - [Methods](#methods)
     - [`len`](#len)
 - [Library functions](#library-functions)
@@ -865,6 +865,23 @@ var y:u64
 x=c_size(u) # 8
 ```
 
+## `c_obj_alloc` / `c_obj_free`
+
+Allocates and then frees tracked space for an object defined by a specific type.
+
+```
+x=c_obj_alloc(u64[64])
+```
+
+This allocates the memory needed to store an array *object* (which includes various run-time metadata) containing 64 `u64`s.
+
+The assigned variable is marked as tracked, and so the compiler will attempt to autodispose it when it goes out of scope.
+
+By contrast, `c_alloc`:
+
+* does not track for disposal
+* only allocates a raw region of space of a certain number of bytes, not an object type
+
 ## `c_obj_ref` / `c_obj_deref`
 
 Like `c_ref/c_deref`, but for complex objects like strings.
@@ -916,22 +933,7 @@ var y:byte=32B
 x = convert(y,i32)
 ```
 
-## `make`
 
-Allocates tracked space for an object defined by a specific type.
-
-```
-x=make(u64[64])
-```
-
-This allocates the memory needed to store an array *object* (which includes various run-time metadata) containing 64 `u64`s.
-
-The assigned variable is marked as tracked, and so the compiler will attempt to autodispose it when it goes out of scope.
-
-By contrast, `c_alloc`:
-
-* does not track for disposal
-* only allocates a raw region of space of a certain number of bytes, not an object type
 
 
 # Methods

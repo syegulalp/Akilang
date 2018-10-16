@@ -70,6 +70,8 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
         self.vartypes = generate_vartypes()
 
+        self._const_counter = 0
+
         # Create the general None object
         # (not used for anything yet)
         # self.noneobj = ir.GlobalVariable(
@@ -82,6 +84,10 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         # self.noneobj.unnamed_addr = True
         # self.noneobj.storage_class = 'private'
 
+    def const_counter(self):
+        self._const_counter+=1
+        return self._const_counter
+    
     def _int(self, pyval):
         '''
         Returns a constant for Python int value.
@@ -183,7 +189,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         expected to return a llvmlite.ir.Value.
         '''
 
-        method = '_codegen_' + node.__class__.__name__
+        method = f'_codegen_{node.__class__.__name__}'
         result = getattr(self, method)(node)
 
         if check_for_type and not hasattr(result, 'type'):

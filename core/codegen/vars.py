@@ -1,6 +1,6 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError
-from core.ast_module import Variable, Call, ArrayAccessor, Number
+from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList
 from core.mangling import mangle_call
 #from core.vartypes import VarTypes, DEFAULT_TYPE
 from core.vartypes import ArrayClass
@@ -349,6 +349,51 @@ class Vars():
 
         return str_val        
 
+    def _codegen_ItemList(self, node):
+        # TODO: if this is a list made of anything but constants,
+        # we need to accomodate that
+        # we should probably have a different class of AST object
+        # one for constant items, one for things with variables mixed in
+        # that might make codegen easier
+
+        # in any event where we have a variable, 
+        # we would need to create a new local array
+        # ... again, determining the disposal context is difficult
+        # without walking the AST first
+        # so for now we need to leave this off
+
+        base_vartype = None
+        element_list = []
+
+        for x in node.elements:
+            if base_vartype is None:
+                base_vartype = x.vartype
+            elif base_vartype!=x.vartype:
+                raise CodegenError(
+                    f'Constant array definition is not of a consistent type (expected "{base_vartype.describe()}", got "{x.vartype.describe()}"',
+                    x.position
+                )
+            try:
+                element_list.append(ir.Constant(x.vartype, x.val))
+            except AttributeError:
+                raise CodegenError(
+                    f'Constant array definition has an invalid element',
+                    x.position
+                )
+
+        const = ir.Constant(
+            self.vartypes.array(base_vartype, len(node.elements)),
+            element_list
+        )
+
+        list_const = ir.GlobalVariable(self.module, const.type, f'.array_const.{self.const_counter()}')
+        list_const.storage_class = 'private'
+        list_const.unnamed_addr = True
+        list_const.global_constant = True
+        list_const.initializer = const
+        
+        return list_const
+
     def _codegen_Var(self, node, local_alloca=False):
         for v in node.vars:
 
@@ -356,8 +401,6 @@ class Vars():
             v_type = v.vartype
             expr = v.initializer
             position = v.position
-
-            val, v_type = self._codegen_VarDef(expr, v_type)
 
             var_ref = self.func_symtab.get(name)
             if var_ref is not None:
@@ -369,7 +412,76 @@ class Vars():
                 raise CodegenError(
                     f'"{name}" already defined in universal scope', position)
 
-            var_ref = self._alloca(name, v_type, current_block=local_alloca)
+            flag = False
+
+            if isinstance(expr, ItemList):
+                flag = True
+
+                val = self._codegen(expr)
+
+                if val.type.pointee.element != v_type.pointee.arr_type:
+                    raise CodegenError(
+                        f'Constant array type and variable definition do not match (constant array is "{val.type.pointee.element.describe()}" but variable is "{v_type.pointee.arr_type.describe()}")',
+                        node.position
+                    )
+
+                element_width = expr.elements[0].vartype.width
+
+                var_ref = self._alloca(name, v_type.pointee, current_block=local_alloca)
+
+                sub_var_ref = self.builder.gep(
+                    var_ref,
+                    [self._i32(0),
+                    self._i32(1),]
+                )
+
+                sub_var_ref = self.builder.bitcast(     
+                    sub_var_ref,
+                    self.vartypes.u_mem.as_pointer()
+                )
+
+                sub_val = self.builder.bitcast(     
+                    val,
+                    self.vartypes.u_mem.as_pointer()
+                )
+                
+                llvm_memcpy = self.module.declare_intrinsic(
+                    'llvm.memcpy',
+                    [self.vartypes.u_mem.as_pointer(),
+                    self.vartypes.u_mem.as_pointer(),
+                    self.vartypes.u_size
+                    ]
+                )
+                
+                c = self.builder.call(
+                    llvm_memcpy,
+                    [
+                        sub_var_ref,
+                        sub_val,
+                        ir.Constant(
+                            self.vartypes.u64,
+                            (len(expr.elements)-1) * element_width
+                        ),
+                        ir.Constant(
+                            # alignment
+                            # TODO: needs to be default alignment for
+                            # the element or the platform?
+                            # for now it's zero
+                            self.vartypes.u32,
+                            0
+                        ),
+                        ir.Constant(
+                            ir.IntType(1),
+                            False
+                        )
+                    ],
+                    '.memcpy.' 
+                )
+                val.do_not_allocate=True
+                
+            else:
+                val, v_type = self._codegen_VarDef(expr, v_type)
+                var_ref = self._alloca(name, v_type, current_block=local_alloca)
 
             if val:
                 var_ref.heap_alloc = val.heap_alloc
@@ -385,11 +497,13 @@ class Vars():
                 # if _do_not_allocate is set, we've already preallocated space
                 # for the object, so all we have to do is set the name
                 # to its existing pointer
+                
+                if not flag:
 
-                if val.do_not_allocate:
-                    self.func_symtab[name] = val
-                else:
-                    self.builder.store(val, var_ref)
+                    if val.do_not_allocate:
+                        self.func_symtab[name] = val
+                    else:
+                        self.builder.store(val, var_ref)
 
             else:
                 # if this is an object pointer,
@@ -476,6 +590,9 @@ class Vars():
         else:
             val = self._codegen(expr)
 
+            # if getattr(val,'global_constant', False):
+            #     return val, val.type                
+
             if vartype is None:
                 vartype = val.type
 
@@ -484,6 +601,8 @@ class Vars():
                 # instead of conventional codegen, we generate the fp here
 
             if val.type != vartype:
+                print (val.type.__dict__)
+                print (vartype.__dict__)
                 raise CodegenError(
                     f'Type declaration and variable assignment type do not match (expected "{vartype.describe()}", got "{val.type.describe()}"',
                     expr.position)

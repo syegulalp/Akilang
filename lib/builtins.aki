@@ -58,7 +58,7 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     
     # Allocate an object of the correct size and type
     #var alloc = c_obj_alloc(with var x:str{x})
-    var alloc = make(str)
+    var alloc = c_obj_alloc(str)
 
     # Insert the length
     var len_ptr = c_gep(alloc,0 ,ELEMENT_LEN)

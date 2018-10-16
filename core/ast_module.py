@@ -120,6 +120,10 @@ class ArrayAccessor(Expr):
     def __str__(self):
         return f'{self.elements}'
 
+class ItemList(ArrayAccessor):
+    def __init__(self, position, elements, child=None):
+        super().__init__(position, elements, child)
+        self.name = f'.itemlist'
 
 class String(Expr):
     def __init__(self, position, val):

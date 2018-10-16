@@ -79,7 +79,7 @@ Builtins = {
     #'c_ptr_set',
     'c_ref', 'c_deref',
     'c_size',
-    #'c_obj_alloc',
+    'c_obj_alloc',
     'c_obj_free',
     'c_obj_ref', 'c_obj_deref',
     #'c_obj_size',
@@ -88,7 +88,7 @@ Builtins = {
     'c_ptr_math',
     'c_ptr_mod',
     'cast', 'convert',
-    'make',
+    #'make',
     'out',
     'dummy'
 }

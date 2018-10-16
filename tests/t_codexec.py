@@ -482,7 +482,7 @@ class TestEvaluator(unittest.TestCase):
         n = '''        
         @track
         def fn2():i32[] {
-            var x=make(i32[12])
+            var x=c_obj_alloc(i32[12])
             #c_obj_alloc(with var _:i32[12]{_})
             x[6]=64
             return x
@@ -491,7 +491,7 @@ class TestEvaluator(unittest.TestCase):
         @track
         def fn3():i32[] {
             #var x=c_obj_alloc(with var _:i32[12]{_})
-            var x=make(i32[12])
+            var x=c_obj_alloc(i32[12])
             x[3]=32
             x
         }
@@ -516,7 +516,7 @@ class TestEvaluator(unittest.TestCase):
         @track
         def fn4():i32[] {
             #var x=c_obj_alloc(with var _:i32[12,12,12]{_})
-            var x=make(i32[12,12,12])
+            var x=c_obj_alloc(i32[12,12,12])
             x[0,0,6]=48
             x
         }
@@ -530,6 +530,27 @@ class TestEvaluator(unittest.TestCase):
         '''
 
         self.assertEqual(e.eval_all(n), 48)
+    
+    def test_array_constant_init(self):
+
+        e= AkilangEvaluator()
+        n = '''
+        def main(){
+        var result=0
+
+        var x:i32[20]=[8,16,24]
+        x[1]=32
+        if x[0]+x[1]+x[2]!=64 then result+=1
+
+        var y:f64[20]=[8.0F,16.0F,24.0F]
+        y[1]=32.0F
+        if y[0]+y[1]+y[2]!=64.0F then result+=1
+
+        result
+        }
+        main()
+        '''
+        self.assertEqual(e.eval_all(n), 0)
     
     def test_auto_free(self):
         '''
