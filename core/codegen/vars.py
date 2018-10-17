@@ -349,18 +349,6 @@ class Vars():
         return str_val        
 
     def _codegen_ItemList(self, node):
-        # TODO: if this is a list made of anything but constants,
-        # we need to accomodate that
-        # we should probably have a different class of AST object
-        # one for constant items, one for things with variables mixed in
-        # that might make codegen easier
-
-        # in any event where we have a variable, 
-        # we would need to create a new local array
-        # ... again, determining the disposal context is difficult
-        # without walking the AST first
-        # so for now we need to leave this off
-
         base_vartype = None
         element_list = []
 
@@ -418,16 +406,21 @@ class Vars():
 
                 val = self._codegen(expr)
 
+                # TODO: list_const count should not exceed size of target array
+
                 if val.type.pointee.element != v_type.pointee.arr_type:
                     raise CodegenError(
                         f'Constant array type and variable definition do not match (constant array is "{val.type.pointee.element.describe()}" but variable is "{v_type.pointee.arr_type.describe()}")',
                         node.position
                     )
 
-                element_width = expr.elements[0].vartype.width//self.vartypes._byte_width                
+                element_width = (
+                    val.type.pointee.element.width // self.vartypes._byte_width
+                ) * len(expr.elements)
 
                 var_ref = self._alloca(name, v_type.pointee, current_block=local_alloca)
 
+                # Get the pointer to the data area for the array
                 sub_var_ref = self.builder.gep(
                     var_ref,
                     [self._i32(0),
@@ -443,7 +436,8 @@ class Vars():
                     val,
                     self.vartypes.u_mem.as_pointer()
                 )
-                
+
+                # Copy the constant into the data area                
                 llvm_memcpy = self.module.declare_intrinsic(
                     'llvm.memcpy',
                     [self.vartypes.u_mem.as_pointer(),
@@ -452,23 +446,17 @@ class Vars():
                     ]
                 )
 
-                #print ("width", element_width)
-                #print ("length", (len(expr.elements)-1) * element_width)
-
-                c = self.builder.call(
+                self.builder.call(
                     llvm_memcpy,
                     [
                         sub_var_ref,
                         sub_val,
                         ir.Constant(
                             self.vartypes.u64,
-                            (len(expr.elements)) * element_width
+                            element_width
                         ),
                         ir.Constant(
-                            # alignment
-                            # TODO: needs to be default alignment for
-                            # the element or the platform?
-                            # for now it's zero, meaning I think default
+                            # default alignment
                             self.vartypes.u32,
                             0
                         ),
@@ -519,40 +507,6 @@ class Vars():
                         obj = self._alloca('obj', v_type.pointee)
                         self.builder.store(obj, var_ref)
                         
-                        # TODO:
-                        # right now, there are two kinds of objects, it seems
-                        # 1. things like fixed-dim arrays
-                        # 2. arrays with runtime dimensions
-                        # 
-                        # they need to be handled as separate kinds of objects
-                        #
-                        # make this an __init__ call
-                        # to the object, which by default will just
-                        # call __new__ (zero-allocate everything)
-                        # also, this way we can do things like properly
-                        # malloc array objects
-
-                        # return Call(pos, v+'.__new__', args, vartype)
-
-                        # need to supply call arguments appropriate to
-                        # the type in question
-
-                        # for each object type we need
-                        # 1. a constructor string
-                        # 2. a constructor argument list (e.g., size of array)
-                        # 3. a post-return bitcast constructor (if applicable)
-                        # e.g., for things like an array, so it can be
-                        # automatically cast to the right type
-                        
-                        # self._codegen(
-                        #     Call(
-                        #         node.position,
-                        #         '.object.'+v_type.v_id+'.__new__',
-                        #         args,
-                        #         vartype
-                        #     )
-                        # )
-
                 # if this is another kind of pointer,
                 # any uninitialized pointer should be nulled
 
