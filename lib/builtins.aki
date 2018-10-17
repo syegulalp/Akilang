@@ -5,8 +5,9 @@ const {
     True=1b
     ELEMENT_LEN = 0
     ELEMENT_PTR = 1
-    ELEMENT_PTR_ALLOC = 2
-    ELEMENT_ALLOC = 3
+    ELEMENT_REFCOUNT = 2 
+    ELEMENT_PTR_ALLOC = 3
+    ELEMENT_ALLOC = 4
 }
 
 # Forward declarations for functions supplied by platformlib.

@@ -340,8 +340,7 @@ class Vars():
             [[
                 ir.Constant(self.vartypes.u64, string_length),
                 spt,
-                #self._int(0),
-                #ir.Constant(self.vartypes.u_size.as_pointer(), None),
+                ir.Constant(self.vartypes.u64, 0),
                 ir.Constant(self.vartypes.bool, 0),
                 ir.Constant(self.vartypes.bool, 0)
                 ]

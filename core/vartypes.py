@@ -159,6 +159,9 @@ def generate_vartypes(module=None):
         U_SIZE,
         # pointer to object data
         U_MEM.as_pointer(), # generic ptr void
+
+        # object refcount
+        U_SIZE,
         
         # flag for whether or not pointed-to obj (by way of element 1) is dynamically allocated (bool)
         # default is 0
