@@ -380,7 +380,7 @@ class Builtins():
                     raise cast_exception
 
                 # and it has to be the same bitwidth
-                if self.vartypes._pointer_bitwidth != cast_to.width:
+                if self.vartypes._pointer_width != cast_to.width:
                     raise cast_exception
 
                 op = self.builder.ptrtoint

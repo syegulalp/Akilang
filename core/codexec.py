@@ -269,7 +269,7 @@ class AkilangEvaluator(object):
                 return Result(-1, ast, rawIR, optIR)
             
             if return_value.type.v_id == "ptr_str":
-                result = cast(result+self.codegen.vartypes._pointer_size, POINTER(c_char_p))
+                result = cast(result+self.codegen.vartypes._byte_width, POINTER(c_char_p))
                 result = cast(result.contents, POINTER(c_char_p))
                 result = f'"{str(string_at(result),"utf8")}"'
 

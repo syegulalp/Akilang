@@ -424,7 +424,7 @@ class Vars():
                         node.position
                     )
 
-                element_width = expr.elements[0].vartype.width
+                element_width = expr.elements[0].vartype.width//self.vartypes._byte_width                
 
                 var_ref = self._alloca(name, v_type.pointee, current_block=local_alloca)
 
@@ -451,7 +451,10 @@ class Vars():
                     self.vartypes.u_size
                     ]
                 )
-                
+
+                #print ("width", element_width)
+                #print ("length", (len(expr.elements)-1) * element_width)
+
                 c = self.builder.call(
                     llvm_memcpy,
                     [
@@ -459,13 +462,13 @@ class Vars():
                         sub_val,
                         ir.Constant(
                             self.vartypes.u64,
-                            (len(expr.elements)-1) * element_width
+                            (len(expr.elements)) * element_width
                         ),
                         ir.Constant(
                             # alignment
                             # TODO: needs to be default alignment for
                             # the element or the platform?
-                            # for now it's zero
+                            # for now it's zero, meaning I think default
                             self.vartypes.u32,
                             0
                         ),

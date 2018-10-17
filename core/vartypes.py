@@ -135,14 +135,14 @@ def generate_vartypes(module=None):
     target_data = binding.create_target_data(module.data_layout)
 
     # Set up pointer size and u_size vartype for current hardware.
-    _pointer_size = (
+    _byte_width = (
         ir.PointerType(ir.IntType(8)).get_abi_size(target_data)
     )
 
-    _pointer_bitwidth = _pointer_size * 8
+    _pointer_width = _byte_width * 8
 
-    U_MEM = UnsignedInt(_pointer_size)
-    U_SIZE = UnsignedInt(_pointer_bitwidth)
+    U_MEM = UnsignedInt(_byte_width)
+    U_SIZE = UnsignedInt(_pointer_width)
 
     # create universal object header
     # the first element in this structure:
@@ -186,9 +186,9 @@ def generate_vartypes(module=None):
         # OK or err?
         ir.IntType(1),
         # if false
-        ir.IntType(_pointer_size).as_pointer(),
+        ir.IntType(_byte_width).as_pointer(),
         # if true
-        ir.IntType(_pointer_size).as_pointer(),
+        ir.IntType(_byte_width).as_pointer(),
     )
 
     # ? should result type be treated as an object w/header?
@@ -246,11 +246,11 @@ def generate_vartypes(module=None):
     _vartypes._header = Header
 
     # set platform-dependent sizes
-    _vartypes._pointer_size = _pointer_size
-    _vartypes._pointer_bitwidth = _pointer_bitwidth
+    _vartypes._byte_width = _byte_width
+    _vartypes._pointer_width = _pointer_width
     
-    _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_bitwidth)
-    _vartypes['u_mem'] = UnsignedInt(_vartypes._pointer_size)
+    _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_width)
+    _vartypes['u_mem'] = UnsignedInt(_vartypes._byte_width)
 
     # add these types in manually, since they just shadow existing ones
     _vartypes['bool'] = _vartypes.u1
