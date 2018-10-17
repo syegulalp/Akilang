@@ -1,10 +1,10 @@
 # How Aki handles memory
 
-Aki has a certain amount of built-in memory management at compile time. It does not currently use any kind of automatic runtime memory management.
+This document describes how Aki will *eventually* manage memory.
 
 ## Universals (`uni`) of any kind
 
-These are statically created at compile time and thus do not need to be memory-managed.
+Universals are statically created at compile time and thus do not need to be memory-managed.
 
 ## Manually allocated objects
 
@@ -18,7 +18,11 @@ Scalars can be passed directly between functions as-is with no memory management
 
 ## Objects (arrays, strings, etc.)
 
-Objects have a tracking mechanism for being auto-disposed.
+Objects are tracked at runtime using reference counting, and are disposed automatically when they go out of scope and their references drop to zero.
+
+In time, I plan to add code analysis tools that allow you to determine when and if objects can be statically tracked at compile time, so that they don't have to be refcounted.
+
+The following describes some of my older strategies for tracking, which may still be relevant.
 
 ### Tracking
 
