@@ -551,8 +551,6 @@ class Vars():
                         #     )
                         # )
 
-                       
-
                 # if this is another kind of pointer,
                 # any uninitialized pointer should be nulled
 
@@ -590,9 +588,6 @@ class Vars():
         else:
             val = self._codegen(expr)
 
-            # if getattr(val,'global_constant', False):
-            #     return val, val.type                
-
             if vartype is None:
                 vartype = val.type
 
@@ -601,8 +596,6 @@ class Vars():
                 # instead of conventional codegen, we generate the fp here
 
             if val.type != vartype:
-                print (val.type.__dict__)
-                print (vartype.__dict__)
                 raise CodegenError(
                     f'Type declaration and variable assignment type do not match (expected "{vartype.describe()}", got "{val.type.describe()}"',
                     expr.position)
