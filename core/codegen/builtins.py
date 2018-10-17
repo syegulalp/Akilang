@@ -101,7 +101,7 @@ class Builtins():
 
         if not expr.tracked:
             raise CodegenError(
-                f'{node.args[0].name} is not an allocated object', node.args[0].position)
+                f'"{node.args[0].name}" is not an allocated object', node.args[0].position)
 
         # Mark the variable in question as untracked
         expr.tracked = False
@@ -309,7 +309,7 @@ class Builtins():
 
         if hasattr(ptr2.type, 'pointee'):
             raise CodegenError(
-                f'"{node.args[0].name}" is not a reference to a scalar (use c_obj_deref for references to objects instead of scalars)',
+                f'"{node.args[0].name}" is not a reference to a scalar (use "c_obj_deref" for references to objects instead of scalars)',
                 node.args[0].position)
 
         # XXX: self.builder.load clobbers with core._llvmlite_custom._IntType
@@ -324,7 +324,7 @@ class Builtins():
 
         if expr.type.is_obj_ptr():
             raise CodegenError(
-                f'"{node.args[0].name}" is not a scalar (use c_obj_ref for references to objects instead of scalars)',
+                f'"{node.args[0].name}" is not a scalar (use "c_obj_ref" for references to objects instead of scalars)',
                 node.args[0].position)
 
         return expr

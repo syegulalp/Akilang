@@ -173,7 +173,7 @@ class ControlFlow():
                     value.position)
             if val_codegen.constant in values:
                 raise CodegenError(
-                    f'Match parameter {value} duplicated',
+                    f'Match parameter "{value}" duplicated',
                     value.position
                 )
             values.add(val_codegen.constant)
@@ -683,7 +683,7 @@ class ControlFlow():
             
             if type0 != type1:
                 raise CodegenError(
-                    f'Call argument type mismatch for "{node.name}" (position {x}: expected {type1.describe()}, got {type0.describe()})',
+                    f'Call argument type mismatch for "{node.name}" (position {x}: expected "{type1.describe()}", got "{type0.describe()}")',
                     node.args[x].position)
 
             # if this is a traced object, and we give it away,

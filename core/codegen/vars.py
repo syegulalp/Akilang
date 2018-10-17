@@ -246,7 +246,7 @@ class Vars():
             value = self.module.globals.get(rhs_name)
             if not value:
                 raise CodegenError(
-                    f'Call to unknown function "{rhs.name}" with signature {[n.describe() for n in ptr.type.pointee.pointee.args]}" (maybe this call signature is not implemented for this function?)',
+                    f'Call to unknown function "{rhs.name}" with signature "{[n.describe() for n in ptr.type.pointee.pointee.args]}" (maybe this call signature is not implemented for this function?)',
                     rhs.position)
             if 'varfunc' not in value.decorators:
                 raise CodegenError(
@@ -421,10 +421,13 @@ class Vars():
                 var_ref = self._alloca(name, v_type.pointee, current_block=local_alloca)
 
                 # Get the pointer to the data area for the array
+
                 sub_var_ref = self.builder.gep(
                     var_ref,
-                    [self._i32(0),
-                    self._i32(1),]
+                    [
+                        self._i32(0),
+                        self._i32(1)
+                    ]
                 )
 
                 sub_var_ref = self.builder.bitcast(     
@@ -553,7 +556,7 @@ class Vars():
 
             if val.type != vartype:
                 raise CodegenError(
-                    f'Type declaration and variable assignment type do not match (expected "{vartype.describe()}", got "{val.type.describe()}"',
+                    f'Type declaration and variable assignment type do not match (expected "{vartype.describe()}", got "{val.type.describe()}")',
                     expr.position)
             if val.type.signed != vartype.signed:
                 raise CodegenError(

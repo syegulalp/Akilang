@@ -132,7 +132,7 @@ class Toplevel():
             func = existing_func = self.module.globals[funcname]
 
             if not isinstance(existing_func, ir.Function):
-                raise CodegenError(f'Function/universal name collision {funcname}',
+                raise CodegenError(f'Function/universal name collision "{funcname}"',
                                    node.position)
 
             # If we're redefining a forward declaration,
