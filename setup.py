@@ -15,7 +15,7 @@ REQUIRES_PYTHON = '>=3.6.0'
 VERSION = constants.VERSION
 
 REQUIRED = [
-    'llvmlite==0.24.0',
+    'llvmlite==0.25.0',
     'colorama',
     'termcolor'
 ]
