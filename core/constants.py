@@ -10,4 +10,7 @@ compiler_dir=compile
 output_dir=output
 dump_dir=.
 editor=notepad.exe
+
+[nt_compiler]
+path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
 '''

@@ -72,11 +72,13 @@ def compile(codegen, filename):
 
     if os.name == 'nt':
 
+        from core.repl import cfg
+
         extension = 'exe'
 
         cmds = [
             r"pushd .",
-            r'call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64',
+            f'call {cfg["nt_compiler"]["path"]} amd64',
             r'popd',
             f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
             r'exit %errorlevel%',
