@@ -16,7 +16,7 @@ from core.codegen.controlflow import ControlFlow
 
 
 class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
-    def __init__(self):
+    def __init__(self, vartypes=None):
         '''
         Initialize the code generator.
         This creates a new LLVM module into which code is generated. The
@@ -68,22 +68,23 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         self.previous = None
         self.last_inline = None
 
-        self.vartypes = generate_vartypes()
+        if vartypes is None:
+            vartypes = generate_vartypes(self.module)
+        
+        self.vartypes = vartypes
 
         self._const_counter = 0
 
-        # Create the general None object
-        # (not used for anything yet)
-        # self.noneobj = ir.GlobalVariable(
-        #     self.module,
-        #     self.vartypes['None'],
-        #     '.none.'
-        # )
-        # self.noneobj.initializer = ir.Constant(self.vartypes['None'], None)
-        # self.noneobj.global_constant = True
-        # self.noneobj.unnamed_addr = True
-        # self.noneobj.storage_class = 'private'
+        self.evaluator = None
 
+    def init_evaluator(self):
+        if self.evaluator is None:
+            from core import codexec
+            self.evaluator = codexec.AkilangEvaluator(True, vartypes=self.vartypes)
+        else:
+            self.evaluator.reset()
+        return self.evaluator
+        
     def const_counter(self):
         self._const_counter+=1
         return self._const_counter
@@ -149,19 +150,32 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
 
-    def _alloca(self, name, alloca_type=None, size=None, current_block=False):
+    def _alloca(self, name, alloca_type=None, size=None, current_block=False, malloc=False):
         '''
         Create an alloca, by default in the entry BB of the current function.
         Set current_block=True to use the current block.
         '''
 
         assert alloca_type is not None
+
+        if malloc:
+            pass
+
+            # Placeholder for when we use this to perform heap
+            # as well as stack allocations
+            # When this happens, we call platform allocator,
+            # turn on tracking,
+            # then return a properly typed pointer from the malloc
+
+        else:
+            def make_alloc():
+                return self.builder.alloca(alloca_type, size=size, name=name)
+
         if current_block:
-            alloca = self.builder.alloca(alloca_type, size=size, name=name)
+            return make_alloc()
         else:
             with self.builder.goto_entry_block():
-                alloca = self.builder.alloca(alloca_type, size=size, name=name)
-        return alloca
+                return make_alloc()        
 
     def _varaddr(self, node, report=True):
         '''
@@ -177,7 +191,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         if v is None:
             if not report:
                 return None
-            raise CodegenError(f"Undefined variable: {node.name}",
+            raise CodegenError(f'Undefined variable "{node.name}"',
                                node.position)
 
         return v

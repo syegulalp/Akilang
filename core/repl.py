@@ -1,6 +1,16 @@
 from core.constants import PRODUCT, VERSION, COPYRIGHT, CONFIG_INI_DEFAULTS
 
 
+import copy
+import colorama
+import llvmlite
+import sys
+from importlib import reload
+from termcolor import colored, cprint
+colorama.init()
+
+
+
 def config():
     import configparser
     cfg = configparser.ConfigParser()
@@ -9,6 +19,7 @@ def config():
             with open('config.ini') as file:
                 cfg.read_file(file)
         except FileNotFoundError:
+            cprint(f'"config.ini" file recreated', 'red')
             defaults = CONFIG_INI_DEFAULTS
             with open('config.ini', 'w') as file:
                 file.write(defaults)
@@ -24,16 +35,7 @@ def config():
 cfg = config()
 paths = cfg['paths']
 
-import copy
-import colorama
-import llvmlite
-import sys
-from importlib import reload
-from termcolor import colored, cprint
-colorama.init()
-
 from core import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
-
 
 class ReloadException(Exception):
     pass
@@ -296,12 +298,13 @@ def run_examples(ak, commands, options):
 
 
 def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbose=False):
+    core_vartypes = vartypes.generate_vartypes()
     options = locals()
     options.pop('a')
     k = codexec.AkilangEvaluator(
-        # f'{paths["lib_dir"]}\\{paths["basiclib"]}.aki')
         f'{paths["lib_dir"]}',
         f'{paths["basiclib"]}',
+        vartypes=core_vartypes
     )
 
     # If some arguments passed in, run that command then exit

@@ -74,7 +74,7 @@ class Vars():
                 array, [self._i32(0)] + elements, False, f'{array.name}')
         except AttributeError as e:
             raise CodegenError(
-                f'Unindexed accessor for "{array.name}" requires a constant',
+                f'Unindexed accessor for "{array.name}" requires a compile-time constant',
                 node.position)
         except Exception:
             pass

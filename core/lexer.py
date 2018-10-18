@@ -59,12 +59,16 @@ class Lexer(object):
     stopping.
     """
 
-    def __init__(self, buf, vartypes=generate_vartypes()):
+    def __init__(self, buf, vartypes=None):
         assert len(buf) >= 1
         self.buf = buf
         self.pos = 0
         self.lastchar = self.buf[0]
         self.position = Position(buf)
+
+        if vartypes is None:
+            vartypes = generate_vartypes()
+
         self.vartypes = vartypes
 
     def _advance(self):

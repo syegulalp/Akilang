@@ -214,22 +214,18 @@ class Ops():
                     return self.builder.fdiv(lhs, rhs, 'fdivop')
                 elif node.op == '<':
                     cmp = self.builder.fcmp_ordered('<', lhs, rhs, 'fltop')
-                    #return self.builder.uitofp(cmp, vartype, 'fltoptodouble')
                     cmp.type = VarTypes.bool
                     return cmp                    
                 elif node.op == '>':
                     cmp = self.builder.fcmp_ordered('>', lhs, rhs, 'fgtop')
-                    #return self.builder.uitofp(cmp, vartype, 'flgoptodouble')
                     cmp.type = VarTypes.bool
                     return cmp
                 elif node.op == '>=':
                     cmp = self.builder.fcmp_ordered('>=', lhs, rhs, 'fgeqop')
-                    #return self.builder.uitofp(cmp, vartype, 'fgeqopdouble')
                     cmp.type = VarTypes.bool
                     return cmp
                 elif node.op == '<=':
                     cmp = self.builder.fcmp_ordered('<=', lhs, rhs, 'fleqop')
-                    #return self.builder.uitofp(cmp, vartype, 'fleqopdouble')
                     cmp.type = VarTypes.bool
                     return cmp
                 elif node.op == '==':

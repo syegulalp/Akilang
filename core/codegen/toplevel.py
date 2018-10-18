@@ -21,9 +21,7 @@ class Toplevel():
         # w/finding existing vars in a subeval, maybe by way of
         # passing it the current eval as a parameter?
 
-        from core.codexec import AkilangEvaluator
-
-        e = AkilangEvaluator(True)
+        e = self.init_evaluator()
 
         for n in node.pragmas:
             if not isinstance(n, Binary):
@@ -132,8 +130,10 @@ class Toplevel():
             func = existing_func = self.module.globals[funcname]
 
             if not isinstance(existing_func, ir.Function):
-                raise CodegenError(f'Function/universal name collision "{funcname}"',
-                                   node.position)
+                raise CodegenError(
+                    f'Function/universal name collision "{funcname}"',
+                    node.position
+            )
 
             # If we're redefining a forward declaration,
             # erase the existing function body

@@ -8,7 +8,7 @@ from core.parsing import Parser
 from core.codegen import llvm, LLVMCodeGenerator
 from core.errors import CodegenError, ParseError
 from core.repl import paths
-from core.vartypes import Str, DEFAULT_TYPE
+from core.vartypes import Str, DEFAULT_TYPE, generate_vartypes
 # TODO: make sure these are eventually supplied
 # by way of the module instance
 from core.ast_module import Function, Prototype, Do
@@ -43,8 +43,7 @@ class AkilangEvaluator(object):
     module is JITed and the result of the expression is returned.
     '''
 
-    def __init__(self, use_default_basiclib=False, basiclib_dir=None, basiclib_file=None):
-
+    def __init__(self, use_default_basiclib=False, basiclib_dir=None, basiclib_file=None, vartypes = None):
         if use_default_basiclib:
             from core.repl import config
             cfg = config()
@@ -58,6 +57,11 @@ class AkilangEvaluator(object):
 
         # llvm.load_library_permanently('freeglut.dll')
         # llvm.load_library_permanently('ucrtbase.dll')
+
+        if vartypes is None:
+            vartypes = generate_vartypes()
+
+        self.vartypes = vartypes #generate_vartypes()
 
         self.basiclib_dir = basiclib_dir
         self.basiclib_file = basiclib_file
@@ -120,7 +124,7 @@ class AkilangEvaluator(object):
                 self._reset_base()
 
     def _reset_base(self):
-        self.codegen = LLVMCodeGenerator()
+        self.codegen = LLVMCodeGenerator(vartypes=self.vartypes)
 
     def evaluate(self, codestr, options=dict()):
         """Evaluates only the first top level expression in codestr.
@@ -134,7 +138,7 @@ class AkilangEvaluator(object):
         value for toplevel expressions.
         """
         anon_vartype = options.get('anon_vartype', DEFAULT_TYPE)
-        for ast in Parser(anon_vartype=anon_vartype).parse_generator(codestr):
+        for ast in Parser(anon_vartype=anon_vartype, vartypes=self.vartypes).parse_generator(codestr):
             yield self._eval_ast(ast, **options)
 
     def eval_all(self, codestr, options=dict()):
@@ -165,7 +169,9 @@ class AkilangEvaluator(object):
                   parseonly=False,
                   verbose=False,
                   anon_vartype=DEFAULT_TYPE,
-                  return_type=c_int32):
+                  return_type=c_int32,
+                  core_vartypes=None,
+                  vartypes=None):
         """ 
         Evaluate a single top level expression given in ast form
 

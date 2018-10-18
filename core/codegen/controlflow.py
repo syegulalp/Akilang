@@ -165,7 +165,7 @@ class ControlFlow():
             val_codegen = self._codegen(value)
             if not isinstance(val_codegen, ir.values.Constant):
                 raise CodegenError(
-                    f'Match parameter must be a constant, not an expression',
+                    f'Match parameter must be a compile-time constant, not an expression',
                     value.position)
             if val_codegen.type != cond_item.type:
                 raise CodegenError(

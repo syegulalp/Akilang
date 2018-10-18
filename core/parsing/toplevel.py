@@ -123,8 +123,10 @@ class Toplevel():
                     # TODO: move the below into evaluator
                     # maybe as `._eval_value`?
 
+                    self.init_evaluator()
+
                     # Evaluate the temporary AST with the unis/consts
-                    self.evaluator.reset()
+                    #self.evaluator.reset()
                     self.evaluator._eval_ast(t)
 
                     # Codegen a function that obtains the computed result

@@ -125,8 +125,8 @@ class ArrayClass(ir.types.LiteralStructType):
         return obj
 
 
-def generate_vartypes(module=None):
-
+def generate_vartypes(module=None, bytesize=8):
+    
     # if no module, assume platform
     if not module:
         module = ir.Module()
@@ -136,10 +136,10 @@ def generate_vartypes(module=None):
 
     # Set up pointer size and u_size vartype for current hardware.
     _byte_width = (
-        ir.PointerType(ir.IntType(8)).get_abi_size(target_data)
+        ir.PointerType(ir.IntType(bytesize)).get_abi_size(target_data)
     )
 
-    _pointer_width = _byte_width * 8
+    _pointer_width = _byte_width * bytesize
 
     U_MEM = UnsignedInt(_byte_width)
     U_SIZE = UnsignedInt(_pointer_width)
@@ -275,6 +275,9 @@ def generate_vartypes(module=None):
             _vartypes[n].box_id = _
     
     return _vartypes
+
+# TODO: remove this below so that we don't
+# automatically run generate on module import    
 
 VarTypes = generate_vartypes()
 

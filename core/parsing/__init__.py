@@ -48,8 +48,11 @@ class Parser(Expressions, Toplevel):
     Akilang source into an AST.
     '''
 
-    def __init__(self, anon_vartype=None):
-        self.vartypes = generate_vartypes()
+    def __init__(self, anon_vartype=None, vartypes=None):
+        if vartypes is None:
+            vartypes = generate_vartypes()
+        self.vartypes = vartypes
+
         if anon_vartype is None:
             self.anon_vartype = self.vartypes._DEFAULT_TYPE
         else:
@@ -61,9 +64,16 @@ class Parser(Expressions, Toplevel):
         self.level = 0
         self.top_return = False
         self.expr_stack = []
-        from core import codexec
-        self.evaluator = codexec.AkilangEvaluator()
+        self.evaluator = None
         self.parse_actions = PARSE_ACTIONS
+
+    def init_evaluator(self):
+        if self.evaluator is None:
+            from core import codexec
+            self.evaluator = codexec.AkilangEvaluator(vartypes=self.vartypes)
+        else:
+            self.evaluator.reset()
+        return self.evaluator
 
     def parse_toplevel(self, buf):
         '''
@@ -75,7 +85,7 @@ class Parser(Expressions, Toplevel):
         '''
         Given a string, returns an AST node representing it.
         '''
-        self.token_generator = Lexer(buf).tokens()
+        self.token_generator = Lexer(buf, vartypes=self.vartypes).tokens()
         self.cur_tok = None
         self._get_next_token()
 
