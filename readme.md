@@ -98,6 +98,7 @@ You'll need Python 3.6 and Windows 10 64-bit.
 3. Enter `.l.` to load the Conway's Life demo from the `src` directory.
 4. Enter `.r` to run the demo.
 5. Hit `q` to exit Conway's Life. Enter `.` to see all commands.
+6. If you have the Microsoft Visual Studio tools installed, you can enter `.l.` to load the Conway's Life demo, then enter `.cp` to compile it to a standalone binary in the `\output` subdirectory. (Make sure `nt_compiler_path` in `config.ini` points to the correct location for `vcvarsall.bat`. This limitation will be removed in the future.)
 
 There's also going to be a standalone binary version of the compiler, most likely by way of `pyinstaller`.
 
