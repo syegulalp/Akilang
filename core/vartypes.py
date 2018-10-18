@@ -124,12 +124,26 @@ class ArrayClass(ir.types.LiteralStructType):
 
         return obj
 
+# boxing of types:
+# later, we'll create a structure of elements
+# each element position is a type
+# the ID for the box object will point to that type
+# for custom types, we just add them to that struct for each module
+
+_default_platform_module = ir.Module()
+_default_platform_vartypes = {_default_platform_module.triple:None}
 
 def generate_vartypes(module=None, bytesize=8):
-    
-    # if no module, assume platform
-    if not module:
-        module = ir.Module()
+
+    # if no module, assume current platform
+    # cache a copy of the default platform module
+    # for the lifetime of the app
+
+    if module is None:
+        module = _default_platform_module
+
+    if  _default_platform_vartypes.get(module.triple, None) is not None:
+        return _default_platform_vartypes[module.triple]
 
     # Initialize target data for the module.
     target_data = binding.create_target_data(module.data_layout)
@@ -274,10 +288,8 @@ def generate_vartypes(module=None, bytesize=8):
         if not n.startswith('_'):
             _vartypes[n].box_id = _
     
+    _default_platform_vartypes[module.triple] = _vartypes
     return _vartypes
-
-# TODO: remove this below so that we don't
-# automatically run generate on module import    
 
 VarTypes = generate_vartypes()
 
