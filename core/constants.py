@@ -14,3 +14,12 @@ editor=notepad.exe
 [nt_compiler]
 path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
 '''
+
+ABOUT = f'''
+{PRODUCT} v.{VERSION}
+© {COPYRIGHT} Serdar Yegulalp
+
+Based on code created by:
+- Frédéric Guérin (https://github.com/frederickjeanguerin/pykaleidoscope)
+- Eli Bendersky (https://github.com/eliben/pykaleidoscope)
+'''

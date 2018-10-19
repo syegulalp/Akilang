@@ -1,4 +1,4 @@
-from core.constants import PRODUCT, VERSION, COPYRIGHT, CONFIG_INI_DEFAULTS
+from core.constants import PRODUCT, VERSION, COPYRIGHT, CONFIG_INI_DEFAULTS, ABOUT
 
 #import copy
 import colorama
@@ -44,8 +44,6 @@ EXAMPLES = [
     'max(1,2)',
     'max(max(1,2), max(3,4))',
     'factorial(5)',
-    #'def i32 alphabet(i32 a i32 b) for x = 64 + a, x < 64 + b +1,x  + 1 in putchar(x) ',
-    # 'alphabet(1.,26.)-65.'
 ]
 
 PROMPT = 'A>'
@@ -91,14 +89,7 @@ On the command line, the initial dot sign can be replaced with a double dash:
     aki --myfile.aki
     """
 
-ABOUT = f'''
-{PRODUCT} v.{VERSION}
-© {COPYRIGHT} Serdar Yegulalp
 
-Based on code created by:
-- Frédéric Guérin (https://github.com/frederickjeanguerin/pykaleidoscope)
-- Eli Bendersky (https://github.com/eliben/pykaleidoscope)
-'''
 
 history = []
 
