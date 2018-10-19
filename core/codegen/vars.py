@@ -1,6 +1,6 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError
-from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList
+from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global
 from core.mangling import mangle_call
 #from core.vartypes import VarTypes, DEFAULT_TYPE
 from core.vartypes import ArrayClass
@@ -285,7 +285,7 @@ class Vars():
         return value
 
     def _codegen_String(self, node):
-        current = self._string_base(node.val)
+        current = self._string_base(node)
         if hasattr(node,"child"):
             return self._codegen_Variable(node.child,
                 start_with=[
@@ -296,13 +296,14 @@ class Vars():
             )
         return current
 
-    def _string_base(self, string, global_constant=True):
+    def _string_base(self, node, global_constant=True):
         '''
         Core function for code generation for strings.        
         This will also be called when we create strings dynamically
         in the course of a function, or statically during compilation.
         '''
         # only strings codegenned from source should be stored as LLVM globals
+        string = node.val
         module = self.module
         string_length = len(string.encode('utf8')) + 1
         data_type = ir.ArrayType(ir.IntType(8), string_length)
@@ -311,14 +312,15 @@ class Vars():
 
         # Create the LLVM constant value for the underlying string data.
 
-        str_const = ir.GlobalVariable(module, data_type, str_name + '.dat')
-        str_const.storage_class = 'private'
-        str_const.unnamed_addr = True
-        str_const.global_constant = True
-
-        str_const.initializer = ir.Constant(
+        str_const = self._codegen(
+            Global(node.position, 
+            ir.Constant(
             data_type,
-            bytearray(string, 'utf8') + b'\x00')
+            bytearray(string, 'utf8') + b'\x00'),
+            f'{str_name}.dat',
+            global_constant=True
+            )        
+        )
 
         # Get pointer to first element in string's byte array
         # and bitcast it to a ptr i8.
@@ -326,17 +328,9 @@ class Vars():
         spt = str_const.gep([self._int(0)]).bitcast(
             self.vartypes.u_mem.as_pointer())
 
-        # Create the string object that points to the constant.
-
-        str_val = ir.GlobalVariable(module, self.vartypes.str, str_name)
-        str_val.storage_class = 'private'
-        str_val.unnamed_addr = True
-        str_val.global_constant = True
-
         # Set the string object data.
-        #t1 = self.builder.inttoptr(None,self.vartypes.u_mem.as_pointer())
 
-        str_val.initializer = self.vartypes.str(
+        initializer = self.vartypes.str(
             [[
                 ir.Constant(self.vartypes.u64, string_length),
                 spt,
@@ -345,6 +339,16 @@ class Vars():
                 ir.Constant(self.vartypes.bool, 0)
                 ]
             ,])
+
+        # Create the string object that points to the constant.
+
+        str_val = self._codegen(
+            Global(node.position,
+            initializer,
+            str_name,
+            global_constant=True
+            )
+        )
 
         return str_val        
 
@@ -373,112 +377,134 @@ class Vars():
             element_list
         )
 
-        list_const = ir.GlobalVariable(self.module, const.type, f'.array_const.{self.const_counter()}')
-        list_const.storage_class = 'private'
-        list_const.unnamed_addr = True
-        list_const.global_constant = True
-        list_const.initializer = const
+        # eventually we'll separate this out as needed
+
+        return self._codegen(
+            Global(node.position, const)
+        )
+    
+    def _codegen_Global(self, node):
+        if node.name is None:
+            node.name = f'.const.{self.const_counter()}'
+
+        global_var = ir.GlobalVariable(self.module, node.const.type, node.name)
+        global_var.storage_class = 'private'
+        global_var.unnamed_addr = True
+        global_var.global_constant = node.global_constant
+        if node.const:
+            global_var.initializer = node.const
         
-        return list_const
+        return global_var
+
+    def _codegen_Itemlist_Assignment(self, val, v, local_alloca):
+
+        element_width = (
+            val.type.pointee.element.width // self.vartypes._byte_width
+        ) * len(v.initializer.elements)
+
+        # Allocate the space for the data area for the array
+
+        var_ref = self._alloca(v.name, v.vartype.pointee, current_block=local_alloca)
+
+        # Get the pointer to the data area for the array
+
+        sub_var_ref = self.builder.gep(
+            var_ref,
+            [
+                self._i32(0),
+                self._i32(1)
+            ]
+        )
+
+        sub_var_ref = self.builder.bitcast(     
+            sub_var_ref,
+            self.vartypes.u_mem.as_pointer()
+        )
+
+        sub_val = self.builder.bitcast(     
+            val,
+            self.vartypes.u_mem.as_pointer()
+        )
+
+        # Copy the constant into the data area                
+        llvm_memcpy = self.module.declare_intrinsic(
+            'llvm.memcpy',
+            [self.vartypes.u_mem.as_pointer(),
+            self.vartypes.u_mem.as_pointer(),
+            self.vartypes.u_size
+            ]
+        )
+
+        self.builder.call(
+            llvm_memcpy,
+            [
+                sub_var_ref,
+                sub_val,
+                ir.Constant(
+                    self.vartypes.u64,
+                    element_width
+                ),
+                ir.Constant(
+                    # default alignment
+                    self.vartypes.u32,
+                    0
+                ),
+                ir.Constant(
+                    ir.IntType(1),
+                    False
+                )
+            ],
+            '.memcpy.' 
+        )
+        
+        return var_ref
+
+    def _codegen_Itemlist_Generation(self, v):
+        val = self._codegen(v.initializer)
+
+        # TODO: list_const count should not exceed size of target array
+
+        if val.type.pointee.element != v.vartype.pointee.arr_type:
+            raise CodegenError(
+                f'Constant array type and variable definition do not match (constant array is "{val.type.pointee.element.describe()}" but variable is "{v.vartype.pointee.arr_type.describe()}")',
+                node.position
+            )
+        
+        return val
 
     def _codegen_Var(self, node, local_alloca=False):
         for v in node.vars:
 
-            name = v.name
+            v_name = v.name
             v_type = v.vartype
-            expr = v.initializer
+            init_expr = v.initializer
             position = v.position
 
-            var_ref = self.func_symtab.get(name)
+            var_ref = self.func_symtab.get(v_name)
             if var_ref is not None:
                 raise CodegenError(f'"{name}" already defined in local scope',
                                    position)
 
-            var_ref = self.module.globals.get(name, None)
+            var_ref = self.module.globals.get(v_name, None)
             if var_ref is not None:
                 raise CodegenError(
                     f'"{name}" already defined in universal scope', position)
 
-            flag = False
+            already_allocated = False
 
-            if isinstance(expr, ItemList):
-                flag = True
-
-                val = self._codegen(expr)
-
-                # TODO: list_const count should not exceed size of target array
-
-                if val.type.pointee.element != v_type.pointee.arr_type:
-                    raise CodegenError(
-                        f'Constant array type and variable definition do not match (constant array is "{val.type.pointee.element.describe()}" but variable is "{v_type.pointee.arr_type.describe()}")',
-                        node.position
-                    )
-
-                element_width = (
-                    val.type.pointee.element.width // self.vartypes._byte_width
-                ) * len(expr.elements)
-
-                # Allocate the space for the data area for the array
-
-                var_ref = self._alloca(name, v_type.pointee, current_block=local_alloca)
-
-                # Get the pointer to the data area for the array
-
-                sub_var_ref = self.builder.gep(
-                    var_ref,
-                    [
-                        self._i32(0),
-                        self._i32(1)
-                    ]
+            if isinstance(init_expr, ItemList):
+                already_allocated = True
+                val = self._codegen_Itemlist_Generation(v)
+                var_ref = self._codegen_Itemlist_Assignment(
+                    val, v, local_alloca
                 )
-
-                sub_var_ref = self.builder.bitcast(     
-                    sub_var_ref,
-                    self.vartypes.u_mem.as_pointer()
-                )
-
-                sub_val = self.builder.bitcast(     
-                    val,
-                    self.vartypes.u_mem.as_pointer()
-                )
-
-                # Copy the constant into the data area                
-                llvm_memcpy = self.module.declare_intrinsic(
-                    'llvm.memcpy',
-                    [self.vartypes.u_mem.as_pointer(),
-                    self.vartypes.u_mem.as_pointer(),
-                    self.vartypes.u_size
-                    ]
-                )
-
-                self.builder.call(
-                    llvm_memcpy,
-                    [
-                        sub_var_ref,
-                        sub_val,
-                        ir.Constant(
-                            self.vartypes.u64,
-                            element_width
-                        ),
-                        ir.Constant(
-                            # default alignment
-                            self.vartypes.u32,
-                            0
-                        ),
-                        ir.Constant(
-                            ir.IntType(1),
-                            False
-                        )
-                    ],
-                    '.memcpy.' 
-                )
-                val.do_not_allocate=True
                 
             else:
-                val, v_type = self._codegen_VarDef(expr, v_type)
-                
+                val, v_type = self._codegen_VarDef(init_expr, v_type)
                 # Allocate the space for a scalar
-                var_ref = self._alloca(name, v_type, current_block=local_alloca)
+                var_ref = self._alloca(
+                    v_name, v_type, current_block=local_alloca
+                )
 
             if val:
                 var_ref.heap_alloc = val.heap_alloc
@@ -487,18 +513,18 @@ class Vars():
                 if var_ref.heap_alloc:
                     var_ref.tracked = True
 
-            self.func_symtab[name] = var_ref
+            self.func_symtab[v_name] = var_ref
 
-            if expr:
+            if init_expr:
 
                 # if _do_not_allocate is set, we've already preallocated space
                 # for the object, so all we have to do is set the name
                 # to its existing pointer
                 
-                if not flag:
+                if not already_allocated:
 
                     if val.do_not_allocate:
-                        self.func_symtab[name] = val
+                        self.func_symtab[v_name] = val
                     else:
                         self.builder.store(val, var_ref)
 

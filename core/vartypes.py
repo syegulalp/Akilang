@@ -298,3 +298,4 @@ DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
 dunder_methods = set([f'__{n}__' for n in Dunders])
 
 Str = VarTypes.str
+

@@ -1,4 +1,4 @@
-from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number
+from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number, Global
 import llvmlite.ir as ir
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 from core.errors import CodegenError
@@ -382,24 +382,23 @@ class Toplevel():
             if final_type is None:
                 final_type = self.vartypes._DEFAULT_TYPE
 
-            str1 = ir.GlobalVariable(self.module, final_type, name)
-
-            if const:
-                str1.global_constant = True
             if val is None:
                 if final_type.is_obj_ptr():
-                    empty_obj = ir.GlobalVariable(
-                        self.module,
-                        final_type.pointee,
-                        name + '.init'
+                    val = self._codegen(
+                        Global(
+                            position,
+                            ir.Constant(final_type.pointee, None),
+                            name + '.init',
+                            global_constant=False
+                        )
                     )
-                    empty_obj.initializer = ir.Constant(
-                        final_type.pointee, None)
-                    str1.initializer = empty_obj
                 else:
-                    str1.initializer = ir.Constant(final_type, None)
-            else:
-                str1.initializer = val
+                    val = ir.Constant(final_type, None)
+
+            str1 = self._codegen(
+                Global(position, val, name,const)
+            )
+
 
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)

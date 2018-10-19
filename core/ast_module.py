@@ -30,6 +30,13 @@ class Expr(Node):
 class Continue(Expr):
     pass
 
+class Global(Expr):
+    def __init__(self, position, const, name=None, global_constant=True, storage_class='private'):
+        super().__init__(position)
+        self.const = const
+        self.name = name
+        self.global_constant = global_constant
+        self.storage_class = storage_class
 
 class Pragma(Node):
     def __init__(self, position, pragmas):
