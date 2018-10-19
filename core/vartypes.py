@@ -69,7 +69,6 @@ class Array(ir.ArrayType):
         self.signed = my_type.signed
         self.as_pointer = make_type_as_ptr(self)
 
-
 class CustomClass():
     def __new__(cls, name, types, v_types):
         new_class = ir.global_context.get_identified_type('.class.' + name)
@@ -113,13 +112,13 @@ class ArrayClass(ir.types.LiteralStructType):
     def new_signature(self):
         return (
             '.object.array.__new__',
-            self.my_type
+            self.arr_type
         )
     
     def post_new_bitcast(self, builder, obj):
         obj = builder.bitcast(
             obj,
-            self.master_type
+            self.as_pointer()
         )
 
         return obj

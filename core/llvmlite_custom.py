@@ -68,6 +68,7 @@ ir.types.Type.is_func = MyType.is_func
 ir.types.Type.signature = MyType.signature
 ir.types.Type.del_signature = MyType.del_signature
 ir.types.Type.new_signature = MyType.new_signature
+ir.types.Type.post_new_bitcast = lambda *a, **ka: None
 ir.types.Type.is_ptr = MyType.is_ptr
 ir.types.Type.v_id = MyType.v_id
 ir.types.Type.del_as_ptr = False

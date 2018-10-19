@@ -418,6 +418,8 @@ class Vars():
                     val.type.pointee.element.width // self.vartypes._byte_width
                 ) * len(expr.elements)
 
+                # Allocate the space for the data area for the array
+
                 var_ref = self._alloca(name, v_type.pointee, current_block=local_alloca)
 
                 # Get the pointer to the data area for the array
@@ -474,6 +476,8 @@ class Vars():
                 
             else:
                 val, v_type = self._codegen_VarDef(expr, v_type)
+                
+                # Allocate the space for a scalar
                 var_ref = self._alloca(name, v_type, current_block=local_alloca)
 
             if val:
@@ -504,11 +508,34 @@ class Vars():
 
                 if v_type.is_obj_ptr():
                     if not isinstance(v_type.pointee, ir.FunctionType):
+                        
                         # allocate the actual object, not just a pointer to it
                         # because it doesn't actually exist yet!
 
+                        # TODO: make this into a `__new__` call
+                        # for the object type.
+                        # Use a property on the type to produce
+                        # the correct call signature.
+                        # That way arrays are generated from a single call
+                        # and then bitcast after the fact, etc.
+                        # And that way we can apply tracking,
+                        # perform other things...
+
+                        # use this to produce the call
+                        #   print (v_type.pointee.new_signature())
+
+                        # the resulting ptr u_mem is to be bitcast to
+                        # v_type I think
+                        #   print (v_type)                        
+
                         obj = self._alloca('obj', v_type.pointee)
                         self.builder.store(obj, var_ref)
+
+                        # dummy bitcast example
+                        #   z2 = self._alloca('zz',self.vartypes.u_mem)
+                        #   print (v_type.pointee.post_new_bitcast(self.builder, z2))
+                        
+                        
                         
                 # if this is another kind of pointer,
                 # any uninitialized pointer should be nulled
