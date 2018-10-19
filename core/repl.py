@@ -1,15 +1,12 @@
 from core.constants import PRODUCT, VERSION, COPYRIGHT, CONFIG_INI_DEFAULTS
 
-
-import copy
+#import copy
 import colorama
 import llvmlite
 import sys
 from importlib import reload
 from termcolor import colored, cprint
 colorama.init()
-
-
 
 def config():
     import configparser
@@ -37,8 +34,7 @@ paths = cfg['paths']
 
 from core import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
 
-class ReloadException(Exception):
-    pass
+from core.errors import ReloadException
 
 
 EXAMPLES = [
@@ -327,3 +323,4 @@ def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbos
 #                 .aki files. The resulting file can then be loaded and
 #                 run by way of the .rl command.
 # .launch|.ll   : Compile current module to executable and launch it.
+

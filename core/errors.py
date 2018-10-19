@@ -32,3 +32,6 @@ class CodegenWarning(CodegenError):
 
 class BlockExit(Exception):
     pass
+
+class ReloadException(Exception):
+    pass
