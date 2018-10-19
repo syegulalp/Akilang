@@ -16,7 +16,7 @@ VERSION = constants.VERSION
 
 REQUIRED = [
     'llvmlite==0.25.0',
-    'colorama',
+    'colorama==0.3.9',
     'termcolor'
 ]
 
