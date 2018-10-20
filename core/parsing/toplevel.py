@@ -152,9 +152,9 @@ class Toplevel():
                 else:
                     self.consts[name] = Number(start, init.val, init.vartype)
 
-            # FIXME: Let's just append an actual Variable node, whatever it is
-            # & look at how codegen works from this, modify appropriately
-            vars.append((name, vartype, init, start))
+            vars.append(
+                Variable(start, name, vartype, initializer=init)
+            )
 
             if self._cur_tok_is_punctuator(','):
                 self._get_next_token()
