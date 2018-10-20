@@ -36,9 +36,19 @@ class Builtins():
 
     def _codegen_Builtins_c_obj_alloc(self, node):
 
-        # experimental rework of c_obj_alloc to accept a type
+        # TODO: test for allocation of user-defined classes
 
-        v1 = node.args[0].vartype
+        vt = node.args[0]
+        v1 = vt.vartype
+        
+        if v1 is None:
+            v1= self.class_symtab.get(vt.name, None )
+
+        if v1 is None:
+            raise CodegenError(
+                f'Unknown type or class "{vt.name}"',
+                node.args[0].position
+            )            
         
         if v1.is_pointer:
             v1 = v1.pointee
