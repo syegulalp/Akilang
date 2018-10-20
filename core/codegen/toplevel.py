@@ -365,6 +365,9 @@ class Toplevel():
         self.func_returnblock = None
         self.func_returncalled = None
 
+    def _codegen_Const(self, node):
+        return self._codegen_Uni(node, True)
+
     def _codegen_Uni(self, node, const=False):
         for v in node.vars:
             name = v.name
@@ -426,26 +429,33 @@ class Toplevel():
             #     x:i32[4] = [32,33,34]
             # }
             # this will fail
-            # 
             # b/c global-style initializer for object type 
             # declared at compile time needs to be 
             # the entire structure incl. header.
 
             # it takes in a constant expression that matches
             # the type in question, and generates the init
-            
+
+            # long-term possibility:
+            # a generic library function that takes itemlist, array
+            # and performs the copying by way of a func call?
+
             if isinstance(expr, ItemList):
+                # stub for future work, GNDN
                 x=ir.GlobalVariable(self.module,
-                        vartype,
-                        name)
+                    vartype,
+                    name
+                )
+                y=self._codegen(expr)
+
+                # use y.initializer as 2nd part
+                # 1st part is the uni headerstruct
+                # u_size size of data element
+                # u_mem ptr to object data (not used here, I think)
+                # u_size refcount 0
+                # bool false
+                # bool false
             else:
                 x=self._codegen(
                     Global(position, value, name, const)
                 )
-
-            #print (x)
-            
-            
-    def _codegen_Const(self, node):
-        return self._codegen_Uni(node, True)
-
