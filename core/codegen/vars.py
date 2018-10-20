@@ -398,13 +398,16 @@ class Vars():
 
     def _codegen_Itemlist_Assignment(self, val, v, local_alloca):
 
-        element_width = (
-            val.type.pointee.element.width // self.vartypes._byte_width
-        ) * len(v.initializer.elements)
-
+        # We may want to move this outside
+        # so that the allocation can take place elsewhere?
+        
         # Allocate the space for the data area for the array
 
         var_ref = self._alloca(v.name, v.vartype.pointee, current_block=local_alloca)
+
+        element_width = (
+            val.type.pointee.element.width // self.vartypes._byte_width
+        ) * len(v.initializer.elements)
 
         # Get the pointer to the data area for the array
 
