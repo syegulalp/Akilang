@@ -225,7 +225,7 @@ class Vars():
         else:
             return latest
 
-    def _codegen_Assignment(self, lhs, rhs):
+    def _codegen_Assignmentx(self, lhs, rhs):
         if not isinstance(lhs, Variable):
             raise CodegenError(
                 f'Left-hand side of expression is not a variable and cannot be assigned a value at runtime',
@@ -410,7 +410,6 @@ class Vars():
                 f'"{name}" already defined in universal scope',
                 position
             )
-
        
         allocation_type = var_type
 
@@ -468,7 +467,7 @@ class Vars():
         return value
 
 
-    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref):
+    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref, element_count = None):
 
         # node_var = AST node of variable
         # node_init = AST node of initializer
@@ -477,9 +476,12 @@ class Vars():
 
         if isinstance(node_init, ItemList):
 
+            if element_count is None:
+                element_count = len(node_var.initializer.elements)
+
             element_width = (
                 init_ref.type.pointee.element.width // self.vartypes._byte_width
-            ) * len(node_var.initializer.elements)
+            ) * element_count
 
             # Get the pointer to the data area for the target
 
@@ -607,3 +609,72 @@ class Vars():
                 variable, variable.initializer,
                 var, value
             )
+
+    def _codegen_Assignment(self, lhs, rhs):
+        if not isinstance(lhs, Variable):
+            raise CodegenError(
+                f'Left-hand side of expression is not a variable and cannot be assigned a value at runtime',
+                lhs.position
+            )
+
+        ptr = self._codegen_Variable(lhs, noload=True)
+        if getattr(ptr, 'global_constant', None):
+            raise CodegenError(
+                f'Universal constant "{lhs.name}" cannot be reassigned',
+                lhs.position)
+
+        is_func = ptr.type.is_func()
+
+        if is_func:
+            rhs_name = mangle_call(rhs.name, ptr.type.pointee.pointee.args)
+            value = self.module.globals.get(rhs_name)
+            if not value:
+                raise CodegenError(
+                    f'Call to unknown function "{rhs.name}" with signature "{[n.describe() for n in ptr.type.pointee.pointee.args]}" (maybe this call signature is not implemented for this function?)',
+                    rhs.position)
+            if 'varfunc' not in value.decorators:
+                raise CodegenError(
+                    f'Function "{rhs.name}" must be decorated with "@varfunc" to allow variable assignments',
+                    rhs.position
+                )
+
+            #ptr.decorators = value.decorators
+            # XXX: Not possible to trace function decorators across
+            # function pointer boundaries
+            # One POSSIBLE way to do it would be to have a specialized type
+            # that uses the function decorators mangled in the name.
+            # That way the pointer could only point to one of a class of
+            # function pointers allowed to do so (with bitcasting).
+            # But this seems like a lot of work for little payoff.
+
+        else:
+            # TODO: assignment to constant arrays, etc.
+
+            if isinstance(rhs, ItemList):
+                array_value = self._codegen(rhs)
+                ptr = self.builder.load(ptr)
+                value=self._codegen_variable_assignment(
+                    lhs, rhs, ptr, array_value, element_count = len(rhs.elements)
+                )
+                return value
+            else:
+                value = self._codegen(rhs)
+
+
+        if self.allow_unsafe:
+            if ptr.type.pointee != value.type:
+                value = self.builder.bitcast(
+                    value,
+                    ptr.type.pointee
+                )
+
+        if ptr.type.pointee != value.type:
+            if getattr(lhs, 'accessor', None):
+                error_string = f'Cannot assign value of type "{value.type.describe()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.describe()}"'
+            else:
+                error_string = f'Cannot assign value of type "{value.type.describe()}" to variable "{ptr.name}" of type "{ptr.type.pointee.describe()}"',
+            raise CodegenError(error_string, rhs.position)
+
+        self.builder.store(value, ptr)
+
+        return value            

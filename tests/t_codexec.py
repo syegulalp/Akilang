@@ -567,6 +567,18 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(e.eval_all(n), 0)
 
+    def test_array_inline_init(self):
+        e=AkilangEvaluator()
+        n = '''
+        def main(){
+            var xx:i32[31]
+            xx=[8,16,32]
+            xx[0]+xx[1]+xx[2]+xx[3]
+        }
+        main()
+        '''
+        self.assertEqual(e.eval_all(n), 56)
+
     def test_auto_free(self):
         '''
         Placeholder. This test is intended to determine if

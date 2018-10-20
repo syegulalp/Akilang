@@ -430,6 +430,9 @@ class Toplevel():
             # b/c global-style initializer for object type 
             # declared at compile time needs to be 
             # the entire structure incl. header.
+
+            # it takes in a constant expression that matches
+            # the type in question, and generates the init
             
             if isinstance(expr, ItemList):
                 x=ir.GlobalVariable(self.module,
