@@ -117,7 +117,12 @@ class Toplevel():
 
                     tt = []
                     for k, v in self.consts.items():
-                        tt.append((k, None, v, v.position))
+                        tt.append(
+                            Variable(
+                                v.position, k, None, initializer=v
+                            )
+                        )
+
                     t = ast_type(self.cur_tok.position, tt)
 
                     # TODO: move the below into evaluator

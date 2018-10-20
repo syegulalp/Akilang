@@ -174,13 +174,12 @@ class TestEvaluator(unittest.TestCase):
 
     def test_uni_assignment(self):
         e = AkilangEvaluator()
-        e.evaluate('''
+        n='''
             uni {
                 a:i32[3,32,32],
                 b:i32
             }
-        ''')
-        e.evaluate('''
+
             def main(){
                 b=32
                 a[0,8,16]=1
@@ -188,8 +187,24 @@ class TestEvaluator(unittest.TestCase):
                 a[2,0,0]=4
                 return a[0,8,16]+a[1,31,16]+a[2,0,0]+b
             }            
-        ''')
-        self.assertEqual(e.evaluate('main()'), 39)
+        
+            main()
+        '''
+        self.assertEqual(e.eval_all(n), 39)
+
+    def test_const_assignment(self):
+        e = AkilangEvaluator()
+        n = '''
+        const {
+            a=32,
+            b=a+32
+        }
+        def main(){
+            a+b
+        }
+        main()
+        '''
+        self.assertEqual(e.eval_all(n),96)
 
     def test_type_value_trapping(self):
         e = AkilangEvaluator()

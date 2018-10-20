@@ -588,6 +588,7 @@ class Vars():
 
             # for some types of values, our var has to be
             # reconfigured to match the operations
+            # we should make this a property of the value type
 
             if isinstance(variable.initializer, ItemList):
                 variable.vartype = variable.vartype.pointee
@@ -605,4 +606,4 @@ class Vars():
             assignment = self._codegen_variable_assignment(
                 variable, variable.initializer,
                 var, value
-            )        
+            )
