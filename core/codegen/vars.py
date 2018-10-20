@@ -272,6 +272,8 @@ class Vars():
                     ptr.type.pointee
                 )
 
+        # TODO: assignment to constant arrays, etc.
+
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
                 error_string = f'Cannot assign value of type "{value.type.describe()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.describe()}"'
@@ -286,13 +288,10 @@ class Vars():
     def _codegen_String(self, node):
         current = self._string_base(node)
         if hasattr(node, "child"):
-            return self._codegen_Variable(node.child,
-                                          start_with=[
-                                              node,
-                                              current,
-                                              current,
-                                          ]
-                                          )
+            return self._codegen_Variable(
+                node.child, start_with=[
+                    node, current, current, ]
+            )
         return current
 
     def _string_base(self, node, global_constant=True):
@@ -475,6 +474,17 @@ class Vars():
         return val
 
     def _codegen_Var(self, node, local_alloca=False):
+        
+        # I'm thinking Var declarations should be broken up as such:
+        # 1) Create the local variable (Var)
+        #   This handles the allocation for the variable space itself
+        # 2) Create the initializer (maybe codegen_Initializer_<type>?)
+        #   This handles things like creating constant initializers
+        #   We can later also create non-constant initializers this way
+        # 3) Perform the actual assignment (codegen_Assignment)
+        #   This assigns by way of a simple store, or by way of the
+        #   more complex memcpy stuff we need to do with arrays
+
         for v in node.vars:
 
             v_name = v.name
@@ -503,7 +513,6 @@ class Vars():
 
             else:
                 val, v_type = self._codegen_VarDef(init_expr, v_type)
-                # Allocate the space for a scalar
                 var_ref = self._alloca(
                     v_name, v_type, current_block=local_alloca,
                     node=node
