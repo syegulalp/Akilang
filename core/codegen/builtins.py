@@ -38,6 +38,9 @@ class Builtins():
 
         # TODO: test for allocation of user-defined classes
 
+        # In time we will phase this out and replace it with
+        # all generic calls to <type>.__new__()
+
         vt = node.args[0]
         v1 = vt.vartype
         
