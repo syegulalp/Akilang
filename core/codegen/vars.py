@@ -660,7 +660,8 @@ class Vars():
             else:
                 value = self._codegen(rhs)
 
-
+        # TODO: write test for this
+        
         if self.allow_unsafe:
             if ptr.type.pointee != value.type:
                 value = self.builder.bitcast(
