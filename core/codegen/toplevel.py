@@ -379,27 +379,49 @@ class Toplevel():
                 raise CodegenError(
                     f'Constants must have an assignment: "{name}"', position)
 
-            val, final_type = self._codegen_VarDef(expr, vartype)
+            # if there is no initializer
+            # (this is only valid for uni, not const)
+            if expr is None:
 
-            if final_type is None:
-                final_type = self.vartypes._DEFAULT_TYPE
+                value = None
+                
+                #a and there is no vartype
+                if vartype is None:
+                    
+                    # assume default vartype
+                    vartype = self.vartypes._DEFAULT_TYPE
+            
+            # if there is an initializer
+            else:
+                # but no vartype
+                if vartype is None:
 
-            if val is None:
-                if final_type.is_obj_ptr():
-                    val = self._codegen(
+                    # get the vartype from the initializer
+                    value = self._codegen_create_initializer(
+                        None, expr
+                    )
+                    vartype = value.type
+
+            # if isinstance(expr, ItemList):
+            #     vartype = vartype.pointee
+
+            if value is None:
+                if vartype.is_obj_ptr():
+                    value = self._codegen(
                         Global(
                             position,
-                            ir.Constant(final_type.pointee, None),
-                            name + '.init',
+                            ir.Constant(vartype.pointee, None),
+                            f"{name}.init",
                             global_constant=False
                         )
                     )
                 else:
-                    val = ir.Constant(final_type, None)
+                    value = ir.Constant(vartype, None)
 
             str1 = self._codegen(
-                Global(position, val, name, const)
+                Global(position, value, name, const)
             )
-
+            
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)
+

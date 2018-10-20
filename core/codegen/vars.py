@@ -563,28 +563,31 @@ class Vars():
     def _codegen_Var(self, node, local_alloca=False):
         for variable in node.vars:
 
-            # first check if there's type assignments
-            # x if no init and no type,
-            #   type is default
-            # x if no init but a type:
-            #   use specified type
-            # if init, but var has no type:
-            #   generate init and use its type
-            # if init and type:
-            #   generate init normally
-
             value = None
 
+            # if there is no initializer
             if variable.initializer is None:
+
+                # and no vartype
                 if variable.vartype is None:
+
+                    # use default vartype
                     variable.vartype = self.vartypes._DEFAULT_TYPE
 
-            else:                
+            # if there is an initializer
+            else:
+                
+                # but no variable vartype
                 if variable.vartype is None:                    
+
+                    # get the vartype from the initializer
                     value = self._codegen_create_initializer(
                         variable, variable.initializer
                     )
                     variable.vartype = value.type
+
+            # for some types of values, our var has to be
+            # reconfigured to match the operations
 
             if isinstance(variable.initializer, ItemList):
                 variable.vartype = variable.vartype.pointee
@@ -596,36 +599,10 @@ class Vars():
                 variable, variable.initializer
             )
 
+            # assignment is performed even if the value is "empty"
+            # so we can assign zero initializers
+
             assignment = self._codegen_variable_assignment(
                 variable, variable.initializer,
                 var, value
             )        
-
-    def _codegen_VarDef(self, expr, vartype):
-        if expr is None:
-            val = None
-            if vartype is None:
-                vartype = self.vartypes._DEFAULT_TYPE
-            final_type = vartype
-        else:
-            val = self._codegen(expr)
-
-            if vartype is None:
-                vartype = val.type
-
-            if vartype == ir.types.FunctionType:
-                pass
-                # instead of conventional codegen, we generate the fp here
-
-            if val.type != vartype:
-                raise CodegenError(
-                    f'Type declaration and variable assignment type do not match (expected "{vartype.describe()}", got "{val.type.describe()}")',
-                    expr.position)
-            if val.type.signed != vartype.signed:
-                raise CodegenError(
-                    f'Type declaration and variable assignment type have signed/unsigned mismatch (expected "{vartype.describe()}", got "{val.type.describe()}")',
-                    expr.position)
-
-            final_type = val.type
-
-        return val, final_type
