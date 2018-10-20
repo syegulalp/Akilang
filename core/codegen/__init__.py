@@ -1,4 +1,4 @@
-from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call, Pragma
+from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call, Pragma, Number
 from core.vartypes import generate_vartypes
 from core.errors import CodegenError
 from core.mangling import mangle_args
@@ -150,7 +150,9 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
 
-    def _alloca(self, name, alloca_type=None, size=None, current_block=False, malloc=False):
+    def _alloca(self, name,
+        alloca_type=None, size=None, current_block=False,
+        malloc=False, node=None):
         '''
         Create an alloca, by default in the entry BB of the current function.
         Set current_block=True to use the current block.
@@ -158,7 +160,15 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
         assert alloca_type is not None
 
+        # print (alloca_type)
+        # mem_alloc_size = alloca_type.get_abi_size(self.vartypes._target_data)
+        # mem_alloc = self._codegen_Call(
+        #     Call(node.position, 'c_alloc',
+        #          [Number(node.position, mem_alloc_size, self.vartypes.u_size)]))
+        # print (mem_alloc)
+
         if malloc:
+
             pass
 
             # Placeholder for when we use this to perform heap

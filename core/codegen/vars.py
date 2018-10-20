@@ -506,7 +506,8 @@ class Vars():
                 val, v_type = self._codegen_VarDef(init_expr, v_type)
                 # Allocate the space for a scalar
                 var_ref = self._alloca(
-                    v_name, v_type, current_block=local_alloca
+                    v_name, v_type, current_block=local_alloca,
+                    node = node
                 )
 
             if val:

@@ -272,14 +272,14 @@ class Toplevel():
         self.func_returncalled = False
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')
-        self.func_returnarg = self._alloca('%_return', self.func_returntype)
+        self.func_returnarg = self._alloca('%_return', self.func_returntype, node=node)
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
             if arg.type.is_obj_ptr():
                 alloca = arg
             else:
-                alloca = self._alloca(arg.name, arg.type)
+                alloca = self._alloca(arg.name, arg.type, node=node.proto.argnames[_])
                 self.builder.store(arg, alloca)
 
             # We don't shadow existing variables names, ever
