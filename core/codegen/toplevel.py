@@ -1,4 +1,4 @@
-from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number, Global
+from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number, Global, ItemList, Var
 import llvmlite.ir as ir
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
 from core.errors import CodegenError
@@ -366,7 +366,11 @@ class Toplevel():
         self.func_returncalled = None
 
     def _codegen_Uni(self, node, const=False):
-        for name, vartype, expr, position in node.vars:
+        for v in node.vars:
+            name = v.name
+            expr = v.initializer
+            vartype = v.vartype
+            position = v.position
 
             var_ref = self.module.globals.get(name, None)
 
@@ -379,12 +383,12 @@ class Toplevel():
                 raise CodegenError(
                     f'Constants must have an assignment: "{name}"', position)
 
+            value = None
+
             # if there is no initializer
             # (this is only valid for uni, not const)
             if expr is None:
 
-                value = None
-                
                 #a and there is no vartype
                 if vartype is None:
                     
@@ -392,18 +396,17 @@ class Toplevel():
                     vartype = self.vartypes._DEFAULT_TYPE
             
             # if there is an initializer
-            else:
-                # but no vartype
-                if vartype is None:
-
-                    # get the vartype from the initializer
-                    value = self._codegen_create_initializer(
+            else:                
+                value = self._codegen_create_initializer(
                         None, expr
                     )
+                # but no vartype
+                if vartype is None:
+                    # get the vartype from the initializer                    
                     vartype = value.type
-
-            # if isinstance(expr, ItemList):
-            #     vartype = vartype.pointee
+                else:
+                    pass
+                    
 
             if value is None:
                 if vartype.is_obj_ptr():
@@ -418,9 +421,27 @@ class Toplevel():
                 else:
                     value = ir.Constant(vartype, None)
 
-            str1 = self._codegen(
-                Global(position, value, name, const)
-            )
+            # TODO: doesn't work yet
+            # uni {
+            #     x:i32[4] = [32,33,34]
+            # }
+            # this will fail
+            # 
+            # b/c global-style initializer for object type 
+            # declared at compile time needs to be 
+            # the entire structure incl. header.
+            
+            if isinstance(expr, ItemList):
+                x=ir.GlobalVariable(self.module,
+                        vartype,
+                        name)
+            else:
+                x=self._codegen(
+                    Global(position, value, name, const)
+                )
+
+            #print (x)
+            
             
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)
