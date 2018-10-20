@@ -45,7 +45,7 @@ class MyType():
             raise Exception("Not an object")
         return f'.object.{self.v_id}.'
 
-    def del_signature(self):        
+    def del_signature(self):
         _del = '__del__'
         if hasattr(self, 'del_id'):
             sig = f'.object.{self.del_id}.{_del}'
@@ -72,7 +72,6 @@ ir.types.Type.post_new_bitcast = lambda *a, **ka: None
 ir.types.Type.is_ptr = MyType.is_ptr
 ir.types.Type.v_id = MyType.v_id
 ir.types.Type.del_as_ptr = False
-
 
 
 class _PointerType(PointerType):

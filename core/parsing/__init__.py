@@ -199,7 +199,7 @@ class Parser(Expressions, Toplevel):
                     self._get_next_token()
                     break
         else:
-            dec_body = [self._generate_toplevel()]            
+            dec_body = [self._generate_toplevel()]
         return Decorator(start, dec_name, dec_body)
 
     def _parse_primary(self):
@@ -249,7 +249,7 @@ class Parser(Expressions, Toplevel):
         if self._cur_tok_is_punctuator(']'):
             elements = None
             return ItemList(start, elements)
-        
+
         while True:
             item = self._parse_expression()
             elements.append(item)
@@ -264,9 +264,9 @@ class Parser(Expressions, Toplevel):
                                  self.cur_tok.position)
 
         self._get_next_token()
-        
+
         return ItemList(start, elements)
-    
+
     # TODO: eventually we will be able to recognize
     # vartypes as args without this kind of hackery
 

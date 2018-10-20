@@ -30,6 +30,7 @@ class Expr(Node):
 class Continue(Expr):
     pass
 
+
 class Global(Expr):
     def __init__(self, position, const, name=None, global_constant=True, storage_class='private'):
         super().__init__(position)
@@ -37,6 +38,7 @@ class Global(Expr):
         self.name = name
         self.global_constant = global_constant
         self.storage_class = storage_class
+
 
 class Pragma(Node):
     def __init__(self, position, pragmas):
@@ -127,10 +129,12 @@ class ArrayAccessor(Expr):
     def __str__(self):
         return f'{self.elements}'
 
+
 class ItemList(ArrayAccessor):
     def __init__(self, position, elements, child=None):
         super().__init__(position, elements, child)
         self.name = f'.itemlist'
+
 
 class String(Expr):
     def __init__(self, position, val):

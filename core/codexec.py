@@ -43,7 +43,7 @@ class AkilangEvaluator(object):
     module is JITed and the result of the expression is returned.
     '''
 
-    def __init__(self, use_default_basiclib=False, basiclib_dir=None, basiclib_file=None, vartypes = None):
+    def __init__(self, use_default_basiclib=False, basiclib_dir=None, basiclib_file=None, vartypes=None):
         if use_default_basiclib:
             from core.repl import config
             cfg = config()
@@ -61,7 +61,7 @@ class AkilangEvaluator(object):
         if vartypes is None:
             vartypes = generate_vartypes()
 
-        self.vartypes = vartypes #generate_vartypes()
+        self.vartypes = vartypes  # generate_vartypes()
 
         self.basiclib_dir = basiclib_dir
         self.basiclib_file = basiclib_file
@@ -273,9 +273,10 @@ class AkilangEvaluator(object):
             except OSError as e:
                 print(colored(f'OS error: {e}', 'red'))
                 return Result(-1, ast, rawIR, optIR)
-            
+
             if return_value.type.v_id == "ptr_str":
-                result = cast(result+self.codegen.vartypes._byte_width, POINTER(c_char_p))
+                result = cast(
+                    result+self.codegen.vartypes._byte_width, POINTER(c_char_p))
                 result = cast(result.contents, POINTER(c_char_p))
                 result = f'"{str(string_at(result),"utf8")}"'
 

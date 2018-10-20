@@ -58,27 +58,27 @@ class Ops():
 
             if not (isinstance(lhs.type, ir.IntType) and isinstance(rhs.type, ir.IntType)):
                 raise BlockExit
-                
+
             # future note: unsigned-to-signed is OK as long as the
             # unsigned quantity is half or less the bitwidth of signed
             # eg. u8 to i16 is OK, u8 to i32 is OK
             # but u8 to i8 is not
-            
+
             # and signed-to-unsigned, the target bitwidth must be double
             # i8 to u16 OK, i8 to u32 OK
             # but i8 to u8, not OK
 
             # be sure to use sext and zext correctly in the above
-            
+
             if lhs.type.signed != rhs.type.signed:
                 raise BlockExit
-                
-            # eventually replace this with tests of the size of the 
+
+            # eventually replace this with tests of the size of the
             # constant vs. the target bitwidth
-            
+
             if not (int(lhs.constant) > 0 and int(rhs.constant) > 0):
                 raise BlockExit
-            
+
             if lhs.type.width > rhs.type.width:
                 rhs = self.builder.zext(rhs, lhs.type)
                 rhs.type = lhs.type
@@ -215,7 +215,7 @@ class Ops():
                 elif node.op == '<':
                     cmp = self.builder.fcmp_ordered('<', lhs, rhs, 'fltop')
                     cmp.type = VarTypes.bool
-                    return cmp                    
+                    return cmp
                 elif node.op == '>':
                     cmp = self.builder.fcmp_ordered('>', lhs, rhs, 'fgtop')
                     cmp.type = VarTypes.bool

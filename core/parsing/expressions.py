@@ -19,6 +19,7 @@ class Expressions():
     def _parse_pass_expr(self):
         self._get_next_token()
         return Pass(self.cur_tok.position)
+
     def _parse_try_expr(self):
         start = self.cur_tok.position
 
@@ -58,9 +59,9 @@ class Expressions():
 
     def _parse_modifiers(self, current):
         start = current.position
-        id_name = getattr(current,'name',None)
+        id_name = getattr(current, 'name', None)
         toplevel = current
-        
+
         while True:
             child = None
 
@@ -92,7 +93,7 @@ class Expressions():
         start = self.cur_tok.position
         id_name = self.cur_tok.value
 
-        if id_name in Builtins: # or id_name in Dunders:
+        if id_name in Builtins:  # or id_name in Dunders:
             return self._parse_builtin(id_name)
 
         if id_name in self.consts:
@@ -175,7 +176,7 @@ class Expressions():
     def _parse_string_expr(self):
         cur = self.cur_tok
         self._get_next_token()
-        return String(cur.position, cur.value)        
+        return String(cur.position, cur.value)
 
     def _parse_vartype_expr(self):
         # This is an exception - it doesn't return an AST node,

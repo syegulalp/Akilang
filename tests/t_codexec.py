@@ -383,7 +383,7 @@ class TestEvaluator(unittest.TestCase):
 
     def test_string_behaviors(self):
         e = AkilangEvaluator(True)
-        
+
         # return from REPL
         self.assertEqual(e.eval_all("'Hi there'"), '"Hi there"')
         # slicing
@@ -398,7 +398,7 @@ class TestEvaluator(unittest.TestCase):
 
     def test_zeroinit(self):
         e = AkilangEvaluator()
-        n='''
+        n = '''
         def main():u64{
             var x:ptr byte
             var x2=c_ptr_int(x)
@@ -408,7 +408,7 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(e.eval_all(n), 0)
 
-        n='''
+        n = '''
         def m2(){
             var x
             x
@@ -417,7 +417,7 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(e.eval_all(n), 0)
 
-        n='''
+        n = '''
         def m3():f64{
             var x:f64
             x
@@ -430,8 +430,8 @@ class TestEvaluator(unittest.TestCase):
         # TODO: This isn't yet a very robust test
         # It doesn't yet check that the pragmas
         # in the module are in fact set
-        # It's mostly to make sure pragmas are 
-        # parsed 
+        # It's mostly to make sure pragmas are
+        # parsed
 
         e = AkilangEvaluator(True)
         n = '''
@@ -443,12 +443,12 @@ class TestEvaluator(unittest.TestCase):
         }'''
 
         self.assertEqual(e.eval_all(n), None)
-    
+
     def test_array_type_coercion(self):
 
         # test dimensioned return, implicit and explicit
 
-        e= AkilangEvaluator(True)
+        e = AkilangEvaluator(True)
         n = '''
         def fn1(x:i32[]):i32[] {
             x[12]=64
@@ -512,7 +512,7 @@ class TestEvaluator(unittest.TestCase):
         # test conversion of dimensionless array to dimensioned array
         # using `unsafe` assignment
 
-        n= '''
+        n = '''
         @track
         def fn4():i32[] {
             #var x=c_obj_alloc(with var _:i32[12,12,12]{_})
@@ -530,10 +530,10 @@ class TestEvaluator(unittest.TestCase):
         '''
 
         self.assertEqual(e.eval_all(n), 48)
-    
+
     def test_array_constant_init(self):
 
-        e= AkilangEvaluator()
+        e = AkilangEvaluator()
         n = '''
         def main(){
         var result=0
@@ -551,7 +551,7 @@ class TestEvaluator(unittest.TestCase):
         main()
         '''
         self.assertEqual(e.eval_all(n), 0)
-    
+
     def test_auto_free(self):
         '''
         Placeholder. This test is intended to determine if

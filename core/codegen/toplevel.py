@@ -133,7 +133,7 @@ class Toplevel():
                 raise CodegenError(
                     f'Function/universal name collision "{funcname}"',
                     node.position
-            )
+                )
 
             # If we're redefining a forward declaration,
             # erase the existing function body
@@ -244,7 +244,7 @@ class Toplevel():
         func.decorators = decorators
 
         if 'track' in decorators:
-            func.tracked=True
+            func.tracked = True
 
         return func
 
@@ -272,14 +272,16 @@ class Toplevel():
         self.func_returncalled = False
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')
-        self.func_returnarg = self._alloca('%_return', self.func_returntype, node=node)
+        self.func_returnarg = self._alloca(
+            '%_return', self.func_returntype, node=node)
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
             if arg.type.is_obj_ptr():
                 alloca = arg
             else:
-                alloca = self._alloca(arg.name, arg.type, node=node.proto.argnames[_])
+                alloca = self._alloca(arg.name, arg.type,
+                                      node=node.proto.argnames[_])
                 self.builder.store(arg, alloca)
 
             # We don't shadow existing variables names, ever
@@ -299,7 +301,7 @@ class Toplevel():
             # because it's implied that there's an early return
             pass
         else:
-            
+
             if not hasattr(retval, 'type'):
                 raise CodegenError(
                     f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.describe()}" but no concluding expression with an explicit return type was supplied',
@@ -318,7 +320,7 @@ class Toplevel():
             retval2 = self._check_array_return_type_compatibility(
                 retval, self.func_returntype
             )
-            
+
             if func.return_value.type != retval2.type:
                 if node.proto.name.startswith(_ANONYMOUS):
                     func.return_value.type = retval.type
@@ -341,7 +343,7 @@ class Toplevel():
 
         if retval:
             to_check = self._extract_operand(retval)
-            if to_check.tracked: # or 'track' in func.decorators:
+            if to_check.tracked:  # or 'track' in func.decorators:
                 self.gives_alloc.add(self.func_returnblock.parent)
                 self.func_returnblock.parent.returns.append(to_check)
 
@@ -354,7 +356,7 @@ class Toplevel():
                 to_check,
                 node
             )
-        
+
         self.builder.ret(self.builder.load(self.func_returnarg))
 
         self.func_incontext = None
@@ -396,9 +398,8 @@ class Toplevel():
                     val = ir.Constant(final_type, None)
 
             str1 = self._codegen(
-                Global(position, val, name,const)
+                Global(position, val, name, const)
             )
-
 
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)

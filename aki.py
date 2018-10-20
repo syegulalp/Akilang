@@ -1,6 +1,6 @@
 def run(**options):
     import sys
-    init_modules = set(sys.modules.keys())    
+    init_modules = set(sys.modules.keys())
     while True:
         from core import repl
         from core.errors import ReloadException
@@ -14,6 +14,7 @@ def run(**options):
                 if m not in init_modules:
                     del sys.modules[m]
             continue
+
 
 if __name__ == '__main__':
     run()

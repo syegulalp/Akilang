@@ -70,7 +70,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
         if vartypes is None:
             vartypes = generate_vartypes(self.module)
-        
+
         self.vartypes = vartypes
 
         self._const_counter = 0
@@ -80,15 +80,16 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
     def init_evaluator(self):
         if self.evaluator is None:
             from core import codexec
-            self.evaluator = codexec.AkilangEvaluator(True, vartypes=self.vartypes)
+            self.evaluator = codexec.AkilangEvaluator(
+                True, vartypes=self.vartypes)
         else:
             self.evaluator.reset()
         return self.evaluator
-        
+
     def const_counter(self):
-        self._const_counter+=1
+        self._const_counter += 1
         return self._const_counter
-    
+
     def _int(self, pyval):
         '''
         Returns a constant for Python int value.
@@ -151,8 +152,8 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         return self._obj_size_type(obj.type)
 
     def _alloca(self, name,
-        alloca_type=None, size=None, current_block=False,
-        malloc=False, node=None):
+                alloca_type=None, size=None, current_block=False,
+                malloc=False, node=None):
         '''
         Create an alloca, by default in the entry BB of the current function.
         Set current_block=True to use the current block.
@@ -185,7 +186,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
             return make_alloc()
         else:
             with self.builder.goto_entry_block():
-                return make_alloc()        
+                return make_alloc()
 
     def _varaddr(self, node, report=True):
         '''
@@ -222,7 +223,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 node.position)
 
         self.previous = result
-        
+
         return result
 
     def _codegen_dunder_methods(self, node):
@@ -257,7 +258,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 pass
 
             if v.tracked:
-                
+
                 ref = self.builder.load(v)
                 v_target = v.type.pointee.pointee
                 sig = v_target.del_signature()
@@ -274,7 +275,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 del_name = self.module.globals.get(
                     sig+mangle_args([ref.type])
                 )
-                
+
                 # TODO: symtab should contain the position
                 # for the first creation of a class object
                 # so we can indicate errors like this precisely
@@ -284,7 +285,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                         f'No "__del__" method found for "{v_target.signature()}"',
                         node.position
                     )
-                
+
                 self.builder.call(
                     del_name,
                     [ref],

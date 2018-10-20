@@ -126,7 +126,7 @@ class Toplevel():
                     self.init_evaluator()
 
                     # Evaluate the temporary AST with the unis/consts
-                    #self.evaluator.reset()
+                    # self.evaluator.reset()
                     self.evaluator._eval_ast(t)
 
                     # Codegen a function that obtains the computed result
@@ -175,7 +175,7 @@ class Toplevel():
     def _parse_expression(self):
         self.level += 1
         lhs = self._parse_primary()
-        
+
         # Start with precedence 0 because we want to bind any operator to the
         # expression at this point.
         self.level -= 1
@@ -315,7 +315,7 @@ class Toplevel():
         if self.cur_tok.kind == TokenKind.PASS:
             self._get_next_token()
             return Function(start, proto, None)
-        
+
         if self._cur_tok_is_punctuator('{'):
             expr = self._parse_do_expr()
         else:

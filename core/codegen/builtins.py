@@ -43,27 +43,28 @@ class Builtins():
 
         vt = node.args[0]
         v1 = vt.vartype
-        
+
         if v1 is None:
-            v1= self.class_symtab.get(vt.name, None )
+            v1 = self.class_symtab.get(vt.name, None)
 
         if v1 is None:
             raise CodegenError(
                 f'Unknown type or class "{vt.name}"',
                 node.args[0].position
-            )            
-        
+            )
+
         if v1.is_pointer:
             v1 = v1.pointee
-        
+
         sizeof = v1.get_abi_size(self.vartypes._target_data)
 
         call = self._codegen_Call(
             Call(node.position, 'c_alloc',
                  [Number(node.position, sizeof, self.vartypes.u_size)]))
 
-        b1 = self.builder.bitcast(call, v1.as_pointer())  # pylint: disable=E1111
-        
+        b1 = self.builder.bitcast(
+            call, v1.as_pointer())  # pylint: disable=E1111
+
         if v1.is_obj:
             b2 = self.builder.alloca(b1.type)
             self.builder.store(b1, b2)
@@ -71,8 +72,8 @@ class Builtins():
             b2.heap_alloc = True
             b2.tracked = True
         else:
-            b2=b1
-            b2.do_not_allocate = True        
+            b2 = b1
+            b2.do_not_allocate = True
 
         return b2
 
@@ -122,7 +123,7 @@ class Builtins():
         addr = self.builder.load(expr)
         addr2 = self.builder.bitcast(
             addr, self.vartypes.u_mem.as_pointer())
-            #.get_reference()
+        # .get_reference()
 
         call = self._codegen_Call(
             Call(node.position, 'c_free', [addr2])
@@ -164,21 +165,21 @@ class Builtins():
     def _codegen_Builtins_c_gep(self, node):
         obj = self._codegen(node.args[0])
 
-        if (len(node.args))<2:
+        if (len(node.args)) < 2:
             return self.builder.load(obj)
 
         index = [self._i32(0)]
 
         for n in range(1, len(node.args)):
             # TODO: constant values should be cast as int or float in python
-            if hasattr(node.args[n],'val'):
+            if hasattr(node.args[n], 'val'):
                 node.args[n].val = int(node.args[n].val)
             index.append(self._codegen(node.args[n]))
 
         try:
             gep = self.builder.gep(obj, index)
         except IndexError:
-            raise CodegenError(f'Index "{index}" is not valid',node.position)
+            raise CodegenError(f'Index "{index}" is not valid', node.position)
         return gep
 
     def _codegen_Builtins_c_ptr_int(self, node):
@@ -242,11 +243,10 @@ class Builtins():
     #                 self.vartypes.u_size
     #             )
     #         )
-    #     else:    
+    #     else:
     #         target = self._codegen(node.args[1])
     #     t2 = self.builder.inttoptr(target, ptr.type)
     #     return t2
-    
 
     def _codegen_Builtins_c_data(self, node):
         '''
@@ -263,7 +263,7 @@ class Builtins():
                 self._i32(0),
                 self._i32(1),
             ]
-        )        
+        )
 
         gep = self.builder.load(gep)
         return gep

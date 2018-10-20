@@ -10,8 +10,9 @@ import llvmlite.ir as ir
 
 
 class ControlFlow():
-    def _codegen_Pass(self,node):
+    def _codegen_Pass(self, node):
         return
+
     def _codegen_Try(self, node):
         # Try blocks do NOT return a value,
         # at least not yet
@@ -95,14 +96,14 @@ class ControlFlow():
 
     def _check_array_return_type_compatibility(self, returnval, returntype):
         try:
-            t0=returnval.type.pointee
-            t1=returntype.pointee
-            
-            if not (isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass)):
+            t0 = returnval.type.pointee
+            t1 = returntype.pointee
+
+            if not (isinstance(t0, ArrayClass) and isinstance(t1, ArrayClass)):
                 raise BlockExit
 
             if t0.arr_type == t1.arr_type:
-                new_returnval = self.builder.bitcast(              
+                new_returnval = self.builder.bitcast(
                     returnval,
                     returntype
                 )
@@ -112,10 +113,9 @@ class ControlFlow():
             pass
         except AttributeError:
             pass
-        
+
         return returnval
 
-    
     def _codegen_Return(self, node):
         '''
         Generates a return from within a function, and 
@@ -128,7 +128,7 @@ class ControlFlow():
             raise CodegenError(
                 f'Unknown return declaration error',
                 node.position
-        )
+            )
 
         retval = self._check_array_return_type_compatibility(
             retval, self.func_returntype
@@ -668,19 +668,20 @@ class ControlFlow():
                 type1 = n[1]
 
             try:
-                t0=type0.pointee
-                t1=type1.pointee
-                if isinstance(t0,ArrayClass) and isinstance(t1, ArrayClass):
+                t0 = type0.pointee
+                t1 = type1.pointee
+                if isinstance(t0, ArrayClass) and isinstance(t1, ArrayClass):
                     if t0.arr_type == t1.arr_type:
-                        call_args[x]= self.builder.bitcast(
+                        call_args[x] = self.builder.bitcast(
                             call_args[x],
-                            ir.types.LiteralStructType(type1.pointee.master_type).as_pointer()
+                            ir.types.LiteralStructType(
+                                type1.pointee.master_type).as_pointer()
                         )
-                        type0=type1
+                        type0 = type1
 
             except AttributeError:
                 pass
-            
+
             if type0 != type1:
                 raise CodegenError(
                     f'Call argument type mismatch for "{node.name}" (position {x}: expected "{type1.describe()}", got "{type0.describe()}")',

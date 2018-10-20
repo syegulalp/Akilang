@@ -171,24 +171,24 @@ class Lexer(object):
                 num = ''.join(num_str)
 
                 if '.' in num:
-                    last_num= num[-1]
+                    last_num = num[-1]
                     if last_num.isalpha():
                         num = num[0:-1]
-                        num=float(num)
-                        if last_num=='F':
+                        num = float(num)
+                        if last_num == 'F':
                             vartype = VarTypes.f64
-                        elif last_num=='f':
+                        elif last_num == 'f':
                             vartype = VarTypes.f32
                         else:
-                            last_num=None
+                            last_num = None
                     else:
                         vartype = VarTypes.f64
-                        num=float(num)
+                        num = float(num)
                     if last_num is None:
                         raise AkiSyntaxError(
                             f'Invalid floating-point literal format "{num}"',
-                        pos)
-                
+                            pos)
+
                 elif num[-1] == 'F':
                     vartype = VarTypes.f64
                     num = float(num[0:-1])

@@ -8,6 +8,7 @@ from importlib import reload
 from termcolor import colored, cprint
 colorama.init()
 
+
 def config():
     import configparser
     cfg = configparser.ConfigParser()
@@ -88,7 +89,6 @@ On the command line, the initial dot sign can be replaced with a double dash:
     aki --test
     aki --myfile.aki
     """
-
 
 
 history = []
@@ -314,4 +314,3 @@ def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbos
 #                 .aki files. The resulting file can then be loaded and
 #                 run by way of the .rl command.
 # .launch|.ll   : Compile current module to executable and launch it.
-

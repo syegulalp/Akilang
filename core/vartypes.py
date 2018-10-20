@@ -7,6 +7,7 @@ from llvmlite import binding
 
 # Singleton types (these do not require an invocation, they're only created once)
 
+
 def make_type_as_ptr(my_type):
     def type_as_ptr(addrspace=0):
         t = _PointerType(my_type, addrspace, v_id=my_type.v_id)
@@ -46,6 +47,7 @@ class Float32(ir.FloatType):
         t.p_fmt = '%f'
         return t
 
+
 class Float64(ir.DoubleType):
     def __new__(cls):
         t = super().__new__(cls)
@@ -69,6 +71,7 @@ class Array(ir.ArrayType):
         self.signed = my_type.signed
         self.as_pointer = make_type_as_ptr(self)
 
+
 class CustomClass():
     def __new__(cls, name, types, v_types):
         new_class = ir.global_context.get_identified_type('.class.' + name)
@@ -88,16 +91,16 @@ class ArrayClass(ir.types.LiteralStructType):
     is_obj = True
 
     def __init__(self, my_type, elements):
-        
+
         arr_type = my_type
         for n in reversed(elements):
             arr_type = VarTypes.array(arr_type, n)
 
         master_type = [
-                VarTypes._header,
-                arr_type
-            ]
-            
+            VarTypes._header,
+            arr_type
+        ]
+
         super().__init__(
             master_type
         )
@@ -108,13 +111,13 @@ class ArrayClass(ir.types.LiteralStructType):
         self.as_pointer = make_type_as_ptr(self)
         self.master_type = master_type
         self.arr_type = my_type
-    
+
     def new_signature(self):
         return (
             '.object.array.__new__',
             self.arr_type
         )
-    
+
     def post_new_bitcast(self, builder, obj):
         obj = builder.bitcast(
             obj,
@@ -129,8 +132,10 @@ class ArrayClass(ir.types.LiteralStructType):
 # the ID for the box object will point to that type
 # for custom types, we just add them to that struct for each module
 
+
 _default_platform_module = ir.Module()
-_default_platform_vartypes = {_default_platform_module.triple:None}
+_default_platform_vartypes = {_default_platform_module.triple: None}
+
 
 def generate_vartypes(module=None, bytesize=8):
 
@@ -141,7 +146,7 @@ def generate_vartypes(module=None, bytesize=8):
     if module is None:
         module = _default_platform_module
 
-    if  _default_platform_vartypes.get(module.triple, None) is not None:
+    if _default_platform_vartypes.get(module.triple, None) is not None:
         return _default_platform_vartypes[module.triple]
 
     # Initialize target data for the module.
@@ -164,18 +169,18 @@ def generate_vartypes(module=None, bytesize=8):
     # 1: length of data element
     # 2: is_external for data: 1=yes, it's externally stored, see pointer, needs separate dealloc
     # 3: pointer to data (if stored externally)
-    # 4: actual object data (if any)    
+    # 4: actual object data (if any)
 
     Header = ir.global_context.get_identified_type('.object_header.')
     Header.elements = (
         # total length of data element in bytes as u64
         U_SIZE,
         # pointer to object data
-        U_MEM.as_pointer(), # generic ptr void
+        U_MEM.as_pointer(),  # generic ptr void
 
         # object refcount
         U_SIZE,
-        
+
         # flag for whether or not pointed-to obj (by way of element 1) is dynamically allocated (bool)
         # default is 0
         ir.IntType(1),
@@ -217,11 +222,10 @@ def generate_vartypes(module=None, bytesize=8):
     # depending on how funky we want to get...
     # basically, we generate the result structure on the fly each time?
 
-
     # create objects dependent on the ABI size
 
     Str = ir.global_context.get_identified_type('.object.str')
-    Str.elements = (Header,) 
+    Str.elements = (Header,)
     Str.v_id = 'str'
     Str.is_obj = True
     Str.signed = False
@@ -247,7 +251,7 @@ def generate_vartypes(module=None, bytesize=8):
         # u_size is set on init
         'u_size': None,
 
-        # non-singleton        
+        # non-singleton
         'array': Array,
         'func': ir.FunctionType,
 
@@ -261,7 +265,7 @@ def generate_vartypes(module=None, bytesize=8):
     # set platform-dependent sizes
     _vartypes._byte_width = _byte_width
     _vartypes._pointer_width = _pointer_width
-    
+
     _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_width)
     _vartypes['u_mem'] = UnsignedInt(_vartypes._byte_width)
 
@@ -286,9 +290,10 @@ def generate_vartypes(module=None, bytesize=8):
     for _, n in enumerate(_vartypes):
         if not n.startswith('_'):
             _vartypes[n].box_id = _
-    
+
     _default_platform_vartypes[module.triple] = _vartypes
     return _vartypes
+
 
 VarTypes = generate_vartypes()
 
@@ -298,4 +303,3 @@ DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
 dunder_methods = set([f'__{n}__' for n in Dunders])
 
 Str = VarTypes.str
-

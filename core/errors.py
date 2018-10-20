@@ -30,8 +30,10 @@ class CodegenWarning(CodegenError):
         super().__init__(msg, position)
         self.msg = ">>> warning >>> "+self.msg
 
+
 class BlockExit(Exception):
     pass
+
 
 class ReloadException(Exception):
     pass
