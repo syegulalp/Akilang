@@ -473,133 +473,366 @@ class Vars():
 
         return val
 
-    def _codegen_Var(self, node, local_alloca=False):
-        
-        # I'm thinking Var declarations should be broken up as such:
-        # 1) Create the local variable (Var)
-        #   This handles the allocation for the variable space itself
-        # 2) Create the initializer (maybe codegen_Initializer_<type>?)
-        #   This handles things like creating constant initializers
-        #   We can later also create non-constant initializers this way
-        # 3) Perform the actual assignment (codegen_Assignment)
-        #   This assigns by way of a simple store, or by way of the
-        #   more complex memcpy stuff we need to do with arrays
+    def _codegen_create_variable(self, node, local_alloca=False):
 
-        for v in node.vars:
+        var_name = node.name
+        var_type = node.vartype
+        position = node.position
 
-            v_name = v.name
-            v_type = v.vartype
-            init_expr = v.initializer
-            position = v.position
+        var_ref = self.func_symtab.get(var_name)
+        if var_ref is not None:
+            raise CodegenError(
+                f'"{name}" already defined in local scope',
+                position
+            )
 
-            var_ref = self.func_symtab.get(v_name)
-            if var_ref is not None:
-                raise CodegenError(f'"{name}" already defined in local scope',
-                                   position)
+        var_ref = self.module.globals.get(var_name, None)
+        if var_ref is not None:
+            raise CodegenError(
+                f'"{name}" already defined in universal scope',
+                position
+            )
 
-            var_ref = self.module.globals.get(v_name, None)
-            if var_ref is not None:
-                raise CodegenError(
-                    f'"{name}" already defined in universal scope', position)
+       
+        allocation_type = var_type
 
-            already_allocated = False
+        var_ref = self._alloca(
+            var_name, allocation_type,
+            current_block=local_alloca,
+            node=node
+        )
 
-            if isinstance(init_expr, ItemList):
-                already_allocated = True
-                val = self._codegen_Itemlist_Generation(v)
-                var_ref = self._codegen_Itemlist_Assignment(
-                    val, v, local_alloca
-                )
+        self.func_symtab[var_name] = var_ref
+        return var_ref
+    
+    def _codegen_create_initializer(self, node_var, node_init):
 
-            else:
-                val, v_type = self._codegen_VarDef(init_expr, v_type)
-                var_ref = self._alloca(
-                    v_name, v_type, current_block=local_alloca,
-                    node=node
-                )
+        # node_var = variable AST node
+        # node_init = initializer AST node
+        # var_ref = codegenned var from create_variable
 
-            if val:
-                var_ref.heap_alloc = val.heap_alloc
-                var_ref.input_arg = val.input_arg
-
-                if var_ref.heap_alloc:
-                    var_ref.tracked = True
-
-            self.func_symtab[v_name] = var_ref
-
-            if init_expr:
-
-                # if _do_not_allocate is set, we've already preallocated space
-                # for the object, so all we have to do is set the name
-                # to its existing pointer
-
-                if not already_allocated:
-
-                    if val.do_not_allocate:
-                        self.func_symtab[v_name] = val
-                    else:
-                        self.builder.store(val, var_ref)
-
-            else:
-                # if this is an object pointer,
-                # allocate an empty object to it
-
-                if v_type.is_obj_ptr():
-                    if not isinstance(v_type.pointee, ir.FunctionType):
-
-                        # allocate the actual object, not just a pointer to it
-                        # because it doesn't actually exist yet!
-
-                        # TODO: make this into a `__new__` call
-                        # for the object type.
-                        # Use a property on the type to produce
-                        # the correct call signature.
-                        # That way arrays are generated from a single call
-                        # and then bitcast after the fact, etc.
-                        # And that way we can apply tracking,
-                        # perform other things...
-
-                        # use this to produce the call
-                        #   print (v_type.pointee.new_signature())
-
-                        # the resulting ptr u_mem is to be bitcast to
-                        # v_type I think
-                        #   print (v_type)
-
-                        obj = self._alloca('obj', v_type.pointee)
-                        self.builder.store(obj, var_ref)
-
-                        # dummy bitcast example
-                        #   z2 = self._alloca('zz',self.vartypes.u_mem)
-                        #   print (v_type.pointee.post_new_bitcast(self.builder, z2))
-
-                # if this is another kind of pointer,
-                # any uninitialized pointer should be nulled
-
-                elif v_type.is_ptr():
-                    zeroinit = self._codegen(
-                        Number(
-                            v.position,
-                            0,
-                            self.vartypes.u_size
-                        )
-                    )
-                    z2 = self.builder.inttoptr(zeroinit,
-                                               var_ref.type.pointee)
-                    self.builder.store(z2, var_ref)
-
-                # null any existing scalar types
-                # note that we don't zero arrays yet
-
+        # start with zero initializers
+        if node_init is None:
+            if node_var.vartype.is_obj_ptr():
+                if isinstance(node_var.vartype.pointee, ir.FunctionType):
+                    value = self._codegen(node_var)
                 else:
-                    zeroinit = self._codegen(
-                        Number(
-                            v.position,
-                            0,
-                            v_type
-                        )
+                    value = self._alloca('obj', node_var.vartype.pointee)
+                return value
+
+            if node_var.vartype.is_ptr():
+                # Null pointer
+                _ = self._codegen(
+                    Number(
+                        node_var.position,
+                        0,
+                        self.vartypes.u_size
                     )
-                    self.builder.store(zeroinit, var_ref)
+                )
+                value = self.builder.inttoptr(
+                    _,
+                    node_var.vartype
+                )
+                return value
+                        
+            # Zero scalar
+            value = self._codegen(
+                Number(
+                    node_var.position,
+                    0,
+                    node_var.vartype
+                )
+            )
+            return value
+
+       
+        value = self._codegen(node_init)
+        return value
+
+
+    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref):
+
+        # node_var = AST node of variable
+        # node_init = AST node of initializer
+        # var_ref = codegen from create_variable
+        # init_ref = codegen from create initializer
+
+        if isinstance(node_init, ItemList):
+
+            element_width = (
+                init_ref.type.pointee.element.width // self.vartypes._byte_width
+            ) * len(node_var.initializer.elements)
+
+            # Get the pointer to the data area for the target
+
+            sub_var_ref = self.builder.gep(
+                var_ref,
+                [
+                    self._i32(0),
+                    self._i32(1)
+                ],
+            )
+
+            sub_var_ref = self.builder.bitcast(
+                sub_var_ref,
+                self.vartypes.u_mem.as_pointer()
+            )
+
+            sub_val = self.builder.bitcast(
+                init_ref,
+                self.vartypes.u_mem.as_pointer()
+            )
+
+            # Copy the constant into the data area
+            llvm_memcpy = self.module.declare_intrinsic(
+                'llvm.memcpy',
+                [self.vartypes.u_mem.as_pointer(),
+                self.vartypes.u_mem.as_pointer(),
+                self.vartypes.u_size
+                ]
+            )
+
+            self.builder.call(
+                llvm_memcpy,
+                [
+                    sub_var_ref,
+                    sub_val,
+                    ir.Constant(
+                        self.vartypes.u64,
+                        element_width
+                    ),
+                    ir.Constant(
+                        # default alignment
+                        self.vartypes.u32,
+                        0
+                    ),
+                    ir.Constant(
+                        ir.IntType(1),
+                        False
+                    )
+                ],
+                '.memcpy.'
+            )
+
+            return var_ref
+
+        if var_ref.type.pointee != init_ref.type:
+            raise CodegenError(
+                f'Type declaration and variable assignment type do not match (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
+                node_var.position)
+
+        if var_ref.type.pointee.signed != init_ref.type.signed:
+            raise CodegenError(
+                f'Type declaration and variable assignment type have signed/unsigned mismatch (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
+                node_var.position)        
+
+        # Copy tracking
+
+        var_ref.heap_alloc = init_ref.heap_alloc
+        var_ref.input_arg = init_ref.input_arg
+
+        if var_ref.heap_alloc:
+            var_ref.tracked = True        
+        
+        if init_ref.do_not_allocate:
+            self.func_symtab[node_var.name] = init_ref
+            return init_ref
+        else:
+            self.func_symtab[node_var.name] = var_ref
+            self.builder.store(init_ref, var_ref)        
+            return var_ref
+   
+    def _codegen_Var(self, node, local_alloca=False):
+        for variable in node.vars:
+
+            # first check if there's type assignments
+            # x if no init and no type,
+            #   type is default
+            # x if no init but a type:
+            #   use specified type
+            # if init, but var has no type:
+            #   generate init and use its type
+            # if init and type:
+            #   generate init normally
+
+            value = None
+
+            if variable.initializer is None:
+                if variable.vartype is None:
+                    variable.vartype = self.vartypes._DEFAULT_TYPE
+
+            else:                
+                if variable.vartype is None:                    
+                    value = self._codegen_create_initializer(
+                        variable, variable.initializer
+                    )
+                    variable.vartype = value.type
+
+            if isinstance(variable.initializer, ItemList):
+                variable.vartype = variable.vartype.pointee
+
+            var = self._codegen_create_variable(variable)
+
+            if value is None:
+                value = self._codegen_create_initializer(
+                variable, variable.initializer
+            )
+
+            assignment = self._codegen_variable_assignment(
+                variable, variable.initializer,
+                var, value
+            )        
+
+    # def _codegen_Varx(self, node, local_alloca=False):
+        
+    #     # I'm thinking Var declarations should be broken up as such:
+    #     # 1) Create the variable (Var)
+    #     #   This handles the allocation for the variable space itself
+    #     #   It also handles both global and local scope if possible
+    #     #   If there is no type:
+    #     #       and no init,
+    #     #           use default type and init is empty.
+    #     #       and an init, 
+    #     #           create the init, use its type to create the variable.
+    #     #   If there is a type:
+    #     #       and no init:
+    #     #           create the variable and set init as empty.
+    #     #       and an init:
+    #     #           create the variable and set init.
+    #     # 2) Create the initializer (maybe codegen_Initializer_<type>?)
+    #     #   This handles things like creating constant initializers
+    #     #   We can later also create non-constant initializers this way
+    #     #   What the initializer should return may be entirely dependent
+    #     #   on the value, need to think this out
+    #     # 3) Perform the actual assignment (codegen_Assignment)
+    #     #   This assigns by way of a simple store, or by way of the
+    #     #   more complex memcpy stuff we need to do with arrays
+    #     # Functions:
+    #     #   Create init (local/global/malloc)
+    #     #   Create variable (local/global/malloc)
+    #     #   Assginment (matrix of above?)
+
+        
+    #     for v in node.vars:
+    #         v_name = v.name
+    #         v_type = v.vartype
+    #         init_expr = v.initializer
+    #         position = v.position
+
+    #         var_ref = self.func_symtab.get(v_name)
+    #         if var_ref is not None:
+    #             raise CodegenError(
+    #                 f'"{name}" already defined in local scope',
+    #                 position
+    #             )
+
+    #         var_ref = self.module.globals.get(v_name, None)
+    #         if var_ref is not None:
+    #             raise CodegenError(
+    #                 f'"{name}" already defined in universal scope',
+    #                 position
+    #             )
+
+    #         already_allocated = False
+
+    #         if isinstance(init_expr, ItemList):
+    #             already_allocated = True
+    #             val = self._codegen_Itemlist_Generation(v)
+    #             var_ref = self._codegen_Itemlist_Assignment(
+    #                 val, v, local_alloca
+    #             )
+
+    #         else:
+    #             val, v_type = self._codegen_VarDef(init_expr, v_type)
+    #             var_ref = self._alloca(
+    #                 v_name, v_type, current_block=local_alloca,
+    #                 node=node
+    #             )
+
+    #         if val:
+    #             var_ref.heap_alloc = val.heap_alloc
+    #             var_ref.input_arg = val.input_arg
+
+    #             if var_ref.heap_alloc:
+    #                 var_ref.tracked = True
+
+    #         self.func_symtab[v_name] = var_ref
+
+    #         if init_expr:
+
+    #             # if _do_not_allocate is set, we've already preallocated space
+    #             # for the object, so all we have to do is set the name
+    #             # to its existing pointer
+
+    #             if not already_allocated:
+
+    #                 if val.do_not_allocate:
+    #                     self.func_symtab[v_name] = val
+    #                 else:
+    #                     self.builder.store(val, var_ref)
+
+    #         else:
+    #             # if this is an object pointer,
+    #             # allocate an empty object to it
+
+    #             if v_type.is_obj_ptr():
+    #                 if not isinstance(v_type.pointee, ir.FunctionType):
+
+    #                     # allocate the actual object, not just a pointer to it
+    #                     # because it doesn't actually exist yet!
+
+    #                     # TODO: make this into a `__new__` call
+    #                     # for the object type.
+    #                     # Use a property on the type to produce
+    #                     # the correct call signature.
+    #                     # That way arrays are generated from a single call
+    #                     # and then bitcast after the fact, etc.
+    #                     # And that way we can apply tracking,
+    #                     # perform other things...
+
+    #                     # use this to produce the call
+    #                     #   print (v_type.pointee.new_signature())
+
+    #                     # the resulting ptr u_mem is to be bitcast to
+    #                     # v_type I think
+    #                     #   print (v_type)
+
+    #                     obj = self._alloca('obj', v_type.pointee)
+    #                     self.builder.store(obj, var_ref)
+
+    #                     # dummy bitcast example
+    #                     #   z2 = self._alloca('zz',self.vartypes.u_mem)
+    #                     #   print (v_type.pointee.post_new_bitcast(self.builder, z2))
+
+    #             # if this is another kind of pointer,
+    #             # any uninitialized pointer should be nulled
+
+    #             elif v_type.is_ptr():
+    #                 zeroinit = self._codegen(
+    #                     Number(
+    #                         v.position,
+    #                         0,
+    #                         self.vartypes.u_size
+    #                     )
+    #                 )
+    #                 z2 = self.builder.inttoptr(
+    #                     zeroinit,
+    #                     var_ref.type.pointee
+    #                 )
+    #                 self.builder.store(z2, var_ref)
+
+    #             # null any existing scalar types
+    #             # note that we don't zero arrays yet
+
+    #             else:
+    #                 zeroinit = self._codegen(
+    #                     Number(
+    #                         v.position,
+    #                         0,
+    #                         v_type
+    #                     )
+    #                 )
+    #                 self.builder.store(zeroinit, var_ref)
 
     def _codegen_VarDef(self, expr, vartype):
         if expr is None:
