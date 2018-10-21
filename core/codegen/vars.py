@@ -1,5 +1,5 @@
 import llvmlite.ir as ir
-from core.errors import CodegenError
+from core.errors import CodegenError, CodegenWarning
 from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global
 from core.mangling import mangle_call
 from core.vartypes import ArrayClass
@@ -474,8 +474,9 @@ class Vars():
 
         if isinstance(node_init, ItemList):
 
-            if element_count is None:
-                element_count = len(node_var.initializer.elements)
+            # TODO: see if this can eventually be removed?
+            #if element_count is None:
+            element_count = len(init_ref.initializer.constant)
 
             array_length = var_ref.type.pointee.elements[1].count
 
@@ -485,6 +486,13 @@ class Vars():
                     node_init.position
                 )
             
+            if element_count<array_length:
+                print (CodegenWarning(
+                    f'Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})',
+                    node_init.position
+                ))
+
+            ## TODO: perform zero fill
 
             element_width = (
                 init_ref.type.pointee.element.width // self.vartypes._byte_width
@@ -661,7 +669,8 @@ class Vars():
                 array_value = self._codegen(rhs)
                 ptr = self.builder.load(ptr)
                 value=self._codegen_variable_assignment(
-                    lhs, rhs, ptr, array_value, element_count = len(rhs.elements)
+                    lhs, rhs, ptr, array_value, 
+                    #element_count = len(rhs.elements)
                 )
                 return value
             else:

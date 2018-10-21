@@ -442,17 +442,22 @@ class Toplevel():
                 # vartype.pointee.elements[1].count
                 #   actual number of elements in underlying type
 
-                initializer_length = len(value.initializer.constant)
+                element_count = len(value.initializer.constant)
                 array_length = vartype.pointee.elements[1].count
 
-                if initializer_length>array_length:
+                if element_count>array_length:
                     raise CodegenError(
                         f'Array initializer is too long (expected {array_length} elements, got {initializer_length})',
                         expr.position
                     )
 
-                if initializer_length<array_length:
-                    pass
+                if element_count<array_length:
+                    print (CodegenWarning(
+                        f'Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})',
+                        node_init.position
+                    ))
+                
+                ## TODO: perform zero fill
                 
               
                 initializer= ir.Constant(
