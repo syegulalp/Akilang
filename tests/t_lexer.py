@@ -3,7 +3,6 @@ import unittest
 from core.lexer import Position, Lexer, Token, TokenKind
 from core.vartypes import VarTypes
 
-
 class TestLexer(unittest.TestCase):
 
     maxDiff = None

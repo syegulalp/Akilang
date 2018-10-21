@@ -4,11 +4,15 @@ from core.codexec import AkilangEvaluator
 from ctypes import c_longlong
 from core.vartypes import VarTypes
 
+from tests import e, e2
 
 class TestEvaluator(unittest.TestCase):
+    e=e
+    e2=e2
+
     def test_c_ref(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def ref(){
                 var a=32,
                     b=c_ref(a),
@@ -16,11 +20,11 @@ class TestEvaluator(unittest.TestCase):
                 if a==c then 0 else 1
                 }
             ''')
-        self.assertEqual(e.evaluate('ref()'), 0)
+        self.assertEqual(self.e.evaluate('ref()'), 0)
 
     def test_c_objref(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def ref(){
                     var a="Hello world", 
                         c=c_obj_ref(a),
@@ -29,51 +33,51 @@ class TestEvaluator(unittest.TestCase):
                         then 0 else 1
                 }
             ''')
-        self.assertEqual(e.evaluate('ref()'), 0)
+        self.assertEqual(self.e.evaluate('ref()'), 0)
 
     def test_c_cast(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def test_cast(){
                 var a=128u, b = cast(a,i32)
                 if b==128 then 0 else 1
             }            
         ''')
-        self.assertEqual(e.evaluate('test_cast()'), 0)
+        self.assertEqual(self.e.evaluate('test_cast()'), 0)
 
     def test_c_convert(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def test_convert(){
                 var a=128, b = convert(a,i64)
                 if b==128I then 0 else 1
             }            
         ''')
-        self.assertEqual(e.evaluate('test_convert()'), 0)
+        self.assertEqual(self.e.evaluate('test_convert()'), 0)
 
     def test_c_cast_int_float(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def test_cast(){
                 var a=128, b = cast(a,f64)
                 if b==128.0 then 0 else 1
             }            
         ''')
-        self.assertEqual(e.evaluate('test_cast()'), 0)
+        self.assertEqual(self.e.evaluate('test_cast()'), 0)
 
     def test_c_convert_int_float(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def main(){
                 var a=128, b = convert(a,f64)
                 if b==128.0 then 0 else 1
             }            
         ''')
-        self.assertEqual(e.evaluate('main()'), 0)
+        self.assertEqual(self.e.evaluate('main()'), 0)
 
     def test_alloc_free(self):
-        e = AkilangEvaluator(True)
-        e.evaluate('''
+        self.e2.reset()
+        self.e2.evaluate('''
         def main(){
             var
                 x=c_obj_alloc(u64[64]),
@@ -88,11 +92,11 @@ class TestEvaluator(unittest.TestCase):
             z
         }
         ''')
-        self.assertEqual(e.evaluate('main()'), 0)
+        self.assertEqual(self.e2.evaluate('main()'), 0)
 
     def test_c_ptr_math(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def main(){
                 var x:i32[4]
                 x[0]=32
@@ -101,11 +105,11 @@ class TestEvaluator(unittest.TestCase):
                 c_deref(y)
             }
         ''')
-        self.assertEqual(e.evaluate('main()'), 64)
+        self.assertEqual(self.e.evaluate('main()'), 64)
 
     def test_c_ptr_mod(self):
-        e = AkilangEvaluator()
-        e.evaluate('''
+        self.e.reset()
+        self.e.evaluate('''
             def main(){
                 var x:i32[4]
                 x[0]=32
@@ -116,14 +120,14 @@ class TestEvaluator(unittest.TestCase):
                 c_deref(y)
             }
         ''')
-        self.assertEqual(e.evaluate('main()'), 128)
+        self.assertEqual(self.e.evaluate('main()'), 128)
 
     def test_c_strlen(self):
-        e = AkilangEvaluator(True)
-        e.evaluate('''
+        self.e2.reset()
+        self.e2.evaluate('''
             def main():u64{
                 var x="Hi there"
                 len(x)
             }
         ''')
-        self.assertEqual(e.evaluate('main()'), 9)
+        self.assertEqual(self.e2.evaluate('main()'), 9)

@@ -430,6 +430,7 @@ class Toplevel():
                     vartype.pointee,
                     name
                 )
+                
 
                 # TODO: write tests for uni/const array init
 

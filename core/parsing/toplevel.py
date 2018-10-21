@@ -1,7 +1,7 @@
 from core.lexer import TokenKind
 from core.ast_module import (
     Array, Const, Uni, String, Function, Prototype, Number,
-    Variable, DEFAULT_TYPE, DEFAULT_PREC, Unary, Pragma
+    Variable, DEFAULT_TYPE, DEFAULT_PREC, Unary, Pragma, ItemList
 )
 from core.operators import UNASSIGNED, set_binop_info, Associativity
 from core.errors import ParseError
@@ -107,7 +107,11 @@ class Toplevel():
             if isinstance(init, String):
                 init.anonymous = False
 
-            if const and init:
+            # TODO: move to codegen
+            # if we're in a const context, and we encounter
+            # an uncomputed value, then we perform this recomputation there
+                        
+            if const and init and not isinstance(init, ItemList):
                 if not hasattr(init, 'val'):
 
                     # if there's no constant value on the initializer,

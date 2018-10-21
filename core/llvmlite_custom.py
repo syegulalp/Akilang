@@ -1,6 +1,8 @@
 from llvmlite.ir.types import PointerType, Type
 import llvmlite.ir as ir
 
+import ctypes
+
 
 class MyType():
     pointee = None
@@ -83,6 +85,7 @@ class _PointerType(PointerType):
         self.signed = signed
         self.descr = lambda: "ptr " + v_id
         self.p_fmt = getattr(a[0], 'p_fmt', None)
+        self.c_type = ctypes.c_void_p
 
     def as_pointer(self, addrspace=0):
         return _PointerType(
@@ -95,9 +98,6 @@ ir.types.PointerType = _PointerType
 ir.PointerType = _PointerType
 
 Old_IntType = ir.types.IntType
-
-import ctypes
-
 
 class _IntType(Old_IntType):
     """
