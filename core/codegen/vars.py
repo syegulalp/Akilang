@@ -351,20 +351,20 @@ class Vars():
         base_vartype = None
         element_list = []
 
-        for x in node.elements:
+        for element in node.elements:
             if base_vartype is None:
-                base_vartype = x.vartype
-            elif base_vartype != x.vartype:
+                base_vartype = element.vartype
+            elif base_vartype != element.vartype:
                 raise CodegenError(
                     f'Constant array definition is not of a consistent type (expected "{base_vartype.describe()}", got "{x.vartype.describe()}"',
-                    x.position
+                    element.position
                 )
             try:
-                element_list.append(ir.Constant(x.vartype, x.val))
+                element_list.append(ir.Constant(element.vartype, element.val))
             except AttributeError:
                 raise CodegenError(
                     f'Constant array definition has an invalid element',
-                    x.position
+                    element.position
                 )
 
         const = ir.Constant(
@@ -546,7 +546,7 @@ class Vars():
                         False
                     )
                 ],
-                '.memcpy.'
+                f'.{node_var.name}.memcpy.'
             )
 
             return var_ref

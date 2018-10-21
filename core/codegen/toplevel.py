@@ -1,7 +1,7 @@
 from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number, Global, ItemList
 import llvmlite.ir as ir
 from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
-from core.errors import CodegenError
+from core.errors import CodegenError, CodegenWarning
 from core.tokens import decorator_collisions
 
 # pylint: disable=E1101
@@ -447,14 +447,14 @@ class Toplevel():
 
                 if element_count>array_length:
                     raise CodegenError(
-                        f'Array initializer is too long (expected {array_length} elements, got {initializer_length})',
+                        f'Array initializer is too long (expected {array_length} elements, got {element_count})',
                         expr.position
                     )
 
                 if element_count<array_length:
                     print (CodegenWarning(
                         f'Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})',
-                        node_init.position
+                        v.position
                     ))
                 
                 ## TODO: perform zero fill
