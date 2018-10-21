@@ -431,6 +431,8 @@ class Toplevel():
                     name
                 )
 
+                # TODO: write tests for uni/const array init
+
                 # TODO: this length test should be 
                 # made into a function and applied elsewhere too
 
