@@ -1,5 +1,5 @@
 def run(**options):
-    import sys
+    import sys, gc, msvcrt
     init_modules = set(sys.modules.keys())
     while True:
         from core import repl
@@ -12,7 +12,9 @@ def run(**options):
             del ReloadException
             for m in reversed(list(sys.modules.keys())):
                 if m not in init_modules:
-                    del sys.modules[m]
+                    del sys.modules[m]            
+            gc.collect()
+            msvcrt.heapmin()
             continue
 
 
