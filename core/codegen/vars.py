@@ -678,4 +678,4 @@ class Vars():
 
         self.builder.store(value, ptr)
 
-        return value            
+        return value

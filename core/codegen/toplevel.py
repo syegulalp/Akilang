@@ -424,38 +424,65 @@ class Toplevel():
                 else:
                     value = ir.Constant(vartype, None)
 
-            # TODO: doesn't work yet
-            # uni {
-            #     x:i32[4] = [32,33,34]
-            # }
-            # this will fail
-            # b/c global-style initializer for object type 
-            # declared at compile time needs to be 
-            # the entire structure incl. header.
-
-            # it takes in a constant expression that matches
-            # the type in question, and generates the init
-
-            # long-term possibility:
-            # a generic library function that takes itemlist, array
-            # and performs the copying by way of a func call?
 
             if isinstance(expr, ItemList):
-                # stub for future work, GNDN
-                x=ir.GlobalVariable(self.module,
-                    vartype,
+                variable=ir.GlobalVariable(self.module,
+                    vartype.pointee,
                     name
                 )
-                y=self._codegen(expr)
 
-                # use y.initializer as 2nd part
-                # 1st part is the uni headerstruct
-                # u_size size of data element
-                # u_mem ptr to object data (not used here, I think)
-                # u_size refcount 0
-                # bool false
-                # bool false
+                # TODO: this length test should be 
+                # made into a function and applied elsewhere too
+
+                # ways to calculate length:
+                # value.initializer.constant
+                #   len = number of constants in init
+                # vartype.pointee.elements[1].count
+                #   actual number of elements in underlying type
+
+                initializer_length = len(value.initializer.constant)
+                array_length = vartype.pointee.elements[1].count
+
+                if initializer_length>array_length:
+                    raise CodegenError(
+                        f'Array initializer is too long (expected {array_length} elements, got {initializer_length})',
+                        expr.position
+                    )
+
+                if initializer_length<array_length:
+                    pass
+                
+              
+                initializer= ir.Constant(
+                    vartype.pointee,
+                    [
+                        [self.vartypes.u_size(
+                            vartype.pointee.elements[1].count
+                        ),
+                        ir.Constant(
+                            self.vartypes.u_mem.as_pointer(),
+                            None
+                        ),
+                        self.vartypes.u_size(0),
+                        self.vartypes.bool(0),
+                        self.vartypes.bool(0),
+                        ],
+                        value.initializer
+                    ]
+                )
+
+                variable.initializer = initializer
+
+                # We can in theory delete the initializer by way of
+                # del self.module.globals[value.name]
+                # but we should keep it in case anything else
+                # refers to it.
+                # It will be optimized out if nothing uses it.
+
+                # TODO:
+                # - allow shorter init than actual array
+
             else:
-                x=self._codegen(
+                variable = self._codegen(
                     Global(position, value, name, const)
                 )
