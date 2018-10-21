@@ -2,11 +2,9 @@ import llvmlite.ir as ir
 from core.errors import CodegenError
 from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global
 from core.mangling import mangle_call
-#from core.vartypes import VarTypes, DEFAULT_TYPE
 from core.vartypes import ArrayClass
 
 # pylint: disable=E1101
-
 
 class Vars():
     def _codegen_NoneType(self, node):
@@ -400,14 +398,14 @@ class Vars():
         var_ref = self.func_symtab.get(var_name)
         if var_ref is not None:
             raise CodegenError(
-                f'"{name}" already defined in local scope',
+                f'"{var_name}" already defined in local scope',
                 position
             )
 
         var_ref = self.module.globals.get(var_name, None)
         if var_ref is not None:
             raise CodegenError(
-                f'"{name}" already defined in universal scope',
+                f'"{var_name}" already defined in universal scope',
                 position
             )
        
@@ -478,6 +476,15 @@ class Vars():
 
             if element_count is None:
                 element_count = len(node_var.initializer.elements)
+
+            array_length = var_ref.type.pointee.elements[1].count
+
+            if element_count>array_length:
+                raise CodegenError(
+                    f'Array initializer is too long (expected {array_length} elements, got {element_count})',
+                    node_init.position
+                )
+            
 
             element_width = (
                 init_ref.type.pointee.element.width // self.vartypes._byte_width
