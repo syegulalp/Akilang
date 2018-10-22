@@ -74,8 +74,8 @@ class Vars():
             raise CodegenError(
                 f'Unindexed accessor for "{array.name}" requires a compile-time constant',
                 node.position)
-        except Exception:
-            pass
+        except Exception as e:
+            raise e
         else:
             return ptr
 
@@ -88,13 +88,11 @@ class Vars():
     def _codegen_LoadInstr(self, node):
         return node
 
-    def _codegen_Variable(
-        self, node,
-        noload=False,
-        start_with=None
-    ):
+    def _codegen_Variable(self, node, noload=False, start_with=None):
 
         current_node = node
+
+        constant = False
 
         # If we're not starting with a root variable,
         # such as an inline string, we need to use
@@ -122,6 +120,10 @@ class Vars():
                     continue
 
                 latest = self._varaddr(current_node)
+
+                if constant is False:
+                    constant = getattr(latest,'global_constant', False)
+
                 current_load = not latest.type.is_obj_ptr()
 
             elif isinstance(current_node, ArrayAccessor):
@@ -208,20 +210,29 @@ class Vars():
             previous = latest
 
         if noload is True:
+            latest.global_constant = constant
             return latest
 
         if current_load:
 
             # Extract constants from uni declarations
-            possible_constant = self._extract_operand(latest)
-            if isinstance(possible_constant, ir.GlobalVariable) and possible_constant.global_constant is True:
-                return possible_constant.initializer
+            # XXX: I've removed this for the time being because it caused
+            # problems where a constant variable like an array had
+            # the wrong elements extracted
+
+            # possible_constant = self._extract_operand(latest)
+            # if isinstance(possible_constant, ir.GlobalVariable) and possible_constant.global_constant is True:
+            #     return possible_constant.initializer
 
             # if no constant, just return a load instr
-            return self.builder.load(latest, node.name)
+            final = self.builder.load(latest, node.name)
 
         else:
-            return latest
+            final = latest
+
+        final.global_constant = constant
+
+        return final
 
     def _codegen_Assignmentx(self, lhs, rhs):
         if not isinstance(lhs, Variable):
@@ -633,11 +644,18 @@ class Vars():
             )
 
         ptr = self._codegen_Variable(lhs, noload=True)
+
         if getattr(ptr, 'global_constant', None):
             raise CodegenError(
                 f'Universal constant "{lhs.name}" cannot be reassigned',
                 lhs.position)
 
+        if getattr(ptr,'global_constant',False):
+            raise CodegenError(
+                f'"{lhs.name}" is a constant and cannot be modified',
+                lhs.position
+            )
+        
         is_func = ptr.type.is_func()
 
         if is_func:

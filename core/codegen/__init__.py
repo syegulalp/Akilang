@@ -132,7 +132,7 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
         if isinstance(lhs, ir.Constant):
             raise CodegenError(
                 r"Can't assign value to literal",
-                node.lhs.position
+                node.position
             )
         return self._extract_operand(lhs)
 

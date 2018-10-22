@@ -418,6 +418,7 @@ class Toplevel():
                             position,
                             ir.Constant(vartype.pointee, None),
                             f"{name}.init",
+                            #global_constant=const
                             global_constant=False
                         )
                     )
@@ -425,12 +426,17 @@ class Toplevel():
                     value = ir.Constant(vartype, None)
 
 
-            if isinstance(expr, ItemList):
+            if not isinstance(expr, ItemList):
+                variable = self._codegen(
+                    Global(position, value, name, const)
+                )   
+            
+            else:
+                
                 variable=ir.GlobalVariable(self.module,
                     vartype.pointee,
-                    name
-                )
-                
+                    name,                    
+                )                
 
                 # TODO: write tests for uni/const array init
 
@@ -480,6 +486,7 @@ class Toplevel():
                 )
 
                 variable.initializer = initializer
+                variable.global_constant = const
 
                 # We can in theory delete the initializer by way of
                 # del self.module.globals[value.name]
@@ -490,7 +497,3 @@ class Toplevel():
                 # TODO:
                 # - allow shorter init than actual array
 
-            else:
-                variable = self._codegen(
-                    Global(position, value, name, const)
-                )

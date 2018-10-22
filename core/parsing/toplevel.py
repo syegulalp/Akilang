@@ -100,24 +100,34 @@ class Toplevel():
             # Parse the optional initializer
             if self._cur_tok_is_operator('='):
                 self._get_next_token()  # consume the '='
+                self.compile_constant = ast_type
                 init = self._parse_expression()
+                self.compile_constant = None
             else:
                 init = None
 
             if isinstance(init, String):
                 init.anonymous = False
 
-            # TODO: move to codegen
-            # if we're in a const context, and we encounter
-            # an uncomputed value, then we perform this recomputation there
-                        
+            # TODO:
+            # use existing eval_and_return for this
+            # merge with other functions if possible
+
             if const and init and not isinstance(init, ItemList):
-                if not hasattr(init, 'val'):
+                if hasattr(init, 'val'):
+                    self.consts[name] = Number(start, init.val, init.vartype)
+                else:
 
                     # if there's no constant value on the initializer,
                     # it's an expression, and so we need to
                     # JIT-compile the existing constants
                     # to compute the value of that expression
+
+                    # TODO: keep this as a running list whenever
+                    # we add consts, so it doesn't have to be reconstructed
+                    # from scratch every single time
+                    # this could create some really hairy compile times later on
+                    # if we don't do that
 
                     tt = []
                     for k, v in self.consts.items():
@@ -144,9 +154,11 @@ class Toplevel():
                         Function.Anonymous(start, init))
 
                     # Extract the variable type of that function
-                    r_type = self.evaluator.codegen.module.globals[
+                    r_val = self.evaluator.codegen.module.globals[
                         Prototype.anon_name(Prototype)
-                    ].return_value.type
+                    ].return_value
+
+                    r_type = r_val.type
 
                     # Run the function with the proper return type
                     e = self.evaluator._eval_ast(
@@ -154,12 +166,13 @@ class Toplevel():
                         return_type=r_type.c_type
                     )
 
+                    # TODO: use an AST node type that complements the results
+                    # this way we can use strings, etc.
+
                     # Extract and assign the value
                     init = Number(start, e.value, e.ast.proto.vartype)
                     self.consts[name] = init
 
-                else:
-                    self.consts[name] = Number(start, init.val, init.vartype)
 
             vars.append(
                 Variable(start, name, vartype, initializer=init)
@@ -184,10 +197,10 @@ class Toplevel():
     def _parse_expression(self):
         self.level += 1
         lhs = self._parse_primary()
+        self.level -= 1
 
         # Start with precedence 0 because we want to bind any operator to the
         # expression at this point.
-        self.level -= 1
 
         return self._parse_binop_rhs(0, lhs)
 
@@ -195,7 +208,7 @@ class Toplevel():
         start = self.cur_tok.position
         op = self.cur_tok.value
         self._get_next_token()
-        rhs = self._parse_primary()
+        rhs = self._parse_primary()        
         return Unary(start, op, rhs)
 
     def _parse_prototype(self, extern=False):
