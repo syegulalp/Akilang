@@ -1,4 +1,5 @@
 # Definitions for builtins
+# These may be moved directly into the compiler at some point
 
 const {
     False=0b
