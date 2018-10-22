@@ -10,7 +10,7 @@ from core.ast_module import (
 
 from core.vartypes import generate_vartypes
 from core.errors import ParseError, CodegenWarning
-from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
+from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED, IN_PLACE_OPS
 from core.tokens import Builtins, Decorators, Dunders
 
 from core.parsing.expressions import Expressions
@@ -66,6 +66,7 @@ class Parser(Expressions, Toplevel):
         self.expr_stack = []
         self.evaluator = None
         self.parse_actions = PARSE_ACTIONS
+        self.compile_constant = None
 
     def init_evaluator(self):
         if self.evaluator is None:
@@ -362,5 +363,14 @@ class Parser(Expressions, Toplevel):
                             f'possible confusion of assignment operator ("=") and equality test ("==") detected',
                             start))
 
+            # Replace in-place ops with their expanded counterparts
+            # and change the operator to a plain assignment
+
+            if op in IN_PLACE_OPS:
+                rhs = Binary(rhs.position, op[0], lhs, rhs)
+                op = op[-1]
+            
             # Merge lhs/rhs
+            
             lhs = Binary(start, op, lhs, rhs)
+            

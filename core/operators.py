@@ -41,6 +41,10 @@ UNASSIGNED = {
     '!', '$', '%', '`', '^', '&', '|', '\','
 }
 
+IN_PLACE_OPS = {
+    '+=','-='
+}
+
 FALSE_BINOP_INFO = BinOpInfo(-1, Associativity.UNDEFINED)
 
 
