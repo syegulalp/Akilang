@@ -621,6 +621,67 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(self.e.eval_all(n),56)
 
+    def test_uni_const_failure(self):
+        
+        # This should not be allowed
+        
+        self.e.reset()
+        n = '''
+        uni {
+            y=32
+            x:i32[3]=[y,16,32]
+        }
+        '''
+        
+        with self.assertRaises(CodegenError):
+            self.e.eval_all(n)
+
+
+    def test_array_const_init_with_compile_time_eval(self):
+        
+        # This should not be permitted
+        
+        self.e.reset()
+        n = '''
+        const {
+            y=8
+            x:i32[3]=[y,16,32]
+        }
+
+        def main(){
+            x[0]+=1
+            x[0]
+        }
+        main()
+        '''        
+
+        with self.assertRaises(CodegenError):
+            self.e.eval_all(n)
+        
+        self.e.reset()
+
+        # This, however, is okay
+
+        n = '''
+        const {
+            y=8
+            x:i32[3]=[y,16,32]
+        }
+
+        uni {
+            z=8
+            t:i32[3]=[y,16,32]
+        }
+
+        def main(){
+            t[0]+=1
+            x[0]+x[1]+x[2]+
+                t[0]+t[1]+t[2]
+        }
+        main()
+        '''
+        self.assertEqual(self.e.eval_all(n),113)   
+
     # Not valid yet
     
     def test_array_uni_init_extend(self):
