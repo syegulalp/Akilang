@@ -2,13 +2,15 @@ def run(**options):
     import sys, gc, msvcrt
     init_modules = set(sys.modules.keys())
     while True:
-        from core import repl
+        from core.repl import Repl
         from core.errors import ReloadException
         try:
-            repl.run(options)
+            #repl.run(options)
+            Repl().run(options)
             break
         except ReloadException:
-            del repl
+            del Repl
+            #del repl
             del ReloadException
             for m in reversed(list(sys.modules.keys())):
                 if m not in init_modules:

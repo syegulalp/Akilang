@@ -1,6 +1,5 @@
 from core.constants import PRODUCT, VERSION, COPYRIGHT, CONFIG_INI_DEFAULTS, ABOUT
 
-#import copy
 import colorama
 import llvmlite
 import sys
@@ -8,6 +7,7 @@ from importlib import reload
 from termcolor import colored, cprint
 colorama.init()
 
+from time import perf_counter
 
 def config():
     import configparser
@@ -37,16 +37,6 @@ from core import errors, vartypes, lexer, operators, parsing, ast_module, codege
 
 from core.errors import ReloadException
 
-
-EXAMPLES = [
-    'def add(a, b) a + b',
-    'add(1, 2)',
-    'add(add(1,2), add(3,4))',
-    'max(1,2)',
-    'max(max(1,2), max(3,4))',
-    'factorial(5)',
-]
-
 PROMPT = 'A>'
 
 USAGE = f"""From the {PROMPT} prompt, type Aki code or enter special commands
@@ -56,16 +46,13 @@ preceded by a dot sign:
     .compile|.cp  : Compile current module to executable.
     .dump|.dp     : Dump current module to console.
     .dumpfile|.df : Dump current module to .ll file.
-    .example      : Run some code examples.
     .exit|quit|stop|q
                   : Stop and exit the program.
     .export|ex <filename>
                   : Dump current module to file in LLVM assembler format.
-    .list|.l      : List all available language functions and operators.
+                  : Uses dump.ll in current direcory as default.
     .help|.       : Show this message.
-    .options|opts|op
-                  : Print the actual options settings.
-    .rerun|..     : Reload the python code and restart the REPL from scratch. 
+    .rerun|..     : Reload the Python code and restart the REPL. 
     .rl[c|r]      : Reset the interpreting engine and reload the last .aki
                     file loaded in the REPL. Add c to run .cp afterwards.
                     Add r to run main() afterwards.
@@ -74,9 +61,8 @@ preceded by a dot sign:
                     module.
     .test|tests   : Run unit tests.
     .version|ver  : Print version information.
-    .<file>.      : Run the given file .aki in the src directory.
+    .<file>.      : Load <file>.aki from the src directory.
                     For instance, .l. will load the Conway's Life demo.
-    .<option>     : Toggle the given option on/off.
 
 These commands are also available directly from the command line, for example: 
 
@@ -90,106 +76,105 @@ On the command line, the initial dot sign can be replaced with a double dash:
     aki --myfile.aki
     """
 
-
-history = []
-
-last_file = None
-
-
 def errprint(msg):
     cprint(msg, 'red', file=sys.stderr)
 
 
-def print_eval(ak, code, options=dict()):
-    """Evaluate the given code with evaluator engine ak using the given options.
-    Print the evaluation results. """
-    results = ak.eval_generator(code, options)
-    try:
-        for result in results:
-            if not result.value is None:
-                cprint(result.value, 'green')
-            else:
-                history.append(result.ast)
+class Repl():    
 
-            if options.get('verbose'):
-                print('\n>>> Raw IR >>>\n')
-                cprint(result.rawIR, 'green')
-                print('\n>>> Optimized IR >>>\n')
-                cprint(result.optIR, 'magenta')
-                print()
-    except lexer.AkiSyntaxError as err:
-        errprint(f'Syntax error: {err}')
-        ak.reset(history)
-    except parsing.ParseError as err:
-        errprint(f'Parse error: {err}')
-        ak.reset(history)
-    except codegen.CodegenError as err:
-        errprint(f'Eval error: {err}')
-        ak.reset(history)
-    except RuntimeError as err:
-        errprint(f'LLVM error: {err}')
-    except Exception as err:
-        errprint(str(type(err)) + ' : ' + str(err))
-        print(' Aborting.')
-        raise
+    def __init__(self):
+        self.commands = {
+            'test': self.run_tests,
+            'reset': self.reset,
+            '~': self.reset,
+            'rerun': self.reload_all,
+            '.': self.reload_all,
+            'r': self.run_program,
+            'run': self.run_program,
+            'help': self.print_usage,
+            '?': self.print_usage,
+            '': self.print_usage,
+            'dump': self.dump_module,
+            'dp': self.dump_module,
+            'dumpfile': self.dump_module_to_file,
+            'df': self.dump_module_to_file,
+            'compile': self.compile_module,
+            'cp': self.compile_module,
+            'export': self.export_module,
+            'ex': self.export_module,
+            'about': self.about,
+            'ab': self.about,
+            'quit': self.quit,
+            'exit': self.quit,
+            'stop': self.quit,
+            'q': self.quit,
+            'rl': self.reload_module,
+            'rlc': self.reload_module,
+            'rlr': self.reload_module,
+            'version': self.version,
+            'ver':self.version,
+            'v': self.version
 
+        }
+        
+        self.history = []
 
-def run_tests():
-    import unittest
-    tests = unittest.defaultTestLoader.discover("tests", "*.py")
-    unittest.TextTestRunner().run(tests)
+    def reset(self, *a):
+        reload(parsing)
+        self.executor.reset()
+        print ("Interpreting engine reset")
+        self.history = []
+        print ("Command history cleared")
+        self.last_file = None
 
-
-def print_funlist(funlist):
-    for func in funlist:
-
-        description = "{:>6} {:<20} ({})".format(
-            'extern' if func.is_declaration else '   def',
-            getattr(func, 'public_name', 'name'),
-            # func.name,
-            ', '.join(
-                (f'{arg.name}:{arg.type.describe()}' for arg in func.args))
+    def version(self, *a):
+        print('Python :', sys.version)
+        print('LLVM   :', '.'.join(
+            (str(n) for n in llvmlite.binding.llvm_version_info))
         )
-        cprint(description, 'yellow')
+        print('pyaki  :', VERSION)
+    
+    def reload_module(self, command):
+        if self.last_file is None:
+            errprint('No previous command to reload')
+            return
+        
+        reload(parsing)
+        self.executor.reset()
+        self.load_command(self.last_file)
 
+        if command == 'rlr':
+            self.run_program(command)
+        elif command == 'rlc':
+            self.compile_module(command)
+    
+    def reload_all(self, *a):
+        raise ReloadException()
 
-def print_functions(ak):
-    # Operators
-    print(colored('\nBuiltin operators:', 'green'),
-          *operators.builtin_operators())
+    def run_tests(self, *a):
+        import unittest
+        tests = unittest.defaultTestLoader.discover("tests", "*.py")
+        unittest.TextTestRunner().run(tests)
 
-    # User vs extern functions
-    sorted_functions = sorted(
-        ak.codegen.module.functions, key=lambda fun: fun.name)
-    user_functions = filter(lambda f: not f.is_declaration and getattr(
-        f, '_local_visibility', True), sorted_functions)
-    extern_functions = filter(lambda f: f.is_declaration and getattr(
-        f, '_local_visibility', True) is not False, sorted_functions)
+    def run_program(self, *a):
+        self.print_eval('main()')
+    
+    def print_usage(self, *a):
+        print(USAGE)
+    
+    def about(self, *a):
+        print(ABOUT)
+    
+    def quit(self, *a):
+        sys.exit()
 
-    cprint('\nUser defined functions and operators:\n', 'green')
-    print_funlist(user_functions)
+    def dump_module(self, *a):
+        print(self.executor.codegen.module)
 
-    cprint('\nExtern functions:\n', 'green')
-    print_funlist(extern_functions)
+    def compile_module(self, *a):
+        compiler.compile(self.executor.codegen, 'output')
 
-
-def run_repl_command(ak, command, options):
-    if command in options:
-        options[command] = not options[command]
-        print(command, '=', options[command])
-    elif command in ('example', 'examples'):
-        run_examples(ak, EXAMPLES, options)
-    elif command in ('dump', 'dp'):
-        print(ak.codegen.module)
-    elif command in ('dumpfile', 'df'):
-        output = str(ak.codegen.module)
-        filename = f'{paths["dump_dir"]}\\dump.ll'
-        with open(filename, 'w') as file:
-            file.write(output)
-        print(f'{len(output)} bytes written to {filename}')
-    elif command in ('compile', 'cp'):
-        compiler.compile(ak.codegen, 'output')
-    elif command in ('export', 'ex') or command.startswith('export '):
+    def export_module(self, command):
         try:
             filename = command.split(' ')[1]
             if '.' not in filename:
@@ -199,118 +184,111 @@ def run_repl_command(ak, command, options):
             filename = f'output{os.sep}output.ll'
 
         with open(filename, 'w') as file:
-            output = str(ak.codegen.module)
+            output = str(self.executor.codegen.module)
+            file.write(output)
+        
+        print(f'{len(output)} bytes written to {filename}')
+
+    def dump_module_to_file(self, *a):
+        output = str(self.executor.codegen.module)
+        filename = f'{paths["dump_dir"]}\\dump.ll'
+        with open(filename, 'w') as file:
             file.write(output)
         print(f'{len(output)} bytes written to {filename}')
-    elif command in ('list', 'l'):
-        print_functions(ak)
-    elif command in ('help', '?', ''):
-        print(USAGE)
-    elif command in ('about', 'ab'):
-        print(ABOUT)
-    elif command in ('options', 'opts', 'op'):
-        print(options)
-    elif command in ('quit', 'exit', 'stop', 'q'):
-        sys.exit()
-    elif command in ('rerun', '.'):
-        raise ReloadException()
-    elif command in ('reset', '~'):
-        reload(parsing)
-        ak.reset()
-        global history
-        history = []
-    elif command in ('run', 'r'):
-        print_eval(ak, 'main()', options)
-        #del ak.codegen.module.globals['_ANONYMOUS.1']
-    elif command in ('rl', 'rlc', 'rlr'):
-        if last_file is None:
-            errprint('No previous command to reload')
+
+    def load_command(self, command):
+        if command[-1] == '.':
+            command+='aki'
+        try:
+            with open(f'{paths["source_dir"]}\\{command}', encoding='utf8') as file:
+                f = file.read()
+                print(f'{command} read in ({len(f)} bytes)')
+                self.last_file = command
+                start_time=perf_counter()
+                self.print_eval(f)
+                finish_time=perf_counter()-start_time
+                print (f"Compile time: {finish_time:.3f}s")
+
+        except (FileNotFoundError, OSError):
+            errprint("File or command not found: " + command)
+
+    def print_eval(self, code):
+        '''
+        Evaluate the given code with evaluator engine
+        using the instance options.
+        Print the evaluation results.
+        '''
+        results = self.executor.eval_generator(code)
+        try:
+            for result in results:
+                if not result.value is None:
+                    cprint(result.value, 'green')
+                else:
+                    self.history.append(result.ast)
+                if self.options.get('verbose'):
+                    print('\n>>> Raw IR >>>\n')
+                    cprint(result.rawIR, 'green')
+                    print('\n>>> Optimized IR >>>\n')
+                    cprint(result.optIR, 'magenta')
+                    print()
+        except lexer.AkiSyntaxError as err:
+            errprint(f'Syntax error: {err}')
+            self.executor.reset(history)
+        except parsing.ParseError as err:
+            errprint(f'Parse error: {err}')
+            self.executor.reset(self.history)
+        except codegen.CodegenError as err:
+            errprint(f'Eval error: {err}')
+            self.executor.reset(self.history)
+        except RuntimeError as err:
+            errprint(f'LLVM error: {err}')
+        except Exception as err:
+            errprint(str(type(err)) + ' : ' + str(err))
+            print('Aborting.')
+            self.executor.reset()
+
+    def run_command(self, command):        
+        print(colorama.Fore.YELLOW, end='')
+        
+        if not command:
+            pass
+        elif command[0] == '.':
+            # run dot command
+            self.run_repl_command(command[1:])
         else:
-            reload(parsing)
-            ak.reset()
-            load_command(last_file, ak, options)
-        if command == 'rlr':
-            print_eval(ak, 'main()', options)
-        elif command == 'rlc':
-            compiler.compile(ak.codegen, 'output')
-    elif command in ('test', 'tests'):
-        run_tests()
-    elif command in ('version', 'ver'):
-        print('Python :', sys.version)
-        print('LLVM   :', '.'.join(
-            (str(n) for n in llvmlite.binding.llvm_version_info))
+            # command is an akilang code snippet so run it
+            self.print_eval(command)
+
+        print(colorama.Style.RESET_ALL, end='')
+
+    def run_repl_command(self, command):
+        
+        try:
+            self.commands[command](command)
+        except KeyError:
+            self.load_command(command)
+
+    def run(self, *a):
+        self.core_vartypes = vartypes.generate_vartypes()        
+        self.options = locals()
+        self.options.pop('a')
+        
+        self.executor = codexec.AkilangEvaluator(
+            f'{paths["lib_dir"]}',
+            f'{paths["basiclib"]}',
+            vartypes=self.core_vartypes
         )
-        print('pyaki  :', VERSION)
-    elif command:
-        load_command(command, ak, options)
 
+        if len(sys.argv) >= 2:
+            command = ' '.join(sys.argv[1:]).replace('--', '.')
+            self.run_command(command)
+        else:
+            # Enter a REPL loop
+            cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
+            cprint('Type help or a command to be interpreted', 'green')
+            command = ""
+            while not command in ['exit', 'quit']:
+                self.run_command(command)
+                cprint(PROMPT, 'white', end='')
+                command = input().strip()
 
-def load_command(command, ak, options):
-        # Here the command should be a filename, open it and run its content
-
-    if command[-1] == '.':
-        command += 'aki'
-    try:
-        with open(f'{paths["source_dir"]}\\{command}', encoding='utf8') as file:
-            f = file.read()
-            print(f'{command} read in ({len(f)} bytes)')
-            global last_file
-            last_file = command
-            print_eval(ak, f, options)
-
-    except FileNotFoundError:
-        errprint("File or command not found: " + command)
-    except OSError:
-        errprint("File or command not found: " + command)
-
-
-def run_command(ak, command, options):
-    print(colorama.Fore.YELLOW, end='')
-    if not command:
-        pass
-    elif command in ['help', 'quit', 'exit', 'stop', 'test']:
-        run_repl_command(ak, command, options)
-    elif command[0] == '.':
-        run_repl_command(ak, command[1:], options)
-    else:
-        # command is an akilang code snippet so run it
-        print_eval(ak, command, options)
-    print(colorama.Style.RESET_ALL, end='')
-
-
-def run_examples(ak, commands, options):
-    for command in commands:
-        print(PROMPT, command)
-        print_eval(ak, command, options)
-
-
-def run(*a, optimize=True, llvmdump=False, noexec=False, parseonly=False, verbose=False):
-    core_vartypes = vartypes.generate_vartypes()
-    options = locals()
-    options.pop('a')
-    k = codexec.AkilangEvaluator(
-        f'{paths["lib_dir"]}',
-        f'{paths["basiclib"]}',
-        vartypes=core_vartypes
-    )
-
-    # If some arguments passed in, run that command then exit
-    if len(sys.argv) >= 2:
-        command = ' '.join(sys.argv[1:]).replace('--', '.')
-        run_command(k, command, options)
-    else:
-        # Enter a REPL loop
-        cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
-        cprint('Type help or a command to be interpreted', 'green')
-        command = ""
-        while not command in ['exit', 'quit']:
-            run_command(k, command, options)
-            cprint(PROMPT, 'white', end='')
-            command = input().strip()
-
-# to add:
-# .ed <filename>: Create/open an .aki file (do not specify extension) in
-#                 the src directory, using the system default editor for
-#                 .aki files. The resulting file can then be loaded and
-#                 run by way of the .rl command.
-# .launch|.ll   : Compile current module to executable and launch it.
