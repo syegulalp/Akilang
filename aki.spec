@@ -2,8 +2,8 @@
 
 block_cipher = None
 
-workpath = '_build'
-DISTPATH = '_dist'
+workpath = '_exe/_build'
+DISTPATH = '_exe/_dist'
 
 a = Analysis(['aki.py'],
              pathex=['D:\\Genji\\Documents\\Current\\Video games\\aki'],
@@ -13,12 +13,13 @@ a = Analysis(['aki.py'],
              ('src', ''),
              ('tests', ''),
              ],
-             hiddenimports=['core.*','core.stdlib',
-             'core.stdlib.nt'],
+             hiddenimports=['core.*','core.codegen',
+             'core.parsing','tests'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[
-                 'bz2','hashlib','lzma','socket','ssl', 'pyexpat','select'
+                 'bz2','hashlib','lzma','socket',
+                 'ssl', 'pyexpat','select'
              ],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
