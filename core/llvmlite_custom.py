@@ -65,6 +65,7 @@ class MyType():
 
 
 ir.types.Type.describe = MyType.describe
+ir.types.Type.is_obj = MyType.is_obj
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
 ir.types.Type.is_func = MyType.is_func
 ir.types.Type.signature = MyType.signature

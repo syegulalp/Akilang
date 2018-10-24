@@ -153,6 +153,22 @@ class String(Expr):
     def __str__(self):
         return f'"{self.val}"'
 
+class FString(Expr):
+    def __init__(self, position, elements):
+        super().__init__(position)
+        self.name = f"'{str(elements[0])[:32]}...'"
+        self.elements = elements
+        self.position = position
+
+    def flatten(self):
+        return [self.__class__.__name__, self.name]
+
+    def __eq__(self, other):
+        return self.elements == other.elements
+
+    def __str__(self):
+        return f'"{self.name}"'
+
 
 class Variable(Expr):
     def __init__(self, position, name, vartype=None, child=None, initializer=None):

@@ -76,6 +76,23 @@ class Parser(Expressions, Toplevel):
             self.evaluator.reset()
         return self.evaluator
 
+    def parse_single_expression(self, buf):
+        '''
+        Parses a string containing a single expression into an AST node.
+        If there's already an existing token generator, this will fail.
+        You need to instantiate an entirely new Parser to use this.
+        '''
+        assert self.token_generator is None
+
+        self.token_generator = Lexer(buf, vartypes=self.vartypes).tokens()
+        self.cur_tok = None
+        self._get_next_token()
+        while self.cur_tok.kind != TokenKind.EOF:
+            yield self._parse_expression()
+        
+        self.token_generator = None
+
+    
     def parse_toplevel(self, buf):
         '''
         Parse the next top-level token into an AST node.

@@ -1,6 +1,6 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError, CodegenWarning
-from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global
+from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString
 from core.mangling import mangle_call
 from core.vartypes import ArrayClass
 
@@ -18,6 +18,9 @@ class Vars():
 
     def _codegen_VariableType(self, node):
         return node.vartype
+
+    def _codegen_Constant(self, node):
+        return node
 
     def _codegen_AllocaInstr(self, node):
         return node
@@ -713,3 +716,57 @@ class Vars():
         self.builder.store(value, ptr)
 
         return value
+
+    def _codegen_FString(self, node):
+
+        # I'm thinking of making this a special case that is
+        # not accessible from conventional codegen calls
+
+        format_string = []
+        variable_list = []
+
+        if isinstance(node, FString):
+            elements = node.elements
+        else:
+            elements = [node]
+
+        for n in elements:
+            if isinstance(n, String):
+                format_string.append(n.val)
+            
+            elif isinstance(n, Number):
+                element = self._codegen(n)
+                format_type = element.type.p_fmt
+                format_string.append(format_type)       
+                variable_list.append(element)
+            
+            elif isinstance(n, (Variable, ItemList)):                    
+                element = self._get_obj_noload(node, n)
+                format_type= element.type.p_fmt
+
+                if format_type == '%s':
+                    var_app = Call(
+                        node.position,
+                        'c_data',
+                        [n]
+                    )
+
+                elif format_type in ('%u', '%i', '%f'):
+                    var_app = self.builder.load(element)
+
+                else:
+                    self._if_unsafe(
+                        node, f' (variable "{n.name}" is potentially raw data)'
+                    )
+                    format_type = '%s'
+                    
+                    var_app = Call(
+                        node.position,
+                        'c_data',
+                        [n]
+                    )                        
+                
+                format_string.append(format_type)                    
+                variable_list.append(var_app)
+        
+        return (format_string, variable_list)

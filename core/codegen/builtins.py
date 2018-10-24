@@ -1,5 +1,5 @@
 from core.errors import CodegenError, CodegenWarning
-from core.ast_module import Variable, Call, Number, String
+from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary
 import llvmlite.ir as ir
 import re
 
@@ -13,6 +13,13 @@ class Builtins():
             raise CodegenError(
                 f'Operation must be enclosed in an "unsafe" block{explanation}', node.position)
 
+    def _check_arg_length(self, node, min_args=1):
+        if len(node.args)<min_args:
+            raise CodegenError(
+                f'Operation requires at least one argument',
+                node.position
+            )
+    
     def _check_pointer(self, obj, node):
         '''
         Determines if a given item is a pointer or object.
@@ -21,18 +28,30 @@ class Builtins():
             raise CodegenError('Parameter must be a pointer or object',
                                node.args[0].position)
 
-    def _get_obj_noload(self, node, ptr_check=True):
+    # TODO: This needs to be reworked so the behavior is altered
+    # based on whether or not we get back a LoadInstr
+    
+    def _get_obj_noload(self, node, arg=None, ptr_check=True):
         '''
-        Returns a pointer to a codegenned object.
+        Returns a pointer (or variable reference) to a codegenned object.
         '''
-        arg = node.args[0]
+        if not arg:
+            arg = node.args[0]
+        
         if isinstance(arg, Variable):
             codegen = self._codegen_Variable(arg, noload=True)
         else:
             codegen = self._codegen(arg)
+        
         if ptr_check:
             self._check_pointer(codegen, node)
         return codegen
+
+        # retun more if needed:
+        # original codegen (with noload)
+        # loaded codegen
+        # is variable?
+        # is pointer?
 
     def _codegen_Builtins_c_obj_alloc(self, node):
 
@@ -40,6 +59,8 @@ class Builtins():
 
         # In time we will phase this out and replace it with
         # all generic calls to <type>.__new__()
+
+        self._check_arg_length(node)
 
         vt = node.args[0]
         v1 = vt.vartype
@@ -77,40 +98,13 @@ class Builtins():
 
         return b2
 
-    # def _codegen_Builtins_c_obj_alloc(self, node):
-    #     '''
-    #     Allocates bytes for an object of the type submitted.
-    #     Eventually we will be able to submit a type directly.
-    #     For now, use a throwaway closure that generates
-    #     an object of the type you want to use
-    #     E.g., for an i32[8]:
-    #     var x=c_obj_alloc({with var z:i32[8] z})
-    #     (the contents of the closure are optimized out
-    #     at compile time)
-    #     '''
-
-    #     expr = self._get_obj_noload(node)
-    #     e2 = self.builder.load(expr)
-    #     sizeof = self._obj_size(e2)
-
-    #     call = self._codegen_Call(
-    #         Call(node.position, 'c_alloc',
-    #              [Number(node.position, sizeof, self.vartypes.u_size)]))
-
-    #     b1 = self.builder.bitcast(call, expr.type)  # pylint: disable=E1111
-    #     b2 = self.builder.alloca(b1.type)
-    #     self.builder.store(b1, b2)
-
-    #     b2.do_not_allocate = True
-    #     b2.heap_alloc = True
-    #     b2.tracked = True
-
-    #     return b2
-
     def _codegen_Builtins_c_obj_free(self, node):
         '''
         Deallocates memory for an object created with c_obj_alloc.
         '''
+
+        self._check_arg_length(node)
+
         expr = self._get_obj_noload(node)
 
         if not expr.tracked:
@@ -137,12 +131,17 @@ class Builtins():
         '''
         Returns a typed pointer to the object.
         '''
+        
+        self._check_arg_length(node)
+
         expr = self._get_obj_noload(node)
         s1 = self._alloca('obj_ref', expr.type)
         self.builder.store(expr, s1)
         return s1
 
     def _codegen_Builtins_c_ptr_math(self, node):
+
+        self._check_arg_length(node,2)
 
         ptr = self._codegen(node.args[0])
         int_from_ptr = self.builder.ptrtoint(ptr, self.vartypes.u_size)
@@ -155,14 +154,24 @@ class Builtins():
         return add_result
 
     def _codegen_Builtins_c_ptr_mod(self, node):
+
         self._if_unsafe(node)
+        self._check_arg_length(node,2)
 
         ptr = self._codegen(node.args[0])
         value = self._codegen(node.args[1])
         self.builder.store(value, ptr)
+        
+        # XXX: I'm assuming a modified pointer object
+        # cannot be automatically disposed b/c
+        # we edit it manually
+        
+        ptr.tracked = False
+
         return ptr
 
     def _codegen_Builtins_c_gep(self, node):
+        self._check_arg_length(node)
         obj = self._codegen(node.args[0])
 
         if (len(node.args)) < 2:
@@ -183,6 +192,7 @@ class Builtins():
         return gep
 
     def _codegen_Builtins_c_ptr_int(self, node):
+        self._check_arg_length(node)
         ptr = self._codegen(node.args[0])
         int_val = self.builder.ptrtoint(ptr, self.vartypes.u_size)
         return int_val
@@ -194,6 +204,7 @@ class Builtins():
         underlying string, but the size of the *structure*
         that describes a string.
         '''
+        self._check_arg_length(node)
         expr = self._codegen(node.args[0])
 
         if expr.type.is_obj_ptr():
@@ -205,91 +216,122 @@ class Builtins():
 
         return ir.Constant(self.vartypes.u_size, s2)
 
-    # def _codegen_Builtins_c_obj_size(self, node):
-    #     convert_from = self._get_obj_noload(node)
 
-    #     # get direct pointer to object
-    #     s0 = self.builder.load(convert_from)
 
-    #     # get actual data element pointer
-    #     s1 = self.builder.gep(
-    #         s0,
-    #         [
-    #             self._i32(0),
-    #             self._i32(1)
-    #         ]
-    #     )
-
-    #     # dereference that to get the underlying data element
-    #     s1 = self.builder.load(s1)
-
-    #     # determine its size
-    #     s2 = self._obj_size_type(s1.type)
-
-    #     return ir.Constant(self.vartypes.u_size, s2)
-
-    # def _codegen_Builtins_c_ptr_set(self, node):
-    #     '''
-    #     Sets a pointer to a region of memory specified by
-    #     an integer.
-    #     '''
-
-    #     ptr = self._codegen(node.args[0])
-    #     if len(node.args)<2:
-    #         target = self._codegen(
-    #             Number(
-    #                 node.position,
-    #                 0,
-    #                 self.vartypes.u_size
-    #             )
-    #         )
-    #     else:
-    #         target = self._codegen(node.args[1])
-    #     t2 = self.builder.inttoptr(target, ptr.type)
-    #     return t2
-
-    def _codegen_Builtins_c_data(self, node):
+    def _extract_data_ptr(self, convert_from, node):
         '''
-        Returns the underlying C-style data element
-        for an object.
+        Follows the generic u_mem data pointer
+        in an object header to the object data
         '''
-
-        convert_from = self._codegen(node.args[0])
 
         gep = self.builder.gep(
             convert_from,
             [
+                #object instance
+                self._i32(0), 
+                #header
                 self._i32(0),
-                self._i32(0),
+                #ptr to mem
                 self._i32(1),
             ]
         )
 
         gep = self.builder.load(gep)
+        gep.type.p_fmt = None
         return gep
 
-    def _codegen_Builtins_c_array_ptr(self, node):
+    def _extract_ptr(self, convert_from, node):
         '''
-        Returns a raw u_mem pointer to the start of an array object.
+        Returns a generic u_mem pointer
+        to the first element of an object
         '''
-        convert_from = self._get_obj_noload(node)
-
-        convert_from = self.builder.load(convert_from)
         gep = self.builder.gep(
             convert_from,
-            [self._i32(0),
-             self._i32(1),
-             ]
+            [
+                self._i32(0),
+            ]
         )
+
         bc = self.builder.bitcast(
-            gep, self.vartypes.u_mem.as_pointer())  # pylint: disable=E1111
+            gep, self.vartypes.u_mem.as_pointer(),
+            '.array.ptr'
+            )  # pylint: disable=E1111
+        
         return bc
+
+
+    def _extract_array(self, convert_from, node):
+        '''
+        Returns a generic u_mem pointer
+        to the start of an object's data body
+        '''
+        gep = self.builder.gep(
+            convert_from,
+            [
+                #object instance
+                self._i32(0),
+                #ptr to body
+                self._i32(1),
+            ]
+        )
+
+        bc = self.builder.bitcast(
+            gep, self.vartypes.u_mem.as_pointer(),
+            '.array.ptr'
+            )  # pylint: disable=E1111
+        
+        return bc
+
+
+    def _codegen_Builtins_c_data(self, node):
+        '''
+        Returns the underlying C-style data element
+        for an object with a pointer to the data.
+        '''
+
+        self._check_arg_length(node)
+
+        convert_from = self._codegen(node.args[0])
+
+        if isinstance(
+            convert_from.type.pointee,
+            self.vartypes._str
+        ):
+            return self._extract_data_ptr(
+                convert_from, node
+            )
+            
+        elif isinstance(
+            convert_from.type.pointee,
+            self.vartypes._array
+        ):
+            return self._extract_ptr(
+                convert_from, node
+            )
+
+        elif isinstance(
+            convert_from.type.pointee,
+            self.vartypes._arrayclass
+        ):
+            return self._extract_array(
+                convert_from, node
+            )
+
+        else:
+            raise CodegenError(
+                f'Error extracting c_data pointer',
+                node.position
+            )
+
 
     def _codegen_Builtins_c_ptr(self, node):
         '''
         Returns a u_mem ptr to anything
         '''
         self._if_unsafe(node)
+        
+        self._check_arg_length(node)
+
         address_of = self._codegen(node.args[0])
 
         if len(node.args) > 1:
@@ -303,6 +345,8 @@ class Builtins():
         '''
         Returns an unsigned value that is the address of the object in memory.
         '''
+        self._check_arg_length(node)
+
         address_of = self._get_obj_noload(node)
         return self.builder.ptrtoint(address_of, self.vartypes.u_size)
 
@@ -313,6 +357,7 @@ class Builtins():
         '''
         Dereferences a pointer to a primitive, like an int.
         '''
+        self._check_arg_length(node)
 
         ptr = self._get_obj_noload(node)
         ptr2 = self.builder.load(ptr)
@@ -332,6 +377,8 @@ class Builtins():
         '''
         Returns a typed pointer to a primitive, like an int.
         '''
+        
+        self._check_arg_length(node)
 
         expr = self._get_obj_noload(node)
 
@@ -347,6 +394,8 @@ class Builtins():
         Dereferences a pointer (itself passed as a pointer)
         and returns the object at the memory location.
         '''
+        
+        self._check_arg_length(node)
 
         ptr = self._codegen(node.args[0])
         ptr2 = self.builder.load(ptr)
@@ -361,6 +410,7 @@ class Builtins():
         Ignores signing.
         Will truncate bitwidths.
         '''
+        self._check_arg_length(node, 2)
 
         cast_from = self._codegen(node.args[0])
         cast_to = self._codegen(node.args[1], False)
@@ -454,6 +504,9 @@ class Builtins():
         Checks for signing and bitwidth.
         Conversions from or to pointers are not supported here.
         '''
+
+        self._check_arg_length(node, 2)
+
         convert_from = self._codegen(node.args[0])
         convert_to = self._codegen(node.args[1], False)
 
@@ -544,63 +597,41 @@ class Builtins():
         result.type = convert_to
         return result
 
-    def _codegen_Builtins_out(self, node):
-        in_template = re.split(r'([{}])', node.args[0].val)
+    # def _codegen_Builtin_c_out(self, node):
+    #     print (node.__dict__)
+    
+    def _codegen_Builtins_print(self, node):
 
-        var_names = []
-        escape = False
-        open_br = False
-
-        for n in in_template:
-            if n == r'{' and not escape:
-                open_br = True
-                continue
-            if n == r'}' and not escape:
-                open_br = False
-                continue
-            if open_br:
-                var_ref = self._varaddr(n, False)
-                var_names.append([var_ref.type.p_fmt, n])
-                continue
-            escape = False
-            if n and n[-1] == '\\':
-                escape = True
-                n = n[0:-1]
-            n = n.replace('%', '%%')
-            var_names.append([n, None])
+        self._check_arg_length(node)
 
         format_string = []
         variable_list = []
 
-        for n in var_names:
-            format_string.append(n[0])
+        spacer = ''
+        separator = ''
 
-            if n[1] is None:
-                continue
+        for arg in node.args:
+            
+            format_string.append(spacer)
 
-            if n[0] == '%s':
-                var_app = Call(
-                    node.position,
-                    'c_data',
-                    [Variable(node.position, n[1])]
+            if isinstance(arg, String):
+                arg.val = arg.val.replace(r'%',r'%%')
+            
+            if not isinstance(arg, FString):
+                arg = FString(
+                    arg.position,
+                    [arg]
                 )
 
-            elif n[0] in ('%u', '%i', '%f'):
-                var_app = Variable(node.position, n[1])
+            new_format_string, new_variable_list = self._codegen_FString(arg)
 
-            else:
-                self._if_unsafe(
-                    node, f' (variable "{n[1]}" is potentially raw data)')
-                n[0] = '%s'
-                format_string[-1] = '%s'
-                var_app = Call(
-                    node.position,
-                    'c_array_ptr',
-                    [Variable(node.position, n[1])]
-                )
+            format_string+=new_format_string
+            variable_list+=new_variable_list
 
-            variable_list.append(var_app)
-
+            spacer = ' '
+        
+        format_string.append(separator)
+        
         str_to_extract = String(node.position, ''.join(format_string))
 
         convert = Call(
@@ -609,13 +640,13 @@ class Builtins():
             [str_to_extract]
         )
 
-        variable_list.insert(0, convert)
+        final_vars = [convert] + variable_list
 
         return self._codegen(
             Call(
                 node.position,
                 'printf',
-                variable_list,
+                final_vars,
                 self.vartypes.i32
             )
         )

@@ -245,7 +245,8 @@ class Repl():
         except Exception as err:
             errprint(str(type(err)) + ' : ' + str(err))
             print('Aborting.')
-            self.executor.reset()
+            #self.executor.reset()
+            raise err
 
     def run_command(self, command):        
         print(colorama.Fore.YELLOW, end='')

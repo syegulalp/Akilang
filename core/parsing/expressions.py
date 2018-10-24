@@ -4,13 +4,15 @@ from core.ast_module import (
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
     Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number,
     VariableType, Unsafe, Continue, Try, Raise,
-    Pass
+    Pass, FString
 )
-#from core.vartypes import DEFAULT_TYPE, CustomClass, VarTypes, ArrayClass
-from core.vartypes import CustomClass, ArrayClass
+#from core.vartypes import DEFAULT_TYPE, CustomType, VarTypes, ArrayClass
+from core.vartypes import CustomType, ArrayClass
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Dunders
+
+import re
 
 # pylint: disable=E1101
 
@@ -176,7 +178,47 @@ class Expressions():
     def _parse_string_expr(self):
         cur = self.cur_tok
         self._get_next_token()
-        return String(cur.position, cur.value)
+        
+        if r'{' not in cur.value:
+            return String(cur.position, cur.value)
+        
+        in_template = re.split(r'([{}])', cur.value)
+
+        exprs = []
+        escape = False
+        open_br = False
+
+        for n in in_template:
+            if n == r'{' and not escape:
+                open_br = True
+                continue
+            if n == r'}' and not escape:
+                open_br = False
+                continue
+            if open_br:
+                local_parser = self.__class__()
+                for x in local_parser.parse_single_expression(n):
+                    exprs.append(x)
+                continue
+            
+            escape = False
+            if n and n[-1] == '\\':
+                escape = True
+                n = n[0:-1]
+            
+            n = n.replace(r'%', r'%%')
+
+            exprs.append(
+                String(cur.position, n)
+            )
+
+        # another way to do this:
+        # keep count of how many actual unescaped {} we have
+        # if that count is zero, return a regular string
+        # if that count is nonzero, return an fstring
+        # that way all the escaping can be performed at once?
+        
+        return FString(cur.position, exprs)
 
     def _parse_vartype_expr(self):
         # This is an exception - it doesn't return an AST node,
@@ -320,8 +362,8 @@ class Expressions():
             if self._cur_tok_is_punctuator('}'):
                 self._get_next_token()
                 break
-        if len(expr_list) == 1:
-            return expr_list[0]
+        #if len(expr_list) == 1:
+            #return expr_list[0]
         return Do(start, expr_list)
 
     def _parse_class_expr(self):
@@ -352,7 +394,7 @@ class Expressions():
             v_types[k] = {'pos': n, 'type': v}
             n += 1
 
-        vartype = CustomClass(class_name, types, v_types)
+        vartype = CustomType(class_name, types, v_types)
 
         new_class = Class(class_name, vars, vartype)
 

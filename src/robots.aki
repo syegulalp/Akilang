@@ -50,7 +50,7 @@ def show(dead_robots){
 
     display[(player.y*(WIDTH+1))+player.x]=232B
 
-    unsafe out ("Dead robots: {dead_robots}\n{display}")
+    unsafe print ("Dead robots: {dead_robots}\n{display}")
 }
 
 def location(v) {
@@ -111,10 +111,10 @@ def setup(){
 }
 
 def main(){
-    print ("Robot Attack")
+    print ("Robot Attack\n")
     with var x:i32 {
         loop {
-            out ("Do you need instructions? [y/n/q] > ")
+            print ("Do you need instructions? [y/n/q] > ")
             x=inkey()
             match x {
                 121: {x=1 break}
@@ -207,7 +207,7 @@ Press Space to pass a turn without making a move.
                     when field[robot.x+xvec,robot.y+yvec] == FENCE then {
                         robot.killed=1b
                         dead_robots+=1
-                        out ("Robot {x} killed!\n")
+                        print ("Robot {x} killed!\n")
                         continue
                     }
 
@@ -223,7 +223,7 @@ Press Space to pass a turn without making a move.
                         }
 
                     when robot.x==player.x and robot.y==player.y then {
-                        out ("FROTZZZZZZ\nYou were killed by robot {x}.\n")
+                        print ("FROTZZZZZZ\nYou were killed by robot {x}.\n")
                         dead=1
                         break
                     }
@@ -243,7 +243,7 @@ Press Space to pass a turn without making a move.
 
         with var x:i32 {
             loop {
-                out ("\nPlay again? [y/n] > ")
+                print ("\nPlay again? [y/n] > ")
                 x=inkey()
                 match x {
                     121: {x=1 break}

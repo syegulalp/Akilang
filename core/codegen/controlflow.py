@@ -1,7 +1,7 @@
 from core.ast_module import Var, Binary, Variable, Number
 from core.vartypes import SignedInt, ArrayClass
 from core.errors import CodegenError, ParseError, BlockExit
-from core.tokens import Builtins, Dunders
+from core.tokens import Builtins, Dunders, Builtin
 from core.mangling import mangle_types
 
 import llvmlite.ir as ir
@@ -552,12 +552,31 @@ class ControlFlow():
         return self.builder.load(return_var)
 
     def _codegen_Call(self, node, obj_method=False):
+
+        # if node.name in Builtin:
+        #     return getattr(self, '_codegen_Builtin_' + node.name)(node)
+        
         if not obj_method:
             if node.name in Dunders:
                 return self._codegen_dunder_methods(node)
             if node.name in Builtins:
                 return getattr(self, '_codegen_Builtins_' + node.name)(node)
 
+        # Another approach to all this:
+        # For each unmangled function, we keep a master list
+        # of all its mangled versions.
+        # This narrows down the search we have to conduct,
+        # and it makes it easier to look for things like 
+        # varargs and kwargs
+        
+        # for builtins, populate these lists
+        # ahead of time. this way the codegen for opt-arg
+        # matching is correct
+
+        # the precomputed call args are in the function signature style
+        # because they are builtins, they could be precomputed
+        # they don't depend on any variables in a user program
+        
         call_args = []
         possible_opt_args_funcs = set()
 
@@ -608,6 +627,7 @@ class ControlFlow():
                 for n in range(len(call_args), len(f1.args)):
                     call_args.append(f1.args[n].default_value)
 
+       
         # Determine if this is a function pointer
 
         try:

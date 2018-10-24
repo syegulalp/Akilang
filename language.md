@@ -63,7 +63,6 @@ This is a document of Aki syntax and usage.
 - [Builtin functions](#builtin-functions)
     - [`c_addr`](#c_addr)
     - [`c_alloc` / `c_free`](#c_alloc--c_free)
-    - [`c_array_ptr`](#c_array_ptr)
     - [`c_data`](#c_data)
     - [`c_gep`](#c_gep)
     - [`c_ref` / `c_deref`](#c_ref--c_deref)
@@ -826,12 +825,6 @@ Returns the location of an object in memory, as an integer. The bitwidth of the 
 ## `c_alloc` / `c_free`
 
 Allocate *n* bytes from the heap to a pointer; free bytes associated with a given pointer.
-
-## `c_array_ptr`
-
-Returns a raw u8 pointer to the start of an array or structure.
-
-> ⚠ This function is likely to be removed.
 
 ## `c_data`
 

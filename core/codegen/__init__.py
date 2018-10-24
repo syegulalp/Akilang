@@ -77,6 +77,8 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
 
         self.evaluator = None
 
+        
+
     def init_evaluator(self):
         if self.evaluator is None:
             from core import codexec

@@ -72,7 +72,7 @@ Token = namedtuple('Token', 'kind value vartype position')
 Builtins = {
     'c_addr',
     # c_alloc/c_free are provided by platformlib
-    'c_array_ptr',
+    #'c_array_ptr',
     'c_data',
     'c_gep',
     # 'c_raw_obj',
@@ -89,8 +89,16 @@ Builtins = {
     'c_ptr_mod',
     'cast', 'convert',
     # 'make',
-    'out',
+    # 'out',
+    'print',
     'dummy'
+}
+
+Builtin = {
+    'c_out': (
+        ('*args'),
+        ('end:str')
+    )
 }
 
 Dunders = {

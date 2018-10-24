@@ -72,7 +72,7 @@ class Array(ir.ArrayType):
         self.as_pointer = make_type_as_ptr(self)
 
 
-class CustomClass():
+class CustomType():
     def __new__(cls, name, types, v_types):
         new_class = ir.global_context.get_identified_type('.class.' + name)
         new_class.elements = types
@@ -265,6 +265,11 @@ def generate_vartypes(module=None, bytesize=8):
     # set platform-dependent sizes
     _vartypes._byte_width = _byte_width
     _vartypes._pointer_width = _pointer_width
+
+    _vartypes._arrayclass = ArrayClass
+    _vartypes._array = Array
+
+    _vartypes._str = type(Str)
 
     _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_width)
     _vartypes['u_mem'] = UnsignedInt(_vartypes._byte_width)
