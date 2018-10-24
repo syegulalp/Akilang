@@ -59,7 +59,7 @@ def show() {
     }
     output[z]=0B
     
-    unsafe print('Generation: {gen} -- Population: {pop}\n{divider}\n{output}{divider}\n')
+    unsafe print('Generation: {gen} -- Population: {pop}\n{divider}\n{output}{divider}')
        
 }
 
@@ -110,10 +110,10 @@ def main(){
         match inkey() {
             113, 81: break
             114, 82: {
-                print("Randomize!\n")
+                print("Randomize!")
                 randomize()                
             }
-            default: print("Next gen\n")            
+            default: print("Next gen")
         }
         life()
     }

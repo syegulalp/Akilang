@@ -1,4 +1,4 @@
-from core.errors import CodegenError, CodegenWarning
+from core.errors import CodegenError, CodegenWarning, ParameterFormatError
 from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary
 import llvmlite.ir as ir
 import re
@@ -597,9 +597,6 @@ class Builtins():
         result.type = convert_to
         return result
 
-    # def _codegen_Builtin_c_out(self, node):
-    #     print (node.__dict__)
-    
     def _codegen_Builtins_print(self, node):
 
         self._check_arg_length(node)
@@ -608,7 +605,43 @@ class Builtins():
         variable_list = []
 
         spacer = ''
-        separator = ''
+        separator = '\n'
+        
+        # This is a crude, hacky way to implement varargs and kwargs.
+        # Eventually I'm going to find a better way to do this
+        # once we have the ability to box and unbox types, since we
+        # can apply that to things other than builtins.
+
+        for n1 in reversed(node.args):
+            n=n1
+            
+            if not isinstance(n, Binary):
+                break
+            
+            node.args.pop()
+
+            try:
+                if not isinstance(n.lhs, Variable):
+                    raise ParameterFormatError
+                if n.op != "=":
+                    raise ParameterFormatError
+                
+                if n.lhs.name == "end":
+                    if not isinstance(n.rhs, String):
+                        raise ParameterFormatError
+                    separator = n.rhs.val
+
+                if n.lhs.name == "sep":
+                    if not isinstance(n.rhs, String):
+                        raise ParameterFormatError
+                    spacer = n.rhs.val
+                    
+            except ParameterFormatError:
+                raise CodegenError(
+                    f'Parameter must follow the format "<name>=\'value\'"',
+                    n.position
+                )
+
 
         for arg in node.args:
             

@@ -37,3 +37,6 @@ class BlockExit(Exception):
 
 class ReloadException(Exception):
     pass
+
+class ParameterFormatError(Exception):
+    pass
