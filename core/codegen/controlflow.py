@@ -261,6 +261,7 @@ class ControlFlow():
             self.builder.function.basic_blocks.append(else_bb)
             self.builder.position_at_start(else_bb)
             else_val = self._codegen(node.else_expr)
+            self._codegen(node.else_expr)
             if not self.builder.block.is_terminated:
                 self.builder.branch(merge_bb)
             else_bb = self.builder.block
@@ -271,7 +272,7 @@ class ControlFlow():
         self.builder.function.basic_blocks.append(merge_bb)
         self.builder.position_at_start(merge_bb)
 
-        # the problem:
+        # XXX:
         # an if/elif still expects a value returned
         # we can't mix when/if in the same compound statement
 

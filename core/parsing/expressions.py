@@ -445,9 +445,19 @@ class Expressions():
         body = self._parse_expression()
         return While(start, cond_expr, body)
 
-    def _parse_if_expr(self):
+    def _parse_when_expr(self):
+        return self._parse_if_expr(True)
+    
+    def _parse_if_expr(self, when_expr=False):
+        if when_expr:
+            ast_node = When
+            action = self._parse_when_expr
+        else:
+            ast_node = If
+            action = self._parse_if_expr
+
         start = self.cur_tok.position
-        self._get_next_token()  # consume the 'if'
+        self._get_next_token()
 
         self.expr_stack.append(self._parse_if_expr)
         cond_expr = self._parse_expression()
@@ -458,34 +468,12 @@ class Expressions():
         if self.cur_tok.kind == TokenKind.ELSE:
             self._get_next_token()
             else_expr = self._parse_expression()
-        elif self.cur_tok.kind == TokenKind.ELIF:
-            else_expr = self._parse_if_expr()
+        elif self.cur_tok.kind == TokenKind.ELIF:            
+            else_expr = action()
         else:
             else_expr = None
 
-        return If(start, cond_expr, then_expr, else_expr)
-
-    # TODO: merge with _parse_if_expr
-
-    def _parse_when_expr(self):
-        start = self.cur_tok.position
-        self._get_next_token()  # consume the 'when'
-
-        self.expr_stack.append(self._parse_when_expr)
-        cond_expr = self._parse_expression()
-        self.expr_stack.pop()
-
-        self._match(TokenKind.THEN)
-        then_expr = self._parse_expression()
-        if self.cur_tok.kind == TokenKind.ELSE:
-            self._get_next_token()
-            else_expr = self._parse_expression()
-        elif self.cur_tok.kind == TokenKind.ELIF:
-            else_expr = self._parse_when_expr()
-        else:
-            else_expr = None
-
-        return When(start, cond_expr, then_expr, else_expr)
+        return ast_node(start, cond_expr, then_expr, else_expr)
 
     def _parse_loop_expr(self):
         start = self.cur_tok.position
