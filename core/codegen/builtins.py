@@ -607,10 +607,10 @@ class Builtins():
         spacer = ''
         separator = '\n'
         
-        # This is a crude, hacky way to implement varargs and kwargs.
-        # Eventually I'm going to find a better way to do this
-        # once we have the ability to box and unbox types, since we
-        # can apply that to things other than builtins.
+        # This is a crude, hacky way to implement varargs and kwargs,
+        # and it only works on builtins.
+        # Eventually I'm going to find a better way to do this,
+        # once we have the ability to box and unbox types.
 
         for n1 in reversed(node.args):
             n=n1
