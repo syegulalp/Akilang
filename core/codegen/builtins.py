@@ -612,6 +612,12 @@ class Builtins():
         # Eventually I'm going to find a better way to do this,
         # once we have the ability to box and unbox types.
 
+        # At one point I mulled the idea of custom-codegenning
+        # each function call as a way to accommodate variable length
+        # function signatures, but that still left me without any
+        # good way to expose the varargs functionality to the underlying
+        # code without some kind of type boxing mechanism
+
         for n1 in reversed(node.args):
             n=n1
             
@@ -646,6 +652,12 @@ class Builtins():
         for arg in node.args:
             
             format_string.append(spacer)
+
+            if isinstance(n, Binary):
+                raise CodegenError(
+                    f'Parameter must be a formatted string',
+                    arg.position
+                )
 
             if isinstance(arg, String):
                 arg.val = arg.val.replace(r'%',r'%%')
