@@ -50,7 +50,7 @@ preceded by a dot sign:
                   : Stop and exit the program.
     .export|ex <filename>
                   : Dump current module to file in LLVM assembler format.
-                  : Uses dump.ll in current direcory as default.
+                  : Uses dump.ll in current directory as default.
     .help|.       : Show this message.
     .rerun|..     : Reload the Python code and restart the REPL. 
     .rl[c|r]      : Reset the interpreting engine and reload the last .aki
