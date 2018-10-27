@@ -13,7 +13,9 @@ from core.vartypes import Str, DEFAULT_TYPE, generate_vartypes
 # by way of the module instance
 from core.ast_module import Function, Prototype, Do
 
-Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR'])
+from time import perf_counter
+
+Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR', 'time'])
 
 
 def dump(str, filename):
@@ -161,6 +163,8 @@ class AkilangEvaluator(object):
         with llvm.create_mcjit_compiler(llvmmod, target_machine) as ee:
             ee.finalize_object()
 
+    # TODO: Break out the compilation phase so it can be performed on its own
+    
     def _eval_ast(self,
                   ast,
                   optimize=True,
@@ -186,6 +190,9 @@ class AkilangEvaluator(object):
             verbose: yields a quadruplet tuple: result, AST, non-optimized IR, optimized IR
 
         """
+        
+        start_time=perf_counter()
+
         rawIR = None
         optIR = None
         if parseonly:
@@ -214,11 +221,13 @@ class AkilangEvaluator(object):
                              )
 
         if def_or_extern and not verbose:
-            return Result(None, ast, rawIR, optIR)
+            return Result(None, ast, rawIR, optIR, None)
 
         if ast.is_anonymous():
             return_value = self.codegen.module.globals[ast.proto.name].return_value
 
+        # TODO: we should be able to make the base var type propagate this
+        
         if not hasattr(return_value.type, 'c_type'):
             return_type = c_void_p
         else:
@@ -266,6 +275,10 @@ class AkilangEvaluator(object):
             else:
                 name = ast.proto.name
 
+            end_time = perf_counter()
+
+            #print (f'JIT compile time for "{ast.proto.name}": {end_time-start_time:.3F}s')
+            
             fptr = CFUNCTYPE(return_type)(ee.get_function_address(name))
 
             try:
@@ -279,8 +292,8 @@ class AkilangEvaluator(object):
                     result+self.codegen.vartypes._byte_width, POINTER(c_char_p))
                 result = cast(result.contents, POINTER(c_char_p))
                 result = f'"{str(string_at(result),"utf8")}"'
-
-            return Result(result, ast, rawIR, optIR)
+            
+            return Result(result, ast, rawIR, optIR, end_time-start_time)
 
     def _add_platform_lib(self, module):
         import os
