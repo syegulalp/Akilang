@@ -37,7 +37,7 @@
 - [ ] Object type.
     - [x] Object definitions (`class`).
     - [x] Bound functions / "dunder" methods for objects.
-- [ ] Pointer syntax for interfacing with C.
+- [x] Pointer syntax for interfacing with C.
     - [x] Get pointer
     - [x] Dereference pointer
     - [x] Get raw data from complex object (right now only strings)
@@ -54,7 +54,7 @@
 - [x] Compiling to standalone binaries.
     - [ ] Command-line parameters for binaries.
 - [x] Print statement that supports scalar types, and strings too.
-    - [ ] Variable argument printing.
+    - [x] Variable argument printing.
     - [X] F-string style syntaxing.
 - [ ] Overflow detection for math, and minimal error handling.
 - [X] Decorator syntax.
@@ -63,6 +63,7 @@
 - [ ] Documentation.
 
 # Next phase
+- [ ] Metacompilation (macros, templates, etc.)
 - [ ] Ports to other platforms, mainly Linux.
 - [ ] Properly refactored deployment and improved code quality.
     - [ ] Use a parser generator so we can also generate a grammar for the language (e.g., for use by syntax highlighters)
