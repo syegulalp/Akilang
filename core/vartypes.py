@@ -165,16 +165,19 @@ def generate_vartypes(module=None, bytesize=8):
     # create universal object header
     # the first element in this structure:
 
-    # [[1,2,3][4]]
+    # [[1,2,3,4,5][6]]
     # 1: length of data element
-    # 2: is_external for data: 1=yes, it's externally stored, see pointer, needs separate dealloc
-    # 3: pointer to data (if stored externally)
-    # 4: actual object data (if any)
+    # 2: pointer to data (if stored externally)
+    # 3: refcount (not used yet)
+    # 4: is item pointed to by element 1 malloc'?
+    # 5: is this object itself malloc'd?
+    # 6: actual object data (if any)
 
     Header = ir.global_context.get_identified_type('.object_header.')
     Header.elements = (
         # total length of data element in bytes as u64
         U_SIZE,
+
         # pointer to object data
         U_MEM.as_pointer(),  # generic ptr void
 
