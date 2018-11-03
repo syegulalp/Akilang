@@ -6,7 +6,6 @@ from core.ast_module import (
     VariableType, Unsafe, Continue, Try, Raise,
     Pass, FString
 )
-#from core.vartypes import DEFAULT_TYPE, CustomType, VarTypes, ArrayClass
 from core.vartypes import CustomType, ArrayClass
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED

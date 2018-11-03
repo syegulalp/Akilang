@@ -72,11 +72,8 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
             vartypes = generate_vartypes(self.module)
 
         self.vartypes = vartypes
-
         self._const_counter = 0
-
-        self.evaluator = None
-
+        self.evaluator = None       
         
 
     def init_evaluator(self):

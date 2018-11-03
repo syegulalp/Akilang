@@ -8,9 +8,8 @@ from core.parsing import Parser
 from core.codegen import llvm, LLVMCodeGenerator
 from core.errors import CodegenError, ParseError
 from core.repl import paths
-from core.vartypes import Str, DEFAULT_TYPE, generate_vartypes
-# TODO: make sure these are eventually supplied
-# by way of the module instance
+from core.vartypes import generate_vartypes
+
 from core.ast_module import Function, Prototype, Do
 
 from time import perf_counter
@@ -139,7 +138,8 @@ class AkilangEvaluator(object):
         Yield a namedtuple Result with None for definitions and externs, and the evaluated expression
         value for toplevel expressions.
         """
-        anon_vartype = options.get('anon_vartype', DEFAULT_TYPE)
+        anon_vartype = options.get('anon_vartype', self.vartypes.DEFAULT_TYPE)
+
         for ast in Parser(anon_vartype=anon_vartype, vartypes=self.vartypes).parse_generator(codestr):
             yield self._eval_ast(ast, **options)
 
@@ -172,7 +172,8 @@ class AkilangEvaluator(object):
                   noexec=False,
                   parseonly=False,
                   verbose=False,
-                  anon_vartype=DEFAULT_TYPE,
+                  #anon_vartype=DEFAULT_TYPE,
+                  anon_vartype=None,
                   return_type=c_int32,
                   core_vartypes=None,
                   vartypes=None):
@@ -190,6 +191,9 @@ class AkilangEvaluator(object):
             verbose: yields a quadruplet tuple: result, AST, non-optimized IR, optimized IR
 
         """
+
+        if not anon_vartype:
+            anon_vartype = self.vartypes.DEFAULT_TYPE
         
         start_time=perf_counter()
 
@@ -227,6 +231,7 @@ class AkilangEvaluator(object):
             return_value = self.codegen.module.globals[ast.proto.name].return_value
 
         # TODO: we should be able to make the base var type propagate this
+        # tried that, doesn't work yet
         
         if not hasattr(return_value.type, 'c_type'):
             return_type = c_void_p
@@ -277,8 +282,6 @@ class AkilangEvaluator(object):
 
             end_time = perf_counter()
 
-            #print (f'JIT compile time for "{ast.proto.name}": {end_time-start_time:.3F}s')
-            
             fptr = CFUNCTYPE(return_type)(ee.get_function_address(name))
 
             try:

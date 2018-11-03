@@ -699,6 +699,29 @@ class TestEvaluator(unittest.TestCase):
         
         #self.assertEqual(self.e.eval_all(n),56)    
 
+    def test_print(self):
+        pass
+        # https://eli.thegreenplace.net/2015/redirecting-all-kinds-of-stdout-in-python/
+
+
+        # self.e2.reset()
+
+        # import sys, io, os
+        # fd = sys.stdout.fileno()        
+        # sys.stdout.flush()       
+        
+        # new_stdout = io.StringIO()
+        # os.dup2(new_stdout.fileno, fd)
+
+        # sys.stdout = os.fdopen(fd, 'w')
+        
+        # n = 'print("Hi")'
+        # self.assertEqual(self.e2.eval_all(n),3)
+
+        # We don't currently have a way to redirect
+        # output from the subprocess. sys.stdout does
+        # not capture that.
+
 
     def test_auto_free(self):
         '''

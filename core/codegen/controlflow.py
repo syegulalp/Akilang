@@ -501,18 +501,18 @@ class ControlFlow():
         # Compute the end condition
         endcond = self._codegen(node.cond_expr)
 
-        type = endcond.type
+        endcond_type = endcond.type
 
         # TODO: this requires different comparison operators
         # based on the type of the loop object - int vs. float, chiefly
         # this is a pattern we may repeat too often
 
-        cond = ('!=', endcond, ir.Constant(type, 0), 'loopcond')
+        cond = ('!=', endcond, ir.Constant(endcond_type, 0), 'loopcond')
 
-        if isinstance(type, (ir.FloatType, ir.DoubleType)):
+        if isinstance(endcond_type, (ir.FloatType, ir.DoubleType)):
             cmp_instr = self.builder.fcmp_unordered(*cond)
-        elif isinstance(type, ir.IntType):
-            if getattr(type, 'v_signed', None):
+        elif isinstance(endcond_type, ir.IntType):
+            if getattr(endcond_type, 'v_signed', None):
                 cmp_instr = self.builder.icmp_signed(*cond)
             else:
                 cmp_instr = self.builder.icmp_unsigned(*cond)

@@ -3,6 +3,8 @@ import llvmlite.ir as ir
 
 import ctypes
 
+# llvmlite uses proxying techniques that makes subclassing difficult,
+# hence all the monkeypatching you see here
 
 class MyType():
     pointee = None
@@ -63,7 +65,6 @@ class MyType():
             v = f'.{self.v_id}.{_new}'
         return v
 
-
 ir.types.Type.describe = MyType.describe
 ir.types.Type.is_obj = MyType.is_obj
 ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
@@ -91,9 +92,8 @@ class _PointerType(PointerType):
     def as_pointer(self, addrspace=0):
         return _PointerType(
             self, addrspace, v_id=self.v_id, signed=self.signed)
-
-
-_PointerType.is_ptr = MyType.is_ptr
+    
+    is_ptr = MyType.is_ptr
 
 ir.types.PointerType = _PointerType
 ir.PointerType = _PointerType

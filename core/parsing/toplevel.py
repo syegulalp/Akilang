@@ -109,8 +109,7 @@ class Toplevel():
             if isinstance(init, String):
                 init.anonymous = False
 
-            # TODO:
-            # use existing eval_and_return for this
+            # TODO: use existing eval_and_return for this
             # merge with other functions if possible
 
             if const and init and not isinstance(init, ItemList):
@@ -168,6 +167,8 @@ class Toplevel():
 
                     # TODO: use an AST node type that complements the results
                     # this way we can use strings, etc.
+                    # need to have a reference in each vartype to
+                    # an AST node type
 
                     # Extract and assign the value
                     init = Number(start, e.value, e.ast.proto.vartype)

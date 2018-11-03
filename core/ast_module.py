@@ -1,7 +1,5 @@
 from collections import namedtuple
 from core.vartypes import DEFAULT_TYPE, VarTypes
-# TODO: make sure these are eventually supplied
-# by way of the module instance
 
 import llvmlite.ir as ir
 

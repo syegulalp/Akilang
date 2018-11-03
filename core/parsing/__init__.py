@@ -16,6 +16,7 @@ from core.tokens import Builtins, Decorators, Dunders
 from core.parsing.expressions import Expressions
 from core.parsing.toplevel import Toplevel
 
+
 PARSE_ACTIONS = {
     TokenKind.RETURN: 'return',
     TokenKind.IDENTIFIER: 'identifier',
@@ -103,6 +104,7 @@ class Parser(Expressions, Toplevel):
         '''
         Given a string, returns an AST node representing it.
         '''
+
         self.token_generator = Lexer(buf, vartypes=self.vartypes).tokens()
         self.cur_tok = None
         self._get_next_token()
@@ -110,6 +112,7 @@ class Parser(Expressions, Toplevel):
         while self.cur_tok.kind != TokenKind.EOF:
             self.top_return = False
             yield self._generate_toplevel()
+       
 
     def _generate_toplevel(self):
         if self.cur_tok.kind == TokenKind.EXTERN:
