@@ -203,16 +203,19 @@ def generate_vartypes(module=None, bytesize=8):
     # Result type
 
     Result = ir.global_context.get_identified_type('.result.')
-    Result.elements = (
-        # OK or err?
+    Result.elements = (Header,
+        # OK or err? default is OK
         ir.IntType(1),
         # if false
         ir.IntType(_byte_width).as_pointer(),
         # if true
         ir.IntType(_byte_width).as_pointer(),
     )
+    Result.v_id='result'
+    Result.is_obj = True
+    Result.signed = False
 
-    # ? should result type be treated as an object w/header?
+    # results should be heap-allocated by default, I think    
 
     # when we compile,
     # we bitcast the ptr to #1 to the appropriate object type
@@ -235,6 +238,13 @@ def generate_vartypes(module=None, bytesize=8):
     Str.ext_ptr = UnsignedInt(8, True).as_pointer()
     Str.p_fmt = '%s'
     Str.as_pointer = make_type_as_ptr(Str)
+
+    Err = ir.global_context.get_identified_type('.err.')
+    Err.elements = (Header,
+        Str
+    )
+    Err.is_obj = True
+    Err.signed = False
 
     _vartypes = Map({
 
