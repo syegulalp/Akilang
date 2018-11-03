@@ -1,6 +1,6 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError, CodegenWarning
-from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString
+from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString, Unsafe
 from core.mangling import mangle_call
 from core.vartypes import ArrayClass
 
@@ -172,7 +172,8 @@ class Vars():
 
                 latest = self._codegen_Call(current_node)
                 current_load = False
-                # TODO: why is a call the exception?
+                
+                # TODO: why is a call the exception for current_load?
 
             elif isinstance(current_node, Variable):
                 try:
@@ -283,8 +284,6 @@ class Vars():
                     value,
                     ptr.type.pointee
                 )
-
-        # TODO: assignment to constant arrays, etc.
 
         if ptr.type.pointee != value.type:
             if getattr(lhs, 'accessor', None):
@@ -487,11 +486,7 @@ class Vars():
         # init_ref = codegen from create initializer
 
         if isinstance(node_init, ItemList):
-
-            # TODO: see if this can eventually be removed?
-            #if element_count is None:
             element_count = len(init_ref.initializer.constant)
-
             array_length = var_ref.type.pointee.elements[1].count
 
             if element_count>array_length:
@@ -506,8 +501,16 @@ class Vars():
                     node_init.position
                 ))
 
-            ## TODO: perform zero fill
+                for _ in range(0,array_length-element_count):
+                    init_ref.initializer.constant.append(
+                        ir.Constant(init_ref.initializer.type.element,
+                        None)
+                    )
+                
+                init_ref.initializer.type.count = len(init_ref.initializer.constant)
 
+                element_count = init_ref.initializer.type.count
+             
             element_width = (
                 init_ref.type.pointee.element.width // self.vartypes._byte_width
             ) * element_count
@@ -684,14 +687,12 @@ class Vars():
             # But this seems like a lot of work for little payoff.
 
         else:
-            # TODO: assignment to constant arrays, etc.
 
             if isinstance(rhs, ItemList):
                 array_value = self._codegen(rhs)
                 ptr = self.builder.load(ptr)
                 value=self._codegen_variable_assignment(
                     lhs, rhs, ptr, array_value, 
-                    #element_count = len(rhs.elements)
                 )
                 return value
             else:
@@ -740,11 +741,11 @@ class Vars():
                 format_string.append(format_type)       
                 variable_list.append(element)
             
-            elif isinstance(n, (Variable, ItemList)):                    
+            elif isinstance(n, (Variable, ItemList, Unsafe)):
                 element = self._get_obj_noload(node, n)
                 format_type= element.type.p_fmt
 
-                if format_type == '%s':
+                if format_type == '%s':                    
                     var_app = Call(
                         node.position,
                         'c_data',
@@ -753,20 +754,21 @@ class Vars():
 
                 elif format_type in ('%u', '%i', '%f'):
                     var_app = self.builder.load(element)
-
+                
                 else:
-                    self._if_unsafe(
-                        node, f' (variable "{n.name}" is potentially raw data)'
+                    n = self._if_unsafe(
+                        n, f' (variable {n.body.name if isinstance(n, Unsafe) else n.name} is potentially raw data)'
                     )
+
                     format_type = '%s'
-                    
+
                     var_app = Call(
                         node.position,
                         'c_data',
                         [n]
                     )                        
                 
-                format_string.append(format_type)                    
+                format_string.append(format_type)
                 variable_list.append(var_app)
         
         return (format_string, variable_list)

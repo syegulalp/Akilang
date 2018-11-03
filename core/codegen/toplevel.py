@@ -357,6 +357,10 @@ class Toplevel():
                 node
             )
 
+        # TODO: if this function throws exceptions,
+        # we need to return an object wrapper, not a bare object
+        # this requires rewriting the function signature, etc.
+
         self.builder.ret(self.builder.load(self.func_returnarg))
 
         self.func_incontext = None
@@ -438,17 +442,6 @@ class Toplevel():
                     name,                    
                 )                
 
-                # TODO: write tests for uni/const array init
-
-                # TODO: this length test should be 
-                # made into a function and applied elsewhere too
-
-                # ways to calculate length:
-                # value.initializer.constant
-                #   len = number of constants in init
-                # vartype.pointee.elements[1].count
-                #   actual number of elements in underlying type
-
                 element_count = len(value.initializer.constant)
                 array_length = vartype.pointee.elements[1].count
 
@@ -463,10 +456,15 @@ class Toplevel():
                         f'Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})',
                         v.position
                     ))
+
+                for _ in range(0,array_length-element_count):
+                    value.initializer.constant.append(
+                        ir.Constant(value.initializer.type.element,
+                        None)
+                    )
                 
-                ## TODO: perform zero fill
+                value.initializer.type.count = len(value.initializer.constant)
                 
-              
                 initializer= ir.Constant(
                     vartype.pointee,
                     [
@@ -493,7 +491,4 @@ class Toplevel():
                 # but we should keep it in case anything else
                 # refers to it.
                 # It will be optimized out if nothing uses it.
-
-                # TODO:
-                # - allow shorter init than actual array
 
