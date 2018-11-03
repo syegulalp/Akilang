@@ -1,5 +1,5 @@
 from core.errors import CodegenError, CodegenWarning, ParameterFormatError
-from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary
+from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe
 import llvmlite.ir as ir
 import re
 
@@ -9,9 +9,12 @@ import re
 class Builtins():
 
     def _if_unsafe(self, node, explanation=''):
+        if isinstance(node, Unsafe):
+            return node.body
         if not self.allow_unsafe:
             raise CodegenError(
                 f'Operation must be enclosed in an "unsafe" block{explanation}', node.position)
+        return node
 
     def _check_arg_length(self, node, min_args=1):
         if len(node.args)<min_args:
@@ -28,9 +31,6 @@ class Builtins():
             raise CodegenError('Parameter must be a pointer or object',
                                node.args[0].position)
 
-    # TODO: This needs to be reworked so the behavior is altered
-    # based on whether or not we get back a LoadInstr
-    
     def _get_obj_noload(self, node, arg=None, ptr_check=True):
         '''
         Returns a pointer (or variable reference) to a codegenned object.
@@ -155,7 +155,7 @@ class Builtins():
 
     def _codegen_Builtins_c_ptr_mod(self, node):
 
-        self._if_unsafe(node)
+        node = self._if_unsafe(node)
         self._check_arg_length(node,2)
 
         ptr = self._codegen(node.args[0])
@@ -180,9 +180,8 @@ class Builtins():
         index = [self._i32(0)]
 
         for n in range(1, len(node.args)):
-            # TODO: constant values should be cast as int or float in python
             if hasattr(node.args[n], 'val'):
-                node.args[n].val = int(node.args[n].val)
+                node.args[n].val = node.args[n].val
             index.append(self._codegen(node.args[n]))
 
         try:
@@ -328,7 +327,7 @@ class Builtins():
         '''
         Returns a u_mem ptr to anything
         '''
-        self._if_unsafe(node)
+        node = self._if_unsafe(node)
         
         self._check_arg_length(node)
 
