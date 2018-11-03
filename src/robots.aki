@@ -16,6 +16,7 @@ const {
     FENCE = 177B
     WALL = 219B
     ROBOTS = 10
+    FROTZ= "FROTZZZZZ"
 }
 
 uni {
@@ -45,7 +46,8 @@ def show(dead_robots){
 
     loop (x=0, x<ROBOTS){
         when not robots[x].killed then
-        display[(robots[x].y*(WIDTH+1))+robots[x].x]=cast(x+48,i8)
+        display[(robots[x].y*(WIDTH+1))+robots[x].x]=
+            cast(x+48,i8)
     }
 
     display[(player.y*(WIDTH+1))+player.x]=232B
@@ -104,8 +106,6 @@ def setup(){
         robot.y=ny
         robot.killed=0b
     }    
-
-
 
     0
 }
@@ -172,7 +172,7 @@ Press Space to pass a turn without making a move.
             var loc = field[player.x+xvec,player.y+yvec]
             match loc {
                 FENCE: {
-                    print ("FROTZZZZZ\nYou just stepped into an electrified fence.")
+                    print ("{FROTZ}\nYou just stepped into an electrified fence.")
                     break
                 }
                 WALL: {
@@ -223,7 +223,7 @@ Press Space to pass a turn without making a move.
                         }
 
                     when robot.x==player.x and robot.y==player.y then {
-                        print ("FROTZZZZZZ\nYou were killed by robot {x}.")
+                        print ("{FROTZ}\nYou were killed by robot {x}.")
                         dead=1
                         break
                     }
@@ -243,7 +243,7 @@ Press Space to pass a turn without making a move.
 
         with var x:i32 {
             loop {
-                print ("Play again? [y/n] > ", end='')
+                print ("\nPlay again? [y/n] > ", end='')
                 x=inkey()
                 match x {
                     121: {x=1 break}
@@ -258,5 +258,5 @@ Press Space to pass a turn without making a move.
             }
         }
     }
-    return 0
+    0
 }

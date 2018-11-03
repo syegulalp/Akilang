@@ -20,7 +20,6 @@ def reset() {
     var y,x
     # this preallocates those variables as i32, the default
     # otherwise they're allocated repeatedly within the loop
-    
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH)
             field[world,y,x] = (
@@ -28,7 +27,6 @@ def reset() {
                     then 1B
                     else 0B
             )
-            
 }
 
 def randomize(){
@@ -59,7 +57,7 @@ def show() {
     }
     output[z]=0B
     
-    unsafe print('Generation: {gen} -- Population: {pop}\n{divider}\n{output}{divider}')
+    print('Generation: {gen} -- Population: {pop}\n{unsafe divider}\n{unsafe output}{unsafe divider}')
        
 }
 
