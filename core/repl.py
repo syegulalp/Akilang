@@ -9,6 +9,8 @@ colorama.init()
 
 from time import perf_counter
 
+import gc
+
 def config():
     import configparser
     cfg = configparser.ConfigParser()
@@ -23,9 +25,6 @@ def config():
                 file.write(defaults)
         else:
             break
-
-        # TODO: we should also create the empty directories
-        # as needed here
 
     return cfg
 
@@ -285,11 +284,15 @@ class Repl():
             self.run_command(command)
         else:
             # Enter a REPL loop
+            try:
+                gc.freeze()
+            except:
+                pass
             cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
             cprint('Type help or a command to be interpreted', 'green')
             command = ""
             while not command in ['exit', 'quit']:
                 self.run_command(command)
                 cprint(PROMPT, 'white', end='')
-                command = input().strip()
+                command = input().strip()            
 

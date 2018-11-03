@@ -4,17 +4,20 @@ def run(**options):
     while True:
         from core.repl import Repl
         from core.errors import ReloadException
+        gc.collect()
         try:
-            #repl.run(options)
             Repl().run(options)
             break
         except ReloadException:
+            try:
+                gc.unfreeze()
+            except:
+                pass
             del Repl
-            #del repl
             del ReloadException
             for m in reversed(list(sys.modules.keys())):
                 if m not in init_modules:
-                    del sys.modules[m]            
+                    del sys.modules[m]
             gc.collect()
             msvcrt.heapmin()
             continue
