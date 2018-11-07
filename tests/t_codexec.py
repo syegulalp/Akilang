@@ -723,6 +723,24 @@ class TestEvaluator(unittest.TestCase):
         # not capture that.
 
 
+    def test_type_enum(self):
+        self.e.reset()
+        self.assertEqual(self.e.evaluate('type("Hi")==type(str)'), 1)
+        self.assertEqual(self.e.evaluate('type(32)==type(i32)'), 1)
+        self.assertEqual(self.e.evaluate('type(32u)==type(u32)'), 1)
+        self.assertEqual(self.e.evaluate('type(32U)==type(u64)'), 1)
+        self.assertEqual(self.e.evaluate('type(1b)==type(0b)'), 1)
+        self.assertEqual(self.e.evaluate('type(1.0)==type(0.00)'), 1)
+        self.assertEqual(self.e.evaluate('type(i32[20])==type(i32[64])'), 1)
+        self.assertEqual(self.e.evaluate('type(i32[20])==type(array)'), 1)
+        self.assertEqual(self.e.evaluate('type([20])==type([64])'), 1)
+        self.assertEqual(self.e.evaluate('type([20])==type(carray)'), 1)
+
+        #self.assertEqual(self.e.evaluate('type(i32[20])==type(i32[64])'), 1)
+        # doesn't work yet because we still distinguish poorly between
+        # c underyling arrays and our array object
+       
+        
     def test_auto_free(self):
         '''
         Placeholder. This test is intended to determine if

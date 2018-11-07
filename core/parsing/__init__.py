@@ -16,7 +16,6 @@ from core.tokens import Builtins, Decorators, Dunders
 from core.parsing.expressions import Expressions
 from core.parsing.toplevel import Toplevel
 
-
 PARSE_ACTIONS = {
     TokenKind.RETURN: 'return',
     TokenKind.IDENTIFIER: 'identifier',

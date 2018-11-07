@@ -5,6 +5,8 @@ import llvmlite.ir as ir
 import ctypes
 from llvmlite import binding
 
+from enum import Enum
+
 # Singleton types (these do not require an invocation, they're only created once)
 
 
@@ -89,12 +91,13 @@ class ArrayClass(ir.types.LiteralStructType):
     Type for arrays whose dimensions are defined at compile time.
     '''
     is_obj = True
+    enum_id = 0
 
     def __init__(self, my_type, elements):
 
         arr_type = my_type
         for n in reversed(elements):
-            arr_type = VarTypes.array(arr_type, n)
+            arr_type = VarTypes._carray(arr_type, n)
 
         master_type = [
             VarTypes._header,
@@ -112,6 +115,8 @@ class ArrayClass(ir.types.LiteralStructType):
         self.master_type = master_type
         self.arr_type = my_type
 
+        # I think we need to have the initializer here
+
     def new_signature(self):
         return (
             '.object.array.__new__',
@@ -126,16 +131,10 @@ class ArrayClass(ir.types.LiteralStructType):
 
         return obj
 
-# boxing of types:
-# later, we'll create a structure of elements
-# each element position is a type
-# the ID for the box object will point to that type
-# for custom types, we just add them to that struct for each module
-
-
 _default_platform_module = ir.Module()
 _default_platform_vartypes = {_default_platform_module.triple: None}
 
+# TODO: convert this all into a class, probably for the best
 
 def generate_vartypes(module=None, bytesize=8):
 
@@ -181,7 +180,7 @@ def generate_vartypes(module=None, bytesize=8):
         # pointer to object data
         U_MEM.as_pointer(),  # generic ptr void
 
-        # object refcount
+        # object descriptor
         U_SIZE,
 
         # flag for whether or not pointed-to obj (by way of element 1) is dynamically allocated (bool)
@@ -199,6 +198,32 @@ def generate_vartypes(module=None, bytesize=8):
     # for arrays at compile time, we can encode the dimensions at compile time
     # and any calls will be optimized out to constants anyway
     # need to see if the .initializer property works for runtime
+
+    # Object
+
+    Obj = ir.global_context.get_identified_type('.obj.')
+    Obj.elements = (Header,
+        ir.IntType(_byte_width)
+    )
+    Obj.v_id = 'obj'
+    Obj.is_obj = True
+    Obj.signed = False
+    Obj.p_fmt = None
+    Obj.as_pointer = make_type_as_ptr(Obj)
+
+    # how this works:
+    # Header element 2 contains the enum descriptor.
+    # The Obj itself is allocated with enough space to include the object,
+    # starting at element 0,1.
+    # Total size of that element is stored in header 0.
+    # To extract, we either produce a properly typed pointer,
+    # or we allocate and copy out.
+
+    # We need to keep a running list of all types used in the current module
+    # for these kinds of operations.
+    # Maybe by way of
+    # unwrap (expect type) = generate unwrapper
+    # keep a running list of unwraps
 
     # Result type
 
@@ -261,17 +286,23 @@ def generate_vartypes(module=None, bytesize=8):
         'f32': Float32(),
         'f64': Float64(),
 
-        # u_size is set on init
-        'u_size': None,
+        'u_size': UnsignedInt(_pointer_width),
+        'u_mem': UnsignedInt(_byte_width),
 
         # non-singleton
-        'array': Array,
+        'carray': Array,
+        'array': ArrayClass,
         'func': ir.FunctionType,
 
         # object types
         'str': Str,
+        'obj': Obj,
 
     })
+
+    # add these types in manually, since they just shadow existing ones
+    _vartypes['bool'] = _vartypes.u1
+    _vartypes['byte'] = _vartypes.u8
 
     _vartypes._header = Header
 
@@ -280,16 +311,9 @@ def generate_vartypes(module=None, bytesize=8):
     _vartypes._pointer_width = _pointer_width
 
     _vartypes._arrayclass = ArrayClass
-    _vartypes._array = Array
+    _vartypes._carray = Array
 
     _vartypes._str = type(Str)
-
-    _vartypes['u_size'] = UnsignedInt(_vartypes._pointer_width)
-    _vartypes['u_mem'] = UnsignedInt(_vartypes._byte_width)
-
-    # add these types in manually, since they just shadow existing ones
-    _vartypes['bool'] = _vartypes.u1
-    _vartypes['byte'] = _vartypes.u8
 
     # TODO: this should be moved back into the underlying types?
     _vartypes.f32.c_type = ctypes.c_double
@@ -304,12 +328,23 @@ def generate_vartypes(module=None, bytesize=8):
     # set the target data reference
     _vartypes._target_data = target_data
 
-    # box_id - possibly to be used for boxing and unboxing types
+    # enumerant for type identifiers
+    _enum = {}
+    _enum_lookup = {}
+
     for _, n in enumerate(_vartypes):
         if not n.startswith('_'):
-            _vartypes[n].box_id = _
+            _enum[_]=_vartypes[n]
+            _vartypes[n].enum_id = _
 
+    _+=1
+    _vartypes._arrayclass.enum_id = _
+    
+    _vartypes._enum = _enum
+    _vartypes._enum_count = _
+    
     _default_platform_vartypes[module.triple] = _vartypes
+
     return _vartypes
 
 

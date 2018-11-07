@@ -343,7 +343,7 @@ class Vars():
             [[
                 ir.Constant(self.vartypes.u64, string_length),
                 spt,
-                ir.Constant(self.vartypes.u64, 0),
+                ir.Constant(self.vartypes.u64, self.vartypes.str.enum_id),
                 ir.Constant(self.vartypes.bool, 0),
                 ir.Constant(self.vartypes.bool, 0)
             ], ])
@@ -381,7 +381,7 @@ class Vars():
                 )
 
         const = ir.Constant(
-            self.vartypes.array(base_vartype, len(node.elements)),
+            self.vartypes._carray(base_vartype, len(node.elements)),
             element_list
         )
 

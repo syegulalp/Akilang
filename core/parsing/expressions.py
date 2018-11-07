@@ -139,7 +139,7 @@ class Expressions():
                 vartype.new_signature(),
                 args, vartype
             )
-
+        
         return VariableType(pos, vartype)
 
     def _parse_unsafe_expr(self):
@@ -243,22 +243,26 @@ class Expressions():
 
         if isinstance(vartype, self.vartypes.func.__class__):
             self._get_next_token()
-            self._match(TokenKind.PUNCTUATOR, '(')
 
             arguments = []
-            while True:
-                n = self._parse_vartype_expr()
-                arguments.append(n)
-                if self._cur_tok_is_punctuator(','):
-                    self._get_next_token()
-                    continue
-                if self._cur_tok_is_punctuator(')'):
-                    break
+            
+            if not self._cur_tok_is_punctuator(')'):
+                self._get_next_token()
+                while True:
+                    n = self._parse_vartype_expr()
+                    arguments.append(n)
+                    if self._cur_tok_is_punctuator(','):
+                        self._get_next_token()
+                        continue
+                    if self._cur_tok_is_punctuator(')'):
+                        break
 
-            self._get_next_token()
-            self._match(TokenKind.PUNCTUATOR, ':')
-            func_type = self._parse_vartype_expr()
-            vartype = vartype(func_type, arguments)
+                self._get_next_token()                
+                self._match(TokenKind.PUNCTUATOR, ':')
+                func_type = self._parse_vartype_expr()
+                vartype = vartype(func_type, arguments)
+            else:
+                return vartype
 
         else:
             self._get_next_token()

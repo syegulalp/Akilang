@@ -1,5 +1,5 @@
 from core.errors import CodegenError, CodegenWarning, ParameterFormatError
-from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe
+from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe, VariableType
 import llvmlite.ir as ir
 import re
 
@@ -47,11 +47,32 @@ class Builtins():
             self._check_pointer(codegen, node)
         return codegen
 
-        # retun more if needed:
-        # original codegen (with noload)
-        # loaded codegen
-        # is variable?
-        # is pointer?
+    def _codegen_Builtins_type(self, node):
+        self._check_arg_length(node)
+        type_obj = node.args[0]
+
+        if isinstance(type_obj, VariableType):
+            type_obj = type_obj.vartype
+        else:
+            type_obj = self._codegen(type_obj).type
+
+        if type_obj == ir.FunctionType:
+            enum_id = type_obj.enum_id        
+        elif type_obj == self.vartypes.carray:
+            enum_id = type_obj.enum_id
+        elif type_obj == self.vartypes.array:
+            enum_id = type_obj.enum_id
+        elif type_obj.is_ptr():
+            enum_id = type_obj.pointee.enum_id
+        else:
+            enum_id = type_obj.enum_id
+
+        enum_val = ir.Constant(
+            self.vartypes.u_size,
+            enum_id
+        )
+
+        return enum_val
 
     def _codegen_Builtins_c_obj_alloc(self, node):
 
@@ -302,7 +323,7 @@ class Builtins():
             
         elif isinstance(
             convert_from.type.pointee,
-            self.vartypes._array
+            self.vartypes._carray
         ):
             return self._extract_ptr(
                 convert_from, node

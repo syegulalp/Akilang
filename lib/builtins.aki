@@ -59,7 +59,6 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     var str_len = c_strlen(my_obj)
     
     # Allocate an object of the correct size and type
-    #var alloc = c_obj_alloc(with var x:str{x})
     var alloc = c_obj_alloc(str)
 
     # Insert the length
@@ -81,6 +80,34 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Return the string object
     return alloc
 
+}
+
+@track
+def '.object.obj.__new__'(my_obj:i32):obj {
+    # Allocate an object of the correct size
+    var obj_alloc = c_obj_alloc(obj)
+    
+    # Allocate space for the variable to be stored
+    var my_obj_alloc = c_obj_alloc(i32)
+    my_obj_alloc = my_obj
+
+    # Insert the length
+    var len_ptr = c_gep(obj_alloc,0 ,ELEMENT_LEN)
+    unsafe c_ptr_mod(len_ptr, c_size(my_obj))
+
+    # the object data is malloc'd
+    var obj_data_ptr = c_gep(obj_alloc,0, ELEMENT_PTR_ALLOC)
+    unsafe c_ptr_mod(obj_data_ptr, True)
+
+    # the object itself is malloc'd
+    var h_data_ptr = c_gep(obj_alloc,0, ELEMENT_ALLOC)
+    unsafe c_ptr_mod(h_data_ptr, True)
+
+    # Point to the data
+    var data_ptr = c_gep(obj_alloc,0, ELEMENT_PTR)
+    unsafe c_ptr_mod(data_ptr, c_ptr(c_ref(my_obj_alloc)))
+    
+    return obj_alloc
 }
 
 @track

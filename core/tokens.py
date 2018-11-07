@@ -91,7 +91,8 @@ Builtins = {
     # 'make',
     # 'out',
     'print',
-    'dummy'
+    'dummy',
+    'type'
 }
 
 Builtin = {
