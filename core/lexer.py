@@ -103,7 +103,7 @@ class Lexer(object):
                 break
 
             # String
-            if self.lastchar in ['"', "'"]):
+            if self.lastchar in ['"', "'"]:
                 opening_quote = self.lastchar
                 opening_quote_position = self.position.copy
                 new_str = []
