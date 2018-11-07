@@ -76,7 +76,7 @@ class Lexer(object):
             self.prevchar = self.buf[self.pos]
             self.pos += 1
             self.lastchar = self.buf[self.pos]
-            self.position.advance(self.prevchar in '\r\n')
+            self.position.advance(self.prevchar in ['\r', '\n'])
 
         except IndexError:
             self.lastchar = ''
@@ -103,19 +103,19 @@ class Lexer(object):
                 break
 
             # String
-            if self.lastchar in ('"\''):
+            if self.lastchar in ['"', "'"]):
                 opening_quote = self.lastchar
                 opening_quote_position = self.position.copy
                 new_str = []
                 self._advance()
                 while self.lastchar and self.lastchar != opening_quote:
                     # Process escape codes
-                    if self.lastchar in ('\\',):
+                    if self.lastchar == '\\':
                         self._advance()
                         if self.lastchar in ESCAPES:
                             # new_str.append(chr(ESCAPES[self.lastchar]))
                             new_str.append((ESCAPES[self.lastchar]))
-                        elif self.lastchar in 'x':
+                        elif self.lastchar == 'x':
                             hex = []
                             for _ in range(0, 2):
                                 self._advance()
@@ -143,9 +143,9 @@ class Lexer(object):
                 yield Token(TokenKind.STRING, new_str, VarTypes.str, pos)
 
             # Identifier or keyword, including vartypes
-            elif self.lastchar.isalpha() or self.lastchar in ('_', ):
+            elif self.lastchar.isalpha() or self.lastchar == '_':
                 id_str = []
-                while self.lastchar.isalnum() or self.lastchar in ('_', ):
+                while self.lastchar.isalnum() or self.lastchar == '_':
                     id_str.append(self.lastchar)
                     self._advance()
                 id_str = ''.join(id_str)
@@ -236,7 +236,7 @@ class Lexer(object):
             # Comment
             elif self.lastchar == COMMENT:
                 self._advance()
-                while self.lastchar and self.lastchar not in '\r\n':
+                while self.lastchar and self.lastchar not in ['\r', '\n']:
                     self._advance()
             elif self.lastchar in PUNCTUATORS:
                 yield Token(TokenKind.PUNCTUATOR, self.lastchar, None, pos)
