@@ -82,6 +82,26 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
 
 }
 
+def set_obj(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem):obj {
+    # Insert the length
+    var len_ptr = c_gep(my_obj,0 ,ELEMENT_LEN)
+    unsafe c_ptr_mod(len_ptr, obj_len)
+
+    # the object data is malloc'd
+    var obj_data_ptr = c_gep(my_obj,0, ELEMENT_PTR_ALLOC)
+    unsafe c_ptr_mod(obj_data_ptr, malloc_1)
+
+    # the object itself is malloc'd
+    var h_data_ptr = c_gep(my_obj,0, ELEMENT_ALLOC)
+    unsafe c_ptr_mod(h_data_ptr, malloc_2)
+
+    # Point to the data
+    var data_ptr = c_gep(my_obj,0, ELEMENT_PTR)
+    unsafe c_ptr_mod(data_ptr, my_data_ptr)
+
+    return my_obj
+}
+
 @track
 def '.object.obj.__new__'(my_obj:i32):obj {
     # Allocate an object of the correct size
@@ -91,23 +111,46 @@ def '.object.obj.__new__'(my_obj:i32):obj {
     var my_obj_alloc = c_obj_alloc(i32)
     my_obj_alloc = my_obj
 
-    # Insert the length
-    var len_ptr = c_gep(obj_alloc,0 ,ELEMENT_LEN)
-    unsafe c_ptr_mod(len_ptr, c_size(my_obj))
+    return set_obj(
+        obj_alloc,
+        True, True,
+        c_size(my_obj),
+        unsafe c_ptr(c_ref(my_obj_alloc))
+    )
 
-    # the object data is malloc'd
-    var obj_data_ptr = c_gep(obj_alloc,0, ELEMENT_PTR_ALLOC)
-    unsafe c_ptr_mod(obj_data_ptr, True)
+}
 
-    # the object itself is malloc'd
-    var h_data_ptr = c_gep(obj_alloc,0, ELEMENT_ALLOC)
-    unsafe c_ptr_mod(h_data_ptr, True)
-
-    # Point to the data
-    var data_ptr = c_gep(obj_alloc,0, ELEMENT_PTR)
-    unsafe c_ptr_mod(data_ptr, c_ptr(c_ref(my_obj_alloc)))
+@track
+def '.object.obj.__new__'(my_obj:u64):obj {
+    # Allocate an object of the correct size
+    var obj_alloc = c_obj_alloc(obj)
     
-    return obj_alloc
+    # Allocate space for the variable to be stored
+    var my_obj_alloc = c_obj_alloc(u64)
+    my_obj_alloc = my_obj
+
+    return set_obj(
+        obj_alloc,
+        True, True,
+        c_size(my_obj),
+        unsafe c_ptr(c_ref(my_obj_alloc))
+    )
+
+}
+
+@track
+def '.object.obj.__new__'(my_obj:str):obj {
+    # Allocate an object of the correct size
+    var obj_alloc = c_obj_alloc(obj)
+
+    # TODO: copy the malloc of the string object 
+    return set_obj(
+        obj_alloc,
+        True, True,
+        c_size(my_obj),
+        unsafe c_ptr(my_obj)
+    )
+
 }
 
 @track
