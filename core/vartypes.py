@@ -19,10 +19,13 @@ def make_type_as_ptr(my_type):
 
 
 class Bool(ir.IntType):
-    p_fmt = '%i'
+
+    # TODO: bools need to print as 'True','False'
 
     def __new__(cls):
-        return super().__new__(cls, 1, False, True)
+        instance = super().__new__(cls, 1, False, True)
+        instance.p_fmt = '%B'
+        return instance
 
 
 class SignedInt(ir.IntType):

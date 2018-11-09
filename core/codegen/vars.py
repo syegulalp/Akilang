@@ -745,7 +745,21 @@ class Vars():
                 element = self._get_obj_noload(node, n)
                 format_type= element.type.p_fmt
 
-                if format_type == '%s':                    
+                if format_type == '%B':
+                    format_type = '%s'
+                    bool_str = Call(
+                        node.position,
+                        '.object.str.__new__',
+                        [n]
+                    )
+
+                    var_app = Call(
+                        node.position,
+                        'c_data',
+                        [bool_str]
+                    )
+
+                elif format_type == '%s':                    
                     var_app = Call(
                         node.position,
                         'c_data',
@@ -755,7 +769,7 @@ class Vars():
                 elif format_type in ('%u', '%i', '%f'):
                     var_app = self.builder.load(element)
                 
-                else:
+                else:                    
                     n = self._if_unsafe(
                         n, f' (variable {n.body.name if isinstance(n, Unsafe) else n.name} is potentially raw data)'
                     )

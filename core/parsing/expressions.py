@@ -107,6 +107,7 @@ class Expressions():
         return result
 
     def _parse_number_expr(self):
+        
         result = Number(self.cur_tok.position, self.cur_tok.value,
                         self.cur_tok.vartype)
         self._get_next_token()  # consume the number
@@ -177,7 +178,7 @@ class Expressions():
     def _parse_string_expr(self):
         cur = self.cur_tok
         self._get_next_token()
-        
+
         if r'{' not in cur.value:
             return String(cur.position, cur.value)
         

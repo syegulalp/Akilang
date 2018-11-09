@@ -81,9 +81,13 @@ class Toplevel():
         else:
             ast_type = Uni
 
-        self._get_next_token()  # consume the 'uni'
+        self._get_next_token()  # consume the 'uni/const'
 
-        self._match(TokenKind.PUNCTUATOR, '{')
+        if self._cur_tok_is_punctuator('{'):
+            is_bracketed = True
+            self._get_next_token()
+        else:
+            is_bracketed = False
 
         vars = []
 
@@ -174,26 +178,35 @@ class Toplevel():
                     init = Number(start, e.value, e.ast.proto.vartype)
                     self.consts[name] = init
 
-
             vars.append(
                 Variable(start, name, vartype, initializer=init)
             )
 
-            if self._cur_tok_is_punctuator(','):
-                self._get_next_token()
+            if is_bracketed:
+
+                if self._cur_tok_is_punctuator(','):
+                    self._get_next_token()    
+
+                if self._cur_tok_is_punctuator('}'):
+                    self._get_next_token()
+                    self.expr_stack.pop()
+                    return ast_type(self.cur_tok.position, vars)
+
+            else:
+
+                if self._cur_tok_is_punctuator(','):
+                    self._get_next_token()
+                else:
+                    self._get_next_token()
+                    self.expr_stack.pop()
+                    return ast_type(self.cur_tok.position, vars)
 
             if self.cur_tok.kind in (TokenKind.IDENTIFIER, TokenKind.VARTYPE):
                 continue
-
-            elif self._cur_tok_is_punctuator('}'):
-                self._get_next_token()
-                self.expr_stack.pop()
-                return ast_type(self.cur_tok.position, vars)
-
-            else:
-                raise ParseError(
-                    f'Expected variable declaration but got "{self.cur_tok.value}" instead',
-                    self.cur_tok.position)
+            
+            raise ParseError(
+                f'Expected variable declaration but got "{self.cur_tok.value}" instead',
+                self.cur_tok.position)
 
     def _parse_expression(self):
         self.level += 1

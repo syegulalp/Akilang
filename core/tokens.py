@@ -92,7 +92,8 @@ Builtins = {
     # 'out',
     'print',
     'dummy',
-    'type'
+    'type',
+    'objtype'
 }
 
 Builtin = {

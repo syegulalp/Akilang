@@ -19,7 +19,7 @@ class Builtins():
     def _check_arg_length(self, node, min_args=1):
         if len(node.args)<min_args:
             raise CodegenError(
-                f'Operation requires at least one argument',
+                f'Operation requires at least {min_args} argument{"s" if min_args>1 else ""}',
                 node.position
             )
     
@@ -46,6 +46,70 @@ class Builtins():
         if ptr_check:
             self._check_pointer(codegen, node)
         return codegen
+
+    # Boxing operation
+
+    # unboxing should be done by way of an expected type
+    # if the result is not the expected type, then ...
+    # we don't have robust error trapping yet
+    # unbox(n, i32, 0)
+    # item to unbox, expected type, what to use if unbox fails (must match type)
+    # var x=unbox(n, i32, 0)
+    # if not x: [etc.]
+    # but this makes it difficult to detect an out-of-band value
+    # we should also have:
+    # objtype(obj, type)
+
+    def _codegen_Builtins_unbox(self, node):
+        self._check_arg_length(node, 3)
+
+        # arg 1 is the object
+        # arg 2 is the type to expect when unwrapping
+        # arg 3 is what to substitute if the unwrap fails
+
+        # extract the type indicator from the object
+        # build an if to compare
+        # if OK, then unbox the value and return that
+        # (be sure to preserve allocation data)
+        # if not, then create a new value and return that
+        # (match allocation)    
+
+    def _codegen_Builtins_objtype(self, node):
+        self._check_arg_length(node)
+        
+        # item must be a variable
+        item = node.args[0]
+
+        if not isinstance(item, Variable):
+            raise CodegenError(
+                "First argument must be a variable holding a boxed object",
+                node.args[0].position
+            )
+
+        box_ptr = self._get_obj_noload(node, arg=0)
+        box_ptr = self.builder.load(box_ptr)
+
+        if not box_ptr.type == self.vartypes.obj.as_pointer():
+            raise CodegenError(
+                "Variable is not a boxed object",
+                node.args[0].position
+            )        
+
+        box_type = self.builder.gep(
+            box_ptr,
+            [
+                self._i32(0),
+                self._i32(0),
+                self._i32(
+                    self.vartypes._header.OBJ_ENUM
+                )
+            ]
+        )
+
+        return self.builder.load(box_type)        
+
+        # easy: extract type element, return that as u64
+
 
     def _codegen_Builtins_dummy(self, node):
         self._check_arg_length(node)

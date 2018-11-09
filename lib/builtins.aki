@@ -6,9 +6,11 @@ const {
     True=1b
     ELEMENT_LEN = 0
     ELEMENT_PTR = 1
-    ELEMENT_REFCOUNT = 2 
+    ELEMENT_REFCOUNT = 2
     ELEMENT_PTR_ALLOC = 3
     ELEMENT_ALLOC = 4
+    FALSE = 'False'
+    TRUE = 'True'
 }
 
 # Forward declarations for functions supplied by platformlib.
@@ -20,6 +22,12 @@ def int_to_c_str(my_int:i32): ptr u_mem pass
 def c_str_to_int(my_str:str) :i32 pass
 
 # The actual builtins.
+
+@nomod
+def '.object.str.__new__'(my_bool: bool):str {
+    #if my_bool then 'True' else 'False'
+    if my_bool then TRUE else FALSE
+}
 
 @nomod
 def '.object.str.__len__'(my_str:str):u64{    
@@ -51,6 +59,10 @@ def '.object.str.__del__'(my_str: str):bool {
     # free the data container
     # TODO: check flag first
     unsafe c_free(c_ptr(my_str))
+}
+
+def '.object.obj.__del__'(my_obj: obj):bool {
+    return True
 }
 
 @track
