@@ -50,30 +50,30 @@ class Builtins():
     def _codegen_Builtins_dummy(self, node):
         self._check_arg_length(node)
         
-        # malloc space for a copy of the object data
-        obj_to_convert = self._codegen(node.args[0])
+        # malloc space for a copy of the data
+        data_to_convert = self._codegen(node.args[0])
 
-        if obj_to_convert.type.is_ptr():
-            enum_id = obj_to_convert.type.pointee.enum_id
+        if data_to_convert.type.is_ptr():
+            enum_id = data_to_convert.type.pointee.enum_id
         else:
-            enum_id = obj_to_convert.type.enum_id
+            enum_id = data_to_convert.type.enum_id
 
-        obj2 = self._codegen(
+        data_malloc = self._codegen(
             Call(node.position, 'c_alloc',
-            [ir.Constant(self.vartypes.u_size, self._obj_size(obj_to_convert))]
+            [ir.Constant(self.vartypes.u_size, self._obj_size(data_to_convert))]
             )
         )
 
         # bitcast to the appropriate pointer type 
-        obj3 = self.builder.bitcast(
-            obj2,
-            obj_to_convert.type.as_pointer()
+        data_ptr = self.builder.bitcast(
+            data_malloc,
+            data_to_convert.type.as_pointer()
         )
 
-        # store the object data in our malloc'd space
+        # store the data in our malloc'd space
         self.builder.store(
-            obj_to_convert,
-            obj3
+            data_to_convert,
+            data_ptr
         )
 
         # Allocate space for the object wrapper
@@ -83,13 +83,17 @@ class Builtins():
             )
         )
 
+        # Get object data size
+        data_length = self._obj_size(data_to_convert)
+
+        # load object from its pointer so we can GEP it
         obj_alloc = self.builder.load(obj_alloc_ptr)
-        obj_length = self._obj_size(obj_to_convert)   
+        
         svh = self.vartypes._header
 
         for n in (
-            (False, svh.DATA_SIZE, self.vartypes.u_size, obj_length),
-            (True, svh.OBJ_POINTER, self.vartypes.u_mem.as_pointer(), obj2),
+            (False, svh.DATA_SIZE, self.vartypes.u_size, data_length),
+            (True, svh.OBJ_POINTER, self.vartypes.u_mem.as_pointer(), data_malloc),
             (False, svh.OBJ_ENUM, self.vartypes.u_size, enum_id),
             (False, svh.OBJ_MALLOC, self.vartypes.bool, True),
             (False, svh.HEADER_MALLOC, self.vartypes.bool, True),
