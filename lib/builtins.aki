@@ -25,8 +25,8 @@ def c_str_to_int(my_str:str) :i32 pass
 
 @nomod
 def '.object.str.__new__'(my_bool: bool):str {
-    #if my_bool then 'True' else 'False'
-    if my_bool then TRUE else FALSE
+    if my_bool then 'True' else 'False'
+    #if my_bool then TRUE else FALSE
 }
 
 @nomod
