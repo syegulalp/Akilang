@@ -195,6 +195,13 @@ def generate_vartypes(module=None, bytesize=8):
 
     Header.packed = True
 
+    Header.DATA_SIZE = 0
+    Header.OBJ_POINTER = 1
+    Header.OBJ_ENUM = 2
+    Header.OBJ_MALLOC = 3
+    Header.HEADER_MALLOC = 4
+    
+
     # for arrays at compile time, we can encode the dimensions at compile time
     # and any calls will be optimized out to constants anyway
     # need to see if the .initializer property works for runtime

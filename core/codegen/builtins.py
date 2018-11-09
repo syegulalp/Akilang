@@ -47,6 +47,75 @@ class Builtins():
             self._check_pointer(codegen, node)
         return codegen
 
+    def _codegen_Builtins_dummy(self, node):
+        self._check_arg_length(node)
+        
+        # malloc space for a copy of the object data
+        obj_to_convert = self._codegen(node.args[0])
+
+        if obj_to_convert.type.is_ptr():
+            enum_id = obj_to_convert.type.pointee.enum_id
+        else:
+            enum_id = obj_to_convert.type.enum_id
+
+        obj2 = self._codegen(
+            Call(node.position, 'c_alloc',
+            [ir.Constant(self.vartypes.u_size, self._obj_size(obj_to_convert))]
+            )
+        )
+
+        # bitcast to the appropriate pointer type 
+        obj3 = self.builder.bitcast(
+            obj2,
+            obj_to_convert.type.as_pointer()
+        )
+
+        # store the object data in our malloc'd space
+        self.builder.store(
+            obj_to_convert,
+            obj3
+        )
+
+        # Allocate space for the object wrapper
+        obj_alloc_ptr = self._codegen(
+            Call(node.position, 'c_obj_alloc',
+            [VariableType(node.position, self.vartypes.obj)]
+            )
+        )
+
+        obj_alloc = self.builder.load(obj_alloc_ptr)
+        obj_length = self._obj_size(obj_to_convert)   
+        svh = self.vartypes._header
+
+        for n in (
+            (False, svh.DATA_SIZE, self.vartypes.u_size, obj_length),
+            (True, svh.OBJ_POINTER, self.vartypes.u_mem.as_pointer(), obj2),
+            (False, svh.OBJ_ENUM, self.vartypes.u_size, enum_id),
+            (False, svh.OBJ_MALLOC, self.vartypes.bool, True),
+            (False, svh.HEADER_MALLOC, self.vartypes.bool, True),
+        ):
+
+            n_ptr = self.builder.gep(
+                obj_alloc,
+                [
+                    self._i32(0),
+                    self._i32(0),
+                    self._i32(n[1])
+                ]
+            )
+
+            if n[0]:
+                value = n[3]
+            else:
+                value = ir.Constant(n[2],n[3])
+
+            self.builder.store(
+                value,
+                n_ptr
+            )
+
+        return obj_alloc
+    
     def _codegen_Builtins_type(self, node):
         self._check_arg_length(node)
         type_obj = node.args[0]
