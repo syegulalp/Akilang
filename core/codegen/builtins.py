@@ -1,5 +1,5 @@
 from core.errors import CodegenError, CodegenWarning, ParameterFormatError
-from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe, VariableType
+from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe, VariableType, If
 import llvmlite.ir as ir
 import re
 
@@ -84,6 +84,13 @@ class Builtins():
                 f'Parameter must be a type descriptor',
                 node.args[1].position
             )
+
+        if type_to_unwrap.vartype.is_ptr():
+            enum_id = type_to_unwrap.vartype.pointee.enum_id
+        else:
+            enum_id = type_to_unwrap.vartype.enum_id
+
+        value_to_substitute = self._codegen(node.args[2])
         
         ptr_to_unwrap = self.builder.gep(
             box_ptr,
@@ -107,19 +114,142 @@ class Builtins():
             ]
         )
 
-        return_ptr = self.builder.bitcast(
-            self.builder.load(ptr_to_unwrap),
+        # check that the expected type is the same
+
+        pred = self.builder.icmp_unsigned(
+            '==',
+            self.builder.load(type_to_expect),
+            ir.Constant(
+                self.vartypes.u_size,
+                enum_id
+            )
+        )
+
+        unwrap = self.builder.load(ptr_to_unwrap)
+
+        print ("Unwrap:", unwrap)
+
+        return_ptr = self.builder.alloca(
+            unwrap.type
+        )
+
+        with self.builder.if_else(pred) as (then, otherwise):
+            with then:
+                
+                # This is the default pointer when all is well.
+                self.builder.store(
+                    unwrap,
+                    return_ptr
+                )
+
+            with otherwise:
+
+                # This is the pointer to the new object.
+                
+                self.builder.store(
+                    unwrap,
+                    return_ptr
+                )
+
+        
+
+        # self.builder.store(
+        #     unwrap,
+        #     return_ptr
+        # )
+
+        # If all is not well, we must store a pointer
+        # to a new object in unwrap.
+
+        print ("Return:", return_ptr)
+
+        bitcast_ptr = self.builder.bitcast(
+            unwrap,
             type_to_unwrap.vartype.as_pointer()
         )
 
-        return self.builder.load(return_ptr)
+        print ("Bitcast:", bitcast_ptr)
 
-        # extract the type indicator from the object
-        # build an if to compare
-        # if OK, then unbox the value and return that
-        # (be sure to preserve allocation data)
-        # if not, then create a new value and return that
-        # (match allocation)    
+        return self.builder.load(bitcast_ptr)
+
+        #bitcast_ptr = self.builder.load(bitcast_ptr)
+
+        # self.builder.store(
+        #     bitcast_ptr,
+        #     return_ptr
+        # )
+
+        # return self.builder.load(return_ptr)
+        #return return_ptr
+
+        #print ("Return:", return_ptr)
+
+        # with self.builder.if_else(pred) as (then, otherwise):
+        #     with then:
+
+        #         print ("Unwrap:", ptr_to_unwrap)
+
+        #         bitcast_ptr = self.builder.bitcast(
+        #             self.builder.load(ptr_to_unwrap),
+        #             #type_to_unwrap.vartype.as_pointer()
+        #             return_ptr.type.pointee #.as_pointer()
+        #         )
+
+        #         print ("Bitcast:", bitcast_ptr)
+
+        #         self.builder.store(
+        #             bitcast_ptr,
+        #             return_ptr
+        #         )
+                
+        #     with otherwise:
+
+        #         print ("Unwrap:", ptr_to_unwrap)
+
+        #         bitcast_ptr = self.builder.bitcast(
+        #             self.builder.load(ptr_to_unwrap),
+        #             #ptr_to_unwrap,
+        #             type_to_unwrap.vartype.as_pointer()
+        #         )
+
+        #         print ("Bitcast:", bitcast_ptr)
+
+        #         self.builder.store(
+        #             self.builder.load(bitcast_ptr),
+        #             return_ptr
+        #         )
+
+                # # malloc space for a copy of the data
+                # data_to_convert = self._codegen(node.args[2])
+
+                # data_malloc = self._codegen(
+                #     Call(node.position, 'c_alloc',
+                #     [ir.Constant(self.vartypes.u_size, self._obj_size(data_to_convert))]
+                #     )
+                # )
+
+                # # bitcast to the appropriate pointer type 
+                # data_ptr = self.builder.bitcast(
+                #     data_malloc,
+                #     data_to_convert.type.as_pointer()
+                # )
+
+                # # store the data in our malloc'd space
+                # self.builder.store(
+                #     data_to_convert,
+                #     data_ptr
+                # )
+
+                # print (data_ptr)
+
+        # return_ptr = self.builder.bitcast(
+        #     self.builder.load(ptr_to_unwrap),
+        #     type_to_unwrap.vartype.as_pointer()
+        # )
+
+        
+
+        # TODO: add object tracking along all paths        
 
     def _codegen_Builtins_objtype(self, node):
         self._check_arg_length(node)
