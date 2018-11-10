@@ -114,6 +114,8 @@ class Builtins():
             ]
         )
 
+        substitute_data = self._codegen(node.args[2])
+
         # check that the expected type is the same
 
         pred = self.builder.icmp_unsigned(
@@ -127,70 +129,80 @@ class Builtins():
 
         unwrap = self.builder.load(ptr_to_unwrap)
 
-        print ("Unwrap:", unwrap)
+        #print ("Unwrap:", unwrap)
 
         return_ptr = self.builder.alloca(
-            unwrap.type
+            type_to_unwrap.vartype
         )
+
+        print ("Return:", return_ptr)
 
         with self.builder.if_else(pred) as (then, otherwise):
             with then:
                 
                 # This is the default pointer when all is well.
-                self.builder.store(
+
+                bitcast = self.builder.bitcast(
                     unwrap,
+                    type_to_unwrap.vartype.as_pointer()
+                )
+
+                print ("BC", bitcast)
+                
+                self.builder.store(
+                    self.builder.load(bitcast),
                     return_ptr
                 )
 
             with otherwise:
 
                 # This is the pointer to the new object.
+                # i8*
 
-                self.builder.store(
-                    unwrap,
-                    return_ptr
+                data_malloc = self._codegen(
+                    Call(node.position, 'c_alloc',
+                    [ir.Constant(self.vartypes.u_size, self._obj_size(substitute_data))]
+                    )
                 )
 
-        print ("Return:", return_ptr)
+                print ("Malloc:", data_malloc)
+
+                # bitcast to the appropriate pointer type 
+                data_ptr = self.builder.bitcast(
+                    data_malloc,
+                    substitute_data.type.as_pointer()
+                )
+
+                print ("Data ptr:", data_ptr)
+
+                # store the data in our malloc'd space
+                self.builder.store(
+                    substitute_data,
+                    data_ptr
+                )
+
+                print ("Ptr:", data_ptr)
+
+                bitcast = self.builder.bitcast(
+                    data_malloc,
+                    type_to_unwrap.vartype.as_pointer()
+                )
+
+                # store the data in our malloc'd space
+                self.builder.store(
+                    self.builder.load(bitcast),
+                    return_ptr
+                )                
+
 
         bitcast_ptr = self.builder.bitcast(
-            unwrap,
+            return_ptr,
             type_to_unwrap.vartype.as_pointer()
         )
 
         print ("Bitcast:", bitcast_ptr)
 
         return self.builder.load(bitcast_ptr)
-
-
-        # # malloc space for a copy of the data
-        # data_to_convert = self._codegen(node.args[2])
-
-        # data_malloc = self._codegen(
-        #     Call(node.position, 'c_alloc',
-        #     [ir.Constant(self.vartypes.u_size, self._obj_size(data_to_convert))]
-        #     )
-        # )
-
-        # # bitcast to the appropriate pointer type 
-        # data_ptr = self.builder.bitcast(
-        #     data_malloc,
-        #     data_to_convert.type.as_pointer()
-        # )
-
-        # # store the data in our malloc'd space
-        # self.builder.store(
-        #     data_to_convert,
-        #     data_ptr
-        # )
-
-        # print (data_ptr)
-
-        # return_ptr = self.builder.bitcast(
-        #     self.builder.load(ptr_to_unwrap),
-        #     type_to_unwrap.vartype.as_pointer()
-        # )
-
 
         # TODO: add object tracking along all paths        
 
