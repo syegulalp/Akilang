@@ -90,7 +90,9 @@ class Builtins():
         else:
             enum_id = type_to_unwrap.vartype.enum_id
 
-        value_to_substitute = self._codegen(node.args[2])
+        
+
+        # Get pointer to object to unwrap
         
         ptr_to_unwrap = self.builder.gep(
             box_ptr,
@@ -103,6 +105,10 @@ class Builtins():
             ]
         )
 
+        unwrap = self.builder.load(ptr_to_unwrap)
+
+        # Get type enum to expect
+
         type_to_expect = self.builder.gep(
             box_ptr,
             [
@@ -114,9 +120,13 @@ class Builtins():
             ]
         )
 
-        substitute_data = self._codegen(node.args[2])
+        # Allocate space for ptr to return value
 
-        # check that the expected type is the same
+        return_ptr = self.builder.alloca(
+            type_to_unwrap.vartype
+        )
+
+        # Check that the expected type is the same
 
         pred = self.builder.icmp_unsigned(
             '==',
@@ -125,17 +135,7 @@ class Builtins():
                 self.vartypes.u_size,
                 enum_id
             )
-        )
-
-        unwrap = self.builder.load(ptr_to_unwrap)
-
-        #print ("Unwrap:", unwrap)
-
-        return_ptr = self.builder.alloca(
-            type_to_unwrap.vartype
-        )
-
-        print ("Return:", return_ptr)
+        )        
 
         with self.builder.if_else(pred) as (then, otherwise):
             with then:
@@ -147,8 +147,6 @@ class Builtins():
                     type_to_unwrap.vartype.as_pointer()
                 )
 
-                print ("BC", bitcast)
-                
                 self.builder.store(
                     self.builder.load(bitcast),
                     return_ptr
@@ -156,51 +154,44 @@ class Builtins():
 
             with otherwise:
 
+                # Generate the substitute data
+                value_to_substitute = self._codegen(node.args[2])
+
                 # This is the pointer to the new object.
-                # i8*
 
                 data_malloc = self._codegen(
                     Call(node.position, 'c_alloc',
-                    [ir.Constant(self.vartypes.u_size, self._obj_size(substitute_data))]
+                    [ir.Constant(self.vartypes.u_size, self._obj_size(value_to_substitute))]
                     )
                 )
-
-                print ("Malloc:", data_malloc)
 
                 # bitcast to the appropriate pointer type 
                 data_ptr = self.builder.bitcast(
                     data_malloc,
-                    substitute_data.type.as_pointer()
+                    value_to_substitute.type.as_pointer()
                 )
-
-                print ("Data ptr:", data_ptr)
 
                 # store the data in our malloc'd space
                 self.builder.store(
-                    substitute_data,
+                    value_to_substitute,
                     data_ptr
                 )
-
-                print ("Ptr:", data_ptr)
 
                 bitcast = self.builder.bitcast(
                     data_malloc,
                     type_to_unwrap.vartype.as_pointer()
                 )
 
-                # store the data in our malloc'd space
+                # store pointer to data as our return item
                 self.builder.store(
                     self.builder.load(bitcast),
                     return_ptr
                 )                
 
-
         bitcast_ptr = self.builder.bitcast(
             return_ptr,
             type_to_unwrap.vartype.as_pointer()
         )
-
-        print ("Bitcast:", bitcast_ptr)
 
         return self.builder.load(bitcast_ptr)
 
