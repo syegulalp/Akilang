@@ -100,7 +100,7 @@ class Expressions():
         if id_name in self.consts:
             self._get_next_token()
             return self.consts[id_name]
-
+            
         self._get_next_token()
         result = Variable(start, id_name, self.cur_tok.vartype)
         result = self._parse_modifiers(result)

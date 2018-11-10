@@ -203,7 +203,6 @@ class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
                 return None
             raise CodegenError(f'Undefined variable "{node.name}"',
                                node.position)
-
         return v
 
     def _codegen(self, node, check_for_type=True):

@@ -426,6 +426,7 @@ class Toplevel():
                             global_constant=False
                         )
                     )
+                    
                 else:
                     value = ir.Constant(vartype, None)
 
@@ -434,6 +435,7 @@ class Toplevel():
                 variable = self._codegen(
                     Global(position, value, name, const)
                 )   
+                
             
             else:
                 

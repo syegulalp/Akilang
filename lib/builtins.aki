@@ -24,12 +24,6 @@ def c_str_to_int(my_str:str) :i32 pass
 # The actual builtins.
 
 @nomod
-def '.object.str.__new__'(my_bool: bool):str {
-    if my_bool then 'True' else 'False'
-    #if my_bool then TRUE else FALSE
-}
-
-@nomod
 def '.object.str.__len__'(my_str:str):u64{    
     var f1 = c_gep(my_str,0,ELEMENT_LEN)
     c_deref(f1)
@@ -91,7 +85,12 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     
     # Return the string object
     return alloc
+}
 
+@nomod
+def '.object.str.__new__'(my_bool: bool):str {
+    if my_bool then 'True' else 'False'
+    #if my_bool then TRUE else FALSE
 }
 
 def set_obj(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem):obj {
