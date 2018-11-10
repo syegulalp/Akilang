@@ -55,7 +55,7 @@ class Builtins():
 
         if not box_ptr.type == self.vartypes.obj.as_pointer():
             raise CodegenError(
-                "Not a boxed object",
+                "Not a boxed value",
                 node.args[0].position
             )
 
@@ -74,7 +74,7 @@ class Builtins():
 
         # Generate the substitute data
         value_to_substitute = self._codegen(node.args[2])
-        
+
         if value_to_substitute.type != type_to_unwrap.vartype:
             raise CodegenError(
                 f'Substitute value must be the same type as the sought type',
@@ -150,10 +150,14 @@ class Builtins():
 
                 # This is the pointer to the new object.
                 data_malloc = self._codegen(
-                    Call(node.position, 'c_alloc',
-                         [ir.Constant(self.vartypes.u_size,
-                                      self._obj_size(value_to_substitute))]
-                         )
+                    Call(
+                        node.position,
+                        'c_alloc',
+                        [ir.Constant(
+                            self.vartypes.u_size,
+                            self._obj_size(value_to_substitute)
+                        )]
+                    )
                 )
 
                 # bitcast to the appropriate pointer type
@@ -168,12 +172,13 @@ class Builtins():
                     data_ptr
                 )
 
+                # store pointer to data as our return item
+
                 bitcast = self.builder.bitcast(
                     data_malloc,
                     type_to_unwrap.vartype.as_pointer()
                 )
 
-                # store pointer to data as our return item
                 self.builder.store(
                     self.builder.load(bitcast),
                     return_ptr
