@@ -98,9 +98,6 @@ class Builtins():
 
         return self.builder.load(box_type)        
 
-        # easy: extract type element, return that as u64
-
-
     def _codegen_Builtins_dummy(self, node):
         self._check_arg_length(node)
         
