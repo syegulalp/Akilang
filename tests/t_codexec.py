@@ -760,7 +760,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('{var x=dummy(32U) unbox(x,u64,0U)}'), 32)
         self.assertEqual(self.e2.evaluate('{var x=dummy(1b) unbox(x,bool,0b)}'), True)
         self.assertEqual(self.e2.evaluate('{var x=dummy(1.0) unbox(x,f64,0.0)}'), 1.0)
-        self.assertEqual(self.e2.evaluate('{var x=dummy({var y:i32[20]=[1] y}) var z=unbox(x,i32[64],0) z[0]}'), 1)
+        self.assertEqual(self.e2.evaluate('{var x=dummy({var y:i32[20]=[1] y}) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)
 
         # TODO: need to be able to say `unbox(x,i32[64],0)[0]`
         
@@ -777,7 +777,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,u64,0U)}'), 0)
         self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,bool,0b)}'), False)
         self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,f64,0.0)}'), 0.0)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) var z=unbox(x,i32[64],{var y:i32[20]=[1] y}) y[0]}'), 1)        
+        self.assertEqual(self.e2.evaluate('{var x=dummy(32) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)        
         
     def test_auto_free(self):
         '''

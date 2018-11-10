@@ -17,12 +17,12 @@ class Builtins():
         return node
 
     def _check_arg_length(self, node, min_args=1):
-        if len(node.args)<min_args:
+        if len(node.args) < min_args:
             raise CodegenError(
                 f'Operation requires at least {min_args} argument{"s" if min_args>1 else ""}',
                 node.position
             )
-    
+
     def _check_pointer(self, obj, node):
         '''
         Determines if a given item is a pointer or object.
@@ -37,30 +37,17 @@ class Builtins():
         '''
         if not arg:
             arg = node.args[0]
-        
+
         if isinstance(arg, Variable):
             codegen = self._codegen_Variable(arg, noload=True)
         else:
             codegen = self._codegen(arg)
-        
+
         if ptr_check:
             self._check_pointer(codegen, node)
         return codegen
 
-    # Boxing operation
-
-    # unboxing should be done by way of an expected type
-    # if the result is not the expected type, then ...
-    # we don't have robust error trapping yet
-    # unbox(n, i32, 0)
-    # item to unbox, expected type, what to use if unbox fails (must match type)
-    # var x=unbox(n, i32, 0)
-    # if not x: [etc.]
-    # but this makes it difficult to detect an out-of-band value
-    # we should also have:
-    # objtype(obj, type)
-
-    def _box_check(self, node, unload = False):
+    def _box_check(self, node, unload=False):
         box_ptr = self._get_obj_noload(node, arg=0)
 
         if unload:
@@ -85,15 +72,22 @@ class Builtins():
                 node.args[1].position
             )
 
+        # Generate the substitute data
+        value_to_substitute = self._codegen(node.args[2])
+        
+        if value_to_substitute.type != type_to_unwrap.vartype:
+            raise CodegenError(
+                f'Substitute object must be the same type as the sought type',
+                node.args[2].position
+            )
+
         if type_to_unwrap.vartype.is_ptr():
             enum_id = type_to_unwrap.vartype.pointee.enum_id
         else:
             enum_id = type_to_unwrap.vartype.enum_id
 
-        
-
         # Get pointer to object to unwrap
-        
+
         ptr_to_unwrap = self.builder.gep(
             box_ptr,
             [
@@ -135,11 +129,11 @@ class Builtins():
                 self.vartypes.u_size,
                 enum_id
             )
-        )        
+        )
 
         with self.builder.if_else(pred) as (then, otherwise):
             with then:
-                
+
                 # This is the default pointer when all is well.
 
                 bitcast = self.builder.bitcast(
@@ -154,18 +148,15 @@ class Builtins():
 
             with otherwise:
 
-                # Generate the substitute data
-                value_to_substitute = self._codegen(node.args[2])
-
                 # This is the pointer to the new object.
-
                 data_malloc = self._codegen(
                     Call(node.position, 'c_alloc',
-                    [ir.Constant(self.vartypes.u_size, self._obj_size(value_to_substitute))]
-                    )
+                         [ir.Constant(self.vartypes.u_size,
+                                      self._obj_size(value_to_substitute))]
+                         )
                 )
 
-                # bitcast to the appropriate pointer type 
+                # bitcast to the appropriate pointer type
                 data_ptr = self.builder.bitcast(
                     data_malloc,
                     value_to_substitute.type.as_pointer()
@@ -186,7 +177,7 @@ class Builtins():
                 self.builder.store(
                     self.builder.load(bitcast),
                     return_ptr
-                )                
+                )
 
         bitcast_ptr = self.builder.bitcast(
             return_ptr,
@@ -195,14 +186,14 @@ class Builtins():
 
         return self.builder.load(bitcast_ptr)
 
-        # TODO: add object tracking along all paths        
+        # TODO: add object tracking along all paths
 
     def _codegen_Builtins_objtype(self, node):
         self._check_arg_length(node)
         item = node.args[0]
-        
+
         box_ptr = self._box_check(node)
-        
+
         box_type = self.builder.gep(
             box_ptr,
             [
@@ -214,11 +205,11 @@ class Builtins():
             ]
         )
 
-        return self.builder.load(box_type)        
+        return self.builder.load(box_type)
 
     def _codegen_Builtins_dummy(self, node):
         self._check_arg_length(node)
-        
+
         # malloc space for a copy of the data
         data_to_convert = self._codegen(node.args[0])
 
@@ -229,11 +220,12 @@ class Builtins():
 
         data_malloc = self._codegen(
             Call(node.position, 'c_alloc',
-            [ir.Constant(self.vartypes.u_size, self._obj_size(data_to_convert))]
-            )
+                 [ir.Constant(self.vartypes.u_size,
+                              self._obj_size(data_to_convert))]
+                 )
         )
 
-        # bitcast to the appropriate pointer type 
+        # bitcast to the appropriate pointer type
         data_ptr = self.builder.bitcast(
             data_malloc,
             data_to_convert.type.as_pointer()
@@ -248,8 +240,8 @@ class Builtins():
         # Allocate space for the object wrapper
         obj_alloc_ptr = self._codegen(
             Call(node.position, 'c_obj_alloc',
-            [VariableType(node.position, self.vartypes.obj)]
-            )
+                 [VariableType(node.position, self.vartypes.obj)]
+                 )
         )
 
         # Get object data size
@@ -257,7 +249,7 @@ class Builtins():
 
         # load object from its pointer so we can GEP it
         obj_alloc = self.builder.load(obj_alloc_ptr)
-        
+
         svh = self.vartypes._header
 
         for n in (
@@ -280,7 +272,7 @@ class Builtins():
             if n[0]:
                 value = n[3]
             else:
-                value = ir.Constant(n[2],n[3])
+                value = ir.Constant(n[2], n[3])
 
             self.builder.store(
                 value,
@@ -288,7 +280,7 @@ class Builtins():
             )
 
         return obj_alloc
-    
+
     def _codegen_Builtins_type(self, node):
         self._check_arg_length(node)
         type_obj = node.args[0]
@@ -299,7 +291,7 @@ class Builtins():
             type_obj = self._codegen(type_obj).type
 
         if type_obj == ir.FunctionType:
-            enum_id = type_obj.enum_id        
+            enum_id = type_obj.enum_id
         elif type_obj == self.vartypes.carray:
             enum_id = type_obj.enum_id
         elif type_obj == self.vartypes.array:
@@ -394,7 +386,7 @@ class Builtins():
         '''
         Returns a typed pointer to the object.
         '''
-        
+
         self._check_arg_length(node)
 
         expr = self._get_obj_noload(node)
@@ -404,7 +396,7 @@ class Builtins():
 
     def _codegen_Builtins_c_ptr_math(self, node):
 
-        self._check_arg_length(node,2)
+        self._check_arg_length(node, 2)
 
         ptr = self._codegen(node.args[0])
         int_from_ptr = self.builder.ptrtoint(ptr, self.vartypes.u_size)
@@ -419,16 +411,16 @@ class Builtins():
     def _codegen_Builtins_c_ptr_mod(self, node):
 
         node = self._if_unsafe(node)
-        self._check_arg_length(node,2)
+        self._check_arg_length(node, 2)
 
         ptr = self._codegen(node.args[0])
         value = self._codegen(node.args[1])
         self.builder.store(value, ptr)
-        
+
         # XXX: I'm assuming a modified pointer object
         # cannot be automatically disposed b/c
         # we edit it manually
-        
+
         ptr.tracked = False
 
         return ptr
@@ -478,8 +470,6 @@ class Builtins():
 
         return ir.Constant(self.vartypes.u_size, s2)
 
-
-
     def _extract_data_ptr(self, convert_from, node):
         '''
         Follows the generic u_mem data pointer
@@ -489,11 +479,11 @@ class Builtins():
         gep = self.builder.gep(
             convert_from,
             [
-                #object instance
-                self._i32(0), 
-                #header
+                # object instance
                 self._i32(0),
-                #ptr to mem
+                # header
+                self._i32(0),
+                # ptr to mem
                 self._i32(1),
             ]
         )
@@ -517,10 +507,9 @@ class Builtins():
         bc = self.builder.bitcast(
             gep, self.vartypes.u_mem.as_pointer(),
             '.array.ptr'
-            )  # pylint: disable=E1111
-        
-        return bc
+        )  # pylint: disable=E1111
 
+        return bc
 
     def _extract_array(self, convert_from, node):
         '''
@@ -530,9 +519,9 @@ class Builtins():
         gep = self.builder.gep(
             convert_from,
             [
-                #object instance
+                # object instance
                 self._i32(0),
-                #ptr to body
+                # ptr to body
                 self._i32(1),
             ]
         )
@@ -540,10 +529,9 @@ class Builtins():
         bc = self.builder.bitcast(
             gep, self.vartypes.u_mem.as_pointer(),
             '.array.ptr'
-            )  # pylint: disable=E1111
-        
-        return bc
+        )  # pylint: disable=E1111
 
+        return bc
 
     def _codegen_Builtins_c_data(self, node):
         '''
@@ -562,7 +550,7 @@ class Builtins():
             return self._extract_data_ptr(
                 convert_from, node
             )
-            
+
         elif isinstance(
             convert_from.type.pointee,
             self.vartypes._carray
@@ -585,13 +573,12 @@ class Builtins():
                 node.position
             )
 
-
     def _codegen_Builtins_c_ptr(self, node):
         '''
         Returns a u_mem ptr to anything
         '''
         node = self._if_unsafe(node)
-        
+
         self._check_arg_length(node)
 
         address_of = self._codegen(node.args[0])
@@ -639,7 +626,7 @@ class Builtins():
         '''
         Returns a typed pointer to a primitive, like an int.
         '''
-        
+
         self._check_arg_length(node)
 
         expr = self._get_obj_noload(node)
@@ -656,7 +643,7 @@ class Builtins():
         Dereferences a pointer (itself passed as a pointer)
         and returns the object at the memory location.
         '''
-        
+
         self._check_arg_length(node)
 
         ptr = self._codegen(node.args[0])
@@ -868,7 +855,7 @@ class Builtins():
 
         spacer = ''
         separator = '\n'
-        
+
         # This is a crude, hacky way to implement varargs and kwargs,
         # and it only works on builtins.
         # Eventually I'm going to find a better way to do this,
@@ -881,11 +868,11 @@ class Builtins():
         # code without some kind of type boxing mechanism
 
         for n1 in reversed(node.args):
-            n=n1
-            
+            n = n1
+
             if not isinstance(n, Binary):
                 break
-            
+
             node.args.pop()
 
             try:
@@ -893,7 +880,7 @@ class Builtins():
                     raise ParameterFormatError
                 if n.op != "=":
                     raise ParameterFormatError
-                
+
                 if n.lhs.name == "end":
                     if not isinstance(n.rhs, String):
                         raise ParameterFormatError
@@ -903,16 +890,15 @@ class Builtins():
                     if not isinstance(n.rhs, String):
                         raise ParameterFormatError
                     spacer = n.rhs.val
-                    
+
             except ParameterFormatError:
                 raise CodegenError(
                     f'Parameter must follow the format "<name>=\'value\'"',
                     n.position
                 )
 
-
         for arg in node.args:
-            
+
             format_string.append(spacer)
 
             if isinstance(n, Binary):
@@ -922,8 +908,8 @@ class Builtins():
                 )
 
             if isinstance(arg, String):
-                arg.val = arg.val.replace(r'%',r'%%')
-            
+                arg.val = arg.val.replace(r'%', r'%%')
+
             if not isinstance(arg, FString):
                 arg = FString(
                     arg.position,
@@ -932,13 +918,13 @@ class Builtins():
 
             new_format_string, new_variable_list = self._codegen_FString(arg)
 
-            format_string+=new_format_string
-            variable_list+=new_variable_list
+            format_string += new_format_string
+            variable_list += new_variable_list
 
             spacer = ' '
-        
+
         format_string.append(separator)
-        
+
         str_to_extract = String(node.position, ''.join(format_string))
 
         convert = Call(
