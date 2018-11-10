@@ -77,7 +77,7 @@ class Builtins():
         
         if value_to_substitute.type != type_to_unwrap.vartype:
             raise CodegenError(
-                f'Substitute object must be the same type as the sought type',
+                f'Substitute value must be the same type as the sought type',
                 node.args[2].position
             )
 
