@@ -60,12 +60,59 @@ class Builtins():
     # we should also have:
     # objtype(obj, type)
 
+    def _box_check(self, node, unload = False):
+        box_ptr = self._get_obj_noload(node, arg=0)
+
+        if unload:
+            box_ptr = self.builder.load(box_ptr)
+
+        if not box_ptr.type == self.vartypes.obj.as_pointer():
+            raise CodegenError(
+                "Not a boxed object",
+                node.args[0].position
+            )
+
+        return box_ptr
+
     def _codegen_Builtins_unbox(self, node):
         self._check_arg_length(node, 3)
+        box_ptr = self._box_check(node, True)
+        type_to_unwrap = node.args[1]
 
-        # arg 1 is the object
-        # arg 2 is the type to expect when unwrapping
-        # arg 3 is what to substitute if the unwrap fails
+        if not isinstance(type_to_unwrap, VariableType):
+            raise CodegenError(
+                f'Parameter must be a type descriptor',
+                node.args[1].position
+            )
+        
+        ptr_to_unwrap = self.builder.gep(
+            box_ptr,
+            [
+                self._i32(0),
+                self._i32(0),
+                self._i32(
+                    self.vartypes._header.OBJ_POINTER
+                )
+            ]
+        )
+
+        type_to_expect = self.builder.gep(
+            box_ptr,
+            [
+                self._i32(0),
+                self._i32(0),
+                self._i32(
+                    self.vartypes._header.OBJ_ENUM
+                )
+            ]
+        )
+
+        return_ptr = self.builder.bitcast(
+            self.builder.load(ptr_to_unwrap),
+            type_to_unwrap.vartype.as_pointer()
+        )
+
+        return self.builder.load(return_ptr)
 
         # extract the type indicator from the object
         # build an if to compare
@@ -77,14 +124,9 @@ class Builtins():
     def _codegen_Builtins_objtype(self, node):
         self._check_arg_length(node)
         item = node.args[0]
-        box_ptr = self._get_obj_noload(node, arg=0)
-
-        if not box_ptr.type == self.vartypes.obj.as_pointer():
-            raise CodegenError(
-                "Not a boxed object",
-                node.args[0].position
-            )        
-
+        
+        box_ptr = self._box_check(node)
+        
         box_type = self.builder.gep(
             box_ptr,
             [

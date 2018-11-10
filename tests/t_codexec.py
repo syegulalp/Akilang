@@ -749,6 +749,23 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('objtype(dummy({var x:i32[20] x}))==type(array)'), 1)
         self.assertEqual(self.e2.evaluate('objtype(dummy([20]))==type([64])'), 1)
         self.assertEqual(self.e2.evaluate('objtype(dummy([20]))==type(carray)'), 1)
+    
+    def test_unbox_type(self):
+        # success tests
+
+        self.e2.reset()
+        self.assertEqual(self.e2.evaluate('{var x=dummy("Hi") unbox(x,str,0)}'), '"Hi"')
+        self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,i32,0)}'), 32)
+        self.assertEqual(self.e2.evaluate('{var x=dummy(32u) unbox(x,u32,0)}'), 32)
+        self.assertEqual(self.e2.evaluate('{var x=dummy(32U) unbox(x,u64,0)}'), 32)
+        self.assertEqual(self.e2.evaluate('{var x=dummy(1b) unbox(x,bool,0)}'), True)
+        self.assertEqual(self.e2.evaluate('{var x=dummy(1.0) unbox(x,f64,0.0)}'), 1.0)
+        self.assertEqual(self.e2.evaluate('{var x=dummy({var y:i32[20]=[1] y}) var z=unbox(x,i32[64],0) z[0]}'), 1)
+
+        # TODO: need to be able to say `unbox(x,i32[64],0)[0]`
+        
+        # self.assertEqual(self.e2.evaluate('objtype(dummy([20]))==type(carray)'), 1)
+        # TODO: no way to really do this last test yet
         
         
     def test_auto_free(self):

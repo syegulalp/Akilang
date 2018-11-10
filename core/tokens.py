@@ -93,7 +93,8 @@ Builtins = {
     'print',
     'dummy',
     'type',
-    'objtype'
+    'objtype',
+    'unbox'
 }
 
 Builtin = {
