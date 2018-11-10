@@ -76,22 +76,12 @@ class Builtins():
 
     def _codegen_Builtins_objtype(self, node):
         self._check_arg_length(node)
-        
-        # item must be a variable
         item = node.args[0]
-
-        if not isinstance(item, Variable):
-            raise CodegenError(
-                "First argument must be a variable holding a boxed object",
-                node.args[0].position
-            )
-
         box_ptr = self._get_obj_noload(node, arg=0)
-        box_ptr = self.builder.load(box_ptr)
 
         if not box_ptr.type == self.vartypes.obj.as_pointer():
             raise CodegenError(
-                "Variable is not a boxed object",
+                "Not a boxed object",
                 node.args[0].position
             )        
 
