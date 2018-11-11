@@ -287,7 +287,7 @@ class Repl():
             try:
                 gc.freeze()
             except:
-                pass
+                pass                
             cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
             cprint('Type help or a command to be interpreted', 'green')
             command = ""

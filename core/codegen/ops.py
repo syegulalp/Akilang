@@ -109,21 +109,13 @@ class Ops():
                 node.position)
         else:
             vartype = lhs.type
-            v_type = getattr(lhs.type, 'v_type', None)
 
         try:
-            # For non-primitive types we need to look up the property
-
-            if v_type is not None:
-                if v_type == Str:
-                    raise NotImplementedError
-
-            # TODO: no overflow checking!
-            # we have to add that when we have exceptions, etc.
-            # with fcmp_ordered this is assuming we are strictly comparing
-            # float to float in all cases.
+            if vartype.is_obj_ptr():
+                return self._codegen_methodcall(node, lhs, rhs)
 
             # Integer operations
+            # TODO: no overflow checking!
 
             if isinstance(vartype, ir.IntType):
 
