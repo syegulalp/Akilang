@@ -739,45 +739,45 @@ class TestEvaluator(unittest.TestCase):
 
     def test_box_type(self):
         self.e2.reset()
-        self.assertEqual(self.e2.evaluate('objtype(dummy("Hi"))==type(str)'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy(32))==type(i32)'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy(32u))==type(u32)'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy(32U))==type(u64)'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy(1b))==type(0b)'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy(1.0))==type(0.00)'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy({var x:i32[20] x}))==type(i32[64])'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy({var x:i32[20] x}))==type(array)'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy([20]))==type([64])'), 1)
-        self.assertEqual(self.e2.evaluate('objtype(dummy([20]))==type(carray)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box("Hi"))==type(str)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box(32))==type(i32)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box(32u))==type(u32)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box(32U))==type(u64)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box(1b))==type(0b)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box(1.0))==type(0.00)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box({var x:i32[20] x}))==type(i32[64])'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box({var x:i32[20] x}))==type(array)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box([20]))==type([64])'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box([20]))==type(carray)'), 1)
     
     def test_unbox_type(self):
         # success tests
 
         self.e2.reset()
-        self.assertEqual(self.e2.evaluate('{var x=dummy("Hi") unbox(x,str,"Yo")}'), '"Hi"')
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,i32,0)}'), 32)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32u) unbox(x,u32,0u)}'), 32)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32U) unbox(x,u64,0U)}'), 32)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(1b) unbox(x,bool,0b)}'), True)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(1.0) unbox(x,f64,0.0)}'), 1.0)
-        self.assertEqual(self.e2.evaluate('{var x=dummy({var y:i32[20]=[1] y}) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)
+        self.assertEqual(self.e2.evaluate('{var x=box("Hi") unbox(x,str,"Yo")}'), '"Hi"')
+        self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,i32,0)}'), 32)
+        self.assertEqual(self.e2.evaluate('{var x=box(32u) unbox(x,u32,0u)}'), 32)
+        self.assertEqual(self.e2.evaluate('{var x=box(32U) unbox(x,u64,0U)}'), 32)
+        self.assertEqual(self.e2.evaluate('{var x=box(1b) unbox(x,bool,0b)}'), True)
+        self.assertEqual(self.e2.evaluate('{var x=box(1.0) unbox(x,f64,0.0)}'), 1.0)
+        self.assertEqual(self.e2.evaluate('{var x=box({var y:i32[20]=[1] y}) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)
 
         # TODO: need to be able to say `unbox(x,i32[64],0)[0]`
         
-        # self.assertEqual(self.e2.evaluate('objtype(dummy([20]))==type(carray)'), 1)
+        # self.assertEqual(self.e2.evaluate('objtype(box([20]))==type(carray)'), 1)
         # TODO: no way to really do this last test yet
         
     def test_unbox_type_failure(self):
         # failure/substitution tests
 
         self.e2.reset()
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,str,"Yo")}'), '"Yo"')
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32U) unbox(x,i32,0)}'), 0)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,u32,0u)}'), 0)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,u64,0U)}'), 0)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,bool,0b)}'), False)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) unbox(x,f64,0.0)}'), 0.0)
-        self.assertEqual(self.e2.evaluate('{var x=dummy(32) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)        
+        self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,str,"Yo")}'), '"Yo"')
+        self.assertEqual(self.e2.evaluate('{var x=box(32U) unbox(x,i32,0)}'), 0)
+        self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,u32,0u)}'), 0)
+        self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,u64,0U)}'), 0)
+        self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,bool,0b)}'), False)
+        self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,f64,0.0)}'), 0.0)
+        self.assertEqual(self.e2.evaluate('{var x=box(32) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)        
         
     def test_auto_free(self):
         '''

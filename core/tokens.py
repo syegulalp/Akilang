@@ -92,6 +92,7 @@ Builtins = {
     # 'out',
     'print',
     'dummy',
+    'box',
     'type',
     'objtype',
     'unbox'

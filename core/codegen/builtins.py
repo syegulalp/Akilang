@@ -226,7 +226,7 @@ class Builtins():
 
         return self.builder.load(box_type)
 
-    def _codegen_Builtins_dummy(self, node):
+    def _codegen_Builtins_box(self, node):
         '''
         Place a variable inside a container.
         '''
