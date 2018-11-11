@@ -4,7 +4,6 @@ def run(**options):
     while True:
         from core.repl import Repl
         from core.errors import ReloadException
-        gc.collect()
         try:
             Repl().run(options)
             break
