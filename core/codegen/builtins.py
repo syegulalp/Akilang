@@ -1,7 +1,6 @@
 from core.errors import CodegenError, CodegenWarning, ParameterFormatError
 from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe, VariableType, If
 import llvmlite.ir as ir
-import re
 
 # pylint: disable=E1101
 
@@ -48,6 +47,10 @@ class Builtins():
         return codegen
 
     def _box_check(self, node, unload=False):
+        '''
+        Determine if a given variable is a container.
+        '''
+
         box_ptr = self._get_obj_noload(node, arg=0)
 
         if unload:
@@ -62,6 +65,15 @@ class Builtins():
         return box_ptr
 
     def _codegen_Builtins_unbox(self, node):
+        '''
+        Extracts an object of a certain expected type from a container.
+        If the wrong type is found, a supplied object of the correct type
+        can be substituted.
+        '''
+
+        # TODO: add object tracking along all paths
+        # TODO: add box types for user-defined classes, too
+
         self._check_arg_length(node, 3)
         box_ptr = self._box_check(node, True)
         type_to_unwrap = node.args[1]
@@ -77,7 +89,7 @@ class Builtins():
 
         if value_to_substitute.type != type_to_unwrap.vartype:
             raise CodegenError(
-                f'Substitute value must be the same type as the sought type',
+                f'Substitute value must be the same type as the expected type',
                 node.args[2].position
             )
 
@@ -191,9 +203,11 @@ class Builtins():
 
         return self.builder.load(bitcast_ptr)
 
-        # TODO: add object tracking along all paths
-
     def _codegen_Builtins_objtype(self, node):
+        '''
+        Retrieves the type of an object inside a container.
+        '''
+
         self._check_arg_length(node)
         item = node.args[0]
 
@@ -213,6 +227,10 @@ class Builtins():
         return self.builder.load(box_type)
 
     def _codegen_Builtins_dummy(self, node):
+        '''
+        Place a variable inside a container.
+        '''
+
         self._check_arg_length(node)
 
         # malloc space for a copy of the data
