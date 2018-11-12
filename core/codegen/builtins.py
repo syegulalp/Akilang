@@ -46,14 +46,14 @@ class Builtins():
             self._check_pointer(codegen, node)
         return codegen
 
-    def _box_check(self, node, unload=False):
+    def _box_check(self, node):
         '''
         Determine if a given variable is a container.
         '''
 
         box_ptr = self._get_obj_noload(node, arg=0)
 
-        if unload:
+        if type(box_ptr) == ir.AllocaInstr:
             box_ptr = self.builder.load(box_ptr)
 
         if not box_ptr.type == self.vartypes.obj.as_pointer():
@@ -75,7 +75,7 @@ class Builtins():
         # TODO: add box types for user-defined classes, too
 
         self._check_arg_length(node, 3)
-        box_ptr = self._box_check(node, True)
+        box_ptr = self._box_check(node)
         type_to_unwrap = node.args[1]
 
         if not isinstance(type_to_unwrap, VariableType):
