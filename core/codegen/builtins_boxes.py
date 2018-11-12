@@ -270,15 +270,18 @@ class Builtins_boxes():
         else:
             type_obj = self._codegen(type_obj).type
 
-        if type_obj == ir.FunctionType:
+        if type_obj in (
+                ir.FunctionType,
+                self.vartypes.carray,
+                self.vartypes.array
+            ):            
             enum_id = type_obj.enum_id
-        elif type_obj == self.vartypes.carray:
-            enum_id = type_obj.enum_id
-        elif type_obj == self.vartypes.array:
-            enum_id = type_obj.enum_id
+
         elif type_obj.is_ptr():
             enum_id = type_obj.pointee.enum_id
+        
         else:
+            # pathological case
             enum_id = type_obj.enum_id
 
         enum_val = ir.Constant(
