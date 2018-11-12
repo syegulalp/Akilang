@@ -672,7 +672,7 @@ class Vars():
             elements = [node]
 
         for n in elements:
-            if isinstance(n, String):
+            if isinstance(n, String):                
                 format_string.append(n.val)
             
             elif isinstance(n, Number):
@@ -681,7 +681,7 @@ class Vars():
                 format_string.append(format_type)       
                 variable_list.append(element)
             
-            elif isinstance(n, (Variable, ItemList, Unsafe)):
+            elif isinstance(n, (Variable, ItemList, Unsafe, Call)):
                 element = self._get_obj_noload(node, n)
                 format_type= element.type.p_fmt
 
