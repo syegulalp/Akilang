@@ -1,6 +1,6 @@
 from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number, Global, ItemList
 import llvmlite.ir as ir
-from core.mangling import mangle_call, mangle_args, mangle_types, mangle_funcname, mangle_optional_args
+from core.mangling import mangle_call, mangle_args, mangle_types, mangle_optional_args
 from core.errors import CodegenError, CodegenWarning
 from core.tokens import decorator_collisions
 
