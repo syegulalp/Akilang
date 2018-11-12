@@ -7,6 +7,7 @@ import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
 from core.codegen.builtins import Builtins as Builtins_Class
+from core.codegen.builtins_boxes import Builtins_boxes
 from core.codegen.toplevel import Toplevel
 from core.codegen.vars import Vars
 from core.codegen.ops import Ops
@@ -15,7 +16,7 @@ from core.codegen.controlflow import ControlFlow
 # pylint: disable=E1101
 
 
-class LLVMCodeGenerator(Builtins_Class, Toplevel, Vars, Ops, ControlFlow):
+class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow):
     def __init__(self, vartypes=None):
         '''
         Initialize the code generator.
