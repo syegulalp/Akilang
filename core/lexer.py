@@ -8,7 +8,7 @@ import llvmlite.ir as ir
 # Each token is a tuple of kind and value. kind is one of the enumeration values
 # in TokenKind. value is the textual value of the token in the input.
 
-from core.tokens import Token, TokenKind, ESCAPES, COMMENT, PUNCTUATORS
+from core.tokens import Token, TokenKind, ESCAPES, Puncs
 
 
 class Position():
@@ -234,11 +234,11 @@ class Lexer(object):
                 yield Token(TokenKind.NUMBER, num, vartype, pos)
 
             # Comment
-            elif self.lastchar == COMMENT:
+            elif self.lastchar == Puncs.COMMENT:
                 self._advance()
                 while self.lastchar and self.lastchar not in ['\r', '\n']:
                     self._advance()
-            elif self.lastchar in PUNCTUATORS:
+            elif self.lastchar in Puncs.ALL:
                 yield Token(TokenKind.PUNCTUATOR, self.lastchar, None, pos)
                 self._advance()
 

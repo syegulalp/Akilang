@@ -58,7 +58,7 @@ def show() {
     output[z]=0B
     
     print('Generation: {gen} -- Population: {pop}\n{unsafe divider}\n{unsafe output}{unsafe divider}')
-       
+           
 }
 
 def life() {

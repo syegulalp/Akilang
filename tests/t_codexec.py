@@ -779,6 +779,19 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,f64,0.0)}'), 0.0)
         self.assertEqual(self.e2.evaluate('{var x=box(32) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)        
         
+    def test_printing(self):
+        self.e2.reset()
+        self.assertEqual(self.e2.evaluate('{var x=32 print(x)}'), 3)
+        self.assertEqual(self.e2.evaluate('print(2+2)'), 2)
+        self.assertEqual(self.e2.evaluate('print("Hello")'), 6)
+        self.assertEqual(self.e2.evaluate('print(if True then "Hello" else "No")'), 6)
+        self.assertEqual(self.e2.evaluate('print(if False then "Hello" else "No")'), 3)
+
+        # this result is number of characters printed, NOT string
+        # TODO: return string pointer from print if possible
+        # output also needs to be temporarily redirected
+
+    
     def test_auto_free(self):
         '''
         Placeholder. This test is intended to determine if

@@ -64,10 +64,48 @@ ESCAPES = {
     '}': r'\}'
 }
 
-PUNCTUATORS = r'()[]{},:@'
-COMMENT = "#"
-
 Token = namedtuple('Token', 'kind value vartype position')
+
+class Puncs():
+    BEGIN_EXPR = "{"
+    END_EXPR = "}"
+    BEGIN_ARGS = "("
+    END_ARGS = ")"
+    BEGIN_LIST = "["
+    END_LIST = "]"
+    ARG_SEP = ","
+    TYPE_SEP = ":"
+    DECORATOR = "@"
+    COMMENT = "#"
+    ATTR_SEP = '.'
+    VARARGS = '*'
+    ALL = []
+
+for k,v in Puncs.__dict__.items():
+    if isinstance(v, str) and not k.startswith('__'):
+        Puncs.ALL.append(v)
+
+class Ops():
+    ADD = '+'
+    SUBTRACT = '-'
+    MULTIPLY = '*'
+    DIVIDE = '/'
+    GREATER_THAN = '>'
+    LESS_THAN = '<'
+    GREATER_THAN_EQ = '>='
+    LESS_THAN_EQ = '<='
+    ASSIGN = '='
+    EQ = '=='
+    NEQ = '!='
+    INCR = '+='
+    DECR = '-='
+    AND = 'and'
+    OR = 'or'
+    XOR = 'xor'
+    NOT = 'not'
+    NEG = '-'
+
+# Note that we do NOT use Ops for actual LLVM ops.
 
 Builtins = {
     'c_addr',

@@ -4,6 +4,7 @@ from core.operators import BUILTIN_UNARY_OP
 from core.ast_module import Binary, Number, If
 from core.mangling import mangle_args
 from core.vartypes import VarTypes, Str
+from core.tokens import Ops as Op
 
 # pylint: disable=E1101
 
@@ -14,9 +15,9 @@ class Ops():
         operand = self._codegen(node.rhs)
         # TODO: no overflow checking yet!
         if node.op in BUILTIN_UNARY_OP:
-            if node.op == 'not':
+            if node.op == Op.NOT:
                 if isinstance(operand.type, (ir.IntType, ir.DoubleType)):
-                    cond_expr = Binary(node.position, '==', node.rhs,
+                    cond_expr = Binary(node.position, Op.EQ, node.rhs,
                                        Number(node.position, 0, operand.type))
                     return self._codegen_If(
                         If(
@@ -24,7 +25,7 @@ class Ops():
                             cond_expr,
                             Number(node.position, 1, operand.type),
                             Number(node.position, 0, operand.type), ))
-            elif node.op == '-':
+            elif node.op == Op.NEG:
                 lhs = ir.Constant(operand.type, 0)
                 if isinstance(operand.type, ir.IntType):
                     return self.builder.sub(lhs, operand, 'negop')
@@ -43,7 +44,7 @@ class Ops():
         # Assignment is handled specially because it doesn't follow the general
         # recipe of binary ops.
 
-        if node.op == '=':
+        if node.op == Op.ASSIGN:
             return self._codegen_Assignment(node.lhs, node.rhs)
 
         lhs = self._codegen(node.lhs)
@@ -124,47 +125,47 @@ class Ops():
                 else:
                     signed_op = self.builder.icmp_unsigned
 
-                if node.op == '+':
+                if node.op == Op.ADD:
                     return self.builder.add(lhs, rhs, 'addop')
-                elif node.op == '-':
+                elif node.op == Op.SUBTRACT:
                     return self.builder.sub(lhs, rhs, 'subop')
-                elif node.op == '*':
+                elif node.op == Op.MULTIPLY:
                     return self.builder.mul(lhs, rhs, 'multop')
-                elif node.op == '<':
+                elif node.op == Op.LESS_THAN:
                     x = signed_op('<', lhs, rhs, 'ltop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op == '>':
+                elif node.op == Op.GREATER_THAN:
                     x = signed_op('>', lhs, rhs, 'gtop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op == '>=':
+                elif node.op == Op.GREATER_THAN_EQ:
                     x = signed_op('>=', lhs, rhs, 'gteqop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op == '<=':
+                elif node.op == Op.LESS_THAN_EQ:
                     x = signed_op('<=', lhs, rhs, 'lteqop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op == '==':
+                elif node.op == Op.EQ:
                     x = signed_op('==', lhs, rhs, 'eqop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op == '!=':
+                elif node.op == Op.NEQ:
                     x = signed_op('!=', lhs, rhs, 'neqop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op == '/':
+                elif node.op == Op.DIVIDE:
                     if int(getattr(rhs, 'constant', 1)) == 0:
                         raise CodegenError(
                             'Integer division by zero', node.rhs.position)
                     return self.builder.sdiv(lhs, rhs, 'divop')
-                elif node.op == 'and':
+                elif node.op == Op.AND:
                     x = self.builder.and_(
                         lhs, rhs, 'andop')  # pylint: disable=E1111
                     x.type = VarTypes.bool
                     return x
-                elif node.op == 'or':
+                elif node.op == Op.OR:
                     x = self.builder.or_(
                         lhs, rhs, 'orop')  # pylint: disable=E1111
                     x.type = VarTypes.bool
@@ -176,40 +177,39 @@ class Ops():
 
             elif isinstance(vartype, (ir.DoubleType, ir.FloatType)):
 
-                if node.op == '+':
+                if node.op == Op.ADD:
                     return self.builder.fadd(lhs, rhs, 'faddop')
-
-                elif node.op == '-':
+                elif node.op == Op.SUBTRACT:
                     return self.builder.fsub(lhs, rhs, 'fsubop')
-                elif node.op == '*':
+                elif node.op == Op.MULTIPLY:
                     return self.builder.fmul(lhs, rhs, 'fmultop')
-                elif node.op == '/':
+                elif node.op == Op.DIVIDE:
                     return self.builder.fdiv(lhs, rhs, 'fdivop')
-                elif node.op == '<':
+                elif node.op == Op.LESS_THAN:
                     cmp = self.builder.fcmp_ordered('<', lhs, rhs, 'fltop')
                     cmp.type = VarTypes.bool
                     return cmp
-                elif node.op == '>':
+                elif node.op == Op.GREATER_THAN:
                     cmp = self.builder.fcmp_ordered('>', lhs, rhs, 'fgtop')
                     cmp.type = VarTypes.bool
                     return cmp
-                elif node.op == '>=':
+                elif node.op == Op.GREATER_THAN_EQ:
                     cmp = self.builder.fcmp_ordered('>=', lhs, rhs, 'fgeqop')
                     cmp.type = VarTypes.bool
                     return cmp
-                elif node.op == '<=':
+                elif node.op == Op.LESS_THAN_EQ:
                     cmp = self.builder.fcmp_ordered('<=', lhs, rhs, 'fleqop')
                     cmp.type = VarTypes.bool
                     return cmp
-                elif node.op == '==':
+                elif node.op == Op.EQ:
                     x = self.builder.fcmp_ordered('==', lhs, rhs, 'feqop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op == '!=':
+                elif node.op == Op.NEQ:
                     x = self.builder.fcmp_ordered('!=', lhs, rhs, 'fneqop')
                     x.type = VarTypes.bool
                     return x
-                elif node.op in ('and', 'or', 'xor'):
+                elif node.op in (Op.AND, Op.OR, Op.XOR):
                     raise CodegenError(
                         'Operator not supported for "float" or "double" types',
                         node.lhs.position)
@@ -224,7 +224,7 @@ class Ops():
                 # its __eq__ method, but this is fine for now
                 signed_op = self.builder.icmp_unsigned
                 if isinstance(rhs.type, ir.PointerType):
-                    if node.op == '==':
+                    if node.op == Op.EQ:
                         x = signed_op('==', lhs, rhs, 'eqptrop')
                         x.type = VarTypes.bool
                         return x

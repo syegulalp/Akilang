@@ -1,6 +1,6 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError, CodegenWarning
-from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString, Unsafe
+from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString, Unsafe, Binary, Unary
 from core.mangling import mangle_call
 from core.vartypes import ArrayClass
 
@@ -21,6 +21,9 @@ class Vars():
         return node
 
     def _codegen_AllocaInstr(self, node):
+        return node
+
+    def _codegen_Instruction(self, node):
         return node
 
     def _codegen_CastInstr(self, node):
@@ -672,6 +675,7 @@ class Vars():
             elements = [node]
 
         for n in elements:
+
             if isinstance(n, String):                
                 format_string.append(n.val)
             
@@ -681,8 +685,8 @@ class Vars():
                 format_string.append(format_type)       
                 variable_list.append(element)
             
-            elif isinstance(n, (Variable, ItemList, Unsafe, Call)):
-                element = self._get_obj_noload(node, n)
+            else:
+                element = self._codegen(n)
                 format_type= element.type.p_fmt
 
                 if format_type == '%B':
@@ -707,7 +711,7 @@ class Vars():
                     )
 
                 elif format_type in ('%u', '%i', '%f'):
-                    var_app = self.builder.load(element)
+                    var_app = element
                 
                 else:                    
                     n = self._if_unsafe(

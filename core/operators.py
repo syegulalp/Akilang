@@ -2,7 +2,7 @@ from collections import namedtuple
 from enum import Enum, unique
 
 from core.errors import ParseError
-
+from core.tokens import Ops
 
 @unique
 class Associativity(Enum):
@@ -14,27 +14,27 @@ class Associativity(Enum):
 BinOpInfo = namedtuple('BinOpInfo', ['precedence', 'associativity'])
 
 BUILTIN_OP = {
-    '=': BinOpInfo(2, Associativity.RIGHT),
-    '==': BinOpInfo(10, Associativity.LEFT),
-    '+=': BinOpInfo(10, Associativity.LEFT),
-    '-=': BinOpInfo(10, Associativity.LEFT),
-    '!=': BinOpInfo(10, Associativity.LEFT),
-    'and': BinOpInfo(5, Associativity.LEFT),
-    'or': BinOpInfo(5, Associativity.LEFT),
-    'xor': BinOpInfo(5, Associativity.LEFT),
-    '<': BinOpInfo(10, Associativity.LEFT),
-    '<=': BinOpInfo(10, Associativity.LEFT),
-    '>': BinOpInfo(10, Associativity.LEFT),
-    '>=': BinOpInfo(10, Associativity.LEFT),
-    '+': BinOpInfo(20, Associativity.LEFT),
-    '-': BinOpInfo(20, Associativity.LEFT),
-    '*': BinOpInfo(40, Associativity.LEFT),
-    '/': BinOpInfo(40, Associativity.LEFT),
+    Ops.ASSIGN: BinOpInfo(2, Associativity.RIGHT),
+    Ops.EQ: BinOpInfo(10, Associativity.LEFT),
+    Ops.INCR: BinOpInfo(10, Associativity.LEFT),
+    Ops.DECR: BinOpInfo(10, Associativity.LEFT),
+    Ops.NEQ: BinOpInfo(10, Associativity.LEFT),
+    Ops.AND: BinOpInfo(5, Associativity.LEFT),
+    Ops.OR: BinOpInfo(5, Associativity.LEFT),
+    Ops.XOR: BinOpInfo(5, Associativity.LEFT),
+    Ops.LESS_THAN: BinOpInfo(10, Associativity.LEFT),
+    Ops.LESS_THAN_EQ: BinOpInfo(10, Associativity.LEFT),
+    Ops.GREATER_THAN: BinOpInfo(10, Associativity.LEFT),
+    Ops.GREATER_THAN_EQ: BinOpInfo(10, Associativity.LEFT),
+    Ops.ADD: BinOpInfo(20, Associativity.LEFT),
+    Ops.SUBTRACT: BinOpInfo(20, Associativity.LEFT),
+    Ops.MULTIPLY: BinOpInfo(40, Associativity.LEFT),
+    Ops.DIVIDE: BinOpInfo(40, Associativity.LEFT),
 }
 
 BUILTIN_UNARY_OP = {
-    'not',
-    '-'
+    Ops.NOT,
+    Ops.NEG
 }
 
 UNASSIGNED = {
@@ -42,7 +42,8 @@ UNASSIGNED = {
 }
 
 IN_PLACE_OPS = {
-    '+=','-='
+    Ops.INCR,
+    Ops.DECR
 }
 
 FALSE_BINOP_INFO = BinOpInfo(-1, Associativity.UNDEFINED)
@@ -60,8 +61,8 @@ def binop_info(tok):
     try:
         return _binop_map[value]
     except KeyError:
-        from core.lexer import TokenKind, PUNCTUATORS
-        if kind == TokenKind.PUNCTUATOR and value not in PUNCTUATORS:
+        from core.lexer import TokenKind, Puncs
+        if kind == TokenKind.PUNCTUATOR and value not in Puncs.ALL:
             raise ParseError(f'Undefined operator: "{value}"', position)
         # Return a false binop info that has no precedence
         return FALSE_BINOP_INFO

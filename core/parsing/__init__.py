@@ -11,7 +11,7 @@ from core.ast_module import (
 from core.vartypes import generate_vartypes
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED, IN_PLACE_OPS
-from core.tokens import Builtins, Decorators, Dunders
+from core.tokens import Builtins, Decorators, Dunders, Ops, Puncs
 
 from core.parsing.expressions import Expressions
 from core.parsing.toplevel import Toplevel
@@ -126,7 +126,7 @@ class Parser(Expressions, Toplevel):
             return self._parse_class_expr()
         elif self.cur_tok.kind == TokenKind.DEF:
             return self._parse_definition()
-        elif self._cur_tok_is_punctuator('@'):
+        elif self._cur_tok_is_punctuator(Puncs.DECORATOR):
             return self._parse_decorator()
         else:
             return self._parse_toplevel_expression()
@@ -190,11 +190,11 @@ class Parser(Expressions, Toplevel):
         args = []
         self._get_next_token()
         while True:
-            if self._cur_tok_is_punctuator(')'):
+            if self._cur_tok_is_punctuator(Puncs.END_ARGS):
                 break
             arg = self._parse_expression()
             args.append(arg)
-            if not self._cur_tok_is_punctuator(','):
+            if not self._cur_tok_is_punctuator(Puncs.ARG_SEP):
                 break
             self._get_next_token()
         if args_required and len(args) == 0:
@@ -213,12 +213,12 @@ class Parser(Expressions, Toplevel):
                 f'Unknown decorator "{dec_name.name}"',
                 start
             )
-        if self._cur_tok_is_punctuator('{'):
+        if self._cur_tok_is_punctuator(Puncs.BEGIN_EXPR):
             dec_body = []
             self._get_next_token()
             while True:
                 dec_body.append(self._generate_toplevel())
-                if self._cur_tok_is_punctuator('}'):
+                if self._cur_tok_is_punctuator(Puncs.END_EXPR):
                     self._get_next_token()
                     break
         else:
@@ -231,15 +231,15 @@ class Parser(Expressions, Toplevel):
                 f'Unreachable code found after top-level "return" in function body',
                 self.cur_tok.position)
 
-        if self._cur_tok_is_punctuator('('):
+        if self._cur_tok_is_punctuator(Puncs.BEGIN_ARGS):
             result = self._parse_paren_expr()
-        elif self._cur_tok_is_punctuator('{'):
+        elif self._cur_tok_is_punctuator(Puncs.BEGIN_EXPR):
             result = self._parse_do_expr()
         elif self.cur_tok.kind in self.parse_actions:
             result = getattr(
                 self,
                 f'_parse_{self.parse_actions[self.cur_tok.kind]}_expr')()
-        elif self._cur_tok_is_punctuator('['):
+        elif self._cur_tok_is_punctuator(Puncs.BEGIN_LIST):
             result = self._parse_itemlist_expr()
         elif self.cur_tok.kind == TokenKind.EOF:
             raise ParseError(
@@ -259,17 +259,17 @@ class Parser(Expressions, Toplevel):
 
         start = self.cur_tok.position
         self._get_next_token()
-        self._match(TokenKind.PUNCTUATOR, '(', consume=False)
+        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_ARGS, consume=False)
         args = self._parse_argument_list()
         self._get_next_token()
         return Call(start, name, args)
 
     def _parse_itemlist_expr(self):
-        self._match(TokenKind.PUNCTUATOR, '[')
+        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_LIST)
         start = self.cur_tok.position
         elements = []
 
-        if self._cur_tok_is_punctuator(']'):
+        if self._cur_tok_is_punctuator(Puncs.END_LIST):
             elements = None
             return ItemList(start, elements)
 
@@ -277,10 +277,10 @@ class Parser(Expressions, Toplevel):
             item = self._parse_expression()
             elements.append(item)
 
-            if self._cur_tok_is_punctuator(','):
+            if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
                 self._get_next_token()
                 continue
-            elif self._cur_tok_is_punctuator(']'):
+            elif self._cur_tok_is_punctuator(Puncs.END_LIST):
                 break
             else:
                 raise ParseError('Unclosed item list definition',
@@ -294,13 +294,13 @@ class Parser(Expressions, Toplevel):
     # vartypes as args without this kind of hackery
 
     def _parse_array_accessor(self):
-        self._match(TokenKind.PUNCTUATOR, '[')
+        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_LIST)
 
         start = self.cur_tok.position
         elements = []
 
         # Parse empty array accessor
-        if self._cur_tok_is_punctuator(']'):
+        if self._cur_tok_is_punctuator(Puncs.END_LIST):
             elements = [Number(start, 0)]
             return ArrayAccessor(start, elements)
 
@@ -309,10 +309,10 @@ class Parser(Expressions, Toplevel):
             if hasattr(dimension, 'val'):
                 dimension.val = int(dimension.val)
             elements.append(dimension)
-            if self._cur_tok_is_punctuator(','):
+            if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
                 self._get_next_token()
                 continue
-            elif self._cur_tok_is_punctuator(']'):
+            elif self._cur_tok_is_punctuator(Puncs.END_LIST):
                 break
             else:
                 raise ParseError('Unclosed array accessor',
@@ -374,7 +374,8 @@ class Parser(Expressions, Toplevel):
             # If we're currently in an `if` or `while` clause
             # warn if we're using `=` in the clause instead of `==`
 
-            if op == '=':
+            
+            if op == Ops.ASSIGN:
                 try:
                     _ = self.expr_stack[-1].__func__
                 except IndexError:
@@ -382,7 +383,7 @@ class Parser(Expressions, Toplevel):
                 else:
                     if _ in self._if_eq_checks:
                         print(CodegenWarning(
-                            f'possible confusion of assignment operator ("=") and equality test ("==") detected',
+                            f'possible confusion of assignment operator ("{Ops.ASSIGN}") and equality test ("{Ops.EQ}") detected',
                             start))
 
             # Replace in-place ops with their expanded counterparts

@@ -1,6 +1,7 @@
 from core.errors import CodegenError, CodegenWarning, ParameterFormatError
 from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe, VariableType, If
 import llvmlite.ir as ir
+from core.tokens import Ops
 
 # pylint: disable=E1101
 
@@ -607,12 +608,16 @@ class Builtins():
         for n1 in reversed(node.args):
             n = n1
 
+            if isinstance(n, Binary) and n.op!=Ops.ASSIGN:
+                break
+
             if not isinstance(n, Binary):
                 break
 
             node.args.pop()
 
-            try:
+            try:                
+
                 if not isinstance(n.lhs, Variable):
                     raise ParameterFormatError
                 if n.op != "=":
@@ -637,12 +642,6 @@ class Builtins():
         for arg in node.args:
 
             format_string.append(spacer)
-
-            if isinstance(n, Binary):
-                raise CodegenError(
-                    f'Parameter must be a formatted string',
-                    arg.position
-                )
 
             if isinstance(arg, String):
                 arg.val = arg.val.replace(r'%', r'%%')
@@ -680,3 +679,6 @@ class Builtins():
                 self.vartypes.i32
             )
         )
+
+        # TODO: use snprintf to create the final string in memory,
+        # then call print on it and return ptr to snprintf'd raw string
