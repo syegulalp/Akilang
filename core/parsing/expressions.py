@@ -25,11 +25,11 @@ class Expressions():
         start = self.cur_tok.position
 
         self._get_next_token()
-        self._compare(TokenKind.PUNCTUATOR, Puncs.BEGIN_EXPR)
+        self._compare(TokenKind.PUNCTUATOR, Puncs.OPEN_CURLY)
         try_expr = self._parse_do_expr()
 
         self._match(TokenKind.EXCEPT)
-        self._compare(TokenKind.PUNCTUATOR, Puncs.BEGIN_EXPR)
+        self._compare(TokenKind.PUNCTUATOR, Puncs.OPEN_CURLY)
         except_expr = self._parse_do_expr()
 
         try:
@@ -38,7 +38,7 @@ class Expressions():
             return Try(start, try_expr, except_expr)
 
         self._match(TokenKind.ELSE)
-        self._compare(TokenKind.PUNCTUATOR, Puncs.BEGIN_EXPR)
+        self._compare(TokenKind.PUNCTUATOR, Puncs.OPEN_CURLY)
         else_expr = self._parse_do_expr()
 
         try:
@@ -47,7 +47,7 @@ class Expressions():
             return Try(start, try_expr, except_expr, else_expr)
 
         self._match(TokenKind.FINALLY)
-        self._compare(TokenKind.PUNCTUATOR, Puncs.BEGIN_EXPR)
+        self._compare(TokenKind.PUNCTUATOR, Puncs.OPEN_CURLY)
         else_expr = self._parse_do_expr()
 
         return Try(start, try_expr, except_expr, else_expr, finally_expr)
@@ -66,17 +66,17 @@ class Expressions():
         while True:
             child = None
 
-            if self._cur_tok_is_punctuator(Puncs.BEGIN_LIST):
+            if self._cur_tok_is_punctuator(Puncs.OPEN_BRACKET):
                 child = self._parse_array_accessor()
 
-            elif self._cur_tok_is_punctuator(Puncs.BEGIN_ARGS):
+            elif self._cur_tok_is_punctuator(Puncs.OPEN_PAREN):
                 args = self._parse_argument_list()
                 child = Call(
                     start, id_name, args,
                     self.cur_tok.vartype
                 )
 
-            elif self.cur_tok.value == Puncs.ATTR_SEP:
+            elif self.cur_tok.value == Puncs.PERIOD:
                 self._get_next_token()
                 child = Variable(start, self.cur_tok.value)
 
@@ -114,9 +114,9 @@ class Expressions():
         return result
 
     def _parse_paren_expr(self):
-        self._get_next_token()  # consume the Puncs.BEGIN_ARGS
+        self._get_next_token()  # consume the Puncs.OPEN_PAREN
         expr = self._parse_expression()
-        self._match(TokenKind.PUNCTUATOR, Puncs.END_ARGS)
+        self._match(TokenKind.PUNCTUATOR, Puncs.CLOSE_PAREN)
         return expr
 
     def _parse_standalone_vartype_expr(self):
@@ -132,7 +132,7 @@ class Expressions():
         # then we call the __new__ method
         # for that type
 
-        if self._cur_tok_is_punctuator(Puncs.BEGIN_ARGS):
+        if self._cur_tok_is_punctuator(Puncs.OPEN_PAREN):
             args = self._parse_argument_list(True)
             self._get_next_token()
             return Call(
@@ -179,7 +179,7 @@ class Expressions():
         cur = self.cur_tok
         self._get_next_token()
 
-        if Puncs.BEGIN_EXPR not in cur.value:
+        if Puncs.OPEN_CURLY not in cur.value:
             return String(cur.position, cur.value)
         
         in_template = re.split(r'([{}])', cur.value)
@@ -189,10 +189,10 @@ class Expressions():
         open_br = False
 
         for n in in_template:
-            if n == Puncs.BEGIN_EXPR and not escape:
+            if n == Puncs.OPEN_CURLY and not escape:
                 open_br = True
                 continue
-            if n == Puncs.END_EXPR and not escape:
+            if n == Puncs.CLOSE_CURLY and not escape:
                 open_br = False
                 continue
             if open_br:
@@ -247,19 +247,19 @@ class Expressions():
 
             arguments = []
             
-            if not self._cur_tok_is_punctuator(Puncs.END_ARGS):
+            if not self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
                 self._get_next_token()
                 while True:
                     n = self._parse_vartype_expr()
                     arguments.append(n)
-                    if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+                    if self._cur_tok_is_punctuator(Puncs.COMMA):
                         self._get_next_token()
                         continue
-                    if self._cur_tok_is_punctuator(Puncs.END_ARGS):
+                    if self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
                         break
 
                 self._get_next_token()
-                self._match(TokenKind.PUNCTUATOR, Puncs.TYPE_SEP)
+                self._match(TokenKind.PUNCTUATOR, Puncs.COLON)
                 func_type = self._parse_vartype_expr()
                 vartype = vartype(func_type, arguments)
             else:
@@ -268,7 +268,7 @@ class Expressions():
         else:
             self._get_next_token()
 
-        if self._cur_tok_is_punctuator(Puncs.BEGIN_LIST):
+        if self._cur_tok_is_punctuator(Puncs.OPEN_BRACKET):
             accessor = self._parse_array_accessor()
 
             fixed_size = True
@@ -307,23 +307,23 @@ class Expressions():
     def _parse_convert_expr(self, callee='convert'):
         start = self.cur_tok.position
         self._get_next_token()
-        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_ARGS)
+        self._match(TokenKind.PUNCTUATOR, Puncs.OPEN_PAREN)
         convert_from = self._parse_expression()
-        self._match(TokenKind.PUNCTUATOR, Puncs.ARG_SEP)
+        self._match(TokenKind.PUNCTUATOR, Puncs.COMMA)
         # For builtins that take a vartype as an argument,
         # we need to use this for now
         convert_to = self._parse_standalone_vartype_expr()
-        self._match(TokenKind.PUNCTUATOR, Puncs.END_ARGS)
+        self._match(TokenKind.PUNCTUATOR, Puncs.CLOSE_PAREN)
         return Call(start, callee, [convert_from, convert_to])
 
     def _parse_match_expr(self):
         start = self.cur_tok.position
         self._get_next_token()
         cond_item = self._parse_identifier_expr()
-        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_EXPR)
+        self._match(TokenKind.PUNCTUATOR, Puncs.OPEN_CURLY)
         match_list = []
         default = None
-        while not self._cur_tok_is_punctuator(Puncs.END_EXPR):
+        while not self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
             set_default = False
             value_list = []
             while True:
@@ -337,10 +337,10 @@ class Expressions():
                     break
                 value = self._parse_expression()
                 value_list.append(value)
-                if not self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+                if not self._cur_tok_is_punctuator(Puncs.COMMA):
                     break
                 self._get_next_token()
-            self._match(TokenKind.PUNCTUATOR, Puncs.TYPE_SEP)
+            self._match(TokenKind.PUNCTUATOR, Puncs.COLON)
             expression = self._parse_expression()
             if set_default:
                 default = expression
@@ -358,7 +358,7 @@ class Expressions():
         while True:
             next_expr = self._parse_expression()
             expr_list.append(next_expr)
-            if self._cur_tok_is_punctuator(Puncs.END_EXPR):
+            if self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
                 self._get_next_token()
                 break
         #if len(expr_list) == 1:
@@ -373,15 +373,15 @@ class Expressions():
         class_name = self.cur_tok.value
         self._get_next_token()
 
-        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_EXPR)
+        self._match(TokenKind.PUNCTUATOR, Puncs.OPEN_CURLY)
 
         vars = {}
         var_id = 0
 
-        while not self._cur_tok_is_punctuator(Puncs.END_EXPR):
+        while not self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
             name, type = self._parse_var_declaration()
             vars[name] = {'type': type, 'id': var_id}
-            if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+            if self._cur_tok_is_punctuator(Puncs.COMMA):
                 self._get_next_token()
             var_id += 1
 
@@ -426,10 +426,10 @@ class Expressions():
                 Variable(pos, name, vartype, None, init)
             )
 
-            if not self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+            if not self._cur_tok_is_punctuator(Puncs.COMMA):
                 break
 
-            self._match(TokenKind.PUNCTUATOR, Puncs.ARG_SEP)
+            self._match(TokenKind.PUNCTUATOR, Puncs.COMMA)
 
         return Var(var_pos, vars)
 
@@ -479,11 +479,11 @@ class Expressions():
         self._get_next_token()  # consume the 'loop'
 
         # Check if this is a manually exited loop with no parameters
-        if self._cur_tok_is_punctuator(Puncs.BEGIN_EXPR):
+        if self._cur_tok_is_punctuator(Puncs.OPEN_CURLY):
             body = self._parse_do_expr()
             return Loop(start, None, None, None, None, body)
 
-        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_ARGS)
+        self._match(TokenKind.PUNCTUATOR, Puncs.OPEN_PAREN)
 
         var_pos = self.cur_tok.position
 
@@ -492,18 +492,18 @@ class Expressions():
         self._match(TokenKind.OPERATOR, Ops.ASSIGN)
         start_expr = self._parse_expression()
 
-        self._match(TokenKind.PUNCTUATOR, Puncs.ARG_SEP)
+        self._match(TokenKind.PUNCTUATOR, Puncs.COMMA)
 
         end_expr = self._parse_expression()
 
         # The step part is optional
-        if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+        if self._cur_tok_is_punctuator(Puncs.COMMA):
             self._get_next_token()
             step_expr = self._parse_expression()
         else:
             step_expr = None
 
-        self._match(TokenKind.PUNCTUATOR, Puncs.END_ARGS)
+        self._match(TokenKind.PUNCTUATOR, Puncs.CLOSE_PAREN)
 
         body = self._parse_expression()
 

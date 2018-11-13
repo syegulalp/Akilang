@@ -234,7 +234,7 @@ class Lexer(object):
                 yield Token(TokenKind.NUMBER, num, vartype, pos)
 
             # Comment
-            elif self.lastchar == Puncs.COMMENT:
+            elif self.lastchar == Puncs.HASH_SIGN:
                 self._advance()
                 while self.lastchar and self.lastchar not in ['\r', '\n']:
                     self._advance()

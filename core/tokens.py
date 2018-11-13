@@ -67,18 +67,18 @@ ESCAPES = {
 Token = namedtuple('Token', 'kind value vartype position')
 
 class Puncs():
-    BEGIN_EXPR = "{"
-    END_EXPR = "}"
-    BEGIN_ARGS = "("
-    END_ARGS = ")"
-    BEGIN_LIST = "["
-    END_LIST = "]"
-    ARG_SEP = ","
-    TYPE_SEP = ":"
-    DECORATOR = "@"
-    COMMENT = "#"
-    ATTR_SEP = '.'
-    VARARGS = '*'
+    OPEN_CURLY = "{"
+    CLOSE_CURLY = "}"
+    OPEN_PAREN = "("
+    CLOSE_PAREN = ")"
+    OPEN_BRACKET = "["
+    CLOSE_BRACKET = "]"
+    COMMA = ","
+    COLON = ":"
+    AT_SIGN = "@"
+    HASH_SIGN = "#"
+    PERIOD = '.'
+    ASTERISK = '*'
     ALL = []
 
 for k,v in Puncs.__dict__.items():

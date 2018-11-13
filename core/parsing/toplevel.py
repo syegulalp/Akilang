@@ -17,14 +17,14 @@ class Toplevel():
         # first, consume "pragma"
         self._get_next_token()
 
-        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_EXPR)
+        self._match(TokenKind.PUNCTUATOR, Puncs.OPEN_CURLY)
 
         pragmas = []
 
         while True:
             t = self._parse_expression()
             pragmas.append(t)
-            if self._cur_tok_is_punctuator(Puncs.END_EXPR):
+            if self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
                 self._get_next_token()
                 break
 
@@ -48,7 +48,7 @@ class Toplevel():
 
         # check for a vartype
 
-        if self._cur_tok_is_punctuator(Puncs.TYPE_SEP):
+        if self._cur_tok_is_punctuator(Puncs.COLON):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
 
@@ -57,7 +57,7 @@ class Toplevel():
 
         # check for array declaration
 
-        if self._cur_tok_is_punctuator(Puncs.BEGIN_LIST):
+        if self._cur_tok_is_punctuator(Puncs.OPEN_BRACKET):
             arr_start = self.cur_tok.position
             elements = self._parse_array_accessor()
 
@@ -84,7 +84,7 @@ class Toplevel():
 
         self._get_next_token()  # consume the 'uni/const'
 
-        if self._cur_tok_is_punctuator(Puncs.BEGIN_EXPR):
+        if self._cur_tok_is_punctuator(Puncs.OPEN_CURLY):
             is_bracketed = True
             self._get_next_token()
         else:
@@ -185,17 +185,17 @@ class Toplevel():
 
             if is_bracketed:
 
-                if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+                if self._cur_tok_is_punctuator(Puncs.COMMA):
                     self._get_next_token()    
 
-                if self._cur_tok_is_punctuator(Puncs.END_EXPR):
+                if self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
                     self._get_next_token()
                     self.expr_stack.pop()
                     return ast_type(self.cur_tok.position, vars)
 
             else:
 
-                if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+                if self._cur_tok_is_punctuator(Puncs.COMMA):
                     self._get_next_token()
                 else:
                     self._get_next_token()
@@ -280,13 +280,13 @@ class Toplevel():
 
             set_binop_info(r_name, prec, Associativity.LEFT)
 
-        self._match(TokenKind.PUNCTUATOR, Puncs.BEGIN_ARGS)
+        self._match(TokenKind.PUNCTUATOR, Puncs.OPEN_PAREN)
         argnames = []
         varargname = None
 
-        while not self._cur_tok_is_punctuator(Puncs.END_ARGS):
+        while not self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
             position = self.cur_tok.position
-            if self.cur_tok.value == Puncs.VARARGS:
+            if self.cur_tok.value == Puncs.ASTERISK:
                 self._get_next_token()
                 varargname = self.cur_tok.value
 
@@ -311,15 +311,15 @@ class Toplevel():
                 )
             )
 
-            if self._cur_tok_is_punctuator(Puncs.ARG_SEP):
+            if self._cur_tok_is_punctuator(Puncs.COMMA):
                 self._get_next_token()
 
-        self._match(TokenKind.PUNCTUATOR, Puncs.END_ARGS)
+        self._match(TokenKind.PUNCTUATOR, Puncs.CLOSE_PAREN)
 
         # get variable type for func prototype
         # we need to re-use the type definition code
 
-        if self._cur_tok_is_punctuator(Puncs.TYPE_SEP):
+        if self._cur_tok_is_punctuator(Puncs.COLON):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
             # self._get_next_token()
@@ -354,7 +354,7 @@ class Toplevel():
             self._get_next_token()
             return Function(start, proto, None)
 
-        if self._cur_tok_is_punctuator(Puncs.BEGIN_EXPR):
+        if self._cur_tok_is_punctuator(Puncs.OPEN_CURLY):
             expr = self._parse_do_expr()
         else:
             expr = self._parse_expression()
