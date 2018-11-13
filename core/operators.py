@@ -48,18 +48,20 @@ IN_PLACE_OPS = {
 
 FALSE_BINOP_INFO = BinOpInfo(-1, Associativity.UNDEFINED)
 
+# TODO: in the future, we'll need a fresh copy of each BUILTIN_OP dict
+# for each module, but for now we can just use one main dict.
+# It's unlikely we're going to restore custom operators anyway.
 
-def builtin_operators():
-    return sorted(BUILTIN_OP.keys())
+#def builtin_operators():
+    #return sorted(BUILTIN_OP.keys())
 
-
-_binop_map = dict(BUILTIN_OP)
-
+#_binop_map = dict(BUILTIN_OP)
 
 def binop_info(tok):
     kind, value, _, position = tok
     try:
-        return _binop_map[value]
+        #return _binop_map[value]
+        return BUILTIN_OP[value]
     except KeyError:
         from core.lexer import TokenKind, Puncs
         if kind == TokenKind.PUNCTUATOR and value not in Puncs.ALL:
@@ -69,4 +71,5 @@ def binop_info(tok):
 
 
 def set_binop_info(op, precedence, associativity):
-    _binop_map[op] = BinOpInfo(precedence, associativity)
+    BUILTIN_OP[op] = BinOpInfo(precedence, associativity)
+    #_binop_map[op] = BinOpInfo(precedence, associativity)
