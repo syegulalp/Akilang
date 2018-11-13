@@ -132,10 +132,7 @@ class Parser(Expressions, Toplevel):
             return self._parse_toplevel_expression()
 
     def _get_next_token(self):
-        try:
-            self.cur_tok = next(self.token_generator)
-        except:
-            pass
+        self.cur_tok = next(self.token_generator)
 
     def _match(self, expected_kind, expected_value=None, consume=True):
         '''
@@ -188,15 +185,17 @@ class Parser(Expressions, Toplevel):
 
     def _parse_argument_list(self, args_required=False):
         args = []
-        self._get_next_token()
-        while True:
-            if self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
-                break
-            arg = self._parse_expression()
-            args.append(arg)
-            if not self._cur_tok_is_punctuator(Puncs.COMMA):
-                break
-            self._get_next_token()
+        self._get_next_token() # consume the '('
+        if not self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
+            while True:
+                # abort immediately if this is an empty argument list
+                arg = self._parse_expression()
+                args.append(arg)
+                if self._cur_tok_is_punctuator(Puncs.COMMA):
+                    self._get_next_token()
+                    continue
+                if self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
+                    break
         if args_required and len(args) == 0:
             raise ParseError(
                 f'At least one argument is required',
