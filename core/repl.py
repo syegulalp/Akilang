@@ -232,7 +232,7 @@ class Repl():
                     print()
         except lexer.AkiSyntaxError as err:
             errprint(f'Syntax error: {err}')
-            self.executor.reset(history)
+            self.executor.reset(self.history)
         except parsing.ParseError as err:
             errprint(f'Parse error: {err}')
             self.executor.reset(self.history)
