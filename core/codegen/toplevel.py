@@ -1,6 +1,6 @@
 from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number, Global, ItemList
 import llvmlite.ir as ir
-from core.mangling import mangle_call, mangle_args, mangle_types, mangle_optional_args
+from core.mangling import mangle_call, mangle_args, mangle_types, mangle_optional_args, MANGLE_SEPARATOR
 from core.errors import CodegenError, CodegenWarning
 from core.tokens import decorator_collisions
 
@@ -113,7 +113,7 @@ class Toplevel():
             if len(vartypes) > 0:
                 funcname = public_name + mangle_args(vartypes)
             else:
-                funcname = public_name + '@'
+                funcname = public_name + MANGLE_SEPARATOR
 
             required_args = funcname
 

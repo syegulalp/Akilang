@@ -5,9 +5,9 @@
 # ! for separator, v_id for id (i32, etc.), and commas to separate each v_id
 # this allows custom typedefs as well
 
-mangle_separator = '@'
-mangle_delineator = '@'
-mangle_opt_separator = '|'
+MANGLE_SEPARATOR = '@'
+MANGLE_DELINEATOR = '@'
+MANGLE_OPT_SEPARATOR = '|'
 
 # Mangle a function call based on its name and a list of types.
 def mangle_call(name, args):
@@ -15,21 +15,21 @@ def mangle_call(name, args):
 
 # Mangle only the arguments for a function
 def mangle_args(args):
-    return _mangle_args(args, mangle_delineator)
+    return _mangle_args(args, MANGLE_DELINEATOR)
 
 # Mangle only the optional arguments for a function
 def mangle_optional_args(args):
-    return _mangle_args(args, mangle_opt_separator)
+    return _mangle_args(args, MANGLE_OPT_SEPARATOR)
 
 # Mangle a function based on its name and a list of arguments.
 def mangle_types(name, args):
-    return name + mangle_separator + ''.join(
-        [n.type.v_id + mangle_delineator for n in args])
+    return name + MANGLE_SEPARATOR + ''.join(
+        [n.type.v_id + MANGLE_DELINEATOR for n in args])
 
 # Internal implementation of mangle_args
 def _mangle_args(args, sep):
     return sep + ''.join(
-        [n.v_id + mangle_delineator for n in args])
+        [n.v_id + MANGLE_DELINEATOR for n in args])
 
 # No longer used but being retained for reference for now
 

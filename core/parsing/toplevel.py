@@ -251,6 +251,7 @@ class Toplevel():
             name = f'unary.{self.cur_tok.value}'
             r_name = self.cur_tok.value
             self._get_next_token()
+        
         elif self.cur_tok.kind == TokenKind.BINARY:
             self._get_next_token()
             if self.cur_tok.kind not in (TokenKind.IDENTIFIER,
