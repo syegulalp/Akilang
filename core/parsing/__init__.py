@@ -11,7 +11,7 @@ from core.ast_module import (
 from core.vartypes import generate_vartypes
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED, IN_PLACE_OPS
-from core.tokens import Builtins, Decorators, Dunders, Ops, Puncs
+from core.tokens import Builtins, Decorators, Ops, Puncs
 
 from core.parsing.expressions import Expressions
 from core.parsing.toplevel import Toplevel

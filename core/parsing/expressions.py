@@ -9,7 +9,7 @@ from core.ast_module import (
 from core.vartypes import CustomType, ArrayClass
 from core.errors import ParseError, CodegenWarning
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
-from core.tokens import Builtins, Dunders, Ops, Puncs
+from core.tokens import Builtins, Ops, Puncs
 
 import re
 
@@ -94,7 +94,7 @@ class Expressions():
         start = self.cur_tok.position
         id_name = self.cur_tok.value
 
-        if id_name in Builtins:  # or id_name in Dunders:
+        if id_name in Builtins:
             return self._parse_builtin(id_name)
 
         if id_name in self.consts:
@@ -258,7 +258,7 @@ class Expressions():
                     if self._cur_tok_is_punctuator(Puncs.END_ARGS):
                         break
 
-                self._get_next_token()                
+                self._get_next_token()
                 self._match(TokenKind.PUNCTUATOR, Puncs.TYPE_SEP)
                 func_type = self._parse_vartype_expr()
                 vartype = vartype(func_type, arguments)
@@ -283,10 +283,6 @@ class Expressions():
                     f'Array size cannot be set dynamically with a variable; use a constant',
                     n.position
                 )
-
-            # the array has to be built from the inside out
-            # for n in reversed(accessor.elements):
-                #vartype = VarTypes.array(vartype, int(n.val))
 
             elements = []
             for n in accessor.elements:
@@ -317,7 +313,6 @@ class Expressions():
         # For builtins that take a vartype as an argument,
         # we need to use this for now
         convert_to = self._parse_standalone_vartype_expr()
-        #convert_to = self._parse_expression()
         self._match(TokenKind.PUNCTUATOR, Puncs.END_ARGS)
         return Call(start, callee, [convert_from, convert_to])
 

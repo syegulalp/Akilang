@@ -105,6 +105,10 @@ class Ops():
     NOT = 'not'
     NEG = '-'
 
+OP_DUNDERS = {
+    Ops.ADD: 'add',
+}
+
 # Note that we do NOT use Ops for actual LLVM ops.
 
 Builtins = {

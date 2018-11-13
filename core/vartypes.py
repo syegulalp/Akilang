@@ -1,5 +1,5 @@
 from core.llvmlite_custom import Map, _PointerType, MyType
-from core.tokens import Dunders
+#from core.tokens import Dunders
 
 import llvmlite.ir as ir
 import ctypes
@@ -363,6 +363,6 @@ VarTypes = generate_vartypes()
 DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
 DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
 
-dunder_methods = set([f'__{n}__' for n in Dunders])
+#dunder_methods = set([f'__{n}__' for n in Dunders])
 
 Str = VarTypes.str
