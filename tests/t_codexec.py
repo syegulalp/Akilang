@@ -782,6 +782,12 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,bool,0b)}'), False)
         self.assertEqual(self.e2.evaluate('{var x=box(32) unbox(x,f64,0.0)}'), 0.0)
         self.assertEqual(self.e2.evaluate('{var x=box(32) var z=unbox(x,i32[20],{with var q:i32[20]=[1] q}) z[0]}'), 1)        
+
+    def test_unbox_unsafe(self):
+        self.e2.reset()
+        self.assertEqual(self.e2.evaluate('{var x=box(32) unsafe unbox(x,i32)}'), 32)
+        self.assertNotEqual(self.e2.evaluate('{var x=box("Hi!") unsafe unbox(x,i32)}'), 0)
+
         
     def test_printing(self):
         self.e2.reset()
