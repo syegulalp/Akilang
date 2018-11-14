@@ -500,10 +500,10 @@ class Vars():
                 )
             
             if element_count<array_length:
-                print (CodegenWarning(
+                CodegenWarning(
                     f'Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})',
                     node_init.position
-                ))
+                ).print(self)
 
                 for _ in range(0,array_length-element_count):
                     init_ref.initializer.constant.append(

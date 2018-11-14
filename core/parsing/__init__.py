@@ -67,6 +67,7 @@ class Parser(Expressions, Toplevel):
         self.evaluator = None
         self.parse_actions = PARSE_ACTIONS
         self.compile_constant = None
+        self.suppress_warnings = True
 
     def init_evaluator(self):
         if self.evaluator is None:
@@ -383,9 +384,9 @@ class Parser(Expressions, Toplevel):
                     pass
                 else:
                     if _ in self._if_eq_checks:
-                        print(CodegenWarning(
+                        CodegenWarning(
                             f'possible confusion of assignment operator ("{Ops.ASSIGN}") and equality test ("{Ops.EQ}") detected',
-                            start))
+                            start).print(self)
 
             # Replace in-place ops with their expanded counterparts
             # and change the operator to a plain assignment

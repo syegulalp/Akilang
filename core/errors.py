@@ -30,6 +30,9 @@ class CodegenWarning(CodegenError):
         super().__init__(msg, position)
         self.msg = ">>> warning >>> "+self.msg
 
+    def print(self, instance):
+        if not instance.suppress_warnings:
+            print (self)
 
 class BlockExit(Exception):
     pass

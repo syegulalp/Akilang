@@ -74,7 +74,9 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
 
         self.vartypes = vartypes
         self._const_counter = 0
-        self.evaluator = None       
+        self.evaluator = None
+
+        self.suppress_warnings = True
         
 
     def init_evaluator(self):

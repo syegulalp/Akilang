@@ -7,7 +7,7 @@ from core.ast_module import (
     Pass, FString
 )
 from core.vartypes import CustomType, ArrayClass
-from core.errors import ParseError, CodegenWarning
+from core.errors import ParseError
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Ops, Puncs
 

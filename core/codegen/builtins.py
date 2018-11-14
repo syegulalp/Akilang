@@ -523,10 +523,10 @@ class Builtins():
                 if not isinstance(convert_to, ir.IntType):
                     raise convert_exception
 
-                print(
-                    CodegenWarning(
-                        f'Float to integer conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
-                        node.args[0].position))
+                
+                CodegenWarning(
+                    f'Float to integer conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
+                    node.args[0].position).print(self)
 
                 if convert_from.type.signed:
                     op = self.builder.fptosi
@@ -541,10 +541,10 @@ class Builtins():
                 # int to float
 
                 if isinstance(convert_to, ir.DoubleType):
-                    print(
-                        CodegenWarning(
-                            f'Integer to float conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
-                            node.args[0].position))
+                    
+                    CodegenWarning(
+                        f'Integer to float conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
+                        node.args[0].position).print(self)
 
                     if convert_from.type.signed:
                         op = self.builder.sitofp

@@ -1,4 +1,4 @@
-from core.errors import CodegenError, CodegenWarning
+from core.errors import CodegenError
 from core.ast_module import VariableType, Call
 import llvmlite.ir as ir
 
