@@ -1,34 +1,33 @@
 # Stolen shamelessly from https://stackoverflow.com/a/35304921
 # with some modifications
 
-import colorama
-
 from contextlib import contextmanager
+
 import ctypes
 import io
 import os
 import sys
 import tempfile
-
-import ctypes.util
-from ctypes import *
 import platform
+import colorama
 
-# if platform.system() == "Linux":
+system = platform.system()
 
-#     libc = ctypes.CDLL(None)
-#     c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
+if system == "Linux":
 
-# elif platform.system() == "Windows":
+    libc = ctypes.CDLL(None)
+    c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
 
-#     ucrtbase = CDLL("ucrtbase")
-#     iob_func = ucrtbase.__acrt_iob_func
-#     iob_func.restype = c_void_p
-#     iob_func.argtypes = [c_int]
+elif system == "Windows":
 
-#     s_stdin = iob_func(0)
-#     c_stdout = iob_func(1)
+    libc = ucrtbase = ctypes.CDLL("ucrtbase")
+    iob_func = ucrtbase.__acrt_iob_func
+    iob_func.restype = ctypes.c_void_p
+    iob_func.argtypes = [ctypes.c_int]
 
+    s_stdin = iob_func(0)
+    c_stdout = iob_func(1)
+    c_stdout = ctypes.c_void_p(c_stdout)
 
 @contextmanager
 def stdout_redirector(stream):
@@ -36,16 +35,12 @@ def stdout_redirector(stream):
     
     # The original fd stdout points to. Usually 1 on POSIX systems.    
     original_stdout_fd = sys.stdout.fileno()
-    
-    #original_encoding = sys.getdefaultencoding()
-    #original_encoding = sys.stdout.encoding
 
     def _redirect_stdout(to_fd):
         """Redirect stdout to the given file descriptor."""
         
         # Flush the C-level buffer stdout
-        #libc.fflush(c_stdout)
-        #ucrtbase.fflush(c_stdout)
+        libc.fflush(c_stdout)
 
         # Flush and close sys.stdout - also closes the file descriptor (fd)
         sys.stdout.close()
@@ -68,13 +63,14 @@ def stdout_redirector(stream):
         _redirect_stdout(saved_stdout_fd)
 
         # Copy contents of temporary file to the given stream
+        # (not used here)
+
         tfile.flush()
         #tfile.seek(0, io.SEEK_SET)
         #stream.write(tfile.read())
 
     finally:
         tfile.close()
-        #os.close(saved_stdout_fd)
-        #sys.stdout = original_stdout
+        os.close(saved_stdout_fd)
     
     colorama.init()
