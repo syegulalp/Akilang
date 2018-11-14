@@ -7,6 +7,8 @@ from core.errors import ParseError, CodegenError
 
 from tests import e, e2
 
+from core.utils.redirect import stdout_redirector
+
 class TestEvaluator(unittest.TestCase):
     e = e
     e2 = e2
@@ -788,14 +790,17 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('{var x=box(32) unsafe unbox(x,i32)}'), 32)
         self.assertNotEqual(self.e2.evaluate('{var x=box("Hi!") unsafe unbox(x,i32)}'), 0)
 
-        
+
     def test_printing(self):
-        self.e2.reset()
-        self.assertEqual(self.e2.evaluate('{var x=32 print(x)}'), 3)
-        self.assertEqual(self.e2.evaluate('print(2+2)'), 2)
-        self.assertEqual(self.e2.evaluate('print("Hello")'), 6)
-        self.assertEqual(self.e2.evaluate('print(if True then "Hello" else "No")'), 6)
-        self.assertEqual(self.e2.evaluate('print(if False then "Hello" else "No")'), 3)
+        import io
+        f = io.BytesIO()
+        with stdout_redirector(f):
+            self.e2.reset()
+            self.assertEqual(self.e2.evaluate('{var x=32 print(x)}'), 3)
+            self.assertEqual(self.e2.evaluate('print(2+2)'), 2)
+            self.assertEqual(self.e2.evaluate('print("Hello")'), 6)
+            self.assertEqual(self.e2.evaluate('print(if True then "Hello" else "No")'), 6)
+            self.assertEqual(self.e2.evaluate('print(if False then "Hello" else "No")'), 3)
 
         # this result is number of characters printed, NOT string
         # TODO: return string pointer from print if possible
