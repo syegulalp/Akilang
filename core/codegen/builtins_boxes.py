@@ -1,4 +1,4 @@
-from core.errors import CodegenError
+from core.errors import CodegenError, CodegenWarning
 from core.ast_module import VariableType, Call
 import llvmlite.ir as ir
 
@@ -33,7 +33,7 @@ class Builtins_boxes():
         # TODO: add object tracking along all paths
         # TODO: add box types for user-defined classes, too
 
-        self._check_arg_length(node, 3)
+        self._check_arg_length(node, 2)
         box_ptr = self._box_check(node)
         type_to_unwrap = node.args[1]
 
@@ -43,14 +43,18 @@ class Builtins_boxes():
                 node.args[1].position
             )
 
-        # Generate the substitute data
-        value_to_substitute = self._codegen(node.args[2])
+        if len(node.args)>2:
+            # Generate the substitute data
+            value_to_substitute = self._codegen(node.args[2])
 
-        if value_to_substitute.type != type_to_unwrap.vartype:
-            raise CodegenError(
-                f'Substitute value must be the same type as the expected type',
-                node.args[2].position
-            )
+            if value_to_substitute.type != type_to_unwrap.vartype:
+                raise CodegenError(
+                    f'Substitute value must be the same type as the expected type',
+                    node.args[2].position
+                )
+        else:
+            self._if_unsafe(node, ' ("unbox" without a substitute value requires "unsafe")')
+            value_to_substitute = None
 
         if type_to_unwrap.vartype.is_ptr():
             enum_id = type_to_unwrap.vartype.pointee.enum_id
@@ -102,58 +106,72 @@ class Builtins_boxes():
             )
         )
 
-        with self.builder.if_else(pred) as (then, otherwise):
-            with then:
+        if value_to_substitute is None:
+            
+            bitcast = self.builder.bitcast(
+                unwrap,
+                type_to_unwrap.vartype.as_pointer()
+            )
 
-                # This is the default pointer when all is well.
+            self.builder.store(
+                self.builder.load(bitcast),
+                return_ptr
+            )
 
-                bitcast = self.builder.bitcast(
-                    unwrap,
-                    type_to_unwrap.vartype.as_pointer()
-                )
+        else:
 
-                self.builder.store(
-                    self.builder.load(bitcast),
-                    return_ptr
-                )
+            with self.builder.if_else(pred) as (then, otherwise):
+                with then:
 
-            with otherwise:
+                    # This is the default pointer when all is well.
 
-                # This is the pointer to the new object.
-                data_malloc = self._codegen(
-                    Call(
-                        node.position,
-                        'c_alloc',
-                        [ir.Constant(
-                            self.vartypes.u_size,
-                            self._obj_size(value_to_substitute)
-                        )]
+                    bitcast = self.builder.bitcast(
+                        unwrap,
+                        type_to_unwrap.vartype.as_pointer()
                     )
-                )
 
-                # bitcast to the appropriate pointer type
-                data_ptr = self.builder.bitcast(
-                    data_malloc,
-                    value_to_substitute.type.as_pointer()
-                )
+                    self.builder.store(
+                        self.builder.load(bitcast),
+                        return_ptr
+                    )
 
-                # store the data in our malloc'd space
-                self.builder.store(
-                    value_to_substitute,
-                    data_ptr
-                )
+                with otherwise:
 
-                # store pointer to data as our return item
+                    # This is the pointer to the new object.
+                    data_malloc = self._codegen(
+                        Call(
+                            node.position,
+                            'c_alloc',
+                            [ir.Constant(
+                                self.vartypes.u_size,
+                                self._obj_size(value_to_substitute)
+                            )]
+                        )
+                    )
 
-                bitcast = self.builder.bitcast(
-                    data_malloc,
-                    type_to_unwrap.vartype.as_pointer()
-                )
+                    # bitcast to the appropriate pointer type
+                    data_ptr = self.builder.bitcast(
+                        data_malloc,
+                        value_to_substitute.type.as_pointer()
+                    )
 
-                self.builder.store(
-                    self.builder.load(bitcast),
-                    return_ptr
-                )
+                    # store the data in our malloc'd space
+                    self.builder.store(
+                        value_to_substitute,
+                        data_ptr
+                    )
+
+                    # store pointer to data as our return item
+
+                    bitcast = self.builder.bitcast(
+                        data_malloc,
+                        type_to_unwrap.vartype.as_pointer()
+                    )
+
+                    self.builder.store(
+                        self.builder.load(bitcast),
+                        return_ptr
+                    )
 
         bitcast_ptr = self.builder.bitcast(
             return_ptr,
