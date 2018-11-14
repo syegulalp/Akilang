@@ -372,6 +372,10 @@ class Toplevel():
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)
 
+    # doesn't work yet
+    def x_codegen_Uni(self, node, const=False):
+        return self._codegen_Var(node, False, const, True)
+    
     def _codegen_Uni(self, node, const=False):
         for v in node.vars:
             name = v.name
@@ -438,7 +442,7 @@ class Toplevel():
                 
             
             else:
-                
+
                 variable=ir.GlobalVariable(self.module,
                     vartype.pointee,
                     name,                    
@@ -446,6 +450,10 @@ class Toplevel():
 
                 element_count = len(value.initializer.constant)
                 array_length = vartype.pointee.elements[1].count
+
+                if array_length == 0:
+                    vartype.pointee.elements[1].count = element_count
+                    array_length = element_count
 
                 if element_count>array_length:
                     raise CodegenError(

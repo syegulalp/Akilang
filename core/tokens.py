@@ -152,6 +152,10 @@ Dunders = {
     'index'
 }
 
+# with these, we should check to see if there's a specific dunder implementation
+# for that type -- if not, we might be able to do it by way of a generic
+# codegen implementation that isn't type specific
+
 Decorators = {
     'varfunc',
     'inline',

@@ -183,24 +183,30 @@ class Parser(Expressions, Toplevel):
                 f'"{self.cur_tok.value}" cannot be used as an identifier (variable type)',
                 self.cur_tok.position)
 
+    # TODO: fuse this with parsing list expression
+    # they have mechanisms in common
+    
     def _parse_argument_list(self, args_required=False):
         args = []
         self._get_next_token() # consume the '('
+        
+        # abort immediately if this is an empty argument list
         if not self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
+
             while True:
-                # abort immediately if this is an empty argument list
                 arg = self._parse_expression()
                 args.append(arg)
                 if self._cur_tok_is_punctuator(Puncs.COMMA):
                     self._get_next_token()
-                    continue
                 if self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
                     break
+
         if args_required and len(args) == 0:
             raise ParseError(
                 f'At least one argument is required',
                 self.cur_tok.position
             )
+
         return args
 
     def _parse_decorator(self):
@@ -278,13 +284,9 @@ class Parser(Expressions, Toplevel):
 
             if self._cur_tok_is_punctuator(Puncs.COMMA):
                 self._get_next_token()
-                continue
-            elif self._cur_tok_is_punctuator(Puncs.CLOSE_BRACKET):
+            if self._cur_tok_is_punctuator(Puncs.CLOSE_BRACKET):
                 break
-            else:
-                raise ParseError('Unclosed item list definition',
-                                 self.cur_tok.position)
-
+            
         self._get_next_token()
 
         return ItemList(start, elements)

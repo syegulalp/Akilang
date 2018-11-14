@@ -262,9 +262,17 @@ class Builtins_boxes():
         return obj_alloc
 
     def _codegen_Builtins_type(self, node):
+        '''
+        Returns a constant enum that represents a type.
+        '''
+
         self._check_arg_length(node)
         type_obj = node.args[0]
 
+        # if this is a type, just use its enum
+        # otherwise, codegen and extract a type
+        # then use that type's enum
+        
         if isinstance(type_obj, VariableType):
             type_obj = type_obj.vartype
         else:

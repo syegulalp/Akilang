@@ -621,6 +621,10 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(self.e.eval_all(n),56)
 
+    def test_anon_array_init(self):
+        self.e.reset()
+        self.assertEqual(self.e.evaluate('{var x=[1,2,3] x[2]}'), 3)        
+
     def test_uni_const_failure(self):
         
         # This should not be allowed
@@ -696,8 +700,8 @@ class TestEvaluator(unittest.TestCase):
         }
         main()
         '''
-        
-        #self.assertEqual(self.e.eval_all(n),56)    
+
+
 
     def test_print(self):
         pass

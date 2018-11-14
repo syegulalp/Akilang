@@ -1,6 +1,6 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError, CodegenWarning
-from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString, Unsafe, Binary, Unary
+from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString, Unsafe, Binary, Unary, Array
 from core.mangling import mangle_call
 from core.vartypes import ArrayClass
 
@@ -345,7 +345,10 @@ class Vars():
 
         return global_var
 
-    def _codegen_create_variable(self, node, local_alloca=False):
+    # TODO: create value FIRST, then variable so we know what
+    # kind of type to give to it if needed
+    
+    def _codegen_create_variable(self, node, local_alloca=False, is_const=False, is_uni=False):
 
         var_name = node.name
         var_type = node.vartype
@@ -367,20 +370,71 @@ class Vars():
        
         allocation_type = var_type
 
-        var_ref = self._alloca(
-            var_name, allocation_type,
-            current_block=local_alloca,
-            node=node
-        )
+        if is_uni:
 
-        self.func_symtab[var_name] = var_ref
+            var_ref = ir.GlobalVariable(
+                self.module,
+                var_type, # might need to be converted into pointee when
+                # we assign variable
+                var_name
+            )
+            
+            var_ref.global_constant = is_const
+            var_ref.linkage = 'private'
+            var_ref.unnamed_addr = True
+            
+
+        else:
+            
+            var_ref = self._alloca(
+                var_name, allocation_type,
+                current_block=local_alloca,
+                node=node
+            )
+
+            self.func_symtab[var_name] = var_ref
+
         return var_ref
+
+
+        # 
+
+        # if not isinstance(expr, ItemList):
+        #     variable = self._codegen(
+        #         Global(position, value, name, const)
+        #     )   
+            
+        
+        # else:
+
+        #     variable=ir.GlobalVariable(self.module,
+        #         vartype.pointee,
+        #         name,                    
+        #     )  
     
-    def _codegen_create_initializer(self, node_var, node_init):
+    def _codegen_create_initializer(self, node_var, node_init, is_const = False, is_uni = False):
 
         # node_var = variable AST node
         # node_init = initializer AST node
         # var_ref = codegenned var from create_variable
+
+        if is_uni:
+            if node_init is None:
+                if node_var.vartype.is_obj_ptr():
+                    value = self._codegen(
+                        Global(
+                            node_var.position,
+                            ir.Constant(node_var.vartype.pointee, None),
+                            f"{node_var.name}.init",
+                            global_constant = is_const
+                        )
+                    )
+                else:
+                    value = ir.Constant(node_var.vartype, None)
+            else:
+                value = self._codegen(node_init)
+            
+            return value
 
         # start with zero initializers
         if node_init is None:
@@ -421,7 +475,7 @@ class Vars():
         return value
 
 
-    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref, element_count = None):
+    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref, element_count = None, is_const = False, is_uni=False):
 
         # node_var = AST node of variable
         # node_init = AST node of initializer
@@ -429,8 +483,15 @@ class Vars():
         # init_ref = codegen from create initializer
 
         if isinstance(node_init, ItemList):
+
+            # TODO: Merge this code with similar code in _codegen_Uni
+
             element_count = len(init_ref.initializer.constant)
             array_length = var_ref.type.pointee.elements[1].count
+
+            if array_length == 0:
+                var_ref.type.pointee.elements[1].count = element_count
+                array_length = element_count
 
             if element_count>array_length:
                 raise CodegenError(
@@ -534,13 +595,32 @@ class Vars():
             return init_ref
         else:
             self.func_symtab[node_var.name] = var_ref
-            self.builder.store(init_ref, var_ref)        
+            if not is_uni:
+                self.builder.store(init_ref, var_ref)
+            else:
+                print (init_ref)
+                var_ref.initializer = init_ref
             return var_ref
    
-    def _codegen_Var(self, node, local_alloca=False):
+    def _codegen_Var(self, node, local_alloca=False, is_const=False, is_uni=False):
         for variable in node.vars:
 
+            # TODO: determine if we inspect for duplication
+            # in the current context BEFORE this step anywhere
+
+            var_ref = self.module.globals.get(variable.name, None)
+            if var_ref is not None:
+                raise CodegenError(
+                    f'Duplicate found in universal symbol table: "{variable.name}"',
+                    variable.position)
+                
+            if is_const and variable.initializer is None:
+                raise CodegenError(
+                    f'Constants must have an assignment: "{variable.name}"', variable.position
+                )
+
             value = None
+            original_vartype = variable.vartype
 
             # if there is no initializer
             if variable.initializer is None:
@@ -549,40 +629,72 @@ class Vars():
                 if variable.vartype is None:
 
                     # use default vartype
+                    # TODO: remove this, use result from create_init instead
+                    # set this to None, compare again later
                     variable.vartype = self.vartypes._DEFAULT_TYPE
 
             # if there is an initializer
             else:
+
+                # initializer also needs 
+                value = self._codegen_create_initializer(
+                    variable, variable.initializer,
+                    is_const, is_uni
+                )
                 
                 # but no variable vartype
                 if variable.vartype is None:                    
 
                     # get the vartype from the initializer
-                    value = self._codegen_create_initializer(
-                        variable, variable.initializer
-                    )
                     variable.vartype = value.type
+
+            # TODO: move to create_init
+            # create_init also returns the type to set
+            # the variable to, if it needs to be something
+            # different
+
+            if isinstance(variable.initializer, ItemList):
+
+                # special case:
+                # if we're assigning to a blank variable,
+                # we need to make it into an array
+                # otherwise it becomes a raw C-style array,
+                # which we don't want
+
+                # later on, as we accumulate more of these,
+                # we should make them into properties of the
+                # initializer type
+
+                if not original_vartype:
+                    variable.vartype = self.vartypes.array(
+                        variable.initializer.elements[0].vartype,
+                        [0]
+                        )
+                else:
+                    variable.vartype = variable.vartype.pointee
+
 
             # for some types of values, our var has to be
             # reconfigured to match the operations
             # we should make this a property of the value type
 
-            if isinstance(variable.initializer, ItemList):
-                variable.vartype = variable.vartype.pointee
 
-            var = self._codegen_create_variable(variable)
+            var = self._codegen_create_variable(variable, False, is_const, is_uni)
 
             if value is None:
                 value = self._codegen_create_initializer(
-                variable, variable.initializer
-            )
+                    variable, variable.initializer,
+                    is_const, is_uni
+                )
 
             # assignment is performed even if the value is "empty"
             # so we can assign zero initializers
 
             assignment = self._codegen_variable_assignment(
                 variable, variable.initializer,
-                var, value
+                var, value,
+                None,
+                is_const, is_uni
             )
 
     def _codegen_Assignment(self, lhs, rhs):
