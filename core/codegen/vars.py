@@ -336,10 +336,11 @@ class Vars():
         if node.name is None:
             node.name = f'.const.{self.const_counter()}'
 
-        global_var = ir.GlobalVariable(self.module, node.const.type, node.name)
-        global_var.storage_class = 'private'
-        global_var.unnamed_addr = True
+        global_var = ir.GlobalVariable(self.module, node.type, node.name)
+        global_var.storage_class = node.storage_class
+        global_var.unnamed_addr = node.unnamed_addr
         global_var.global_constant = node.global_constant
+        
         if node.const:
             global_var.initializer = node.const
 
@@ -368,22 +369,36 @@ class Vars():
                 position
             )
        
-        allocation_type = var_type
+        # Special case handler.
+        # Again, if we accumulate more of these,
+        # we'll find someplace more suitable for them.
+        
+        if isinstance(node.initializer, ItemList):
+            if isinstance(
+                var_type.pointee,
+                self.vartypes.carray
+            ):
+                var_type = self.vartypes.array(
+                    node.initializer.elements[0].vartype,
+                    [0]
+                    )
 
+            else:
+                var_type = var_type.pointee        
+
+        allocation_type = var_type
+        
         if is_uni:
 
-            var_ref = ir.GlobalVariable(
-                self.module,
-                var_type, # might need to be converted into pointee when
-                # we assign variable
-                var_name
+            var_ref = self._codegen(
+                Global(
+                    position,
+                    None,
+                    var_name,
+                    type = var_type,
+                    global_constant = is_const
+                )
             )
-            
-            var_ref.global_constant = is_const
-            var_ref.linkage = 'private'
-            var_ref.unnamed_addr = True
-            
-
         else:
             
             var_ref = self._alloca(
@@ -396,21 +411,6 @@ class Vars():
 
         return var_ref
 
-
-        # 
-
-        # if not isinstance(expr, ItemList):
-        #     variable = self._codegen(
-        #         Global(position, value, name, const)
-        #     )   
-            
-        
-        # else:
-
-        #     variable=ir.GlobalVariable(self.module,
-        #         vartype.pointee,
-        #         name,                    
-        #     )  
     
     def _codegen_create_initializer(self, node_var, node_init, is_const = False, is_uni = False):
 
@@ -482,12 +482,23 @@ class Vars():
         # var_ref = codegen from create_variable
         # init_ref = codegen from create initializer
 
-        if isinstance(node_init, ItemList):
+        type_ok = False
+        init_done = False
 
-            # TODO: Merge this code with similar code in _codegen_Uni
+        # Right now we have this as a special case inline.
+        # If we have more of these kind of situations,
+        # we'll want to make them properties of either the
+        # AST node class or the codegenned type.
+        
+        if isinstance(node_init, ItemList):
 
             element_count = len(init_ref.initializer.constant)
             array_length = var_ref.type.pointee.elements[1].count
+
+            if var_ref.type.pointee.elements[1].element != init_ref.type.pointee.element:
+                raise CodegenError(
+                    f'Array declaration and initializer types do not match (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
+                node_var.position)                
 
             if array_length == 0:
                 var_ref.type.pointee.elements[1].count = element_count
@@ -515,98 +526,145 @@ class Vars():
 
                 element_count = init_ref.initializer.type.count
              
-            element_width = (
-                init_ref.type.pointee.element.width // self.vartypes._byte_width
-            ) * element_count
+            # if this is a uni, create a constant initializer
+            
+            if is_uni:
 
-            # Get the pointer to the data area for the target
+                initializer= ir.Constant(
+                    var_ref.type.pointee,
+                    [
+                        [self.vartypes.u_size(
+                            var_ref.type.pointee.elements[1].count
+                        ),
+                        ir.Constant(
+                            self.vartypes.u_mem.as_pointer(),
+                            None
+                        ),
+                        self.vartypes.u_size(0),
+                        self.vartypes.bool(0),
+                        self.vartypes.bool(0),
+                        ],
+                        init_ref.initializer
+                    ]
+                )
 
-            sub_var_ref = self.builder.gep(
-                var_ref,
-                [
-                    self._i32(0),
-                    self._i32(1)
-                ],
-            )
+                var_ref.initializer = initializer
+                var_ref.global_constant = is_const
+                
+            # otherwise, create a memcpy initializer
 
-            sub_var_ref = self.builder.bitcast(
-                sub_var_ref,
-                self.vartypes.u_mem.as_pointer()
-            )
+            else:
+                
+                element_width = (
+                    init_ref.type.pointee.element.width // self.vartypes._byte_width
+                ) * element_count
 
-            sub_val = self.builder.bitcast(
-                init_ref,
-                self.vartypes.u_mem.as_pointer()
-            )
+                # Get the pointer to the data area for the target
 
-            # Copy the constant into the data area
-            llvm_memcpy = self.module.declare_intrinsic(
-                'llvm.memcpy',
-                [self.vartypes.u_mem.as_pointer(),
-                self.vartypes.u_mem.as_pointer(),
-                self.vartypes.u_size
-                ]
-            )
+                sub_var_ref = self.builder.gep(
+                    var_ref,
+                    [
+                        self._i32(0),
+                        self._i32(1)
+                    ],
+                )
 
-            self.builder.call(
-                llvm_memcpy,
-                [
+                sub_var_ref = self.builder.bitcast(
                     sub_var_ref,
-                    sub_val,
-                    ir.Constant(
-                        self.vartypes.u64,
-                        element_width
-                    ),
-                    ir.Constant(
-                        # default alignment
-                        self.vartypes.u32,
-                        0
-                    ),
-                    ir.Constant(
-                        ir.IntType(1),
-                        False
-                    )
-                ],
-                f'.{node_var.name}.memcpy.'
-            )
+                    self.vartypes.u_mem.as_pointer()
+                )
 
-            return var_ref
+                sub_val = self.builder.bitcast(
+                    init_ref,
+                    self.vartypes.u_mem.as_pointer()
+                )
 
-        if var_ref.type.pointee != init_ref.type:
-            raise CodegenError(
-                f'Type declaration and variable assignment type do not match (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
-                node_var.position)
+                # Copy the constant into the data area
 
-        if var_ref.type.pointee.signed != init_ref.type.signed:
-            raise CodegenError(
-                f'Type declaration and variable assignment type have signed/unsigned mismatch (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
-                node_var.position)        
+                llvm_memcpy = self.module.declare_intrinsic(
+                    'llvm.memcpy',
+                    [self.vartypes.u_mem.as_pointer(),
+                    self.vartypes.u_mem.as_pointer(),
+                    self.vartypes.u_size
+                    ]
+                )
 
-        # Copy tracking
+                self.builder.call(
+                    llvm_memcpy,
+                    [
+                        sub_var_ref,
+                        sub_val,
+                        ir.Constant(
+                            self.vartypes.u64,
+                            element_width
+                        ),
+                        ir.Constant(
+                            # default alignment
+                            self.vartypes.u32,
+                            0
+                        ),
+                        ir.Constant(
+                            ir.IntType(1),
+                            False
+                        )
+                    ],
+                    f'.{node_var.name}.memcpy.'
+                )
 
-        var_ref.heap_alloc = init_ref.heap_alloc
-        var_ref.input_arg = init_ref.input_arg
+            type_ok = True
+            init_done = True
 
-        if var_ref.heap_alloc:
-            var_ref.tracked = True        
+        # if type has not already been checked ...
         
+        if not type_ok:
+
+            if var_ref.type.pointee != init_ref.type:
+                raise CodegenError(
+                    f'Type declaration and variable assignment type do not match (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
+                    node_var.position)
+
+            if var_ref.type.pointee.signed != init_ref.type.signed:
+                raise CodegenError(
+                    f'Type declaration and variable assignment type have signed/unsigned mismatch (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
+                    node_var.position)
+
+        # Uni/const do not have tracking
+        # otherwise, set up tracking
+        
+        if not is_uni:
+            var_ref.heap_alloc = init_ref.heap_alloc
+            var_ref.input_arg = init_ref.input_arg
+
+            if var_ref.heap_alloc:
+                var_ref.tracked = True
+        
+        # Initializer already set, no further action needed      
+          
+        if init_done:
+            return var_ref
+        
+        # if a uni, set initializer, then return
+        
+        if is_uni:
+            var_ref.initializer = init_ref
+            return var_ref
+        
+        # if it's a variable with an allocation already provided,
+        # just return the reference to it
+
         if init_ref.do_not_allocate:
             self.func_symtab[node_var.name] = init_ref
-            return init_ref
-        else:
-            self.func_symtab[node_var.name] = var_ref
-            if not is_uni:
-                self.builder.store(init_ref, var_ref)
-            else:
-                print (init_ref)
-                var_ref.initializer = init_ref
-            return var_ref
+            return init_ref        
+        
+        # otherwise, store the data to the variable location
+        
+        self.func_symtab[node_var.name] = var_ref
+        self.builder.store(init_ref, var_ref)
+        
+        return var_ref
    
     def _codegen_Var(self, node, local_alloca=False, is_const=False, is_uni=False):
         for variable in node.vars:
-
-            # TODO: determine if we inspect for duplication
-            # in the current context BEFORE this step anywhere
 
             var_ref = self.module.globals.get(variable.name, None)
             if var_ref is not None:
@@ -622,13 +680,13 @@ class Vars():
             value = None
             original_vartype = variable.vartype
 
-            # if there is no initializer
+            # if there is no initializer...            
             if variable.initializer is None:
 
-                # and no vartype
+                # and no vartype...
                 if variable.vartype is None:
 
-                    # use default vartype
+                    # ... use default vartype
                     # TODO: remove this, use result from create_init instead
                     # set this to None, compare again later
                     variable.vartype = self.vartypes._DEFAULT_TYPE
@@ -648,38 +706,11 @@ class Vars():
                     # get the vartype from the initializer
                     variable.vartype = value.type
 
-            # TODO: move to create_init
-            # create_init also returns the type to set
-            # the variable to, if it needs to be something
-            # different
-
-            if isinstance(variable.initializer, ItemList):
-
-                # special case:
-                # if we're assigning to a blank variable,
-                # we need to make it into an array
-                # otherwise it becomes a raw C-style array,
-                # which we don't want
-
-                # later on, as we accumulate more of these,
-                # we should make them into properties of the
-                # initializer type
-
-                if not original_vartype:
-                    variable.vartype = self.vartypes.array(
-                        variable.initializer.elements[0].vartype,
-                        [0]
-                        )
-                else:
-                    variable.vartype = variable.vartype.pointee
-
-
-            # for some types of values, our var has to be
-            # reconfigured to match the operations
-            # we should make this a property of the value type
-
-
+            # create the variable reference
+            
             var = self._codegen_create_variable(variable, False, is_const, is_uni)
+
+            # create the initializer if there isn't one yet
 
             if value is None:
                 value = self._codegen_create_initializer(

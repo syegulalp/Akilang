@@ -30,12 +30,17 @@ class Continue(Expr):
 
 
 class Global(Expr):
-    def __init__(self, position, const, name=None, global_constant=True, storage_class='private'):
+    def __init__(self, position, const=None, name=None, global_constant=True, storage_class='private', type=None, unnamed_addr = True):
         super().__init__(position)
-        self.const = const
+        self.const = const        
+        if const is None:
+            self.type = type
+        else:
+            self.type = self.const.type
         self.name = name
         self.global_constant = global_constant
         self.storage_class = storage_class
+        self.unnamed_addr = unnamed_addr
 
 
 class Pragma(Node):
