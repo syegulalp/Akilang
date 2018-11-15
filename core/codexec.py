@@ -163,6 +163,19 @@ class AkilangEvaluator(object):
         with llvm.create_mcjit_compiler(llvmmod, target_machine) as ee:
             ee.finalize_object()
 
+    def _add_platform_lib(self, module):
+        import os
+        import importlib
+        builtins = importlib.import_module(f'core.stdlib.{os.name}')
+        builtins.platform_lib(self, module)
+
+    def _set_return_type(self, f_type):
+        if not hasattr(f_type, 'c_type'):
+            r_type = c_void_p
+        else:
+            r_type = f_type.c_type
+        return r_type
+
     # TODO: Break out the compilation phase so it can be performed on its own
     
     def _eval_ast(self,
@@ -172,9 +185,9 @@ class AkilangEvaluator(object):
                   noexec=False,
                   parseonly=False,
                   verbose=False,
-                  #anon_vartype=DEFAULT_TYPE,
                   anon_vartype=None,
-                  return_type=c_int32,
+                  #return_type=c_int32,
+                  return_type=None,
                   core_vartypes=None,
                   vartypes=None):
         """ 
@@ -232,11 +245,8 @@ class AkilangEvaluator(object):
 
         # TODO: we should be able to make the base var type propagate this
         # tried that, doesn't work yet
-        
-        if not hasattr(return_value.type, 'c_type'):
-            return_type = c_void_p
-        else:
-            return_type = return_value.type.c_type
+
+        return_type = self._set_return_type(return_value.type)
 
         # Convert LLVM IR into in-memory representation and verify the code
         llvmmod = llvm.parse_assembly(str(self.codegen.module))
@@ -298,12 +308,6 @@ class AkilangEvaluator(object):
             
             return Result(result, ast, rawIR, optIR, end_time-start_time)
 
-    def _add_platform_lib(self, module):
-        import os
-        import importlib
-        builtins = importlib.import_module(f'core.stdlib.{os.name}')
-        builtins.platform_lib(self, module)
-
     def eval_and_return(self, node):
         '''
         Evaluate a single node and return its value.
@@ -320,11 +324,8 @@ class AkilangEvaluator(object):
             Prototype.anon_name(Prototype)
         ].return_value.type
 
-        if not hasattr(f_type, 'c_type'):
-            r_type = c_void_p
-        else:
-            r_type = f_type.c_type
-
+        r_type = self._set_return_type(f_type)
+        
         # Run the function with the proper return type
         e = self._eval_ast(
             Function.Anonymous(node.position, node, vartype=f_type),
