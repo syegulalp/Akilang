@@ -632,11 +632,7 @@ class Vars():
         # otherwise, set up tracking
         
         if not is_uni:
-            var_ref.heap_alloc = init_ref.heap_alloc
-            var_ref.input_arg = init_ref.input_arg
-
-            if var_ref.heap_alloc:
-                var_ref.tracked = True
+            self._copy_tracking(var_ref, init_ref)
         
         # Initializer already set, no further action needed      
           
@@ -800,9 +796,25 @@ class Vars():
                 error_string = f'Cannot assign value of type "{value.type.describe()}" to variable "{ptr.name}" of type "{ptr.type.pointee.describe()}"',
             raise CodegenError(error_string, rhs.position)
 
+        # TODO: if the curent variable has tracking,
+        # call destructor on it before storing the new value
+        # destructor should not do anything
+        # if it's a null pointer
+        
         self.builder.store(value, ptr)
 
+        self._copy_tracking(ptr, value)
+
         return value
+
+    def _copy_tracking(self, lhs, rhs):
+        lhs.heap_alloc = rhs.heap_alloc
+        lhs.input_arg = rhs.input_arg
+        lhs.tracked = rhs.tracked
+
+        if lhs.heap_alloc:
+            lhs.tracked = True     
+
 
     def _codegen_FString(self, node):
 

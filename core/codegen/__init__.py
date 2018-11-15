@@ -259,8 +259,12 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
                 pass
 
             if v.tracked:
+                
+                if not v.type.pointee.is_obj_ptr():
+                    continue
 
                 ref = self.builder.load(v)
+                
                 v_target = v.type.pointee.pointee
                 sig = v_target.del_signature()
 

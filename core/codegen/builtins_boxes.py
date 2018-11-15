@@ -298,6 +298,10 @@ class Builtins_boxes():
                 n_ptr
             )
 
+        obj_alloc.do_not_allocate = True
+        obj_alloc.heap_alloc = True
+        obj_alloc.tracked = True
+        
         return obj_alloc
 
     def _codegen_Builtins_type(self, node):
