@@ -175,6 +175,14 @@ class Builtins():
         addr2 = self.builder.bitcast(
             addr, self.vartypes.u_mem.as_pointer())
 
+        # TODO: replace with call to 
+        # .object.obj.__del__
+        # this will also destroy any
+        # enclosed object if it needs it
+
+        #? bitcast to obj wrapper?
+        # or just get obj header ptr and use that?
+
         call = self._codegen_Call(
             Call(node.position, 'c_free', [addr2])
         )
