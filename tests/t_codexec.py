@@ -626,6 +626,19 @@ class TestEvaluator(unittest.TestCase):
         self.e.reset()
         n = '''
         const {
+            x:i32[]=[8,16,32]
+        }
+
+        def main(){
+            x[0]+x[1]+x[2]
+        }
+        main()
+        '''
+        self.assertEqual(self.e.eval_all(n),56)   
+
+        self.e.reset()
+        n = '''
+        const {
             x=[8,16,32]
         }
 
@@ -656,7 +669,9 @@ class TestEvaluator(unittest.TestCase):
         }
         def main(){
             x+=1
-        }'''
+        }
+        main()
+        '''
         
         with self.assertRaises(CodegenError):
             self.e.eval_all(n)            
