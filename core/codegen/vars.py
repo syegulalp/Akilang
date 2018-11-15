@@ -807,15 +807,6 @@ class Vars():
 
         return value
 
-    def _copy_tracking(self, lhs, rhs):
-        lhs.heap_alloc = rhs.heap_alloc
-        lhs.input_arg = rhs.input_arg
-        lhs.tracked = rhs.tracked
-
-        if lhs.heap_alloc:
-            lhs.tracked = True     
-
-
     def _codegen_FString(self, node):
 
         # I'm thinking of making this a special case that is

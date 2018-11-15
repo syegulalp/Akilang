@@ -243,56 +243,68 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], 'userbinop')
 
-    def _codegen_autodispose(self, item_list, to_check, node=None):
-        for _, v in item_list:
+    def _copy_tracking(self, lhs, rhs):
+        lhs.heap_alloc = rhs.heap_alloc
+        lhs.input_arg = rhs.input_arg
+        lhs.tracked = rhs.tracked
 
-            if v is to_check:
+        if lhs.heap_alloc:
+            lhs.tracked = True    
+            
+    def _codegen_autodispose(self, item_list, to_check, node=None):
+        for _, var_to_dispose in item_list:
+
+            if var_to_dispose is to_check:
                 continue
 
+            # TODO: skip autodispose conditions:
             # if this is an input argument,
             # and it's still being tracked (e.g., not given away),
             # and the variable in question has not been deleted
             # manually at any time,
             # ...?
 
-            if v.input_arg is not None:
+            if var_to_dispose.input_arg is not None:
                 pass
 
-            if v.tracked:
+            if var_to_dispose.tracked:
                 
-                if not v.type.pointee.is_obj_ptr():
+                if not var_to_dispose.type.pointee.is_obj_ptr():
                     continue
 
-                ref = self.builder.load(v)
+                self._codegen_call_del_method(var_to_dispose)
+
+def _codegen_call_del_method(self, var_to_dispose):
+        ref = self.builder.load(var_to_dispose)
                 
-                v_target = v.type.pointee.pointee
-                sig = v_target.del_signature()
+        v_target = var_to_dispose.type.pointee.pointee
+        sig = v_target.del_signature()
 
-                if v_target.del_as_ptr:
-                    ref = self.builder.bitcast(
-                        ref,
-                        self.vartypes.u_mem.as_pointer()
-                    )
+        if v_target.del_as_ptr:
+            ref = self.builder.bitcast(
+                ref,
+                self.vartypes.u_mem.as_pointer()
+            )
 
-                # TODO: merge this with the existing
-                # dunder-method call mechanism
+        # TODO: merge this with the existing
+        # dunder-method call mechanism?
 
-                del_name = self.module.globals.get(
-                    sig+mangle_args([ref.type])
-                )
+        del_name = self.module.globals.get(
+            sig+mangle_args([ref.type])
+        )
 
-                # TODO: symtab should contain the position
-                # for the first creation of a class object
-                # so we can indicate errors like this precisely
+        # TODO: symtab should contain the position
+        # for the first creation of a class object
+        # so we can indicate errors like this precisely
 
-                if del_name is None:
-                    raise CodegenError(
-                        f'No "__del__" method found for "{v_target.signature()}"',
-                        node.position
-                    )
+        if del_name is None:
+            raise CodegenError(
+                f'No "__del__" method found for "{v_target.signature()}"',
+                node.position
+            )
 
-                self.builder.call(
-                    del_name,
-                    [ref],
-                    f'{_}.delete'
-                )
+        self.builder.call(
+            del_name,
+            [ref],
+            f'{var_to_dispose.name}.delete'
+        )
