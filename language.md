@@ -9,7 +9,7 @@ This is a document of Aki syntax and usage.
     - [Expressions](#expressions)
     - [Functions and function calls](#functions-and-function-calls)
     - [Variables and variable typing](#variables-and-variable-typing)
-    - [Symbols](#symbols)
+- [Symbols](#symbols)
     - [Operators](#operators)
         - [`=` Assignment](#-assignment)
         - [`==` Equality test](#-equality-test)
@@ -20,7 +20,7 @@ This is a document of Aki syntax and usage.
         - [`-` Subtraction operator](#--subtraction-operator)
         - [`*` Multiplication operator](#-multiplication-operator)
         - [`/` Division operator](#-division-operator)
-    - [`and`/`or`/`xor`/`not` operators](#andorxornot-operators)
+        - [`and`/`or`/`xor`/`not` operators](#andorxornot-operators)
     - [Parentheses `()`](#parentheses-)
     - [Curly braces `{}`](#curly-braces-)
     - [Hash symbol `#`](#hash-symbol-)
@@ -100,7 +100,7 @@ Expressions are the basic unit of computation in Aki. Each expression returns a 
 5
 ```
 
-is an expression that returns the value 5. (The type of this value is the default type for numerical values in Aki, which is a signed 32-bit integer.)
+is an expression that returns the value `5`. (The type of this value is the default type for numerical values in Aki, which is a signed 32-bit integer.)
 
 ```
 print (if x==1 then 'Yes' else 'No')
@@ -211,7 +211,7 @@ There is no shadowing of variable names permitted anywhere. You cannot have the 
 
 Scalar types -- integers, floats, booleans -- are passed by value. All other objects (classes, strings, etc.) are automatically passed by reference, by way of a pointer to the object.
 
-## Symbols
+# Symbols
 
 ## Operators
 
@@ -253,7 +253,7 @@ The following operator symbols are predefined:
 
 `x=x/2`
 
-## `and`/`or`/`xor`/`not` operators
+### `and`/`or`/`xor`/`not` operators
 
 Logical `and`, `or`, `xor`, and `not`.
 
@@ -316,7 +316,6 @@ The `10` is the operator precedence, with lower numbers having higher precedence
 
 A `const` block is used to define compile-time constants for a module. 
 
-There should only be one `const` block per module, at the top, but this rule is not strictly enforced by the compiler; it's just good etiquette.
 
 ```
 const {
@@ -328,6 +327,8 @@ def main(){
     print (x+5) # x becomes 10 at compile time, so this is always 15
 }
 ```
+
+There can be more than one `const` block per module.
 
 It's also possible for constants to be defined at compile time based on previous constants:
 
@@ -374,7 +375,6 @@ def main(){
 Define a function signature and its body.
 
 ```
-
 def add(a,b){
     return a+b
 }
@@ -393,7 +393,7 @@ def add(a:u64, b:u64):u64{
 
 ## `extern`
 
-Defines an external function to be linked in at compile time.
+Defines an external function with a C calling interface to be linked in at compile time.
 
 An example, on Win32, that uses the `MessageBoxA` system call:
 
@@ -460,7 +460,7 @@ x = $x # example usage
 
 A `uni` block defines *universals*, or variables available throughout a module. The syntax is the same as a `var` assignment.
 
-There should only be one `uni` block per module, just after any `const` module. This rule is not enforced by the compiler, but it's a good idea, since `uni` declarations may depend on previous `const` declarations.
+There can be more than one `uni` block per module, typically after any  `const` module. This rule is not enforced by the compiler, but it's a good idea, since `uni` declarations may depend on previous `const` declarations.
 
 ```
 uni {
@@ -512,6 +512,8 @@ t = {if y == 1 then 1 elif y > 1 then 2 else 3}
 
 ```
 
+**Each branch of an `if` must yield the same type.** For operations where the types of each decision might mismatch, or where some possible decisions might not yield a result at all, use [`when/then/elif/else`](#when).
+
 `if` constructions can also be used for expressions where the value of the expression is to be discarded. 
 
 ```
@@ -529,11 +531,10 @@ def main(){
 }
 ```
 
-Here, `print` yields the number of characters printed, but in this example it's not used for anything.
+Here, `print` yields the number of characters printed from the `loop` block, but that value is not actually used anywhere.
 
 Note that if we didn't have the `return 0` at the bottom of `main`, the last value yielded by the `if` would be the value returned from `main`.
 
-**Each branch of an `if` must yield the same type.** For operations where the types of each decision might mismatch, or where some possible decisions might not yield a result at all, use [`when/then/elif/else`](#when).
 
 ## `loop`
 
@@ -576,7 +577,7 @@ with x loop (x = 1, x < 11) {
 
 ## `match`
 
-Evaluates an expression based on whether or not a value matches one of a given set of constants (*not* expressions).
+Evaluates an expression based on whether or not a value matches one of a given set of compile-time constants (*not* expressions).
 
 The value returned from this expression is the matched value, not any value returned by the expressions themselves.
 
@@ -621,7 +622,7 @@ def fn(x):u64{
 
 ## `unsafe`
 
-Designates an expression or block where direct manipulation of memory is performed.
+Designates an expression or block where direct manipulation of memory or some other potentially dangerous action is performed.
 
 ```
 def main(){
@@ -647,6 +648,17 @@ Running `main()` here would yield `32`.
 ```
 unsafe c_ptr_mod(y,32)
 ```
+
+An example with a `print` function, where we pass a byte array:
+
+```
+var x=[65B,66B,67B,0B]
+print(unsafe x)
+```
+
+yields `ABC`.
+
+Note the terminating NULL in the array; the `print` statement makes no assumptions about whether the data is NULL-terminated when supplied with an `unsafe` parameter.
 
 ## `var`
 
