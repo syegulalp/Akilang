@@ -623,6 +623,44 @@ class TestEvaluator(unittest.TestCase):
         '''
         self.assertEqual(self.e.eval_all(n),56)
 
+        self.e.reset()
+        n = '''
+        const {
+            x=[8,16,32]
+        }
+
+        def main(){
+            x[0]+x[1]+x[2]
+        }
+        main()
+        '''
+        self.assertEqual(self.e.eval_all(n),56)        
+
+    def test_reassign_const_trap(self):
+        self.e.reset()
+        n = '''
+        const {
+            x=[8,16,32]
+        }
+        def main(){
+            x[0]+=1
+        }'''
+        
+        with self.assertRaises(CodegenError):
+            self.e.eval_all(n)
+
+        self.e.reset()
+        n = '''
+        const {
+            x=1
+        }
+        def main(){
+            x+=1
+        }'''
+        
+        with self.assertRaises(CodegenError):
+            self.e.eval_all(n)            
+    
     def test_anon_array_init(self):
         self.e.reset()
         self.assertEqual(self.e.evaluate('{var x=[1,2,3] x[2]}'), 3)        
