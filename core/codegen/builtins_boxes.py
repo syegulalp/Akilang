@@ -206,10 +206,31 @@ class Builtins_boxes():
         Place a variable inside a container.
         '''
 
+        # TODO: a problem raised by this
+        # reassignments do not cause the underlying
+        # object to be removed
+
+        # if we have a variable with a tracked value
+        # (not a constant),
+        # and we reassign that variable,
+        # then the tracked value has to be discarded.
+        # we have to generate a destructor for the object
+        # at the reassignment.
+        # (we should only allow one owner at a time)
+
         self._check_arg_length(node)
 
         # malloc space for a copy of the data
         data_to_convert = self._codegen(node.args[0])
+
+        # if this is a constant, we should make it point to 
+        # an anonymous const rather than a value instantiated
+        # at runtime
+
+        # another possibility is that if we're generating
+        # a box from a constant, then the box itself should
+        # be a constant?
+
 
         if data_to_convert.type.is_ptr():
             enum_id = data_to_convert.type.pointee.enum_id
