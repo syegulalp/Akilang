@@ -32,6 +32,9 @@ class Vars():
     def _codegen_GlobalVariable(self, node):
         return node
 
+    def _codegen_CallInstr(self, node):
+        return node
+    
     def _codegen_ArrayAccessor(self, node):
         return self._codegen_Call(
             Call(
@@ -724,6 +727,8 @@ class Vars():
                 is_const, is_uni
             )
 
+    # TODO: merge _codegen_variable_assignment?
+    
     def _codegen_Assignment(self, lhs, rhs):
         if not isinstance(lhs, Variable):
             raise CodegenError(
