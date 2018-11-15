@@ -32,7 +32,8 @@ class Builtins():
 
     def _get_obj_noload(self, node, arg=None, ptr_check=True):
         '''
-        Returns a pointer (or variable reference) to a codegenned object.
+        Returns a pointer (or variable reference) to a codegenned object,
+        but don't load from the pointer.
         '''
         if not arg:
             arg = node.args[0]
@@ -45,6 +46,69 @@ class Builtins():
         if ptr_check:
             self._check_pointer(codegen, node)
         return codegen
+
+    def _extract_data_ptr(self, convert_from, node):
+        '''
+        Follows the generic u_mem data pointer
+        in an object header to the object data
+        '''
+
+        gep = self.builder.gep(
+            convert_from,
+            [
+                # object instance
+                self._i32(0),
+                # header
+                self._i32(0),
+                # ptr to mem
+                self._i32(1),
+            ]
+        )
+
+        gep = self.builder.load(gep)
+        gep.type.p_fmt = None
+        return gep
+
+    def _extract_ptr(self, convert_from, node):
+        '''
+        Returns a generic u_mem pointer
+        to the first element of an object
+        '''
+        gep = self.builder.gep(
+            convert_from,
+            [
+                self._i32(0),
+            ]
+        )
+
+        bc = self.builder.bitcast(
+            gep, self.vartypes.u_mem.as_pointer(),
+            '.array.ptr'
+        )  # pylint: disable=E1111
+
+        return bc
+
+    def _extract_array(self, convert_from, node):
+        '''
+        Returns a generic u_mem pointer
+        to the start of an object's data body
+        '''
+        gep = self.builder.gep(
+            convert_from,
+            [
+                # object instance
+                self._i32(0),
+                # ptr to body
+                self._i32(1),
+            ]
+        )
+
+        bc = self.builder.bitcast(
+            gep, self.vartypes.u_mem.as_pointer(),
+            '.array.ptr'
+        )  # pylint: disable=E1111
+
+        return bc
 
     def _codegen_Builtins_c_obj_alloc(self, node):
 
@@ -110,7 +174,6 @@ class Builtins():
         addr = self.builder.load(expr)
         addr2 = self.builder.bitcast(
             addr, self.vartypes.u_mem.as_pointer())
-        # .get_reference()
 
         call = self._codegen_Call(
             Call(node.position, 'c_free', [addr2])
@@ -139,6 +202,10 @@ class Builtins():
         ptr = self._codegen(node.args[0])
         int_from_ptr = self.builder.ptrtoint(ptr, self.vartypes.u_size)
         amount_to_add = self._codegen(node.args[1])
+
+        # TODO: ints only!
+        # and upconvert if needed?
+        
         # TODO: if this is a signed type,
         # perform runtime test for subtraction
         add_result = self.builder.add(int_from_ptr, amount_to_add)
@@ -207,69 +274,6 @@ class Builtins():
         s2 = self._obj_size_type(s1)
 
         return ir.Constant(self.vartypes.u_size, s2)
-
-    def _extract_data_ptr(self, convert_from, node):
-        '''
-        Follows the generic u_mem data pointer
-        in an object header to the object data
-        '''
-
-        gep = self.builder.gep(
-            convert_from,
-            [
-                # object instance
-                self._i32(0),
-                # header
-                self._i32(0),
-                # ptr to mem
-                self._i32(1),
-            ]
-        )
-
-        gep = self.builder.load(gep)
-        gep.type.p_fmt = None
-        return gep
-
-    def _extract_ptr(self, convert_from, node):
-        '''
-        Returns a generic u_mem pointer
-        to the first element of an object
-        '''
-        gep = self.builder.gep(
-            convert_from,
-            [
-                self._i32(0),
-            ]
-        )
-
-        bc = self.builder.bitcast(
-            gep, self.vartypes.u_mem.as_pointer(),
-            '.array.ptr'
-        )  # pylint: disable=E1111
-
-        return bc
-
-    def _extract_array(self, convert_from, node):
-        '''
-        Returns a generic u_mem pointer
-        to the start of an object's data body
-        '''
-        gep = self.builder.gep(
-            convert_from,
-            [
-                # object instance
-                self._i32(0),
-                # ptr to body
-                self._i32(1),
-            ]
-        )
-
-        bc = self.builder.bitcast(
-            gep, self.vartypes.u_mem.as_pointer(),
-            '.array.ptr'
-        )  # pylint: disable=E1111
-
-        return bc
 
     def _codegen_Builtins_c_data(self, node):
         '''
