@@ -213,7 +213,7 @@ def generate_vartypes(module=None, bytesize=8):
 
     Obj = ir.global_context.get_identified_type('.obj.')
     Obj.elements = (Header,
-        ir.IntType(_byte_width)
+        #ir.IntType(_byte_width)
     )
     Obj.v_id = 'obj'
     Obj.is_obj = True
