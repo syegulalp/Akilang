@@ -38,13 +38,11 @@ This is a document of Aki syntax and usage.
         - [`opt_level`](#opt_level)
         - [`unroll_loops`](#unroll_loops)
     - [`unary`](#unary)
-- [usage](#usage)
     - [`uni`](#uni)
 - [Keywords](#keywords)
     - [`break`](#break)
     - [`default`](#default)
     - [`if` / `then` / `elif` / `else`](#if--then--elif--else)
-- [FizzBuzz](#fizzbuzz)
     - [`loop`](#loop)
     - [`match`](#match)
     - [`not`](#not)
@@ -61,6 +59,7 @@ This is a document of Aki syntax and usage.
     - [`@unsafe_req`](#unsafe_req)
     - [`@varfunc`](#varfunc)
 - [Builtin functions](#builtin-functions)
+    - [`box` / `unbox`](#box--unbox)
     - [`c_addr`](#c_addr)
     - [`c_alloc` / `c_free`](#c_alloc--c_free)
     - [`c_data`](#c_data)
@@ -73,6 +72,8 @@ This is a document of Aki syntax and usage.
     - [`c_ptr_math`](#c_ptr_math)
     - [`c_ptr_mod`](#c_ptr_mod)
     - [`cast` / `convert`](#cast--convert)
+    - [`objtype`](#objtype)
+    - [`type`](#type)
 - [Methods](#methods)
     - [`len`](#len)
 - [Library functions](#library-functions)
@@ -85,6 +86,7 @@ This is a document of Aki syntax and usage.
     - [`u8/16/32/64`](#u8163264)
     - [`f32/64`](#f3264)
     - [`array`](#array)
+    - [`obj`](#obj)
     - [`str`](#str)
     - [`ptr`](#ptr)
 
@@ -451,9 +453,7 @@ The `unary` keyword is used in a function signature to define a unary operator, 
 def unary $(val)
     return val+1
 
-# usage
-
-x = $x
+x = $x # example usage
 ```
 
 ## `uni`
@@ -818,6 +818,41 @@ The following built-ins are largely for the sake of interoperability with C, and
 
 > ⚠ These functions are likely to be highly unstable.
 
+## `box` / `unbox`
+
+Places a variable inside a box of type `obj`, or removes it from that box.
+
+This is used to allow variables of potentially multiple types to be manipulated.
+
+To determine the type of a variable inside an `obj` box, use `objtype()`.
+
+```
+def main(){    
+    loop {
+        print ("1) String\n2) i32\n3) u64\n4) quit\n> ", end='')
+        
+        var choice = i32(input())
+        var x:obj
+
+        match choice {
+            1: x=box("Yo there!")
+            2: x=box(32)
+            3: x=box(32U)
+            4: break
+            default: pass
+        }
+        
+        match objtype(x) {
+            type(str): print ("String, with value:", unsafe unbox(x,str))
+            type(i32): print ("Signed 32-bit integer!")
+            type(u64): print ("Unsigned 64-bit integer!")
+            default: print ("No idea!")
+        }
+    }
+    0
+}
+```
+
 ## `c_addr`
 
 Returns the location of an object in memory, as an integer. The bitwidth of the integer matches the platform in use.
@@ -926,7 +961,23 @@ var y:byte=32B
 x = convert(y,i32)
 ```
 
+## `objtype`
 
+Returns a module-specific value that corresponds to a variable type held inside an `obj` container.
+
+```
+var x=obj("Hi there!")
+objtype(x)==type(str)
+```
+
+## `type`
+
+Returns a module-specific value that corresponds to a variable type.
+
+```
+var x="Hi there!"
+objtype(x)==type(str)
+```
 
 
 # Methods
@@ -1024,6 +1075,10 @@ For a multidimensional array of bytes:
 > ⚠ There is as yet no way to nest different scalars in different array dimensions.
 
 > ⚠ There is as yet no way to perform array slicing or concantenation.
+
+## `obj`
+
+A container for types. Use [`box()` and `unbox()`](#box--unbox) to place variables inside an `obj` box.
 
 ## `str`
 
