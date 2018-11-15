@@ -17,7 +17,7 @@ from core.codegen.controlflow import ControlFlow
 
 
 class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow):
-    def __init__(self, vartypes=None):
+    def __init__(self, vartypes=None, module_name = None):
         '''
         Initialize the code generator.
         This creates a new LLVM module into which code is generated. The
@@ -28,7 +28,7 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         from the module attribute.
         '''
         # Current module.
-        self.module = ir.Module()
+        self.module = ir.Module(module_name)
 
         # Current IR builder.
         self.builder = None
