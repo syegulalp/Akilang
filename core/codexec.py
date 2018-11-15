@@ -200,7 +200,7 @@ class AkilangEvaluator(object):
         rawIR = None
         optIR = None
         if parseonly:
-            return Result(ast.dump(), ast, rawIR, optIR)
+            return Result(ast.dump(), ast, rawIR, optIR, None)
 
         # Generate code
         self.codegen.generate_code(ast)
@@ -208,7 +208,7 @@ class AkilangEvaluator(object):
             rawIR = lastIR(self.codegen.module)
 
         if noexec:
-            return Result(rawIR, ast, rawIR, optIR)
+            return Result(rawIR, ast, rawIR, optIR, None)
 
         if llvmdump:
             dump(
@@ -254,7 +254,7 @@ class AkilangEvaluator(object):
         if verbose:
             optIR = lastIR(llvmmod, -2)
             if def_or_extern:
-                return Result(None, ast, rawIR, optIR)
+                return Result(None, ast, rawIR, optIR, None)
 
         # Create a MCJIT execution engine to JIT-compile the module. Note that
         # ee takes ownership of target_machine, so it has to be recreated anew
@@ -288,7 +288,7 @@ class AkilangEvaluator(object):
                 result = fptr()
             except OSError as e:
                 print(colored(f'OS error: {e}', 'red'))
-                return Result(-1, ast, rawIR, optIR)
+                return Result(-1, ast, rawIR, optIR, None)
 
             if return_value.type.v_id == "ptr_str":
                 result = cast(
