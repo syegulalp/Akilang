@@ -274,37 +274,37 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
 
                 self._codegen_call_del_method(var_to_dispose)
 
-def _codegen_call_del_method(self, var_to_dispose):
-        ref = self.builder.load(var_to_dispose)
-                
-        v_target = var_to_dispose.type.pointee.pointee
-        sig = v_target.del_signature()
+    def _codegen_call_del_method(self, var_to_dispose):
+            ref = self.builder.load(var_to_dispose)
+                    
+            v_target = var_to_dispose.type.pointee.pointee
+            sig = v_target.del_signature()
 
-        if v_target.del_as_ptr:
-            ref = self.builder.bitcast(
-                ref,
-                self.vartypes.u_mem.as_pointer()
+            if v_target.del_as_ptr:
+                ref = self.builder.bitcast(
+                    ref,
+                    self.vartypes.u_mem.as_pointer()
+                )
+
+            # TODO: merge this with the existing
+            # dunder-method call mechanism?
+
+            del_name = self.module.globals.get(
+                sig+mangle_args([ref.type])
             )
 
-        # TODO: merge this with the existing
-        # dunder-method call mechanism?
+            # TODO: symtab should contain the position
+            # for the first creation of a class object
+            # so we can indicate errors like this precisely
 
-        del_name = self.module.globals.get(
-            sig+mangle_args([ref.type])
-        )
+            if del_name is None:
+                raise CodegenError(
+                    f'No "__del__" method found for "{v_target.signature()}"',
+                    node.position
+                )
 
-        # TODO: symtab should contain the position
-        # for the first creation of a class object
-        # so we can indicate errors like this precisely
-
-        if del_name is None:
-            raise CodegenError(
-                f'No "__del__" method found for "{v_target.signature()}"',
-                node.position
+            self.builder.call(
+                del_name,
+                [ref],
+                f'{var_to_dispose.name}.delete'
             )
-
-        self.builder.call(
-            del_name,
-            [ref],
-            f'{var_to_dispose.name}.delete'
-        )
