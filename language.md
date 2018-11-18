@@ -8,6 +8,7 @@ This is a document of Aki syntax and usage.
 - [Introduction](#introduction)
     - [Expressions](#expressions)
     - [Functions and function calls](#functions-and-function-calls)
+        - [Bare function prototypes (a/k/a forward definitions)](#bare-function-prototypes-aka-forward-definitions)
     - [Variables and variable typing](#variables-and-variable-typing)
 - [Symbols](#symbols)
     - [Operators](#operators)
@@ -204,6 +205,26 @@ def f1(x:i32, y:i32=1) x+y
 Invoking this with `f1(0,32)` would return `32`. With `f1(1)`, you'd get `2`.
 
 Note that optional arguments must always follow mandatory arguments.
+
+### Bare function prototypes (a/k/a forward definitions)
+
+A "bare" function prototype, also known as a forward definition, can be defined by simply having a function with a blank body:
+
+```
+def my_function_to_be_defined_in_full_later(): pass
+
+[...]
+
+def x(): {
+    my_function_to_be_defined_in_full_later()
+}
+
+[...]
+
+def my_function_to_be_defined_in_full_later(): {
+    [actual function with full body]
+}
+```
 
 ## Variables and variable typing
 
