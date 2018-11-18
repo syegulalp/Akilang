@@ -41,10 +41,10 @@ PROMPT = 'A>'
 USAGE = f"""From the {PROMPT} prompt, type Aki code or enter special commands
 preceded by a dot sign:
 
-    .about|.ab    : About this program.
-    .compile|.cp  : Compile current module to executable.
-    .dump|.dp     : Dump current module to console.
-    .dumpfile|.df : Dump current module to .ll file.
+    .about|ab     : About this program.
+    .compile|cp   : Compile current module to executable.
+    .dump|dp      : Dump current module to console.
+    .dumpfile|df  : Dump current module to .ll file.
     .exit|quit|stop|q
                   : Stop and exit the program.
     .export|ex <filename>
@@ -55,8 +55,8 @@ preceded by a dot sign:
     .rl[c|r]      : Reset the interpreting engine and reload the last .aki
                     file loaded in the REPL. Add c to run .cp afterwards.
                     Add r to run main() afterwards.
-    .reset|.~     : Reset the interpreting engine.
-    .run|.r       : Run the main() function (if present) in the current
+    .reset|~      : Reset the interpreting engine.
+    .run|r        : Run the main() function (if present) in the current
                     module.
     .test|tests   : Run unit tests.
     .version|ver  : Print version information.
