@@ -94,6 +94,9 @@ class Expressions():
         start = self.cur_tok.position
         id_name = self.cur_tok.value
 
+        if id_name == '':
+            raise ParseError('Identifier expected', start)
+
         if id_name in Builtins:
             return self._parse_builtin(id_name)
 

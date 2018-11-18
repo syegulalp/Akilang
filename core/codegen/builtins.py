@@ -146,12 +146,10 @@ class Builtins():
         if v1.is_obj:
             b2 = self.builder.alloca(b1.type)
             self.builder.store(b1, b2)
-            b2.do_not_allocate = True
-            b2.heap_alloc = True
-            b2.tracked = True
+            self._set_tracking(b2)
         else:
             b2 = b1
-            b2.do_not_allocate = True
+            self._set_tracking(b2, True, None, None)
 
         return b2
 
@@ -169,7 +167,7 @@ class Builtins():
                 f'"{node.args[0].name}" is not an allocated object', node.args[0].position)
 
         # Mark the variable in question as untracked
-        expr.tracked = False
+        self._set_tracking(expr, None, None, False)
 
         addr = self.builder.load(expr)
         addr2 = self.builder.bitcast(
@@ -234,7 +232,8 @@ class Builtins():
         # cannot be automatically disposed b/c
         # we edit it manually
 
-        ptr.tracked = False
+        self._set_tracking(ptr, None, None, False)
+        #ptr.tracked = False
 
         return ptr
 

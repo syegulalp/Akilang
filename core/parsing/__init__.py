@@ -142,7 +142,7 @@ class Parser(Expressions, Toplevel):
         '''
         if self.cur_tok.kind != expected_kind or (
                 expected_value and self.cur_tok.value != expected_value):
-            val = expected_value if expected_value is not None else expected_kind
+            val = expected_value if expected_value is not None else str(expected_kind).split('TokenKind.')[1].lower()
             raise ParseError(
                 f'Expected "{val}" but got "{self.cur_tok.value}" instead',
                 self.cur_tok.position)

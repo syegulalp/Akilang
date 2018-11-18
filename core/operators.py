@@ -19,7 +19,9 @@ BUILTIN_OP = {
     Ops.INCR: BinOpInfo(10, Associativity.LEFT),
     Ops.DECR: BinOpInfo(10, Associativity.LEFT),
     Ops.NEQ: BinOpInfo(10, Associativity.LEFT),
+    Ops.B_AND: BinOpInfo(20, Associativity.LEFT),
     Ops.AND: BinOpInfo(5, Associativity.LEFT),
+    Ops.B_OR: BinOpInfo(20, Associativity.LEFT),
     Ops.OR: BinOpInfo(5, Associativity.LEFT),
     Ops.XOR: BinOpInfo(5, Associativity.LEFT),
     Ops.LESS_THAN: BinOpInfo(10, Associativity.LEFT),
@@ -38,7 +40,7 @@ BUILTIN_UNARY_OP = {
 }
 
 UNASSIGNED = {
-    '!', '$', '%', '`', '^', '&', '|', '\','
+    '!', '$', '%', '`', '^','\\'
 }
 
 IN_PLACE_OPS = {

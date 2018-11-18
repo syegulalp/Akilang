@@ -241,7 +241,7 @@ class Repl():
             self.executor.reset(self.history)
         except RuntimeError as err:
             errprint(f'LLVM error: {err}')
-        except Exception as err:
+        except (Exception, BaseException) as err:
             errprint(str(type(err)) + ' : ' + str(err))
             print('Aborting.')
             #self.executor.reset()

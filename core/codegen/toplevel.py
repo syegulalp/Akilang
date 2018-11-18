@@ -244,7 +244,7 @@ class Toplevel():
         func.decorators = decorators
 
         if 'track' in decorators:
-            func.tracked = True
+            self._set_tracking(func, None, None, True)
 
         return func
 
@@ -291,7 +291,8 @@ class Toplevel():
             self.func_symtab[arg.name] = alloca
 
             alloca.input_arg = _
-            alloca.tracked = False
+            self._set_tracking(alloca, None, None, False)
+            #alloca.tracked = False
 
         # Generate code for the body
         retval = self._codegen(node.body, False)

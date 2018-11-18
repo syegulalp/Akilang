@@ -100,7 +100,9 @@ class Ops():
     INCR = '+='
     DECR = '-='
     AND = 'and'
+    B_AND = '&'
     OR = 'or'
+    B_OR = "|"
     XOR = 'xor'
     NOT = 'not'
     NEG = '-'

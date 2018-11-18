@@ -131,45 +131,51 @@ class Ops():
                     return self.builder.sub(lhs, rhs, 'subop')
                 elif node.op == Op.MULTIPLY:
                     return self.builder.mul(lhs, rhs, 'multop')
-                elif node.op == Op.LESS_THAN:
-                    x = signed_op('<', lhs, rhs, 'ltop')
-                    x.type = VarTypes.bool
-                    return x
-                elif node.op == Op.GREATER_THAN:
-                    x = signed_op('>', lhs, rhs, 'gtop')
-                    x.type = VarTypes.bool
-                    return x
-                elif node.op == Op.GREATER_THAN_EQ:
-                    x = signed_op('>=', lhs, rhs, 'gteqop')
-                    x.type = VarTypes.bool
-                    return x
-                elif node.op == Op.LESS_THAN_EQ:
-                    x = signed_op('<=', lhs, rhs, 'lteqop')
-                    x.type = VarTypes.bool
-                    return x
-                elif node.op == Op.EQ:
-                    x = signed_op('==', lhs, rhs, 'eqop')
-                    x.type = VarTypes.bool
-                    return x
-                elif node.op == Op.NEQ:
-                    x = signed_op('!=', lhs, rhs, 'neqop')
-                    x.type = VarTypes.bool
-                    return x
                 elif node.op == Op.DIVIDE:
                     if int(getattr(rhs, 'constant', 1)) == 0:
                         raise CodegenError(
                             'Integer division by zero', node.rhs.position)
-                    return self.builder.sdiv(lhs, rhs, 'divop')
-                elif node.op == Op.AND:
+                    return self.builder.sdiv(lhs, rhs, 'divop')                   
+                elif node.op == Op.LESS_THAN:
+                    x = signed_op('<', lhs, rhs, 'ltop')
+                    x.type = self.vartypes.bool
+                    return x
+                elif node.op == Op.GREATER_THAN:
+                    x = signed_op('>', lhs, rhs, 'gtop')
+                    x.type = self.vartypes.bool
+                    return x
+                elif node.op == Op.GREATER_THAN_EQ:
+                    x = signed_op('>=', lhs, rhs, 'gteqop')
+                    x.type = self.vartypes.bool
+                    return x
+                elif node.op == Op.LESS_THAN_EQ:
+                    x = signed_op('<=', lhs, rhs, 'lteqop')
+                    x.type = self.vartypes.bool
+                    return x
+                elif node.op == Op.EQ:
+                    x = signed_op('==', lhs, rhs, 'eqop')
+                    x.type = self.vartypes.bool
+                    return x
+                elif node.op == Op.NEQ:
+                    x = signed_op('!=', lhs, rhs, 'neqop')
+                    x.type = self.vartypes.bool
+                    return x
+                
+                elif node.op in (Op.AND, Op.B_AND):
                     x = self.builder.and_(
                         lhs, rhs, 'andop')  # pylint: disable=E1111
-                    x.type = VarTypes.bool
+                    if node.op == Op.AND:
+                        x = self.builder.trunc(x,
+                        self.vartypes.bool)
                     return x
-                elif node.op == Op.OR:
+                elif node.op in(Op.OR, Op.B_OR):
                     x = self.builder.or_(
                         lhs, rhs, 'orop')  # pylint: disable=E1111
-                    x.type = VarTypes.bool
+                    if node.op == Op.OR:
+                        x = self.builder.trunc(x,
+                        self.vartypes.bool)
                     return x
+                
                 else:
                     return self._codegen_methodcall(node, lhs, rhs)
 
@@ -187,31 +193,31 @@ class Ops():
                     return self.builder.fdiv(lhs, rhs, 'fdivop')
                 elif node.op == Op.LESS_THAN:
                     cmp = self.builder.fcmp_ordered('<', lhs, rhs, 'fltop')
-                    cmp.type = VarTypes.bool
+                    cmp.type = self.vartypes.bool
                     return cmp
                 elif node.op == Op.GREATER_THAN:
                     cmp = self.builder.fcmp_ordered('>', lhs, rhs, 'fgtop')
-                    cmp.type = VarTypes.bool
+                    cmp.type = self.vartypes.bool
                     return cmp
                 elif node.op == Op.GREATER_THAN_EQ:
                     cmp = self.builder.fcmp_ordered('>=', lhs, rhs, 'fgeqop')
-                    cmp.type = VarTypes.bool
+                    cmp.type = self.vartypes.bool
                     return cmp
                 elif node.op == Op.LESS_THAN_EQ:
                     cmp = self.builder.fcmp_ordered('<=', lhs, rhs, 'fleqop')
-                    cmp.type = VarTypes.bool
+                    cmp.type = self.vartypes.bool
                     return cmp
                 elif node.op == Op.EQ:
                     x = self.builder.fcmp_ordered('==', lhs, rhs, 'feqop')
-                    x.type = VarTypes.bool
+                    x.type = self.vartypes.bool
                     return x
                 elif node.op == Op.NEQ:
                     x = self.builder.fcmp_ordered('!=', lhs, rhs, 'fneqop')
-                    x.type = VarTypes.bool
+                    x.type = self.vartypes.bool
                     return x
-                elif node.op in (Op.AND, Op.OR, Op.XOR):
+                elif node.op in (Op.AND, Op.B_AND, Op.OR, Op.B_OR, Op.XOR):
                     raise CodegenError(
-                        'Operator not supported for "float" or "double" types',
+                        f'Operator "{node.op}" not supported for "float" or "double" types',
                         node.lhs.position)
                 else:
                     return self._codegen_methodcall(node, lhs, rhs)
@@ -226,8 +232,10 @@ class Ops():
                 if isinstance(rhs.type, ir.PointerType):
                     if node.op == Op.EQ:
                         x = signed_op('==', lhs, rhs, 'eqptrop')
-                        x.type = VarTypes.bool
+                        x.type = self.vartypes.bool
                         return x
+                else:
+                    raise NotImplementedError
 
             else:
                 return self._codegen_methodcall(node, lhs, rhs)

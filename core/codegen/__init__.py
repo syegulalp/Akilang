@@ -153,6 +153,22 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
 
+    def _set_tracking(self, node, do_not_allocate = True, heap_alloc = True, tracked = True):
+        if heap_alloc is not None:
+            node.heap_alloc = heap_alloc
+        if do_not_allocate is not None:
+            node.do_not_allocate = do_not_allocate
+        if tracked is not None:
+            node.tracked = tracked
+    
+    def _copy_tracking(self, lhs, rhs):
+        lhs.heap_alloc = rhs.heap_alloc
+        lhs.input_arg = rhs.input_arg
+        lhs.tracked = rhs.tracked
+
+        if lhs.heap_alloc:
+            lhs.tracked = True            
+
     def _alloca(self, name,
                 alloca_type=None, size=None, current_block=False,
                 malloc=False, node=None):
@@ -243,14 +259,7 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], 'userbinop')
 
-    def _copy_tracking(self, lhs, rhs):
-        lhs.heap_alloc = rhs.heap_alloc
-        lhs.input_arg = rhs.input_arg
-        lhs.tracked = rhs.tracked
-
-        if lhs.heap_alloc:
-            lhs.tracked = True    
-            
+           
     def _codegen_autodispose(self, item_list, to_check, node=None):
         for _, var_to_dispose in item_list:
 

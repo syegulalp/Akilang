@@ -715,7 +715,7 @@ class ControlFlow():
             if not nomod:
                 to_check = self._extract_operand(n[0])
                 if to_check.heap_alloc:
-                    to_check.tracked = False
+                    self._set_tracking(to_check, None, None, False)
 
         call_to_return = self.builder.call(final_call, call_args, 'calltmp')
 
@@ -723,12 +723,10 @@ class ControlFlow():
         # that requires memory tracing
 
         if callee_func in self.gives_alloc:
-            call_to_return.heap_alloc = True
-            call_to_return.tracked = True
+            self._set_tracking(call_to_return, None, True, True)
 
         if callee_func.tracked == True:
-            call_to_return.heap_alloc = True
-            call_to_return.tracked = True
+            self._set_tracking(call_to_return, None, True, True)
 
         if 'unsafe_req' in final_call.decorators and not self.allow_unsafe:
             raise CodegenError(
