@@ -554,9 +554,6 @@ class ControlFlow():
 
     def _codegen_Call(self, node, obj_method=False):
 
-        # if node.name in Builtin:
-        #     return getattr(self, '_codegen_Builtin_' + node.name)(node)
-        
         if not obj_method:
             if node.name in Dunders:
                 return self._codegen_dunder_methods(node)

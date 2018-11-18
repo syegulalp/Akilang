@@ -413,6 +413,7 @@ The keys and values must both be constants.
 
 ```
 pragma {
+    # these are the defaults
     unroll_loops = True
     loop_vectorize = True
     slp_vectorize = True
