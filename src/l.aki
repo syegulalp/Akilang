@@ -1,7 +1,7 @@
 # Conway's Game Of Life in Akilang
 
 pragma {
-    
+    size_level = 2
 }
 
 const {
