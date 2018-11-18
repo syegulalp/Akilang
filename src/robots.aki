@@ -1,3 +1,7 @@
+pragma {
+    size_level = 2
+}
+
 class Player {
     x:i32,
     y:i32
