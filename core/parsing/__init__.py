@@ -133,7 +133,10 @@ class Parser(Expressions, Toplevel):
             return self._parse_toplevel_expression()
 
     def _get_next_token(self):
-        self.cur_tok = next(self.token_generator)
+        try:
+            self.cur_tok = next(self.token_generator)
+        except StopIteration:
+            pass
 
     def _match(self, expected_kind, expected_value=None, consume=True):
         '''
