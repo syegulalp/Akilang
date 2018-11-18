@@ -32,7 +32,8 @@ class CodegenWarning(CodegenError):
 
     def print(self, instance):
         if not instance.suppress_warnings:
-            print (self)
+            print(self)
+
 
 class BlockExit(Exception):
     pass
@@ -40,6 +41,7 @@ class BlockExit(Exception):
 
 class ReloadException(Exception):
     pass
+
 
 class ParameterFormatError(Exception):
     pass

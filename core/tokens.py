@@ -66,6 +66,7 @@ ESCAPES = {
 
 Token = namedtuple('Token', 'kind value vartype position')
 
+
 class Puncs():
     OPEN_CURLY = "{"
     CLOSE_CURLY = "}"
@@ -81,9 +82,11 @@ class Puncs():
     ASTERISK = '*'
     ALL = []
 
-for k,v in Puncs.__dict__.items():
+
+for k, v in Puncs.__dict__.items():
     if isinstance(v, str) and not k.startswith('__'):
         Puncs.ALL.append(v)
+
 
 class Ops():
     ADD = '+'
@@ -107,6 +110,7 @@ class Ops():
     NOT = 'not'
     NEG = '-'
 
+
 OP_DUNDERS = {
     Ops.ADD: 'add',
 }
@@ -116,7 +120,7 @@ OP_DUNDERS = {
 Builtins = {
     'c_addr',
     # c_alloc/c_free are provided by platformlib
-    #'c_array_ptr',
+    # 'c_array_ptr',
     'c_data',
     'c_gep',
     # 'c_raw_obj',

@@ -378,7 +378,6 @@ class Parser(Expressions, Toplevel):
 
             # If we're currently in an `if` or `while` clause
             # warn if we're using `=` in the clause instead of `==`
-
             
             if op == Ops.ASSIGN:
                 try:
@@ -401,4 +400,3 @@ class Parser(Expressions, Toplevel):
             # Merge lhs/rhs
             
             lhs = Binary(start, op, lhs, rhs)
-            

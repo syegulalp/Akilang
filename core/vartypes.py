@@ -134,10 +134,12 @@ class ArrayClass(ir.types.LiteralStructType):
 
         return obj
 
+
 _default_platform_module = ir.Module()
 _default_platform_vartypes = {_default_platform_module.triple: None}
 
 # TODO: convert this all into a class, probably for the best
+
 
 def generate_vartypes(module=None, bytesize=8):
 
@@ -203,7 +205,6 @@ def generate_vartypes(module=None, bytesize=8):
     Header.OBJ_ENUM = 2
     Header.OBJ_MALLOC = 3
     Header.HEADER_MALLOC = 4
-    
 
     # for arrays at compile time, we can encode the dimensions at compile time
     # and any calls will be optimized out to constants anyway
@@ -213,8 +214,8 @@ def generate_vartypes(module=None, bytesize=8):
 
     Obj = ir.global_context.get_identified_type('.obj.')
     Obj.elements = (Header,
-        #ir.IntType(_byte_width)
-    )
+                    # ir.IntType(_byte_width)
+                    )
     Obj.v_id = 'obj'
     Obj.is_obj = True
     Obj.signed = False
@@ -239,18 +240,18 @@ def generate_vartypes(module=None, bytesize=8):
 
     Result = ir.global_context.get_identified_type('.result.')
     Result.elements = (Header,
-        # OK or err? default is OK
-        ir.IntType(1),
-        # if false
-        ir.IntType(_byte_width).as_pointer(),
-        # if true
-        ir.IntType(_byte_width).as_pointer(),
-    )
-    Result.v_id='result'
+                       # OK or err? default is OK
+                       ir.IntType(1),
+                       # if false
+                       ir.IntType(_byte_width).as_pointer(),
+                       # if true
+                       ir.IntType(_byte_width).as_pointer(),
+                       )
+    Result.v_id = 'result'
     Result.is_obj = True
     Result.signed = False
 
-    # results should be heap-allocated by default, I think    
+    # results should be heap-allocated by default, I think
 
     # when we compile,
     # we bitcast the ptr to #1 to the appropriate object type
@@ -276,8 +277,8 @@ def generate_vartypes(module=None, bytesize=8):
 
     Err = ir.global_context.get_identified_type('.err.')
     Err.elements = (Header,
-        Str
-    )
+                    Str
+                    )
     Err.is_obj = True
     Err.signed = False
 
@@ -344,15 +345,15 @@ def generate_vartypes(module=None, bytesize=8):
 
     for _, n in enumerate(_vartypes):
         if not n.startswith('_'):
-            _enum[_]=_vartypes[n]
+            _enum[_] = _vartypes[n]
             _vartypes[n].enum_id = _
 
-    _+=1
+    _ += 1
     _vartypes._arrayclass.enum_id = _
-    
+
     _vartypes._enum = _enum
     _vartypes._enum_count = _
-    
+
     _default_platform_vartypes[module.triple] = _vartypes
 
     return _vartypes

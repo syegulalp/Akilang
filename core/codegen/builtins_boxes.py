@@ -4,6 +4,7 @@ import llvmlite.ir as ir
 
 # pylint: disable=E1101
 
+
 class Builtins_boxes():
     def _box_check(self, node):
         '''
@@ -43,7 +44,7 @@ class Builtins_boxes():
                 node.args[1].position
             )
 
-        if len(node.args)>2:
+        if len(node.args) > 2:
             # Generate the substitute data
             value_to_substitute = self._codegen(node.args[2])
 
@@ -53,7 +54,8 @@ class Builtins_boxes():
                     node.args[2].position
                 )
         else:
-            self._if_unsafe(node, ' ("unbox" without a substitute value requires "unsafe")')
+            self._if_unsafe(
+                node, ' ("unbox" without a substitute value requires "unsafe")')
             value_to_substitute = None
 
         if type_to_unwrap.vartype.is_ptr():
@@ -107,7 +109,7 @@ class Builtins_boxes():
         )
 
         if value_to_substitute is None:
-            
+
             bitcast = self.builder.bitcast(
                 unwrap,
                 type_to_unwrap.vartype.as_pointer()
@@ -223,14 +225,13 @@ class Builtins_boxes():
         # malloc space for a copy of the data
         data_to_convert = self._codegen(node.args[0])
 
-        # if this is a constant, we should make it point to 
+        # if this is a constant, we should make it point to
         # an anonymous const rather than a value instantiated
         # at runtime
 
         # another possibility is that if we're generating
         # a box from a constant, then the box itself should
         # be a constant?
-
 
         if data_to_convert.type.is_ptr():
             enum_id = data_to_convert.type.pointee.enum_id
@@ -313,22 +314,22 @@ class Builtins_boxes():
         # if this is a type, just use its enum
         # otherwise, codegen and extract a type
         # then use that type's enum
-        
+
         if isinstance(type_obj, VariableType):
             type_obj = type_obj.vartype
         else:
             type_obj = self._codegen(type_obj).type
 
         if type_obj in (
-                ir.FunctionType,
-                self.vartypes.carray,
-                self.vartypes.array
-            ):            
+            ir.FunctionType,
+            self.vartypes.carray,
+            self.vartypes.array
+        ):
             enum_id = type_obj.enum_id
 
         elif type_obj.is_ptr():
             enum_id = type_obj.pointee.enum_id
-        
+
         else:
             # pathological case
             enum_id = type_obj.enum_id

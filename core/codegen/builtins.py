@@ -5,6 +5,7 @@ from core.tokens import Ops
 
 # pylint: disable=E1101
 
+
 class Builtins():
 
     def _if_unsafe(self, node, explanation=''):
@@ -173,12 +174,12 @@ class Builtins():
         addr2 = self.builder.bitcast(
             addr, self.vartypes.u_mem.as_pointer())
 
-        # TODO: replace with call to 
+        # TODO: replace with call to
         # .object.obj.__del__
         # this will also destroy any
         # enclosed object if it needs it
 
-        #? bitcast to obj wrapper?
+        # ? bitcast to obj wrapper?
         # or just get obj header ptr and use that?
 
         call = self._codegen_Call(
@@ -211,7 +212,7 @@ class Builtins():
 
         # TODO: ints only!
         # and upconvert if needed?
-        
+
         # TODO: if this is a signed type,
         # perform runtime test for subtraction
         add_result = self.builder.add(int_from_ptr, amount_to_add)
@@ -534,7 +535,6 @@ class Builtins():
                 if not isinstance(convert_to, ir.IntType):
                     raise convert_exception
 
-                
                 CodegenWarning(
                     f'Float to integer conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
                     node.args[0].position).print(self)
@@ -552,7 +552,7 @@ class Builtins():
                 # int to float
 
                 if isinstance(convert_to, ir.DoubleType):
-                    
+
                     CodegenWarning(
                         f'Integer to float conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
                         node.args[0].position).print(self)
@@ -619,7 +619,7 @@ class Builtins():
         for n1 in reversed(node.args):
             n = n1
 
-            if isinstance(n, Binary) and n.op!=Ops.ASSIGN:
+            if isinstance(n, Binary) and n.op != Ops.ASSIGN:
                 break
 
             if not isinstance(n, Binary):
@@ -627,7 +627,7 @@ class Builtins():
 
             node.args.pop()
 
-            try:                
+            try:
 
                 if not isinstance(n.lhs, Variable):
                     raise ParameterFormatError

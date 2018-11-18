@@ -10,23 +10,33 @@ MANGLE_DELINEATOR = '@'
 MANGLE_OPT_SEPARATOR = '|'
 
 # Mangle a function call based on its name and a list of types.
+
+
 def mangle_call(name, args):
     return f'{name}{mangle_args(args)}'
 
 # Mangle only the arguments for a function
+
+
 def mangle_args(args):
     return _mangle_args(args, MANGLE_DELINEATOR)
 
 # Mangle only the optional arguments for a function
+
+
 def mangle_optional_args(args):
     return _mangle_args(args, MANGLE_OPT_SEPARATOR)
 
 # Mangle a function based on its name and a list of arguments.
+
+
 def mangle_types(name, args):
     return name + MANGLE_SEPARATOR + ''.join(
         [n.type.v_id + MANGLE_DELINEATOR for n in args])
 
 # Internal implementation of mangle_args
+
+
 def _mangle_args(args, sep):
     return sep + ''.join(
         [n.v_id + MANGLE_DELINEATOR for n in args])

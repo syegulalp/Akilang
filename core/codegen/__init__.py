@@ -17,7 +17,7 @@ from core.codegen.controlflow import ControlFlow
 
 
 class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow):
-    def __init__(self, vartypes=None, module_name = None):
+    def __init__(self, vartypes=None, module_name=None):
         '''
         Initialize the code generator.
         This creates a new LLVM module into which code is generated. The
@@ -77,7 +77,6 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         self.evaluator = None
 
         self.suppress_warnings = True
-        
 
     def init_evaluator(self):
         if self.evaluator is None:
@@ -153,21 +152,21 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
     def _obj_size(self, obj):
         return self._obj_size_type(obj.type)
 
-    def _set_tracking(self, node, do_not_allocate = True, heap_alloc = True, tracked = True):
+    def _set_tracking(self, node, do_not_allocate=True, heap_alloc=True, tracked=True):
         if heap_alloc is not None:
             node.heap_alloc = heap_alloc
         if do_not_allocate is not None:
             node.do_not_allocate = do_not_allocate
         if tracked is not None:
             node.tracked = tracked
-    
+
     def _copy_tracking(self, lhs, rhs):
         lhs.heap_alloc = rhs.heap_alloc
         lhs.input_arg = rhs.input_arg
         lhs.tracked = rhs.tracked
 
         if lhs.heap_alloc:
-            lhs.tracked = True            
+            lhs.tracked = True
 
     def _alloca(self, name,
                 alloca_type=None, size=None, current_block=False,
@@ -259,7 +258,6 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], 'userbinop')
 
-           
     def _codegen_autodispose(self, item_list, to_check, node=None):
         for _, var_to_dispose in item_list:
 
@@ -277,43 +275,43 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
                 pass
 
             if var_to_dispose.tracked:
-                
+
                 if not var_to_dispose.type.pointee.is_obj_ptr():
                     continue
 
                 self._codegen_call_del_method(var_to_dispose)
 
     def _codegen_call_del_method(self, var_to_dispose):
-            ref = self.builder.load(var_to_dispose)
-                    
-            v_target = var_to_dispose.type.pointee.pointee
-            sig = v_target.del_signature()
+        ref = self.builder.load(var_to_dispose)
 
-            if v_target.del_as_ptr:
-                ref = self.builder.bitcast(
-                    ref,
-                    self.vartypes.u_mem.as_pointer()
-                )
+        v_target = var_to_dispose.type.pointee.pointee
+        sig = v_target.del_signature()
 
-            # TODO: merge this with the existing
-            # dunder-method call mechanism?
-
-            del_name = self.module.globals.get(
-                sig+mangle_args([ref.type])
+        if v_target.del_as_ptr:
+            ref = self.builder.bitcast(
+                ref,
+                self.vartypes.u_mem.as_pointer()
             )
 
-            # TODO: symtab should contain the position
-            # for the first creation of a class object
-            # so we can indicate errors like this precisely
+        # TODO: merge this with the existing
+        # dunder-method call mechanism?
 
-            if del_name is None:
-                raise CodegenError(
-                    f'No "__del__" method found for "{v_target.signature()}"',
-                    node.position
-                )
+        del_name = self.module.globals.get(
+            sig+mangle_args([ref.type])
+        )
 
-            self.builder.call(
-                del_name,
-                [ref],
-                f'{var_to_dispose.name}.delete'
+        # TODO: symtab should contain the position
+        # for the first creation of a class object
+        # so we can indicate errors like this precisely
+
+        if del_name is None:
+            raise CodegenError(
+                f'No "__del__" method found for "{v_target.signature()}"',
+                node.position
             )
+
+        self.builder.call(
+            del_name,
+            [ref],
+            f'{var_to_dispose.name}.delete'
+        )

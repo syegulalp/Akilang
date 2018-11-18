@@ -1,5 +1,9 @@
 # Conway's Game Of Life in Akilang
 
+pragma {
+    
+}
+
 const {
     WIDTH=80,
     HEIGHT=32,

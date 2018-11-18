@@ -186,7 +186,7 @@ class Toplevel():
             if is_bracketed:
 
                 if self._cur_tok_is_punctuator(Puncs.COMMA):
-                    self._get_next_token()    
+                    self._get_next_token()
 
                 if self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
                     self._get_next_token()
@@ -204,7 +204,7 @@ class Toplevel():
 
             if self.cur_tok.kind in (TokenKind.IDENTIFIER, TokenKind.VARTYPE):
                 continue
-            
+
             raise ParseError(
                 f'Expected variable declaration but got "{self.cur_tok.value}" instead',
                 self.cur_tok.position)
@@ -223,7 +223,7 @@ class Toplevel():
         start = self.cur_tok.position
         op = self.cur_tok.value
         self._get_next_token()
-        rhs = self._parse_primary()        
+        rhs = self._parse_primary()
         return Unary(start, op, rhs)
 
     def _parse_prototype(self, extern=False):
@@ -251,7 +251,7 @@ class Toplevel():
             name = f'unary.{self.cur_tok.value}'
             r_name = self.cur_tok.value
             self._get_next_token()
-        
+
         elif self.cur_tok.kind == TokenKind.BINARY:
             self._get_next_token()
             if self.cur_tok.kind not in (TokenKind.IDENTIFIER,

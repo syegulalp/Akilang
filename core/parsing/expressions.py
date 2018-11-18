@@ -103,14 +103,14 @@ class Expressions():
         if id_name in self.consts:
             self._get_next_token()
             return self.consts[id_name]
-            
+
         self._get_next_token()
         result = Variable(start, id_name, self.cur_tok.vartype)
         result = self._parse_modifiers(result)
         return result
 
     def _parse_number_expr(self):
-        
+
         result = Number(self.cur_tok.position, self.cur_tok.value,
                         self.cur_tok.vartype)
         self._get_next_token()  # consume the number
@@ -143,7 +143,7 @@ class Expressions():
                 vartype.new_signature(),
                 args, vartype
             )
-        
+
         return VariableType(pos, vartype)
 
     def _parse_unsafe_expr(self):
@@ -184,7 +184,7 @@ class Expressions():
 
         if Puncs.OPEN_CURLY not in cur.value:
             return String(cur.position, cur.value)
-        
+
         in_template = re.split(r'([{}])', cur.value)
 
         exprs = []
@@ -203,12 +203,12 @@ class Expressions():
                 for x in local_parser.parse_single_expression(n):
                     exprs.append(x)
                 continue
-            
+
             escape = False
             if n and n[-1] == '\\':
                 escape = True
                 n = n[0:-1]
-            
+
             n = n.replace(r'%', r'%%')
 
             exprs.append(
@@ -220,7 +220,7 @@ class Expressions():
         # if that count is zero, return a regular string
         # if that count is nonzero, return an fstring
         # that way all the escaping can be performed at once?
-        
+
         return FString(cur.position, exprs)
 
     def _parse_vartype_expr(self):
@@ -249,7 +249,7 @@ class Expressions():
             self._get_next_token()
 
             arguments = []
-            
+
             if not self._cur_tok_is_punctuator(Puncs.CLOSE_PAREN):
                 self._get_next_token()
                 while True:
@@ -355,17 +355,20 @@ class Expressions():
         return Match(start, cond_item, match_list, default)
 
     def _parse_do_expr(self):
-        self._get_next_token()
         expr_list = []
         start = self.cur_tok.position
+
+        # empty do
+        self._get_next_token()
+        if self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
+            return Pass(start)
+
         while True:
             next_expr = self._parse_expression()
             expr_list.append(next_expr)
             if self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
                 self._get_next_token()
                 break
-        #if len(expr_list) == 1:
-            #return expr_list[0]
         return Do(start, expr_list)
 
     def _parse_class_expr(self):
@@ -449,7 +452,7 @@ class Expressions():
 
     def _parse_when_expr(self):
         return self._parse_if_expr(True)
-    
+
     def _parse_if_expr(self, when_expr=False):
         if when_expr:
             ast_node = When
@@ -470,7 +473,7 @@ class Expressions():
         if self.cur_tok.kind == TokenKind.ELSE:
             self._get_next_token()
             else_expr = self._parse_expression()
-        elif self.cur_tok.kind == TokenKind.ELIF:            
+        elif self.cur_tok.kind == TokenKind.ELIF:
             else_expr = action()
         else:
             else_expr = None

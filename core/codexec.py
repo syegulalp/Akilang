@@ -177,7 +177,7 @@ class AkilangEvaluator(object):
         return r_type
 
     # TODO: Break out the compilation phase so it can be performed on its own
-    
+
     def _eval_ast(self,
                   ast,
                   optimize=True,
@@ -186,7 +186,7 @@ class AkilangEvaluator(object):
                   parseonly=False,
                   verbose=False,
                   anon_vartype=None,
-                  #return_type=c_int32,
+                  # return_type=c_int32,
                   return_type=None,
                   core_vartypes=None,
                   vartypes=None):
@@ -207,8 +207,8 @@ class AkilangEvaluator(object):
 
         if not anon_vartype:
             anon_vartype = self.vartypes.DEFAULT_TYPE
-        
-        start_time=perf_counter()
+
+        start_time = perf_counter()
 
         rawIR = None
         optIR = None
@@ -305,7 +305,7 @@ class AkilangEvaluator(object):
                     result+self.codegen.vartypes._byte_width, POINTER(c_char_p))
                 result = cast(result.contents, POINTER(c_char_p))
                 result = f'"{str(string_at(result),"utf8")}"'
-            
+
             return Result(result, ast, rawIR, optIR, end_time-start_time)
 
     def eval_and_return(self, node):
@@ -325,7 +325,7 @@ class AkilangEvaluator(object):
         ].return_value.type
 
         r_type = self._set_return_type(f_type)
-        
+
         # Run the function with the proper return type
         e = self._eval_ast(
             Function.Anonymous(node.position, node, vartype=f_type),

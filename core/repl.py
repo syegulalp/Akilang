@@ -11,6 +11,7 @@ from time import perf_counter
 
 import gc
 
+
 def config():
     import configparser
     cfg = configparser.ConfigParser()
@@ -75,11 +76,12 @@ On the command line, the initial dot sign can be replaced with a double dash:
     aki --myfile.aki
     """
 
+
 def errprint(msg):
     cprint(msg, 'red', file=sys.stderr)
 
 
-class Repl():    
+class Repl():
 
     def __init__(self):
         self.commands = {
@@ -111,19 +113,19 @@ class Repl():
             'rlc': self.reload_module,
             'rlr': self.reload_module,
             'version': self.version,
-            'ver':self.version,
+            'ver': self.version,
             'v': self.version
 
         }
-        
+
         self.history = []
 
     def reset(self, *a):
         reload(parsing)
         self.executor.reset()
-        print ("Interpreting engine reset")
+        print("Interpreting engine reset")
         self.history = []
-        print ("Command history cleared")
+        print("Command history cleared")
         self.last_file = None
 
     def version(self, *a):
@@ -132,12 +134,12 @@ class Repl():
             (str(n) for n in llvmlite.binding.llvm_version_info))
         )
         print('pyaki  :', VERSION)
-    
+
     def reload_module(self, command):
         if self.last_file is None:
             errprint('No previous command to reload')
             return
-        
+
         reload(parsing)
         self.executor.reset()
         self.load_command(self.last_file)
@@ -146,7 +148,7 @@ class Repl():
             self.run_program(command)
         elif command == 'rlc':
             self.compile_module(command)
-    
+
     def reload_all(self, *a):
         raise ReloadException()
 
@@ -157,13 +159,13 @@ class Repl():
 
     def run_program(self, *a):
         self.print_eval('main()')
-    
+
     def print_usage(self, *a):
         print(USAGE)
-    
+
     def about(self, *a):
         print(ABOUT)
-    
+
     def quit(self, *a):
         sys.exit()
 
@@ -185,7 +187,7 @@ class Repl():
         with open(filename, 'w') as file:
             output = str(self.executor.codegen.module)
             file.write(output)
-        
+
         print(f'{len(output)} bytes written to {filename}')
 
     def dump_module_to_file(self, *a):
@@ -197,16 +199,16 @@ class Repl():
 
     def load_command(self, command):
         if command[-1] == '.':
-            command+='aki'
+            command += 'aki'
         try:
             with open(f'{paths["source_dir"]}\\{command}', encoding='utf8') as file:
                 f = file.read()
                 print(f'{command} read in ({len(f)} bytes)')
                 self.last_file = command
-                start_time=perf_counter()
+                start_time = perf_counter()
                 self.print_eval(f)
-                finish_time=perf_counter()-start_time
-                print (f"Compile time: {finish_time:.3f}s")
+                finish_time = perf_counter()-start_time
+                print(f"Compile time: {finish_time:.3f}s")
 
         except (FileNotFoundError, OSError):
             errprint("File or command not found: " + command)
@@ -244,12 +246,12 @@ class Repl():
         except (Exception, BaseException) as err:
             errprint(str(type(err)) + ' : ' + str(err))
             print('Aborting.')
-            #self.executor.reset()
+            # self.executor.reset()
             raise err
 
-    def run_command(self, command):        
+    def run_command(self, command):
         print(colorama.Fore.YELLOW, end='')
-        
+
         if not command:
             pass
         elif command[0] == '.':
@@ -262,17 +264,17 @@ class Repl():
         print(colorama.Style.RESET_ALL, end='')
 
     def run_repl_command(self, command):
-        
+
         try:
             self.commands[command](command)
         except KeyError:
             self.load_command(command)
 
     def run(self, *a):
-        self.core_vartypes = vartypes.generate_vartypes()        
+        self.core_vartypes = vartypes.generate_vartypes()
         self.options = locals()
         self.options.pop('a')
-        
+
         self.executor = codexec.AkilangEvaluator(
             f'{paths["lib_dir"]}',
             f'{paths["basiclib"]}',
@@ -287,12 +289,11 @@ class Repl():
             try:
                 gc.freeze()
             except:
-                pass                
+                pass
             cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
             cprint('Type help or a command to be interpreted', 'green')
             command = ""
             while not command in ['exit', 'quit']:
                 self.run_command(command)
                 cprint(PROMPT, 'white', end='')
-                command = input().strip()            
-
+                command = input().strip()

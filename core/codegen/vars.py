@@ -6,6 +6,7 @@ from core.vartypes import ArrayClass
 
 # pylint: disable=E1101
 
+
 class Vars():
     def _codegen_NoneType(self, node):
         pass
@@ -34,7 +35,7 @@ class Vars():
 
     def _codegen_CallInstr(self, node):
         return node
-    
+
     def _codegen_ArrayAccessor(self, node):
         return self._codegen_Call(
             Call(
@@ -129,7 +130,7 @@ class Vars():
                 latest = self._varaddr(current_node)
 
                 if constant is False:
-                    constant = getattr(latest,'global_constant', False)
+                    constant = getattr(latest, 'global_constant', False)
 
                 current_load = not latest.type.is_obj_ptr()
 
@@ -176,7 +177,7 @@ class Vars():
 
                 latest = self._codegen_Call(current_node)
                 current_load = False
-                
+
                 # TODO: why is a call the exception for current_load?
 
             elif isinstance(current_node, Variable):
@@ -343,7 +344,7 @@ class Vars():
         global_var.storage_class = node.storage_class
         global_var.unnamed_addr = node.unnamed_addr
         global_var.global_constant = node.global_constant
-        
+
         if node.const:
             global_var.initializer = node.const
 
@@ -351,7 +352,7 @@ class Vars():
 
     # TODO: create value FIRST, then variable so we know what
     # kind of type to give to it if needed
-    
+
     def _codegen_create_variable(self, node, local_alloca=False, is_const=False, is_uni=False):
 
         var_name = node.name
@@ -371,11 +372,11 @@ class Vars():
                 f'"{var_name}" already defined in universal scope',
                 position
             )
-       
+
         # Special case handler.
         # Again, if we accumulate more of these,
         # we'll find someplace more suitable for them.
-        
+
         if isinstance(node.initializer, ItemList):
             if isinstance(
                 var_type.pointee,
@@ -384,13 +385,13 @@ class Vars():
                 var_type = self.vartypes.array(
                     node.initializer.elements[0].vartype,
                     [0]
-                    )
+                )
 
             else:
-                var_type = var_type.pointee        
+                var_type = var_type.pointee
 
         allocation_type = var_type
-        
+
         if is_uni:
 
             var_ref = self._codegen(
@@ -398,12 +399,12 @@ class Vars():
                     position,
                     None,
                     var_name,
-                    type = var_type,
-                    global_constant = is_const
+                    type=var_type,
+                    global_constant=is_const
                 )
             )
         else:
-            
+
             var_ref = self._alloca(
                 var_name, allocation_type,
                 current_block=local_alloca,
@@ -414,8 +415,7 @@ class Vars():
 
         return var_ref
 
-    
-    def _codegen_create_initializer(self, node_var, node_init, is_const = False, is_uni = False):
+    def _codegen_create_initializer(self, node_var, node_init, is_const=False, is_uni=False):
 
         # node_var = variable AST node
         # node_init = initializer AST node
@@ -429,14 +429,14 @@ class Vars():
                             node_var.position,
                             ir.Constant(node_var.vartype.pointee, None),
                             f"{node_var.name}.init",
-                            global_constant = is_const
+                            global_constant=is_const
                         )
                     )
                 else:
                     value = ir.Constant(node_var.vartype, None)
             else:
                 value = self._codegen(node_init)
-            
+
             return value
 
         # start with zero initializers
@@ -462,7 +462,7 @@ class Vars():
                     node_var.vartype
                 )
                 return value
-                        
+
             # Zero scalar
             value = self._codegen(
                 Number(
@@ -473,12 +473,10 @@ class Vars():
             )
             return value
 
-       
         value = self._codegen(node_init)
         return value
 
-
-    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref, element_count = None, is_const = False, is_uni=False):
+    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref, element_count=None, is_const=False, is_uni=False):
 
         # node_var = AST node of variable
         # node_init = AST node of initializer
@@ -492,7 +490,7 @@ class Vars():
         # If we have more of these kind of situations,
         # we'll want to make them properties of either the
         # AST node class or the codegenned type.
-        
+
         if isinstance(node_init, ItemList):
 
             element_count = len(init_ref.initializer.constant)
@@ -501,51 +499,52 @@ class Vars():
             if var_ref.type.pointee.elements[1].element != init_ref.type.pointee.element:
                 raise CodegenError(
                     f'Array declaration and initializer types do not match (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
-                node_var.position)                
+                    node_var.position)
 
             if array_length == 0:
                 var_ref.type.pointee.elements[1].count = element_count
                 array_length = element_count
 
-            if element_count>array_length:
+            if element_count > array_length:
                 raise CodegenError(
                     f'Array initializer is too long (expected {array_length} elements, got {element_count})',
                     node_init.position
                 )
-            
-            if element_count<array_length:
+
+            if element_count < array_length:
                 CodegenWarning(
                     f'Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})',
                     node_init.position
                 ).print(self)
 
-                for _ in range(0,array_length-element_count):
+                for _ in range(0, array_length-element_count):
                     init_ref.initializer.constant.append(
                         ir.Constant(init_ref.initializer.type.element,
-                        None)
+                                    None)
                     )
-                
-                init_ref.initializer.type.count = len(init_ref.initializer.constant)
+
+                init_ref.initializer.type.count = len(
+                    init_ref.initializer.constant)
 
                 element_count = init_ref.initializer.type.count
-             
+
             # if this is a uni, create a constant initializer
-            
+
             if is_uni:
 
-                initializer= ir.Constant(
+                initializer = ir.Constant(
                     var_ref.type.pointee,
                     [
                         [self.vartypes.u_size(
                             var_ref.type.pointee.elements[1].count
                         ),
-                        ir.Constant(
+                            ir.Constant(
                             self.vartypes.u_mem.as_pointer(),
                             None
                         ),
-                        self.vartypes.u_size(0),
-                        self.vartypes.bool(0),
-                        self.vartypes.bool(0),
+                            self.vartypes.u_size(0),
+                            self.vartypes.bool(0),
+                            self.vartypes.bool(0),
                         ],
                         init_ref.initializer
                     ]
@@ -553,11 +552,11 @@ class Vars():
 
                 var_ref.initializer = initializer
                 var_ref.global_constant = is_const
-                
+
             # otherwise, create a memcpy initializer
 
             else:
-                
+
                 element_width = (
                     init_ref.type.pointee.element.width // self.vartypes._byte_width
                 ) * element_count
@@ -587,9 +586,9 @@ class Vars():
                 llvm_memcpy = self.module.declare_intrinsic(
                     'llvm.memcpy',
                     [self.vartypes.u_mem.as_pointer(),
-                    self.vartypes.u_mem.as_pointer(),
-                    self.vartypes.u_size
-                    ]
+                     self.vartypes.u_mem.as_pointer(),
+                     self.vartypes.u_size
+                     ]
                 )
 
                 self.builder.call(
@@ -618,7 +617,7 @@ class Vars():
             init_done = True
 
         # if type has not already been checked ...
-        
+
         if not type_ok:
 
             if var_ref.type.pointee != init_ref.type:
@@ -633,35 +632,35 @@ class Vars():
 
         # Uni/const do not have tracking
         # otherwise, set up tracking
-        
+
         if not is_uni:
             self._copy_tracking(var_ref, init_ref)
-        
-        # Initializer already set, no further action needed      
-          
+
+        # Initializer already set, no further action needed
+
         if init_done:
             return var_ref
-        
+
         # if a uni, set initializer, then return
-        
+
         if is_uni:
             var_ref.initializer = init_ref
             return var_ref
-        
+
         # if it's a variable with an allocation already provided,
         # just return the reference to it
 
         if init_ref.do_not_allocate:
             self.func_symtab[node_var.name] = init_ref
-            return init_ref        
-        
+            return init_ref
+
         # otherwise, store the data to the variable location
-        
+
         self.func_symtab[node_var.name] = var_ref
         self.builder.store(init_ref, var_ref)
-        
+
         return var_ref
-   
+
     def _codegen_Var(self, node, local_alloca=False, is_const=False, is_uni=False):
         for variable in node.vars:
 
@@ -670,7 +669,7 @@ class Vars():
                 raise CodegenError(
                     f'Duplicate found in universal symbol table: "{variable.name}"',
                     variable.position)
-                
+
             if is_const and variable.initializer is None:
                 raise CodegenError(
                     f'Constants must have an assignment: "{variable.name}"', variable.position
@@ -679,7 +678,7 @@ class Vars():
             value = None
             original_vartype = variable.vartype
 
-            # if there is no initializer...            
+            # if there is no initializer...
             if variable.initializer is None:
 
                 # and no vartype...
@@ -693,21 +692,22 @@ class Vars():
             # if there is an initializer
             else:
 
-                # initializer also needs 
+                # initializer also needs
                 value = self._codegen_create_initializer(
                     variable, variable.initializer,
                     is_const, is_uni
                 )
-                
+
                 # but no variable vartype
-                if variable.vartype is None:                    
+                if variable.vartype is None:
 
                     # get the vartype from the initializer
                     variable.vartype = value.type
 
             # create the variable reference
-            
-            var = self._codegen_create_variable(variable, False, is_const, is_uni)
+
+            var = self._codegen_create_variable(
+                variable, False, is_const, is_uni)
 
             # create the initializer if there isn't one yet
 
@@ -728,7 +728,7 @@ class Vars():
             )
 
     # TODO: merge _codegen_variable_assignment
-    
+
     def _codegen_Assignment(self, lhs, rhs):
 
         if not isinstance(lhs, Variable):
@@ -739,12 +739,12 @@ class Vars():
 
         ptr = self._codegen_Variable(lhs, noload=True)
 
-        if getattr(ptr,'global_constant', False):
+        if getattr(ptr, 'global_constant', False):
             raise CodegenError(
                 f'"{lhs.name}" is a constant and cannot be modified',
                 lhs.position
             )
-        
+
         is_func = ptr.type.is_func()
 
         if is_func:
@@ -774,15 +774,15 @@ class Vars():
             if isinstance(rhs, ItemList):
                 array_value = self._codegen(rhs)
                 ptr = self.builder.load(ptr)
-                value=self._codegen_variable_assignment(
-                    lhs, rhs, ptr, array_value, 
+                value = self._codegen_variable_assignment(
+                    lhs, rhs, ptr, array_value,
                 )
                 return value
             else:
                 value = self._codegen(rhs)
 
         # TODO: write test for this
-        
+
         if self.allow_unsafe:
             if ptr.type.pointee != value.type:
                 value = self.builder.bitcast(
@@ -816,18 +816,18 @@ class Vars():
 
         for n in elements:
 
-            if isinstance(n, String):                
+            if isinstance(n, String):
                 format_string.append(n.val)
-            
+
             elif isinstance(n, Number):
                 element = self._codegen(n)
                 format_type = element.type.p_fmt
-                format_string.append(format_type)       
+                format_string.append(format_type)
                 variable_list.append(element)
-            
+
             else:
                 element = self._codegen(n)
-                format_type= element.type.p_fmt
+                format_type = element.type.p_fmt
 
                 if format_type == '%B':
                     format_type = '%s'
@@ -843,7 +843,7 @@ class Vars():
                         [bool_str]
                     )
 
-                elif format_type == '%s':                    
+                elif format_type == '%s':
                     var_app = Call(
                         node.position,
                         'c_data',
@@ -852,8 +852,8 @@ class Vars():
 
                 elif format_type in ('%u', '%i', '%f'):
                     var_app = element
-                
-                else:                    
+
+                else:
                     n = self._if_unsafe(
                         n, f' (variable {n.body.name if isinstance(n, Unsafe) else n.name} is potentially raw data)'
                     )
@@ -864,9 +864,9 @@ class Vars():
                         node.position,
                         'c_data',
                         [n]
-                    )                        
-                
+                    )
+
                 format_string.append(format_type)
                 variable_list.append(var_app)
-        
+
         return (format_string, variable_list)

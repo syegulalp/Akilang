@@ -564,9 +564,9 @@ class ControlFlow():
         # For each unmangled function, we keep a master list
         # of all its mangled versions.
         # This narrows down the search we have to conduct,
-        # and it makes it easier to look for things like 
+        # and it makes it easier to look for things like
         # varargs and kwargs
-        
+
         # for builtins, populate these lists
         # ahead of time. this way the codegen for opt-arg
         # matching is correct
@@ -574,7 +574,7 @@ class ControlFlow():
         # the precomputed call args are in the function signature style
         # because they are builtins, they could be precomputed
         # they don't depend on any variables in a user program
-        
+
         call_args = []
         possible_opt_args_funcs = set()
 
@@ -625,7 +625,6 @@ class ControlFlow():
                 for n in range(len(call_args), len(f1.args)):
                     call_args.append(f1.args[n].default_value)
 
-       
         # Determine if this is a function pointer
 
         try:

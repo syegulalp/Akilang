@@ -376,4 +376,3 @@ class Toplevel():
     # doesn't work yet
     def _codegen_Uni(self, node, const=False):
         return self._codegen_Var(node, False, const, True)
-

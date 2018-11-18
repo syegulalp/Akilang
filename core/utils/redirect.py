@@ -29,16 +29,17 @@ elif system == "Windows":
     c_stdout = iob_func(1)
     c_stdout = ctypes.c_void_p(c_stdout)
 
+
 @contextmanager
 def stdout_redirector(stream):
     colorama.deinit()
-    
-    # The original fd stdout points to. Usually 1 on POSIX systems.    
+
+    # The original fd stdout points to. Usually 1 on POSIX systems.
     original_stdout_fd = sys.stdout.fileno()
 
     def _redirect_stdout(to_fd):
         """Redirect stdout to the given file descriptor."""
-        
+
         # Flush the C-level buffer stdout
         libc.fflush(c_stdout)
 
@@ -57,7 +58,7 @@ def stdout_redirector(stream):
         # Create a temporary file and redirect stdout to it
         tfile = tempfile.TemporaryFile(mode='w+b')
         _redirect_stdout(tfile.fileno())
-        
+
         # Yield to caller, then redirect stdout back to the saved fd
         yield
         _redirect_stdout(saved_stdout_fd)
@@ -67,10 +68,10 @@ def stdout_redirector(stream):
 
         tfile.flush()
         #tfile.seek(0, io.SEEK_SET)
-        #stream.write(tfile.read())
+        # stream.write(tfile.read())
 
     finally:
         tfile.close()
         os.close(saved_stdout_fd)
-    
+
     colorama.init()

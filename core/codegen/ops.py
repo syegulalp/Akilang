@@ -135,7 +135,7 @@ class Ops():
                     if int(getattr(rhs, 'constant', 1)) == 0:
                         raise CodegenError(
                             'Integer division by zero', node.rhs.position)
-                    return self.builder.sdiv(lhs, rhs, 'divop')                   
+                    return self.builder.sdiv(lhs, rhs, 'divop')
                 elif node.op == Op.LESS_THAN:
                     x = signed_op('<', lhs, rhs, 'ltop')
                     x.type = self.vartypes.bool
@@ -160,22 +160,22 @@ class Ops():
                     x = signed_op('!=', lhs, rhs, 'neqop')
                     x.type = self.vartypes.bool
                     return x
-                
+
                 elif node.op in (Op.AND, Op.B_AND):
                     x = self.builder.and_(
                         lhs, rhs, 'andop')  # pylint: disable=E1111
                     if node.op == Op.AND:
                         x = self.builder.trunc(x,
-                        self.vartypes.bool)
+                                               self.vartypes.bool)
                     return x
                 elif node.op in(Op.OR, Op.B_OR):
                     x = self.builder.or_(
                         lhs, rhs, 'orop')  # pylint: disable=E1111
                     if node.op == Op.OR:
                         x = self.builder.trunc(x,
-                        self.vartypes.bool)
+                                               self.vartypes.bool)
                     return x
-                
+
                 else:
                     return self._codegen_methodcall(node, lhs, rhs)
 
