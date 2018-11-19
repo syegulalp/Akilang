@@ -110,8 +110,9 @@ def set_obj(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:p
 }
 
 # TODO: placeholder
-def '.object.obj.__del__'(my_obj: obj):bool {
+def '.object.obj.__del__'(my_obj: obj):bool {    
     return True
+    # only the box object itself should be deleted?
     # need to unpack the original object?
     # call its destructor as well?
 }
@@ -121,6 +122,7 @@ def '.object.str.__new__'(my_obj:i32):str {
     str(int_to_c_str(my_obj))
 }
 
+@nomod
 def '.i32.__new__'(my_obj:str):i32 {
     c_str_to_int(my_obj)
 }
