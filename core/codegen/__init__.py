@@ -71,9 +71,14 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
 
         if vartypes is None:
             vartypes = generate_vartypes(self.module)
-
         self.vartypes = vartypes
+
+        # Counter for constants in a module
+        # (to prevent name collisions)
         self._const_counter = 0
+
+        # Evaluator instance for codegenning
+        # compile-time constants
         self.evaluator = None
 
         self.suppress_warnings = True

@@ -90,7 +90,7 @@ class Ops():
         except BlockExit:
             pass
 
-        # the above should be made into a function
+        # TODO: the above should be made into a function
         # so it can be used in, for instance, call sites
 
         # next will be autopromotion of variables
@@ -165,15 +165,19 @@ class Ops():
                     x = self.builder.and_(
                         lhs, rhs, 'andop')  # pylint: disable=E1111
                     if node.op == Op.AND:
-                        x = self.builder.trunc(x,
-                                               self.vartypes.bool)
+                        x = self.builder.trunc(
+                            x,
+                            self.vartypes.bool
+                        )
                     return x
                 elif node.op in(Op.OR, Op.B_OR):
                     x = self.builder.or_(
                         lhs, rhs, 'orop')  # pylint: disable=E1111
                     if node.op == Op.OR:
-                        x = self.builder.trunc(x,
-                                               self.vartypes.bool)
+                        x = self.builder.trunc(
+                            x,
+                            self.vartypes.bool
+                        )
                     return x
 
                 else:
@@ -215,6 +219,7 @@ class Ops():
                     x = self.builder.fcmp_ordered('!=', lhs, rhs, 'fneqop')
                     x.type = self.vartypes.bool
                     return x
+                    
                 elif node.op in (Op.AND, Op.B_AND, Op.OR, Op.B_OR, Op.XOR):
                     raise CodegenError(
                         f'Operator "{node.op}" not supported for "float" or "double" types',
