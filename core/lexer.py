@@ -165,7 +165,10 @@ class Lexer(object):
             elif self.lastchar.isdigit():
                 num_str = []
                 while self.lastchar and (self.lastchar.isdigit()
-                                         or self.lastchar in '.bBiIUufF'):
+                                         or self.lastchar in '.bBiIUufF_'):
+                    if self.lastchar == '_':
+                        self._advance()
+                        continue
                     num_str.append(self.lastchar)
                     self._advance()
                 num = ''.join(num_str)
