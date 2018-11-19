@@ -22,11 +22,12 @@ class Toplevel():
         pragmas = []
 
         while True:
-            t = self._parse_expression()
-            pragmas.append(t)
             if self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
                 self._get_next_token()
                 break
+            t = self._parse_expression()
+            pragmas.append(t)
+            
 
         return Pragma(start, pragmas)
 
