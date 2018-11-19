@@ -138,7 +138,7 @@ class Parser(Expressions, Toplevel):
         except StopIteration:
             pass
 
-    def _match(self, expected_kind, expected_value=None, consume=True):
+    def _match(self, expected_kind, expected_value=None, consume=True, error_message = ''):
         '''
         Consume the current token; verify that it's of the expected kind.
         If expected_kind == TokenKind.OPERATOR, verify the operator's value.
@@ -147,7 +147,7 @@ class Parser(Expressions, Toplevel):
                 expected_value and self.cur_tok.value != expected_value):
             val = expected_value if expected_value is not None else str(expected_kind).split('TokenKind.')[1].lower()
             raise ParseError(
-                f'Expected "{val}" but got "{self.cur_tok.value}" instead',
+                f'Expected "{val}" but got "{self.cur_tok.value}" instead{error_message}',
                 self.cur_tok.position)
 
         if consume:
