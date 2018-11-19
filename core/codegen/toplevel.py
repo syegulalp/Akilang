@@ -370,6 +370,8 @@ class Toplevel():
         self.func_returnblock = None
         self.func_returncalled = None
 
+        self.builder = None
+
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)
 
