@@ -71,7 +71,7 @@ class Builtins_boxes():
                 self._i32(0),
                 self._i32(0),
                 self._i32(
-                    self.vartypes._header.OBJ_POINTER
+                    self.vartypes._header.DATA_PTR
                 )
             ]
         )
@@ -274,7 +274,7 @@ class Builtins_boxes():
 
         for n in (
             (False, svh.DATA_SIZE, self.vartypes.u_size, data_length),
-            (True, svh.OBJ_POINTER, self.vartypes.u_mem.as_pointer(), data_malloc),
+            (True, svh.DATA_PTR, self.vartypes.u_mem.as_pointer(), data_malloc),
             (False, svh.OBJ_ENUM, self.vartypes.u_size, enum_id),
             (False, svh.OBJ_MALLOC, self.vartypes.bool, True),
             (False, svh.HEADER_MALLOC, self.vartypes.bool, True),

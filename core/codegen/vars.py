@@ -291,6 +291,7 @@ class Vars():
                 ir.Constant(self.vartypes.u64, string_length),
                 spt,
                 ir.Constant(self.vartypes.u64, self.vartypes.str.enum_id),
+                ir.Constant(self.vartypes.u64, 0),
                 ir.Constant(self.vartypes.bool, 0),
                 ir.Constant(self.vartypes.bool, 0)
             ], ])
@@ -542,6 +543,7 @@ class Vars():
                             self.vartypes.u_mem.as_pointer(),
                             None
                         ),
+                            self.vartypes.u_size(0),
                             self.vartypes.u_size(0),
                             self.vartypes.bool(0),
                             self.vartypes.bool(0),

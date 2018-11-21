@@ -188,6 +188,9 @@ def generate_vartypes(module=None, bytesize=8):
         # object descriptor
         U_SIZE,
 
+        # refcount
+        U_SIZE,
+
         # flag for whether or not pointed-to obj (by way of element 1) is dynamically allocated (bool)
         # default is 0
         ir.IntType(1),
@@ -201,10 +204,11 @@ def generate_vartypes(module=None, bytesize=8):
     Header.packed = True
 
     Header.DATA_SIZE = 0
-    Header.OBJ_POINTER = 1
+    Header.DATA_PTR = 1
     Header.OBJ_ENUM = 2
-    Header.OBJ_MALLOC = 3
-    Header.HEADER_MALLOC = 4
+    Header.OBJ_REFCOUNT = 3
+    Header.OBJ_MALLOC = 4
+    Header.HEADER_MALLOC = 5
 
     # for arrays at compile time, we can encode the dimensions at compile time
     # and any calls will be optimized out to constants anyway
