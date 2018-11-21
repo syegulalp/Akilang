@@ -47,7 +47,7 @@ class Parser(Expressions, Toplevel):
     After the parser is created, invoke parse_toplevel multiple times to parse
     Akilang source into an AST.
     '''
-
+    parse_actions = PARSE_ACTIONS
     def __init__(self, anon_vartype=None, vartypes=None):
         if vartypes is None:
             vartypes = generate_vartypes()
@@ -65,7 +65,6 @@ class Parser(Expressions, Toplevel):
         self.top_return = False
         self.expr_stack = []
         self.evaluator = None
-        self.parse_actions = PARSE_ACTIONS
         self.compile_constant = None
         self.suppress_warnings = True
 
