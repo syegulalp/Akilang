@@ -155,9 +155,9 @@ class ControlFlow():
 
     def _codegen_Match(self, node):
         cond_item = self._codegen(node.cond_item)
-        default = ir.Block(self.builder.function, 'defaultmatch')
-        exit = ir.Block(self.builder.function, 'endmatch')
-        switch_instr = self.builder.switch(cond_item, default)
+        default_bb = ir.Block(self.builder.function, 'defaultmatch')
+        exit_bb = ir.Block(self.builder.function, 'endmatch')
+        switch_instr = self.builder.switch(cond_item, default_bb)
         cases = []
         exprs = {}
         values = set()
@@ -190,15 +190,15 @@ class ControlFlow():
             result = self._codegen(expr, False)
             # if result and not self.builder.block.is_terminated:
             if not self.builder.block.is_terminated:
-                self.builder.branch(exit)
-        self.builder.function.basic_blocks.append(default)
-        self.builder.position_at_start(default)
+                self.builder.branch(exit_bb)
+        self.builder.function.basic_blocks.append(default_bb)
+        self.builder.position_at_start(default_bb)
         if node.default:
             self._codegen(node.default, False)
         if not self.builder.block.is_terminated:
-            self.builder.branch(exit)
-        self.builder.function.basic_blocks.append(exit)
-        self.builder.position_at_start(exit)
+            self.builder.branch(exit_bb)
+        self.builder.function.basic_blocks.append(exit_bb)
+        self.builder.position_at_start(exit_bb)
         return cond_item
 
     def _codegen_When(self, node):

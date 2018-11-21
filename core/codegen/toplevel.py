@@ -253,6 +253,7 @@ class Toplevel():
         # For functions with an empty body,
         # typically a forward declaration,
         # just generate the prototype.
+
         if not node.body:
             func = self._codegen(node.proto, False)
             return func
@@ -264,19 +265,31 @@ class Toplevel():
         # Create the function skeleton from the prototype.
         func = self._codegen(node.proto, False)
 
-        # Create the entry BB in the function and set a new builder to it.
-        bb_entry = func.append_basic_block('entry')
-        self.builder = ir.IRBuilder(bb_entry)
-
+        # Set context variables for the function.
         self.func_incontext = func
         self.func_returncalled = False
         self.func_returntype = func.return_value.type
-        self.func_returnblock = func.append_basic_block('exit')
+        self.func_returnblock = func.append_basic_block('exit')        
+
+        # Create the BB that holds the function's variable definitions.
+        bb_vars = func.append_basic_block('var_defs')
+        self.func_varblock = bb_vars
+        self.builder = ir.IRBuilder(bb_vars)
+
+        # Set return argument in exit block
         self.func_returnarg = self._alloca(
-            '%_return', self.func_returntype, node=node)
+            '!return', self.func_returntype, node=node)        
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
+            
+            # We don't shadow existing variables names, ever
+            if self.func_symtab.get(arg.name) or self.module.globals.get(arg.name):
+                raise CodegenError(
+                    f'"{arg.name}" is already defined in this scope',
+                    node.proto.argnames[_].position
+                )            
+            
             if arg.type.is_obj_ptr():
                 alloca = arg
             else:
@@ -284,15 +297,17 @@ class Toplevel():
                                       node=node.proto.argnames[_])
                 self.builder.store(arg, alloca)
 
-            # We don't shadow existing variables names, ever
-            assert not self.func_symtab.get(
-                arg.name) and "arg name redefined: " + arg.name
-
             self.func_symtab[arg.name] = alloca
 
             alloca.input_arg = _
             self._set_tracking(alloca, None, None, False)
-            #alloca.tracked = False
+
+        exit_block_idx = func.blocks.index(self.func_returnblock)
+
+        # Create the entry BB in the function and set a new builder to it.
+        bb_entry = func.append_basic_block('entry')
+        self.builder.branch(bb_entry)
+        self.builder = ir.IRBuilder(bb_entry)        
 
         # Generate code for the body
         retval = self._codegen(node.body, False)
@@ -325,7 +340,7 @@ class Toplevel():
             if func.return_value.type != retval2.type:
                 if node.proto.name.startswith(_ANONYMOUS):
                     func.return_value.type = retval.type
-                    self.func_returnarg = self._alloca('%_return', retval.type)
+                    self.func_returnarg = self._alloca('!return', retval.type)
                 else:
                     raise CodegenError(
                         f'Prototype for function "{node.proto.name}" has return type "{func.return_value.type.describe()}", but returns "{retval.type.describe()}" instead (maybe an implicit return?)',
@@ -364,11 +379,20 @@ class Toplevel():
 
         self.builder.ret(self.builder.load(self.func_returnarg))
 
+        # Move the `exit` block to the end of the function
+        # to improve readability in the LLVM IR
+        func.blocks.append(
+            func.blocks.pop(
+                exit_block_idx
+            )
+        )
+
         self.func_incontext = None
         self.func_returntype = None
         self.func_returnarg = None
         self.func_returnblock = None
         self.func_returncalled = None
+        self.func_varblock = None
 
         self.builder = None
 

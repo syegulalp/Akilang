@@ -207,7 +207,7 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         if current_block:
             return make_alloc()
         else:
-            with self.builder.goto_entry_block():
+            with self.builder.goto_block(self.func_varblock):
                 return make_alloc()
 
     def _varaddr(self, node, report=True):
