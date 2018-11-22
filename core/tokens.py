@@ -155,7 +155,8 @@ Builtin = {
 
 Dunders = {
     'len',
-    'index'
+    'index',
+    'setobjdata'
 }
 
 # with these, we should check to see if there's a specific dunder implementation

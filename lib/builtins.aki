@@ -22,6 +22,7 @@ def c_alloc(bytes:u_size):ptr u_mem pass
 def int_to_c_str(my_int:i32): ptr u_mem pass
 def c_str_to_int(my_str:str) :i32 pass
 
+
 # The actual builtins.
 
 @nomod
@@ -56,41 +57,7 @@ def '.object.str.__del__'(my_str: str):bool {
     unsafe c_free(c_ptr(my_str))
 }
 
-@track
-def '.object.str.__new__'(my_obj:ptr u_mem):str {
-    # Determine the string length since this is raw data
-    var str_len = c_strlen(my_obj)
-    
-    # Allocate an object of the correct size and type
-    var alloc = c_obj_alloc(str)
-
-    # Insert the length
-    var len_ptr = c_gep(alloc,0 ,DATA_SIZE)
-    unsafe c_ptr_mod(len_ptr, str_len)
-
-    # Point to the data
-    var data_ptr = c_gep(alloc,0, OBJ_PTR)
-    unsafe c_ptr_mod(data_ptr, my_obj)
-
-    # the object data is not malloc'd (yet)
-    var obj_data_ptr = c_gep(alloc,0, OBJ_MALLOC)
-    unsafe c_ptr_mod(obj_data_ptr, False)
-
-    # the object itself is malloc'd
-    var h_data_ptr = c_gep(alloc,0, HEADER_MALLOC)
-    unsafe c_ptr_mod(h_data_ptr, True)
-    
-    # Return the string object
-    return alloc
-}
-
-@nomod
-def '.object.str.__new__'(my_bool: bool):str {
-    if my_bool then 'True' else 'False'
-    #if my_bool then TRUE else FALSE
-}
-
-def set_obj(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem):obj {
+def '.obj..__setobjdata__'(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem):obj {
     # Insert the length
     var len_ptr = c_gep(my_obj,0 ,DATA_SIZE)
     unsafe c_ptr_mod(len_ptr, obj_len)
@@ -109,6 +76,50 @@ def set_obj(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:p
 
     return my_obj
 }
+
+@track
+def '.object.str.__new__'(my_obj:ptr u_mem):str {
+    # Determine the string length since this is raw data
+    var str_len = c_strlen(my_obj)
+    
+    # Allocate an object of the correct size and type
+    var alloc = c_obj_alloc(str)
+
+    setobjdata(
+        unsafe cast(alloc, obj),
+        False,
+        True,
+        str_len,
+        my_obj
+    )
+
+    # # Insert the length
+    # var len_ptr = c_gep(alloc,0 ,DATA_SIZE)
+    # unsafe c_ptr_mod(len_ptr, str_len)
+
+    # # Point to the data
+    # var data_ptr = c_gep(alloc,0, OBJ_PTR)
+    # unsafe c_ptr_mod(data_ptr, my_obj)
+
+    # # the object data is not malloc'd (yet)
+    # var obj_data_ptr = c_gep(alloc,0, OBJ_MALLOC)
+    # unsafe c_ptr_mod(obj_data_ptr, False)
+
+    # # the object itself is malloc'd
+    # var h_data_ptr = c_gep(alloc,0, HEADER_MALLOC)
+    # unsafe c_ptr_mod(h_data_ptr, True)
+    
+    # Return the string object
+    return alloc
+}
+
+@nomod
+def '.object.str.__new__'(my_bool: bool):str {
+    if my_bool then 'True' else 'False'
+    #if my_bool then TRUE else FALSE
+}
+
+
 
 # TODO: placeholder
 def '.object.obj.__del__'(my_obj: obj):bool {    

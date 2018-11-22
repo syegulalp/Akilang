@@ -425,14 +425,13 @@ class Builtins():
             if isinstance(cast_from.type, ir.PointerType):
 
                 # it can't be an object pointer (for now)
-                if cast_from.type.is_obj_ptr():
-                    # if cast_from.type.v_id != 'ptr_str':
+                if cast_from.type.is_obj_ptr() and not self._if_unsafe(node):
                     raise cast_exception
 
                 # but it can be cast to another pointer
                 # as long as it's not an object
                 if isinstance(cast_to, ir.PointerType):
-                    if cast_to.is_obj_ptr():
+                    if cast_to.is_obj_ptr() and not self._if_unsafe(node):
                         raise cast_exception
                     op = self.builder.bitcast
                     break
