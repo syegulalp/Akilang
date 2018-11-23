@@ -739,10 +739,8 @@ class TestEvaluator(unittest.TestCase):
         }
         main()
         '''
-        self.assertEqual(self.e.eval_all(n),113)   
+        self.assertEqual(self.e.eval_all(n),113)
 
-    # Not valid yet
-    
     def test_array_uni_init_extend(self):
         self.e.reset()
         n = '''
@@ -755,32 +753,7 @@ class TestEvaluator(unittest.TestCase):
         }
         main()
         '''
-
-
-
-    def test_print(self):
-        pass
-        # https://eli.thegreenplace.net/2015/redirecting-all-kinds-of-stdout-in-python/
-
-
-        # self.e2.reset()
-
-        # import sys, io, os
-        # fd = sys.stdout.fileno()        
-        # sys.stdout.flush()       
-        
-        # new_stdout = io.StringIO()
-        # os.dup2(new_stdout.fileno, fd)
-
-        # sys.stdout = os.fdopen(fd, 'w')
-        
-        # n = 'print("Hi")'
-        # self.assertEqual(self.e2.eval_all(n),3)
-
-        # We don't currently have a way to redirect
-        # output from the subprocess. sys.stdout does
-        # not capture that.
-
+        self.assertEqual(self.e.eval_all(n),56)
 
     def test_type_enum(self):
         self.e.reset()
@@ -858,6 +831,55 @@ class TestEvaluator(unittest.TestCase):
         # this result is number of characters printed, NOT string
         # TODO: return string pointer from print if possible
         # output also needs to be temporarily redirected
+
+
+    def test_print(self):
+        pass
+        # https://eli.thegreenplace.net/2015/redirecting-all-kinds-of-stdout-in-python/
+
+
+        # self.e2.reset()
+
+        # import sys, io, os
+        # fd = sys.stdout.fileno()        
+        # sys.stdout.flush()       
+        
+        # new_stdout = io.StringIO()
+        # os.dup2(new_stdout.fileno, fd)
+
+        # sys.stdout = os.fdopen(fd, 'w')
+        
+        # n = 'print("Hi")'
+        # self.assertEqual(self.e2.eval_all(n),3)
+
+        # We don't currently have a way to redirect
+        # output from the subprocess. sys.stdout does
+        # not capture that.        
+
+    def test_incr_decr(self):
+        self.e2.reset()
+        n = '''
+        def get_refcount(x:obj):u64 {
+            var f1 = c_gep(x,0,OBJ_REFCOUNT)
+            var f2 = c_deref(f1)
+            return f2
+        }
+
+        def main():u64 {
+            var total:u64=0U
+            var x=box("Hi")
+            total+=get_refcount(x)
+            call('.obj..__incr__', x)    
+            total+=get_refcount(x)
+            call('.obj..__decr__', x)
+            total+=get_refcount(x)
+            call('.obj..__decr__', x)
+            total+=get_refcount(x)
+            total
+        }
+        main()
+        '''
+        self.assertEqual(self.e2.eval_all(n),1)
 
     
     def test_auto_free(self):
