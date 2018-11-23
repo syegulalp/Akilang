@@ -218,6 +218,10 @@ class Vars():
             current_node = child
             previous = latest
 
+        # If the final value is a global constant,
+        # just return the underlying constant,
+        # not a variable reference
+        
         if getattr(latest,'global_constant',None):
             latest = latest.initializer
             return latest
@@ -227,19 +231,7 @@ class Vars():
             return latest
 
         if current_load:
-
-            # Extract constants from uni declarations
-            # XXX: I've removed this for the time being because it caused
-            # problems where a constant variable like an array had
-            # the wrong elements extracted
-
-            # possible_constant = self._extract_operand(latest)
-            # if isinstance(possible_constant, ir.GlobalVariable) and possible_constant.global_constant is True:
-            #     return possible_constant.initializer
-
-            # if no constant, just return a load instr
             final = self.builder.load(latest, node.name)
-
         else:
             final = latest
 
