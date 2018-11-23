@@ -362,9 +362,9 @@ class Builtins():
         if hasattr(ptr2.type, 'pointee'):
             ptr2 = self.builder.load(ptr2)
 
-        if hasattr(ptr2.type, 'pointee'):
+        if hasattr(ptr2.type, 'pointee') and not self._if_unsafe(node):
             raise CodegenError(
-                f'"{node.args[0].name}" is not a reference to a scalar (use "c_obj_deref" for references to objects instead of scalars)',
+                f'"{node.args[0].name}" is not a reference to a scalar (use "c_obj_deref" for references to objects instead of scalars, or use "unsafe" to dereference regardless of type)',
                 node.args[0].position)
 
         # XXX: self.builder.load clobbers with core._llvmlite_custom._IntType
