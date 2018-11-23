@@ -248,8 +248,6 @@ class Builtins():
         index = [self._i32(0)]
 
         for n in range(1, len(node.args)):
-            if hasattr(node.args[n], 'val'):
-                node.args[n].val = node.args[n].val
             index.append(self._codegen(node.args[n]))
 
         try:
@@ -402,6 +400,23 @@ class Builtins():
         ptr3 = self.builder.load(ptr2)
         return ptr3
 
+    def _codegen_Builtins_call(self, node):
+        self._check_arg_length(node, 1)
+        func_name = node.args[0]
+        if not isinstance(func_name, String):
+            raise CodegenError(
+                f'First argument of "call" must be the name of a function as a string literal',
+                func_name.position
+            )
+        
+        return self._codegen(
+            Call(
+                node.position,
+                func_name.val,
+                node.args[1:]
+            )
+        )
+    
     def _codegen_Builtins_cast(self, node):
         '''
         Cast one data type as another, such as a pointer to a u64,

@@ -143,7 +143,8 @@ Builtins = {
     'box',
     'type',
     'objtype',
-    'unbox'
+    'unbox',
+    'call'
 }
 
 Builtin = {
@@ -156,7 +157,7 @@ Builtin = {
 Dunders = {
     'len',
     'index',
-    'setobjdata'
+    'del'
 }
 
 # with these, we should check to see if there's a specific dunder implementation
