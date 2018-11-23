@@ -218,6 +218,10 @@ class Vars():
             current_node = child
             previous = latest
 
+        if getattr(latest,'global_constant',None):
+            latest = latest.initializer
+            return latest
+        
         if noload is True:
             latest.global_constant = constant
             return latest
