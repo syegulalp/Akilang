@@ -25,6 +25,46 @@ def c_str_to_int(my_str:str) :i32 pass
 
 # The actual builtins.
 
+# Incr and decr refcount
+
+def '.obj..__incr__'(my_obj: obj) {
+    var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
+    var f2 = c_deref(f1)
+    var f3 = f2+=1U
+    unsafe c_ptr_mod(f1, f3)
+    0
+}
+
+def '.obj..__decr__'(my_obj: obj) {
+    var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
+    var f2 = c_deref(f1)
+    var f3:u64
+    when f2 > 0U then f3 = f2-=1U
+    unsafe c_ptr_mod(f1, f3)
+    0
+}
+
+def '.obj.setobjdata'(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem):obj {
+    # Insert the length
+    var len_ptr = c_gep(my_obj,0 ,DATA_SIZE)
+    unsafe c_ptr_mod(len_ptr, obj_len)
+
+    # the object data is malloc'd
+    var obj_data_ptr = c_gep(my_obj,0, OBJ_MALLOC)
+    unsafe c_ptr_mod(obj_data_ptr, malloc_1)
+
+    # the object itself is malloc'd
+    var h_data_ptr = c_gep(my_obj,0, HEADER_MALLOC)
+    unsafe c_ptr_mod(h_data_ptr, malloc_2)
+
+    # Point to the data
+    var data_ptr = c_gep(my_obj,0, OBJ_PTR)
+    unsafe c_ptr_mod(data_ptr, my_data_ptr)
+
+    return my_obj
+}
+
+
 @nomod
 def '.object.str.__len__'(my_str:str):u64{    
     var f1 = c_gep(my_str,0,DATA_SIZE)
@@ -57,25 +97,7 @@ def '.object.str.__del__'(my_str: str):bool {
     unsafe c_free(c_ptr(my_str))
 }
 
-def '.obj..__setobjdata__'(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem):obj {
-    # Insert the length
-    var len_ptr = c_gep(my_obj,0 ,DATA_SIZE)
-    unsafe c_ptr_mod(len_ptr, obj_len)
 
-    # the object data is malloc'd
-    var obj_data_ptr = c_gep(my_obj,0, OBJ_MALLOC)
-    unsafe c_ptr_mod(obj_data_ptr, malloc_1)
-
-    # the object itself is malloc'd
-    var h_data_ptr = c_gep(my_obj,0, HEADER_MALLOC)
-    unsafe c_ptr_mod(h_data_ptr, malloc_2)
-
-    # Point to the data
-    var data_ptr = c_gep(my_obj,0, OBJ_PTR)
-    unsafe c_ptr_mod(data_ptr, my_data_ptr)
-
-    return my_obj
-}
 
 @track
 def '.object.str.__new__'(my_obj:ptr u_mem):str {
@@ -85,7 +107,9 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Allocate an object of the correct size and type
     var alloc = c_obj_alloc(str)
 
-    setobjdata(
+    # replace with `call`
+
+    call ('.obj.setobjdata', 
         unsafe cast(alloc, obj),
         False,
         True,
