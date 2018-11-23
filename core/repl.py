@@ -119,6 +119,7 @@ class Repl():
         }
 
         self.history = []
+        self.last_file = None
 
     def reset(self, *a):
         reload(parsing)
