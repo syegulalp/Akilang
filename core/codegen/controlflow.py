@@ -636,7 +636,7 @@ class ControlFlow():
             if not callee_func:
                 callee_func = self._varaddr(node.name, False)
 
-            if callee_func.type.is_func():
+            if callee_func.type.is_func_ptr():
                 # retrieve actual function pointer from the variable ref
                 func_to_check = callee_func.type.pointee.pointee
                 final_call = self.builder.load(callee_func)

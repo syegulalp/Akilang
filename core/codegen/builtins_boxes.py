@@ -58,7 +58,8 @@ class Builtins_boxes():
                 node, ' ("unbox" without a substitute value requires "unsafe")')
             value_to_substitute = None
 
-        if type_to_unwrap.vartype.is_ptr():
+        #if type_to_unwrap.vartype.is_ptr():
+        if type_to_unwrap.vartype.is_pointer:
             enum_id = type_to_unwrap.vartype.pointee.enum_id
         else:
             enum_id = type_to_unwrap.vartype.enum_id
@@ -233,7 +234,8 @@ class Builtins_boxes():
         # a box from a constant, then the box itself should
         # be a constant?
 
-        if data_to_convert.type.is_ptr():
+        #if data_to_convert.type.is_ptr():
+        if data_to_convert.type.is_pointer:
             enum_id = data_to_convert.type.pointee.enum_id
         else:
             enum_id = data_to_convert.type.enum_id
@@ -327,7 +329,8 @@ class Builtins_boxes():
         ):
             enum_id = type_obj.enum_id
 
-        elif type_obj.is_ptr():
+        #elif type_obj.is_ptr():
+        elif type_obj.is_pointer:
             enum_id = type_obj.pointee.enum_id
 
         else:
