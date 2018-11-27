@@ -1,5 +1,4 @@
 from core.llvmlite_custom import Map, _PointerType, MyType
-#from core.tokens import Dunders
 
 import llvmlite.ir as ir
 import ctypes
@@ -7,67 +6,82 @@ from llvmlite import binding
 
 from enum import Enum
 
-# Singleton types (these do not require an invocation, they're only created once)
-
-
 def make_type_as_ptr(my_type):
     def type_as_ptr(addrspace=0):
         t = _PointerType(my_type, addrspace, v_id=my_type.v_id)
         return t
-
     return type_as_ptr
 
 
-class Bool(ir.IntType):
+class AkiObj:
+    signed = False
+    is_obj = True
+
+
+class AkiInt(ir.IntType):    
+    is_obj = False
+
+
+class AkiFloat:
+    signed=True
+    is_obj=False
+    p_fmt = '%f'
+
+
+class Bool(AkiInt):
 
     # TODO: bools need to print as 'True','False'
 
+    p_fmt = '%B'
+
     def __new__(cls):
         instance = super().__new__(cls, 1, False, True)
-        instance.p_fmt = '%B'
+        instance.__class__ = Bool
+        
         return instance
 
-
-class SignedInt(ir.IntType):
+class SignedInt(AkiInt):
     p_fmt = '%i'
 
     def __new__(cls, bits, force=True):
-        return super().__new__(cls, bits, force, True)
+        instance= super().__new__(cls, bits, force, True)
+        instance.__class__ = SignedInt
+        return instance
 
 
-class UnsignedInt(ir.IntType):
+class UnsignedInt(AkiInt):
     p_fmt = '%u'
 
     def __new__(cls, bits, force=True):
-        return super().__new__(cls, bits, force, False)
+        instance= super().__new__(cls, bits, force, False)
+        instance.__class__ = UnsignedInt
+        return instance
 
 
-class Float32(ir.FloatType):
+class Float32(AkiFloat, ir.FloatType):
+    v_id = 'f32'
+    width=32
+
     def __new__(cls):
-        t = super().__new__(cls)
-        t.signed = True
-        t.v_id = 'f32'
-        t.width = 32
-        t.is_obj = False
-        t.p_fmt = '%f'
-        return t
+        instance = super().__new__(cls)
+        instance.__class__ = Float32
+        return instance
 
 
-class Float64(ir.DoubleType):
+class Float64(AkiFloat, ir.DoubleType):
+    v_id = 'f64'
+    width=64
+
     def __new__(cls):
-        t = super().__new__(cls)
-        t.signed = True
-        t.v_id = 'f64'
-        t.width = 64
-        t.is_obj = False
-        t.p_fmt = '%f'
-        return t
-
-
-ir.IntType.is_obj = False
+        instance = super().__new__(cls)
+        instance.__class__ =Float64
+        return instance
 
 
 class Array(ir.ArrayType):
+    '''
+    Type for raw C arrays.
+    '''
     is_obj = False
 
     def __init__(self, my_type, my_len):
@@ -77,24 +91,26 @@ class Array(ir.ArrayType):
         self.as_pointer = make_type_as_ptr(self)
 
 
-class CustomType():
+class CustomType:
     def __new__(cls, name, types, v_types):
-        new_class = ir.global_context.get_identified_type('.class.' + name)
-        new_class.elements = types
-        new_class.v_types = v_types
-        new_class.v_id = name
-        new_class.signed = False
-        new_class.is_obj = True
-        new_class.as_pointer = make_type_as_ptr(new_class)
-        return new_class
+        instance = ir.global_context.get_identified_type('.class.' + name)
+
+        class _this(AkiObj, instance.__class__):
+            pass
+        instance.__class__ = _this
+
+        instance.elements = types
+        instance.v_types = v_types
+        instance.v_id = name
+        instance.as_pointer = make_type_as_ptr(instance)        
+
+        return instance
 
 
-class ArrayClass(ir.types.LiteralStructType):
+class ArrayClass(AkiObj, ir.LiteralStructType):
     '''
     Type for arrays whose dimensions are defined at compile time.
     '''
-    is_obj = True
-    enum_id = 0
 
     def __init__(self, my_type, elements):
 
@@ -136,23 +152,22 @@ class ArrayClass(ir.types.LiteralStructType):
 
 
 _default_platform_module = ir.Module()
-_default_platform_vartypes = {_default_platform_module.triple: None}
+_default_platform_vartypes = {}
 
 # TODO: convert this all into a class, probably for the best
 
 
-def generate_vartypes(module=None, bytesize=8):
+def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     # if no module, assume current platform
     # cache a copy of the default platform module
     # for the lifetime of the app
 
-    if module is None:
-        module = _default_platform_module
-
-    if _default_platform_vartypes.get(module.triple, None) is not None:
+    try:
         return _default_platform_vartypes[module.triple]
-
+    except Exception:
+        pass
+    
     # Initialize target data for the module.
     target_data = binding.create_target_data(module.data_layout)
 
@@ -177,7 +192,11 @@ def generate_vartypes(module=None, bytesize=8):
     # 5: is this object itself malloc'd?
     # 6: actual object data (if any)
 
-    Header = ir.global_context.get_identified_type('.object_header.')
+    class AkiHeader(AkiObj, ir.IdentifiedStructType):
+        pass
+
+    Header = ir.global_context.get_identified_type('.object_header.')    
+    Header.__class__ = AkiHeader
     Header.elements = (
         # total length of data element in bytes as u64
         U_SIZE,
@@ -198,7 +217,6 @@ def generate_vartypes(module=None, bytesize=8):
         # flag for whether or not this obj is dynam. alloc.
         # default is also 0
         ir.IntType(1),
-
     )
 
     Header.packed = True
@@ -216,7 +234,11 @@ def generate_vartypes(module=None, bytesize=8):
 
     # Object
 
+    class AkiObjHeader(AkiObj, ir.IdentifiedStructType,):
+        pass
+    
     Obj = ir.global_context.get_identified_type('.obj.')
+    Obj.__class__ = AkiObjHeader
     Obj.elements = (Header,
                     # ir.IntType(_byte_width)
                     )
@@ -242,18 +264,18 @@ def generate_vartypes(module=None, bytesize=8):
 
     # Result type
 
-    Result = ir.global_context.get_identified_type('.result.')
-    Result.elements = (Header,
-                       # OK or err? default is OK
-                       ir.IntType(1),
-                       # if false
-                       ir.IntType(_byte_width).as_pointer(),
-                       # if true
-                       ir.IntType(_byte_width).as_pointer(),
-                       )
-    Result.v_id = 'result'
-    Result.is_obj = True
-    Result.signed = False
+    # Result = ir.global_context.get_identified_type('.result.')
+    # Result.elements = (Header,
+    #                    # OK or err? default is OK
+    #                    ir.IntType(1),
+    #                    # if false
+    #                    ir.IntType(_byte_width).as_pointer(),
+    #                    # if true
+    #                    ir.IntType(_byte_width).as_pointer(),
+    #                    )
+    # Result.v_id = 'result'
+    # Result.is_obj = True
+    # Result.signed = False
 
     # results should be heap-allocated by default, I think
 
@@ -270,7 +292,11 @@ def generate_vartypes(module=None, bytesize=8):
 
     # create objects dependent on the ABI size
 
+    class AkiStr(AkiObj, ir.IdentifiedStructType):
+        pass
+
     Str = ir.global_context.get_identified_type('.object.str')
+    Str.__class__ = AkiStr
     Str.elements = (Header,)
     Str.v_id = 'str'
     Str.is_obj = True
@@ -279,14 +305,19 @@ def generate_vartypes(module=None, bytesize=8):
     Str.p_fmt = '%s'
     Str.as_pointer = make_type_as_ptr(Str)
 
-    Err = ir.global_context.get_identified_type('.err.')
-    Err.elements = (Header,
-                    Str
-                    )
-    Err.is_obj = True
-    Err.signed = False
+    # Err = ir.global_context.get_identified_type('.err.')
+    # Err.elements = (Header,
+    #                 Str
+    #                 )
+    # Err.is_obj = True
+    # Err.signed = False
 
     _vartypes = Map({
+
+        # abstract
+        'int': AkiInt,
+        'float': AkiFloat,
+        'obj': AkiObj,
 
         # singleton
         'u1': Bool(),
@@ -304,14 +335,16 @@ def generate_vartypes(module=None, bytesize=8):
         'u_size': UnsignedInt(_pointer_width),
         'u_mem': UnsignedInt(_byte_width),
 
-        # non-singleton
+        # non-singleton, needs instantiation
         'carray': Array,
         'array': ArrayClass,
-        'func': ir.FunctionType,
-
+       
         # object types
         'str': Str,
         'obj': Obj,
+
+        # function type
+        'func': ir.FunctionType,
 
     })
 
@@ -325,9 +358,11 @@ def generate_vartypes(module=None, bytesize=8):
     _vartypes._byte_width = _byte_width
     _vartypes._pointer_width = _pointer_width
 
+    # TODO: I think we can just refer to them directly
     _vartypes._arrayclass = ArrayClass
     _vartypes._carray = Array
 
+    # TODO: don't need this anymore?
     _vartypes._str = type(Str)
 
     # TODO: this should be moved back into the underlying types?
@@ -362,12 +397,9 @@ def generate_vartypes(module=None, bytesize=8):
 
     return _vartypes
 
-
 VarTypes = generate_vartypes()
 
 DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
 DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
-
-#dunder_methods = set([f'__{n}__' for n in Dunders])
 
 Str = VarTypes.str
