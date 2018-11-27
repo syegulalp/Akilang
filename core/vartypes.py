@@ -1,4 +1,5 @@
-from core.llvmlite_custom import Map, _PointerType, MyType
+from core.llvmlite_custom import _PointerType, MyType
+from core.utils.map import Map
 
 import llvmlite.ir as ir
 import ctypes
