@@ -1,1 +1,1 @@
-..\venv36\Scripts\python.exe -OO aki.py %1
+python -OO aki.py %1
