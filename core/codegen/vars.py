@@ -445,7 +445,6 @@ class Vars():
                     value = self._alloca('obj', node_var.vartype.pointee)
                 return value
 
-            #if node_var.vartype.is_ptr():
             if node_var.vartype.is_pointer:
                 # Null pointer
                 _ = self._codegen(

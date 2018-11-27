@@ -13,9 +13,6 @@ class MyType():
     is_obj = None
     p_fmt = None
 
-    # def is_ptr(self):
-    #     return isinstance(self, ir.types.PointerType)
-
     def is_func_ptr(self):
         '''
         Reports whether or not a given type
@@ -73,7 +70,6 @@ ir.types.Type.is_func_ptr = MyType.is_func_ptr
 ir.types.Type.signature = MyType.signature
 ir.types.Type.del_signature = MyType.del_signature
 ir.types.Type.new_signature = MyType.new_signature
-#ir.types.Type.is_ptr = MyType.is_ptr
 ir.types.Type.v_id = MyType.v_id
 
 ir.types.Type.post_new_bitcast = lambda *a, **ka: None
@@ -94,8 +90,6 @@ class _PointerType(PointerType):
     def as_pointer(self, addrspace=0):
         return _PointerType(
             self, addrspace, v_id=self.v_id, signed=self.signed)
-
-    #is_ptr = MyType.is_ptr
 
 
 ir.types.PointerType = _PointerType
