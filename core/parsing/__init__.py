@@ -16,6 +16,8 @@ from core.tokens import Builtins, Decorators, Ops, Puncs
 from core.parsing.expressions import Expressions
 from core.parsing.toplevel import Toplevel
 
+from llvmlite import ir
+
 PARSE_ACTIONS = {
     TokenKind.RETURN: 'return',
     TokenKind.IDENTIFIER: 'identifier',
@@ -48,7 +50,11 @@ class Parser(Expressions, Toplevel):
     Akilang source into an AST.
     '''
     parse_actions = PARSE_ACTIONS
-    def __init__(self, anon_vartype=None, vartypes=None):
+    def __init__(self, module=None, anon_vartype=None, vartypes=None):
+        if module is None:
+            module = ir.Module(None)
+        self.module = module
+
         if vartypes is None:
             vartypes = generate_vartypes()
         self.vartypes = vartypes

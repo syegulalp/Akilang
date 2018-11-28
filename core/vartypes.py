@@ -127,9 +127,10 @@ class AkiCArray(AkiObj, ir.ArrayType):
 
 
 class AkiCustomType:
-    def __new__(cls, name, types, v_types):
-        instance = ir.global_context.get_identified_type('.class.' + name)
-
+    def __new__(cls, module, name, types, v_types):
+        instance = module.context.get_identified_type('.class.' + name)
+        
+        #if not issubclass(instance.__class__, AkiObj):
         class _this(AkiObj, instance.__class__):
             pass
         instance.__class__ = _this
@@ -328,17 +329,21 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     # create objects dependent on the ABI size
 
     class AkiStr(AkiObj, ir.IdentifiedStructType):
-        pass
+        v_id='str'
+        is_obj=True
+        p_fmt = '%s'
 
     Str = ir.global_context.get_identified_type('.object.str')
     Str.__class__ = AkiStr
     Str.elements = (Header,)
-    Str.v_id = 'str'
-    Str.is_obj = True
-    Str.signed = False
-    Str.ext_ptr = UnsignedInt(8, True).as_pointer()
-    Str.p_fmt = '%s'
     Str.as_pointer = make_type_as_ptr(Str)
+
+    #Str.v_id = 'str'
+    #Str.is_obj = True
+    #Str.signed = False
+    #Str.ext_ptr = UnsignedInt(8, True).as_pointer()
+    #Str.p_fmt = '%s'
+    
 
     # Err = ir.global_context.get_identified_type('.err.')
     # Err.elements = (Header,

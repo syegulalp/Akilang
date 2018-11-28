@@ -15,7 +15,6 @@ from core.codegen.controlflow import ControlFlow
 
 # pylint: disable=E1101
 
-
 class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow):
     def __init__(self, vartypes=None, module_name=None):
         '''
@@ -29,6 +28,13 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         '''
         # Current module.
         self.module = ir.Module(module_name)
+
+        # TODO: This resets the MODULE context.
+        # If possible we should have the constant stuff loaded into the
+        # GLOBAL context and re-used on reset.
+        # Or maybe have one module with the constants,
+        # which we then link in after load?
+        self.module.context = llvm.ir.context.Context()
 
         # Current IR builder.
         self.builder = None

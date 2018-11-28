@@ -399,7 +399,7 @@ class Expressions():
             v_types[k] = {'pos': n, 'type': v}
             n += 1
 
-        vartype = AkiCustomType(class_name, types, v_types)
+        vartype = AkiCustomType(self.module, class_name, types, v_types)
 
         new_class = Class(class_name, vars, vartype)
 
