@@ -5,11 +5,23 @@ from functools import lru_cache
 
 import llvmlite.ir as ir
 
-# Each token is a tuple of kind and value. kind is one of the enumeration values
-# in TokenKind. value is the textual value of the token in the input.
-
 from core.tokens import Token, TokenKind, ESCAPES, Puncs
 
+@lru_cache()
+def is_al_num(_):
+    return _.isalnum()
+
+@lru_cache()
+def is_space(_):
+    return _.isspace()
+
+@lru_cache()
+def is_alpha(_):
+    return _.isalpha()
+
+@lru_cache()
+def is_digit(_):
+    return _.isdigit()
 
 class Position():
     def __init__(self, buffer, line=1, col=0, absposition=0, lineposition=0):
@@ -48,8 +60,7 @@ def get_keyword(name):
         if kind.value < -100 and kind._name_.lower() == name:
             return kind
     except KeyError:
-        pass
-    return None
+        return None
 
 
 class Lexer(object):
@@ -76,7 +87,7 @@ class Lexer(object):
             self.prevchar = self.buf[self.pos]
             self.pos += 1
             self.lastchar = self.buf[self.pos]
-            self.position.advance(self.prevchar in ['\r', '\n'])
+            self.position.advance(self.prevchar in ('\r', '\n'))
 
         except IndexError:
             self.lastchar = ''
@@ -94,7 +105,7 @@ class Lexer(object):
             #pos = self.position.copy
 
             # Skip whitespace
-            while self.lastchar.isspace():
+            while is_space(self.lastchar):
                 self._advance()
 
             pos = self.position.copy
@@ -143,16 +154,14 @@ class Lexer(object):
                 yield Token(TokenKind.STRING, new_str, VarTypes.str, pos)
 
             # Identifier or keyword, including vartypes
-            elif self.lastchar.isalpha() or self.lastchar == '_':
+            elif is_alpha(self.lastchar) or self.lastchar == '_':
                 id_str = []
-                while self.lastchar.isalnum() or self.lastchar == '_':
+                while is_al_num(self.lastchar) or self.lastchar == '_':
                     id_str.append(self.lastchar)
                     self._advance()
                 id_str = ''.join(id_str)
 
-                if id_str in BUILTIN_OP:
-                    yield Token(TokenKind.OPERATOR, id_str, None, pos)
-                elif id_str in BUILTIN_UNARY_OP:
+                if id_str in (BUILTIN_OP, BUILTIN_UNARY_OP):
                     yield Token(TokenKind.OPERATOR, id_str, None, pos)
                 elif get_keyword(id_str):
                     yield Token(get_keyword(id_str), id_str, None, pos)
@@ -162,10 +171,10 @@ class Lexer(object):
                     yield Token(TokenKind.IDENTIFIER, id_str, vartype, pos)
 
             # Number
-            elif self.lastchar.isdigit():
+            elif is_digit(self.lastchar):
                 num_str = []
-                while self.lastchar and (self.lastchar.isdigit()
-                                         or self.lastchar in '.bBiIUufF_'):
+                while self.lastchar and (is_digit(self.lastchar)
+                                         or self.lastchar in ('.','b','B','i','I','U','u','f','F','_')):
                     if self.lastchar == '_':
                         self._advance()
                         continue
@@ -239,7 +248,7 @@ class Lexer(object):
             # Comment
             elif self.lastchar == Puncs.HASH_SIGN:
                 self._advance()
-                while self.lastchar and self.lastchar not in ['\r', '\n']:
+                while self.lastchar and self.lastchar not in ('\r', '\n'):
                     self._advance()
             elif self.lastchar in Puncs.ALL:
                 yield Token(TokenKind.PUNCTUATOR, self.lastchar, None, pos)
