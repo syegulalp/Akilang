@@ -120,10 +120,10 @@ class Repl():
 
     def reset(self, *a):
         reload(parsing)
-        self.executor.reset()
-        print("Interpreting engine reset")
         self.history = []
         print("Command history cleared")
+        self.executor.reset()
+        print("Interpreting engine reset")        
         self.last_file = None
 
     def version(self, *a):
