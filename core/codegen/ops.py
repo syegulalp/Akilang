@@ -229,12 +229,12 @@ class Ops():
 
             # Pointer equality
 
-            elif isinstance(vartype, ir.PointerType):
+            elif vartype.is_pointer:
                 # TODO: use vartype.is_obj_ptr() to determine
                 # if this is a complex object that needs to invoke
                 # its __eq__ method, but this is fine for now
                 signed_op = self.builder.icmp_unsigned
-                if isinstance(rhs.type, ir.PointerType):
+                if rhs.type.is_pointer:
                     if node.op == Op.EQ:
                         x = signed_op('==', lhs, rhs, 'eqptrop')
                         x.type = self.vartypes.bool

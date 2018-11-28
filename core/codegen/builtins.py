@@ -27,9 +27,11 @@ class Builtins():
         '''
         Determines if a given item is a pointer or object.
         '''
-        if not isinstance(obj.type, ir.PointerType):
-            raise CodegenError('Parameter must be a pointer or object',
-                               node.args[0].position)
+        if not obj.type.is_pointer:
+            raise CodegenError(
+                'Parameter must be a pointer or object',
+                node.args[0].position
+            )
 
     def _get_obj_noload(self, node, arg=None, ptr_check=True):
         '''
@@ -62,7 +64,7 @@ class Builtins():
                 # header
                 self._i32(0),
                 # ptr to mem
-                self._i32(1),
+                self._i32(self.vartypes._header.DATA_PTR),
             ]
         )
 
@@ -286,9 +288,8 @@ class Builtins():
         Returns the underlying C-style data element
         for an object with a pointer to the data.
         '''
-
+        
         self._check_arg_length(node)
-
         convert_from = self._codegen(node.args[0])
 
         if isinstance(
@@ -325,10 +326,9 @@ class Builtins():
         '''
         Returns a u_mem ptr to anything
         '''
+
         node = self._if_unsafe(node)
-
         self._check_arg_length(node)
-
         address_of = self._codegen(node.args[0])
 
         if len(node.args) > 1:
@@ -342,8 +342,8 @@ class Builtins():
         '''
         Returns an unsigned value that is the address of the object in memory.
         '''
-        self._check_arg_length(node)
 
+        self._check_arg_length(node)
         address_of = self._get_obj_noload(node)
         return self.builder.ptrtoint(address_of, self.vartypes.u_size)
 
@@ -354,8 +354,8 @@ class Builtins():
         '''
         Dereferences a pointer to a primitive, like an int.
         '''
-        self._check_arg_length(node)
 
+        self._check_arg_length(node)
         ptr = self._get_obj_noload(node)
         ptr2 = self.builder.load(ptr)
 
@@ -376,7 +376,6 @@ class Builtins():
         '''
 
         self._check_arg_length(node)
-
         expr = self._get_obj_noload(node)
 
         if expr.type.is_obj_ptr():
@@ -424,8 +423,8 @@ class Builtins():
         Ignores signing.
         Will truncate bitwidths.
         '''
-        self._check_arg_length(node, 2)
 
+        self._check_arg_length(node, 2)
         cast_from = self._codegen(node.args[0])
         cast_to = self._codegen(node.args[1], False)
 
@@ -437,7 +436,7 @@ class Builtins():
 
             # If we're casting FROM a pointer...
 
-            if isinstance(cast_from.type, ir.PointerType):
+            if cast_from.type.is_pointer:
 
                 # it can't be an object pointer (for now)
                 if cast_from.type.is_obj_ptr() and not self._if_unsafe(node):
@@ -445,7 +444,7 @@ class Builtins():
 
                 # but it can be cast to another pointer
                 # as long as it's not an object
-                if isinstance(cast_to, ir.PointerType):
+                if cast_to.is_pointer:
                     if cast_to.is_obj_ptr() and not self._if_unsafe(node):
                         raise cast_exception
                     op = self.builder.bitcast
@@ -464,7 +463,7 @@ class Builtins():
 
             # If we're casting TO a pointer ...
 
-            if isinstance(cast_to, ir.PointerType):
+            if cast_to.is_pointer:
 
                 # it can't be from anything other than an int
                 if not isinstance(cast_from.type, ir.IntType):
@@ -519,7 +518,6 @@ class Builtins():
         '''
 
         self._check_arg_length(node, 2)
-
         convert_from = self._codegen(node.args[0])
         convert_to = self._codegen(node.args[1], False)
 
@@ -538,7 +536,7 @@ class Builtins():
 
             # Convert from/to a pointer is not allowed
 
-            if isinstance(convert_from.type, ir.PointerType) or isinstance(convert_to, ir.PointerType):
+            if convert_from.type.is_pointer or convert_to.is_pointer:
                 convert_exception.msg += '\n(Converting from or to pointers is not allowed; use "cast" instead)'
                 raise convert_exception
 
