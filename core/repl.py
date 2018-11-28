@@ -45,12 +45,11 @@ preceded by a dot sign:
     .about|ab     : About this program.
     .compile|cp   : Compile current module to executable.
     .dump|dp      : Dump current module to console.
-    .dumpfile|df  : Dump current module to .ll file.
     .exit|quit|stop|q
                   : Stop and exit the program.
     .export|ex <filename>
                   : Dump current module to file in LLVM assembler format.
-                  : Uses dump.ll in current directory as default.
+                  : Uses output.ll in current directory as default.
     .help|.       : Show this message.
     .rerun|..     : Reload the Python code and restart the REPL. 
     .rl[c|r]      : Reset the interpreting engine and reload the last .aki
@@ -97,8 +96,6 @@ class Repl():
             '': self.print_usage,
             'dump': self.dump_module,
             'dp': self.dump_module,
-            'dumpfile': self.dump_module_to_file,
-            'df': self.dump_module_to_file,
             'compile': self.compile_module,
             'cp': self.compile_module,
             'export': self.export_module,
@@ -191,13 +188,6 @@ class Repl():
 
         print(f'{len(output)} bytes written to {filename}')
 
-    def dump_module_to_file(self, *a):
-        output = str(self.executor.codegen.module)
-        filename = f'{paths["dump_dir"]}\\dump.ll'
-        with open(filename, 'w') as file:
-            file.write(output)
-        print(f'{len(output)} bytes written to {filename}')
-
     def load_command(self, command):
         if command[-1] == '.':
             command += 'aki'
@@ -206,10 +196,19 @@ class Repl():
                 f = file.read()
                 print(f'{command} read in ({len(f)} bytes)')
                 self.last_file = command
+
                 start_time = perf_counter()
                 self.print_eval(f)
                 finish_time = perf_counter()-start_time
                 print(f"Compile time: {finish_time:.3f}s")
+
+                # import cProfile
+                # cProfile.runctx('self.print_eval(f)', globals(),
+                #         locals(), 'main.profile')
+                # with open('stats.txt', 'w') as stream:
+                #     import pstats
+                #     stats = pstats.Stats('main.profile', stream=stream)
+                #     stats.sort_stats('calls').print_stats()
 
         except (FileNotFoundError, OSError):
             errprint("File or command not found: " + command)
