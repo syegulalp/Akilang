@@ -13,6 +13,7 @@ from core.vartypes import generate_vartypes
 from core.ast_module import Function, Prototype, Do
 
 from time import perf_counter
+import os
 
 Result = namedtuple("Result", ['value', 'ast', 'rawIR', 'optIR', 'time'])
 
@@ -45,6 +46,9 @@ class AkilangEvaluator(object):
     '''
 
     def __init__(self, use_default_basiclib=False, basiclib_dir=None, basiclib_file=None, vartypes=None):
+
+        self.cached_lib = []
+
         if use_default_basiclib:
             from core.repl import config
             cfg = config()
@@ -68,12 +72,15 @@ class AkilangEvaluator(object):
         self.basiclib_file = basiclib_file
         self.target = llvm.Target.from_default_triple()
         self.reset()
+        
+        
 
     def load_file(self, f):
         try:
             with open(f) as file:
-                for _ in self.eval_generator(file.read()):
-                    pass
+                buf = file.read()
+                self.cached_lib.append(buf)
+                self.eval_all(buf)
         except (FileNotFoundError, ParseError, CodegenError) as err:
             print(
                 colored(f"Could not load basic library: {err}", 'red'),
@@ -82,8 +89,11 @@ class AkilangEvaluator(object):
             raise err
 
     def reset(self, history=[]):
-        import os
         self._reset_base()
+        if self.cached_lib:
+            for _ in self.cached_lib:
+                self.eval_all(_)
+            return
 
         if self.basiclib_dir:
 
@@ -123,6 +133,7 @@ class AkilangEvaluator(object):
                     colored("Could not run history:", 'red'),
                     self.basiclib_file)
                 self._reset_base()
+        
 
     def _reset_base(self):
         self.codegen = LLVMCodeGenerator(vartypes=self.vartypes)
