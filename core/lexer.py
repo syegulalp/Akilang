@@ -161,7 +161,7 @@ class Lexer(object):
                     self._advance()
                 id_str = ''.join(id_str)
 
-                if id_str in (BUILTIN_OP, BUILTIN_UNARY_OP):
+                if id_str in BUILTIN_OP or id_str in BUILTIN_UNARY_OP:
                     yield Token(TokenKind.OPERATOR, id_str, None, pos)
                 elif get_keyword(id_str):
                     yield Token(get_keyword(id_str), id_str, None, pos)
