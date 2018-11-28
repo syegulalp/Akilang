@@ -22,11 +22,46 @@ class AkiObj:
 class AkiInt(ir.IntType):    
     is_obj = False
 
+    _ctype = {
+        'u_size': ctypes.c_voidp,
+        'u_mem': ctypes.c_uint8,
+        True: {
+            1: ctypes.c_bool,
+            8: ctypes.c_byte,
+            16: ctypes.c_short,
+            32: ctypes.c_long,
+            64: ctypes.c_longlong
+        },
+        False: {
+            1: ctypes.c_bool,
+            8: ctypes.c_ubyte,
+            16: ctypes.c_short,
+            32: ctypes.c_ulong,
+            64: ctypes.c_ulonglong
+        }
+    }
+
+    @property
+    def c_type(self):
+        if self.v_id in self._ctype:
+            return self._ctype[self.v_id]
+        return self._ctype[self.signed][self.width]    
+
 
 class AkiFloat:
     signed=True
     is_obj=False
     p_fmt = '%f'
+    
+    _ctype = {
+        'f16':ctypes.c_float,
+        'f32':ctypes.c_double,
+        'f64':ctypes.c_longdouble
+    }
+
+    @property
+    def c_type(self):
+        return self._ctype[self.v_id]
 
 
 class Bool(AkiInt):
@@ -38,7 +73,6 @@ class Bool(AkiInt):
     def __new__(cls):
         instance = super().__new__(cls, 1, False, True)
         instance.__class__ = Bool
-        
         return instance
 
 class SignedInt(AkiInt):
@@ -79,7 +113,7 @@ class Float64(AkiFloat, ir.DoubleType):
         return instance
 
 
-class Array(ir.ArrayType):
+class Array(AkiObj, ir.ArrayType):
     '''
     Type for raw C arrays.
     '''
@@ -362,13 +396,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     # TODO: I think we can just refer to them directly
     _vartypes._arrayclass = ArrayClass
     _vartypes._carray = Array
-
-    # TODO: don't need this anymore?
     _vartypes._str = type(Str)
-
-    # TODO: this should be moved back into the underlying types?
-    _vartypes.f32.c_type = ctypes.c_double
-    _vartypes.f64.c_type = ctypes.c_longdouble
 
     _vartypes.func.is_obj = True
 

@@ -1,13 +1,10 @@
-from llvmlite.ir.types import PointerType, Type
 import llvmlite.ir as ir
 
 import ctypes
 
+_Type = ir.types.Type
 
 class MyType():
-    v_id = None
-    is_obj = None
-
     def is_func_ptr(self):
         '''
         Reports whether or not a given type
@@ -58,20 +55,18 @@ class MyType():
             v = f'.{self.v_id}.{_new}'
         return v
 
-ir.types.Type.describe = MyType.describe
-ir.types.Type.is_obj = MyType.is_obj
-ir.types.Type.is_obj_ptr = MyType.is_obj_ptr
-ir.types.Type.is_func_ptr = MyType.is_func_ptr
-ir.types.Type.signature = MyType.signature
-ir.types.Type.del_signature = MyType.del_signature
-ir.types.Type.new_signature = MyType.new_signature
-ir.types.Type.v_id = MyType.v_id
+for k,v in MyType.__dict__.items():
+    if not k.startswith('__'):
+        setattr(_Type,k,v)
 
-ir.types.Type.post_new_bitcast = lambda *a, **ka: None
-ir.types.Type.del_as_ptr = False
+_Type.is_obj = None
+_Type.v_id = None
+_Type.del_as_ptr = False
+
+_Type.post_new_bitcast = lambda *a, **ka: None
 
 
-class _PointerType(PointerType):
+class _PointerType(ir.types.PointerType):
     def __init__(self, *a, **ka):
         v_id = ka.pop('v_id', '')
         signed = ka.pop('signed', '')
@@ -88,10 +83,8 @@ class _PointerType(PointerType):
 
 
 ir.types.PointerType = _PointerType
-ir.PointerType = _PointerType
 
 Old_IntType = ir.types.IntType
-
 
 class _IntType(Old_IntType):
     """
@@ -99,34 +92,6 @@ class _IntType(Old_IntType):
     """
     null = '0'
     _instance_cache = {}
-
-    _unsigned_ctype = {
-        1: ctypes.c_bool,
-        8: ctypes.c_ubyte,
-        16: ctypes.c_short,
-        32: ctypes.c_ulong,
-        64: ctypes.c_ulonglong
-    }
-    _signed_ctype = {
-        1: ctypes.c_bool,
-        8: ctypes.c_byte,
-        16: ctypes.c_short,
-        32: ctypes.c_long,
-        64: ctypes.c_longlong
-    }
-
-    @property
-    def c_type(self):
-
-        if self.v_id == 'u_size':
-            return ctypes.c_voidp
-        if self.v_id == 'u_mem':
-            return ctypes.c_uint8
-
-        if self.signed:
-            return self._signed_ctype[self.width]
-        else:
-            return self._unsigned_ctype[self.width]
 
     def __new__(cls, bits, force=False, signed=True, v_id=None):
         signature = (bits, signed, v_id)
