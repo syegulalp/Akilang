@@ -1,5 +1,5 @@
 from core.ast_module import Var, Binary, Variable, Number
-from core.vartypes import SignedInt, ArrayClass
+from core.vartypes import SignedInt, AkiArray
 from core.errors import CodegenError, ParseError, BlockExit
 from core.tokens import Builtins, Dunders, Builtin
 from core.mangling import mangle_types
@@ -99,7 +99,7 @@ class ControlFlow():
             t0 = returnval.type.pointee
             t1 = returntype.pointee
 
-            if not (isinstance(t0, ArrayClass) and isinstance(t1, ArrayClass)):
+            if not (isinstance(t0, AkiArray) and isinstance(t1, AkiArray)):
                 raise BlockExit
 
             if t0.arr_type == t1.arr_type:
@@ -687,7 +687,7 @@ class ControlFlow():
             try:
                 t0 = type0.pointee
                 t1 = type1.pointee
-                if isinstance(t0, ArrayClass) and isinstance(t1, ArrayClass):
+                if isinstance(t0, AkiArray) and isinstance(t1, AkiArray):
                     if t0.arr_type == t1.arr_type:
                         call_args[x] = self.builder.bitcast(
                             call_args[x],

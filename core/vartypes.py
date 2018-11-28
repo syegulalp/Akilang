@@ -113,7 +113,7 @@ class Float64(AkiFloat, ir.DoubleType):
         return instance
 
 
-class Array(AkiObj, ir.ArrayType):
+class AkiCArray(AkiObj, ir.ArrayType):
     '''
     Type for raw C arrays.
     '''
@@ -126,7 +126,7 @@ class Array(AkiObj, ir.ArrayType):
         self.as_pointer = make_type_as_ptr(self)
 
 
-class CustomType:
+class AkiCustomType:
     def __new__(cls, name, types, v_types):
         instance = ir.global_context.get_identified_type('.class.' + name)
 
@@ -142,7 +142,7 @@ class CustomType:
         return instance
 
 
-class ArrayClass(AkiObj, ir.LiteralStructType):
+class AkiArray(AkiObj, ir.LiteralStructType):
     '''
     Type for arrays whose dimensions are defined at compile time.
     '''
@@ -352,7 +352,6 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         # abstract
         'int': AkiInt,
         'float': AkiFloat,
-        'obj': AkiObj,
 
         # singleton
         'u1': Bool(),
@@ -371,8 +370,8 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         'u_mem': UnsignedInt(_byte_width),
 
         # non-singleton, needs instantiation
-        'carray': Array,
-        'array': ArrayClass,
+        'carray': AkiCArray,
+        'array': AkiArray,
        
         # object types
         'str': Str,
@@ -394,8 +393,8 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     _vartypes._pointer_width = _pointer_width
 
     # TODO: I think we can just refer to them directly
-    _vartypes._arrayclass = ArrayClass
-    _vartypes._carray = Array
+    _vartypes._arrayclass = AkiArray
+    _vartypes._carray = AkiCArray
     _vartypes._str = type(Str)
 
     _vartypes.func.is_obj = True

@@ -2,7 +2,7 @@ import llvmlite.ir as ir
 from core.errors import CodegenError, CodegenWarning
 from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString, Unsafe, Binary, Unary, Array
 from core.mangling import mangle_call
-from core.vartypes import ArrayClass
+from core.vartypes import AkiArray
 
 # pylint: disable=E1101
 
@@ -149,7 +149,7 @@ class Vars():
                         # otherwise, just point to the existing allocation
                         array_element = self._varaddr(previous_node)
 
-                if isinstance(latest.type.pointee, ArrayClass):
+                if isinstance(latest.type.pointee, AkiArray):
                     # manually generate array index lookup
                     latest = self._codegen_ArrayElement(
                         current_node, array_element)

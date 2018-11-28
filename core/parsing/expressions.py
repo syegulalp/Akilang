@@ -6,7 +6,7 @@ from core.ast_module import (
     VariableType, Unsafe, Continue, Try, Raise,
     Pass, FString
 )
-from core.vartypes import CustomType, ArrayClass
+from core.vartypes import AkiCustomType, AkiArray
 from core.errors import ParseError
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Ops, Puncs
@@ -291,7 +291,7 @@ class Expressions():
             for n in accessor.elements:
                 elements.append(int(n.val))
 
-            vartype = ArrayClass(vartype, elements)
+            vartype = AkiArray(vartype, elements)
 
             self._get_next_token()
 
@@ -399,7 +399,7 @@ class Expressions():
             v_types[k] = {'pos': n, 'type': v}
             n += 1
 
-        vartype = CustomType(class_name, types, v_types)
+        vartype = AkiCustomType(class_name, types, v_types)
 
         new_class = Class(class_name, vars, vartype)
 
