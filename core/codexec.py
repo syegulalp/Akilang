@@ -72,14 +72,12 @@ class AkilangEvaluator(object):
         self.basiclib_file = basiclib_file
         self.target = llvm.Target.from_default_triple()
         self.reset()
-        
-        
 
     def load_file(self, f):
         try:
             with open(f) as file:
                 buf = file.read()
-                self.cached_lib.append(buf)
+                #self.cached_lib.append(buf)
                 self.eval_all(buf)
         except (FileNotFoundError, ParseError, CodegenError) as err:
             print(
@@ -90,10 +88,10 @@ class AkilangEvaluator(object):
 
     def reset(self, history=[]):
         self._reset_base()
-        if self.cached_lib:
-            for _ in self.cached_lib:
-                self.eval_all(_)
-            return
+        # if self.cached_lib:
+        #     for _ in self.cached_lib:
+        #         self.eval_all(_)
+        #     return
 
         if self.basiclib_dir:
 
@@ -135,8 +133,8 @@ class AkilangEvaluator(object):
                 self._reset_base()
         
 
-    def _reset_base(self):
-        self.codegen = LLVMCodeGenerator(vartypes=self.vartypes)
+    def _reset_base(self, module_name = None):        
+        self.codegen = LLVMCodeGenerator(vartypes=self.vartypes, module_name = module_name)
 
     def evaluate(self, codestr, options=dict()):
         """Evaluates only the first top level expression in codestr.
@@ -151,7 +149,7 @@ class AkilangEvaluator(object):
         """
         anon_vartype = options.get('anon_vartype', self.vartypes.DEFAULT_TYPE)
 
-        for ast in Parser(anon_vartype=anon_vartype, vartypes=self.vartypes).parse_generator(codestr):
+        for ast in Parser(self.codegen.module, anon_vartype=anon_vartype, vartypes=self.vartypes).parse_generator(codestr):
             yield self._eval_ast(ast, **options)
 
     def eval_all(self, codestr, options=dict()):
