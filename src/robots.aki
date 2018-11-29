@@ -115,10 +115,10 @@ def setup(){
 }
 
 def main(){
-    print ("Robot Attack\n")
+    print ("Robot Attack")
     with var x:i32 {
         loop {
-            print ("Do you need instructions? [y/n/q] > ", end='')
+            print ("\nDo you need instructions? [y/n/q] > ", end='')
             x=inkey()
             match x {
                 121: {x=1 break}
