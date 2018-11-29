@@ -5,7 +5,7 @@ from functools import lru_cache
 
 import llvmlite.ir as ir
 
-from core.tokens import Token, TokenKind, ESCAPES, Puncs
+from core.tokens import Token, TokenKind, ESCAPES, Puncs, Builtins
 
 @lru_cache()
 def is_al_num(_):
@@ -163,6 +163,8 @@ class Lexer(object):
 
                 if id_str in BUILTIN_OP or id_str in BUILTIN_UNARY_OP:
                     yield Token(TokenKind.OPERATOR, id_str, None, pos)
+                elif id_str in Builtins:
+                    yield Token(TokenKind.IDENTIFIER, id_str, vartype, pos)
                 elif get_keyword(id_str):
                     yield Token(get_keyword(id_str), id_str, None, pos)
                 elif id_str in VarTypes:

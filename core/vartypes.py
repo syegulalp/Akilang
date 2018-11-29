@@ -270,19 +270,19 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     # Object
 
-    class AkiObjHeader(AkiObj, ir.IdentifiedStructType,):
+    class AkiBox(AkiObj, ir.IdentifiedStructType):
         pass
     
-    Obj = ir.global_context.get_identified_type('.obj.')
-    Obj.__class__ = AkiObjHeader
-    Obj.elements = (Header,
+    Box = ir.global_context.get_identified_type('.box.')
+    Box.__class__ = AkiBox
+    Box.elements = (Header,
                     # ir.IntType(_byte_width)
                     )
-    Obj.v_id = 'obj'
-    Obj.is_obj = True
-    Obj.signed = False
-    Obj.p_fmt = None
-    Obj.as_pointer = make_type_as_ptr(Obj)
+    Box.v_id = 'box'
+    Box.is_obj = True
+    Box.signed = False
+    Box.p_fmt = None
+    Box.as_pointer = make_type_as_ptr(Box)
 
     # how this works:
     # Header element 2 contains the enum descriptor.
@@ -357,6 +357,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         # abstract
         'int': AkiInt,
         'float': AkiFloat,
+        'obj': Header,
 
         # singleton
         'u1': Bool(),
@@ -380,7 +381,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
        
         # object types
         'str': Str,
-        'obj': Obj,
+        'box': Box,
 
         # function type
         'func': ir.FunctionType,

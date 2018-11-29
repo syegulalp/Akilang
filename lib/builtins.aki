@@ -27,38 +27,38 @@ def c_str_to_int(my_str:str) :i32 pass
 
 # Incr and decr refcount
 
-def '.obj..__incr__'(my_obj: obj) {
-    var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
-    var f2 = c_deref(f1)
-    var f3 = f2+=1U
-    unsafe c_ptr_mod(f1, f3)
-    0
-}
+# def '.obj..__incr__'(my_obj: obj) {
+#     var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
+#     var f2 = c_deref(f1)
+#     var f3 = f2+=1U
+#     unsafe c_ptr_mod(f1, f3)
+#     0
+# }
 
-def '.obj..__decr__'(my_obj: obj) {
-    var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
-    var f2 = c_deref(f1)
-    var f3:u64
-    when f2 > 0U then f3 = f2-=1U
-    unsafe c_ptr_mod(f1, f3)
-    0
-}
+# def '.obj..__decr__'(my_obj: obj) {
+#     var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
+#     var f2 = c_deref(f1)
+#     var f3:u64
+#     when f2 > 0U then f3 = f2-=1U
+#     unsafe c_ptr_mod(f1, f3)
+#     0
+# }
 
-def '.obj.setobjdata'(my_obj:obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem):obj {
+def '.obj.setobjdata'(my_obj: obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem): obj {
     # Insert the length
-    var len_ptr = c_gep(my_obj,0 ,DATA_SIZE)
+    var len_ptr = c_gep(my_obj,DATA_SIZE)
     unsafe c_ptr_mod(len_ptr, obj_len)
 
     # the object data is malloc'd
-    var obj_data_ptr = c_gep(my_obj,0, OBJ_MALLOC)
+    var obj_data_ptr = c_gep(my_obj, OBJ_MALLOC)
     unsafe c_ptr_mod(obj_data_ptr, malloc_1)
 
     # the object itself is malloc'd
-    var h_data_ptr = c_gep(my_obj,0, HEADER_MALLOC)
+    var h_data_ptr = c_gep(my_obj, HEADER_MALLOC)
     unsafe c_ptr_mod(h_data_ptr, malloc_2)
 
     # Point to the data
-    var data_ptr = c_gep(my_obj,0, OBJ_PTR)
+    var data_ptr = c_gep(my_obj, OBJ_PTR)
     unsafe c_ptr_mod(data_ptr, my_data_ptr)
 
     return my_obj
@@ -146,7 +146,7 @@ def '.object.str.__new__'(my_bool: bool):str {
 
 
 # TODO: placeholder
-def '.object.obj.__del__'(my_obj: obj):bool {    
+def '.object.box.__del__'(my_obj: box):bool {    
     return True
     # only the box object itself should be deleted?
     # need to unpack the original object?

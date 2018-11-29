@@ -16,7 +16,7 @@ class Builtins_boxes():
         if type(box_ptr) == ir.AllocaInstr:
             box_ptr = self.builder.load(box_ptr)
 
-        if not box_ptr.type == self.vartypes.obj.as_pointer():
+        if not box_ptr.type == self.vartypes.box.as_pointer():
             raise CodegenError(
                 "Not a boxed value",
                 node.args[0].position
@@ -260,7 +260,7 @@ class Builtins_boxes():
         # Allocate space for the object wrapper
         obj_alloc_ptr = self._codegen(
             Call(node.position, 'c_obj_alloc',
-                 [VariableType(node.position, self.vartypes.obj)]
+                 [VariableType(node.position, self.vartypes.box)]
                  )
         )
 
