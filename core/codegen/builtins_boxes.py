@@ -11,10 +11,16 @@ class Builtins_boxes():
         Determine if a given variable is a container.
         '''
 
-        box_ptr = self._get_obj_noload(node, arg=0)
+        # I don't think this is needed anymore,
+        # since we don't need to know anything about
+        # the variable holding the box here
 
-        if type(box_ptr) == ir.AllocaInstr:
-            box_ptr = self.builder.load(box_ptr)
+        #box_ptr = self._get_obj_noload(node, arg=0)
+        
+        # if isinstance(box_ptr, ir.AllocaInstr):
+        #     box_ptr = self.builder.load(box_ptr)
+
+        box_ptr = self._codegen(node.args[0])
 
         if not box_ptr.type == self.vartypes.box.as_pointer():
             raise CodegenError(

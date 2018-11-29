@@ -37,6 +37,8 @@ class Builtins():
         '''
         Returns a pointer (or variable reference) to a codegenned object,
         but don't load from the pointer.
+        This is used when we want to work with the variable reference,
+        for instance to get object tracking data.
         '''
         if not arg:
             arg = node.args[0]
@@ -48,6 +50,7 @@ class Builtins():
 
         if ptr_check:
             self._check_pointer(codegen, node)
+        
         return codegen
 
     def _extract_data_ptr(self, convert_from, node):
