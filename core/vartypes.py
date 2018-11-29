@@ -186,12 +186,19 @@ class AkiArray(AkiObj, ir.LiteralStructType):
 
         return obj
 
+class AkiHeader(AkiObj, ir.IdentifiedStructType):
+    pass
+
+class AkiBox(AkiObj, ir.IdentifiedStructType):
+    pass
+
+class AkiStr(AkiObj, ir.IdentifiedStructType):
+    v_id='str'
+    is_obj=True
+    p_fmt = '%s'
 
 _default_platform_module = ir.Module()
 _default_platform_vartypes = {}
-
-# TODO: convert this all into a class, probably for the best
-
 
 def generate_vartypes(module=_default_platform_module, bytesize=8):
 
@@ -217,21 +224,8 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     U_MEM = UnsignedInt(_byte_width)
     U_SIZE = UnsignedInt(_pointer_width)
 
-    # create universal object header
-    # the first element in this structure:
 
-    # [[1,2,3,4,5][6]]
-    # 1: length of data element
-    # 2: pointer to data (if stored externally)
-    # 3: refcount (not used yet)
-    # 4: is item pointed to by element 1 malloc'?
-    # 5: is this object itself malloc'd?
-    # 6: actual object data (if any)
-
-    class AkiHeader(AkiObj, ir.IdentifiedStructType):
-        pass
-
-    Header = ir.global_context.get_identified_type('.object_header.')    
+    Header = ir.global_context.get_identified_type('.object_header.')
     Header.__class__ = AkiHeader
     Header.elements = (
         # total length of data element in bytes as u64
@@ -268,10 +262,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     # and any calls will be optimized out to constants anyway
     # need to see if the .initializer property works for runtime
 
-    # Object
-
-    class AkiBox(AkiObj, ir.IdentifiedStructType):
-        pass
+    # Box 
     
     Box = ir.global_context.get_identified_type('.box.')
     Box.__class__ = AkiBox
@@ -328,22 +319,10 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     # create objects dependent on the ABI size
 
-    class AkiStr(AkiObj, ir.IdentifiedStructType):
-        v_id='str'
-        is_obj=True
-        p_fmt = '%s'
-
     Str = ir.global_context.get_identified_type('.object.str')
     Str.__class__ = AkiStr
     Str.elements = (Header,)
     Str.as_pointer = make_type_as_ptr(Str)
-
-    #Str.v_id = 'str'
-    #Str.is_obj = True
-    #Str.signed = False
-    #Str.ext_ptr = UnsignedInt(8, True).as_pointer()
-    #Str.p_fmt = '%s'
-    
 
     # Err = ir.global_context.get_identified_type('.err.')
     # Err.elements = (Header,
