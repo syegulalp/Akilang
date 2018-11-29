@@ -48,6 +48,7 @@ class AkilangEvaluator(object):
     def __init__(self, use_default_basiclib=False, basiclib_dir=None, basiclib_file=None, vartypes=None):
 
         self.cached_lib = []
+        self.codegen = None
 
         if use_default_basiclib:
             from core.repl import config
@@ -133,7 +134,7 @@ class AkilangEvaluator(object):
                 self._reset_base()
         
 
-    def _reset_base(self, module_name = None):        
+    def _reset_base(self, module_name = None):
         self.codegen = LLVMCodeGenerator(vartypes=self.vartypes, module_name = module_name)
 
     def evaluate(self, codestr, options=dict()):
