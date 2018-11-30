@@ -1,7 +1,7 @@
 from core.lexer import TokenKind
 from core.ast_module import (
     Array, Const, Uni, String, Function, Prototype, Number,
-    Variable, DEFAULT_TYPE, DEFAULT_PREC, Unary, Pragma, ItemList
+    Variable, DEFAULT_PREC, Unary, Pragma, ItemList
 )
 from core.operators import UNASSIGNED, set_binop_info, Associativity
 from core.errors import ParseError
@@ -306,7 +306,7 @@ class Toplevel():
                 Variable(
                     position,
                     identifier,
-                    avartype if avartype is not None else DEFAULT_TYPE,
+                    avartype if avartype is not None else self.vartypes._DEFAULT_TYPE,
                     None,
                     default_value
                 )

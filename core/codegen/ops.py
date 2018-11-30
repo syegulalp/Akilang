@@ -3,7 +3,7 @@ from core.errors import CodegenError, BlockExit
 from core.operators import BUILTIN_UNARY_OP
 from core.ast_module import Binary, Number, If
 from core.mangling import mangle_args
-from core.vartypes import VarTypes, Str
+from core.vartypes import VarTypes
 from core.tokens import Ops as Op
 
 # pylint: disable=E1101

@@ -190,12 +190,16 @@ class AkiHeader(AkiObj, ir.IdentifiedStructType):
     pass
 
 class AkiBox(AkiObj, ir.IdentifiedStructType):
-    pass
+    v_id = 'box'
+    is_obj = True
+    signed = False
+    p_fmt = None
 
 class AkiStr(AkiObj, ir.IdentifiedStructType):
     v_id='str'
     is_obj=True
     p_fmt = '%s'
+
 
 _default_platform_module = ir.Module()
 _default_platform_vartypes = {}
@@ -223,7 +227,6 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     U_MEM = UnsignedInt(_byte_width)
     U_SIZE = UnsignedInt(_pointer_width)
-
 
     Header = ir.global_context.get_identified_type('.object_header.')
     Header.__class__ = AkiHeader
@@ -269,10 +272,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     Box.elements = (Header,
                     # ir.IntType(_byte_width)
                     )
-    Box.v_id = 'box'
-    Box.is_obj = True
-    Box.signed = False
-    Box.p_fmt = None
+
     Box.as_pointer = make_type_as_ptr(Box)
 
     # how this works:
@@ -358,8 +358,10 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         'carray': AkiCArray,
         'array': AkiArray,
        
-        # object types
+        # object type, not instantiated
         'str': Str,
+
+        # object type, instantiation by way of builtin
         'box': Box,
 
         # function type
@@ -414,5 +416,3 @@ VarTypes = generate_vartypes()
 
 DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
 DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
-
-Str = VarTypes.str

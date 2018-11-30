@@ -1,5 +1,5 @@
 from collections import namedtuple
-from core.vartypes import DEFAULT_TYPE, VarTypes
+from core.vartypes import VarTypes
 
 import llvmlite.ir as ir
 
