@@ -439,7 +439,8 @@ class Vars():
         # start with zero initializers
         if node_init is None:
             if node_var.vartype.is_obj_ptr():
-                if isinstance(node_var.vartype.pointee, ir.FunctionType):
+                #if isinstance(node_var.vartype.pointee, ir.FunctionType):
+                if isinstance(node_var.vartype.pointee, self.vartypes.func):
                     value = self._codegen(node_var)
                 else:
                     value = self._alloca('obj', node_var.vartype.pointee)

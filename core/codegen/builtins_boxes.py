@@ -327,7 +327,8 @@ class Builtins_boxes():
             type_obj = self._codegen(type_obj).type
 
         if type_obj in (
-            ir.FunctionType,
+            #ir.FunctionType,
+            self.vartypes.func,
             self.vartypes.carray,
             self.vartypes.array
         ):

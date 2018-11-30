@@ -94,7 +94,8 @@ class Toplevel():
         if node.vartype is None:
             node.vartype = self.vartypes._DEFAULT_TYPE
 
-        functype = ir.FunctionType(
+        #functype = ir.FunctionType(
+        functype = self.vartypes.func(
             node.vartype,
             vartypes+vartypes_with_defaults
         )
