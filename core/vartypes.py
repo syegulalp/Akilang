@@ -148,6 +148,9 @@ class AkiArray(AkiObj, ir.LiteralStructType):
     Type for arrays whose dimensions are defined at compile time.
     '''
 
+    del_id = 'array'
+    del_as_ptr = True
+
     def __init__(self, my_type, elements):
 
         arr_type = my_type
@@ -163,9 +166,7 @@ class AkiArray(AkiObj, ir.LiteralStructType):
             master_type
         )
 
-        self.v_id = f'array_{my_type.v_id}'
-        self.del_id = 'array'
-        self.del_as_ptr = True
+        self.v_id = f'array_{my_type.v_id}'        
         self.as_pointer = make_type_as_ptr(self)
         self.master_type = master_type
         self.arr_type = my_type
