@@ -325,7 +325,7 @@ class Vars():
                 )
 
         const = ir.Constant(
-            self.vartypes._carray(base_vartype, len(node.elements)),
+            self.vartypes.carray(base_vartype, len(node.elements)),
             element_list
         )
 

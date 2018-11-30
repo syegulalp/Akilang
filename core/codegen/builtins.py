@@ -89,7 +89,7 @@ class Builtins():
 
         bc = self.builder.bitcast(
             gep, self.vartypes.u_mem.as_pointer(),
-            '.array.ptr'
+            '.extract.ptr'
         )  # pylint: disable=E1111
 
         return bc
@@ -111,7 +111,7 @@ class Builtins():
 
         bc = self.builder.bitcast(
             gep, self.vartypes.u_mem.as_pointer(),
-            '.array.ptr'
+            '.extract.array'
         )  # pylint: disable=E1111
 
         return bc
@@ -297,7 +297,7 @@ class Builtins():
 
         if isinstance(
             convert_from.type.pointee,
-            self.vartypes._str
+            self.vartypes._strclass
         ):
             return self._extract_data_ptr(
                 convert_from, node
@@ -305,7 +305,7 @@ class Builtins():
 
         elif isinstance(
             convert_from.type.pointee,
-            self.vartypes._carray
+            self.vartypes._carrayclass
         ):
             return self._extract_ptr(
                 convert_from, node

@@ -152,7 +152,7 @@ class AkiArray(AkiObj, ir.LiteralStructType):
 
         arr_type = my_type
         for n in reversed(elements):
-            arr_type = VarTypes._carray(arr_type, n)
+            arr_type = VarTypes.carray(arr_type, n)
 
         master_type = [
             VarTypes._header,
@@ -379,10 +379,9 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     _vartypes._byte_width = _byte_width
     _vartypes._pointer_width = _pointer_width
 
-    # TODO: I think we can just refer to them directly
     _vartypes._arrayclass = AkiArray
-    _vartypes._carray = AkiCArray
-    _vartypes._str = type(Str)
+    _vartypes._carrayclass = AkiCArray
+    _vartypes._strclass = AkiStr
 
     _vartypes.func.is_obj = True
 
@@ -402,9 +401,6 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
             _enum[_] = _vartypes[n]
             _vartypes[n].enum_id = _
 
-    _ += 1
-    _vartypes._arrayclass.enum_id = _
-
     _vartypes._enum = _enum
     _vartypes._enum_count = _
 
@@ -412,7 +408,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     return _vartypes
 
-VarTypes = generate_vartypes()
+# TODO: remove dependency on this in ast_module
+# & above as well - get vartypes from caller
 
-DEFAULT_TYPE = VarTypes._DEFAULT_TYPE
-DEFAULT_RETURN_VALUE = VarTypes.DEFAULT_RETURN_VALUE
+VarTypes = generate_vartypes()

@@ -94,15 +94,13 @@ class Lexer(object):
 
     def tokens(self):
 
-        VarTypes = self.vartypes
+        vartypes = self.vartypes
 
         pos = self.position.copy
 
         while self.lastchar:
 
             vartype = None
-
-            #pos = self.position.copy
 
             # Skip whitespace
             while is_space(self.lastchar):
@@ -151,7 +149,7 @@ class Lexer(object):
                         )
                 new_str = ''.join(new_str)
                 self._advance()
-                yield Token(TokenKind.STRING, new_str, VarTypes.str, pos)
+                yield Token(TokenKind.STRING, new_str, vartypes.str, pos)
 
             # Identifier or keyword, including vartypes
             elif is_alpha(self.lastchar) or self.lastchar == '_':
@@ -167,7 +165,7 @@ class Lexer(object):
                     yield Token(TokenKind.IDENTIFIER, id_str, vartype, pos)
                 elif get_keyword(id_str):
                     yield Token(get_keyword(id_str), id_str, None, pos)
-                elif id_str in VarTypes:
+                elif id_str in vartypes:
                     yield Token(TokenKind.VARTYPE, id_str, None, pos)
                 else:
                     yield Token(TokenKind.IDENTIFIER, id_str, vartype, pos)
@@ -190,13 +188,13 @@ class Lexer(object):
                         num = num[0:-1]
                         num = float(num)
                         if last_num == 'F':
-                            vartype = VarTypes.f64
+                            vartype = vartypes.f64
                         elif last_num == 'f':
-                            vartype = VarTypes.f32
+                            vartype = vartypes.f32
                         else:
                             last_num = None
                     else:
-                        vartype = VarTypes.f64
+                        vartype = vartypes.f64
                         num = float(num)
                     if last_num is None:
                         raise AkiSyntaxError(
@@ -204,45 +202,45 @@ class Lexer(object):
                             pos)
 
                 elif num[-1] == 'F':
-                    vartype = VarTypes.f64
+                    vartype = vartypes.f64
                     num = float(num[0:-1])
 
                 elif num[-1] == 'f':
-                    vartype = VarTypes.f32
+                    vartype = vartypes.f32
                     num = float(num[0:-1])
 
                 elif num[-1] == 'B':
-                    vartype = VarTypes.byte
+                    vartype = vartypes.byte
                     num = num[0:-1 - (num[-2] == '.')]
                     num = int(num)
 
                 elif num[-1] == 'b':
-                    vartype = VarTypes.bool
+                    vartype = vartypes.bool
                     num = num[0:-1]
                     num = int(num)
 
                 elif num[-1] == 'I':
-                    vartype = VarTypes.i64
+                    vartype = vartypes.i64
                     num = num[0:-1]
                     num = int(num)
 
                 elif num[-1] == 'i':
-                    vartype = VarTypes.i32
+                    vartype = vartypes.i32
                     num = num[0:-1]
                     num = int(num)
 
                 elif num[-1] == 'U':
-                    vartype = VarTypes.u64
+                    vartype = vartypes.u64
                     num = num[0:-1]
                     num = int(num)
 
                 elif num[-1] == 'u':
-                    vartype = VarTypes.u32
+                    vartype = vartypes.u32
                     num = num[0:-1]
                     num = int(num)
 
                 else:
-                    vartype = VarTypes.i32
+                    vartype = vartypes.i32
                     num = int(num)
 
                 yield Token(TokenKind.NUMBER, num, vartype, pos)
