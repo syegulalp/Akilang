@@ -188,7 +188,12 @@ class AkiArray(AkiObj, ir.LiteralStructType):
         return obj
 
 class AkiHeader(AkiObj, ir.IdentifiedStructType):
-    pass
+    DATA_SIZE = 0
+    DATA_PTR = 1
+    OBJ_ENUM = 2
+    OBJ_REFCOUNT = 3
+    OBJ_MALLOC = 4
+    HEADER_MALLOC = 5
 
 class AkiBox(AkiObj, ir.IdentifiedStructType):
     v_id = 'box'
@@ -201,6 +206,9 @@ class AkiStr(AkiObj, ir.IdentifiedStructType):
     is_obj=True
     p_fmt = '%s'
 
+
+class AkiFunc(AkiObj, ir.FunctionType):
+    is_obj = True
 
 _default_platform_module = ir.Module()
 _default_platform_vartypes = {}
@@ -229,6 +237,8 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     U_MEM = UnsignedInt(_byte_width)
     U_SIZE = UnsignedInt(_pointer_width)
 
+    _bool = Bool()
+
     Header = ir.global_context.get_identified_type('.object_header.')
     Header.__class__ = AkiHeader
     Header.elements = (
@@ -246,21 +256,16 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
         # flag for whether or not pointed-to obj (by way of element 1) is dynamically allocated (bool)
         # default is 0
-        ir.IntType(1),
+        #ir.IntType(1),
+        _bool,
 
         # flag for whether or not this obj is dynam. alloc.
         # default is also 0
-        ir.IntType(1),
+        #ir.IntType(1),
+        _bool,
     )
 
     Header.packed = True
-
-    Header.DATA_SIZE = 0
-    Header.DATA_PTR = 1
-    Header.OBJ_ENUM = 2
-    Header.OBJ_REFCOUNT = 3
-    Header.OBJ_MALLOC = 4
-    Header.HEADER_MALLOC = 5
 
     # for arrays at compile time, we can encode the dimensions at compile time
     # and any calls will be optimized out to constants anyway
@@ -334,13 +339,15 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     _vartypes = Map({
 
-        # abstract
+        # abstract types
         'int': AkiInt,
         'float': AkiFloat,
         'obj': Header,
 
-        # singleton
-        'u1': Bool(),
+        # scalars
+        # bitwidths universal across platforms
+        'u1': _bool,
+        'bool': _bool,
         'i8': SignedInt(8),
         'i16': SignedInt(16),
         'i32': SignedInt(32),
@@ -352,8 +359,10 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         'f32': Float32(),
         'f64': Float64(),
 
-        'u_size': UnsignedInt(_pointer_width),
-        'u_mem': UnsignedInt(_byte_width),
+        # platform-specific scalars
+        'u_size': U_SIZE, 
+        'u_mem': U_MEM, 
+        'byte': U_MEM,
 
         # non-singleton, needs instantiation
         'carray': AkiCArray,
@@ -366,13 +375,9 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         'box': Box,
 
         # function type
-        'func': ir.FunctionType,
+        'func': AkiFunc,
 
     })
-
-    # add these types in manually, since they just shadow existing ones
-    _vartypes['bool'] = _vartypes.u1
-    _vartypes['byte'] = _vartypes.u8
 
     _vartypes._header = Header
 
@@ -383,8 +388,6 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     _vartypes._arrayclass = AkiArray
     _vartypes._carrayclass = AkiCArray
     _vartypes._strclass = AkiStr
-
-    _vartypes.func.is_obj = True
 
     # set defaults for functions and variables
     _vartypes._DEFAULT_TYPE = _vartypes.i32
