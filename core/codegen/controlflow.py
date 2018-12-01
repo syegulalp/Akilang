@@ -643,9 +643,7 @@ class ControlFlow():
                 ftype = func_to_check
 
                 final_call.decorators = []
-                #final_call.decorators = callee_func.decorators
-
-                # It's not possible to trace decorators across
+                # It's not yet possible to trace decorators across
                 # function pointers
 
             else:

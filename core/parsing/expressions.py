@@ -291,7 +291,7 @@ class Expressions():
             for n in accessor.elements:
                 elements.append(int(n.val))
 
-            vartype = AkiArray(self.vartypes, vartype, elements)
+            vartype = self.vartypes.array(self.vartypes, vartype, elements)
 
             self._get_next_token()
 

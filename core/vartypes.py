@@ -121,7 +121,7 @@ class AkiCArray(AkiObj, ir.ArrayType):
 
     def __init__(self, my_type, my_len):
         super().__init__(my_type, my_len)
-        self.v_id = "array_" + my_type.v_id
+        self.v_id = "carray_" + my_type.v_id
         self.signed = my_type.signed
         self.as_pointer = make_type_as_ptr(self)
 
@@ -162,10 +162,13 @@ class AkiArray(AkiObj, ir.LiteralStructType):
 
         super().__init__(master_type)
 
-        self.v_id = f"array_{my_type.v_id}"
         self.as_pointer = make_type_as_ptr(self)
         self.master_type = master_type
         self.arr_type = my_type
+
+        self.v_id = f"array_{my_type.v_id}"
+
+        set_type_id(vartypes, self)
 
         # I think we need to have the initializer here
 
@@ -204,6 +207,14 @@ class AkiFunc(AkiObj, ir.FunctionType):
     v_id = "func"
     is_obj = True
 
+def set_type_id(vartypes, type_to_check):
+    lookup = vartypes._enum_lookup.get(type_to_check.v_id)
+    if not lookup:
+        vartypes._enum_count +=1
+        type_to_check.enum_id = vartypes._enum_count
+        vartypes._enum_lookup[type_to_check.v_id] = type_to_check
+    else:
+        type_to_check.enum_id = lookup.enum_id
 
 _default_platform_module = ir.Module()
 _default_platform_vartypes = {}
@@ -323,8 +334,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     _vartypes._DEFAULT_RETURN_VALUE = ir.Constant(_vartypes._DEFAULT_TYPE, 0)
 
     # enumerant for type identifiers
-    _enum = {}
-    _enum_lookup = {}
+    _enum = {}    
 
     for _, n in enumerate(_vartypes):
         if not n.startswith("_"):
@@ -333,6 +343,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     _vartypes._enum = _enum
     _vartypes._enum_count = _
+    _vartypes._enum_lookup = {}
 
     _default_platform_vartypes[module.triple] = _vartypes
 
