@@ -312,16 +312,38 @@ class Builtins_boxes():
     def _codegen_Builtins_isinstance(self, node):
 
         self._check_arg_length(node, 2, 2)
-        item_to_check, type_instance = node.args
-        print ()
+        item_to_check = self._codegen_Builtins_type(node.args[0], True).constant
+        type_instance = node.args[1]
+
+        if not isinstance(type_instance, VariableType):
+            raise CodegenError(
+                f'Parameter must be a type descriptor',
+                node.args[1].position
+            )
+
+        result =  item_to_check == type_instance.vartype.enum_id
+
+        # if the result is False, check and see instead if the 
+        # class of one inherits the class of the other
+        # so that, for instance, i32 is an instance of int generally
+
+        return ir.Constant(
+            self.vartypes.bool,
+            result
+        )
+
     
-    def _codegen_Builtins_type(self, node):
+    def _codegen_Builtins_type(self, node, no_check = False):
         '''
         Returns a constant enum that represents a type.
         '''
 
-        self._check_arg_length(node)
-        type_obj = node.args[0]
+        if no_check:
+            type_obj = node
+        else:
+            self._check_arg_length(node)
+            type_obj = node.args[0]
+
 
         # if this is a type, just use its enum
         # otherwise, codegen and extract a type

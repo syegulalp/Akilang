@@ -295,6 +295,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
             # bitwidths universal across platforms
             "u1": _bool,
             "bool": _bool,
+            "i1": _bool,
             "i8": SignedInt(8),
             "i16": SignedInt(16),
             "i32": SignedInt(32),
