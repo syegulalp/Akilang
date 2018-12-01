@@ -1,61 +1,76 @@
-from core.errors import CodegenError, CodegenWarning, ParameterFormatError, AkiSyntaxError
-from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe, VariableType, If
+from core.errors import (
+    CodegenError,
+    CodegenWarning,
+    ParameterFormatError,
+    AkiSyntaxError,
+)
+from core.ast_module import (
+    Variable,
+    Call,
+    Number,
+    String,
+    FString,
+    ItemList,
+    Binary,
+    Unsafe,
+    VariableType,
+    If,
+)
 import llvmlite.ir as ir
 from core.tokens import Ops
 
 # pylint: disable=E1101
 
 
-class Builtins():
-
-    def _if_unsafe(self, node, explanation=''):
+class Builtins:
+    def _if_unsafe(self, node, explanation=""):
         if isinstance(node, Unsafe):
             return node.body
         if not self.allow_unsafe:
             raise AkiSyntaxError(
-                f'Operation must be enclosed in an "unsafe" block{explanation}', node.position)
+                f'Operation must be enclosed in an "unsafe" block{explanation}',
+                node.position,
+            )
         return node
 
     def _check_arg_length(self, node, min_args=1, max_args=1):
         argcount = len(node.args)
-        pos = node.args[argcount-1].position if argcount>0 else node.position
-        if argcount < min_args:            
+        pos = node.args[argcount - 1].position if argcount > 0 else node.position
+        if argcount < min_args:
             raise AkiSyntaxError(
-                f'Too few arguments (expected {min_args}, got {argcount})',
-                pos
+                f"Too few arguments (expected {min_args}, got {argcount})", pos
             )
 
-        if max_args and len(node.args)> max_args:
+        if max_args and len(node.args) > max_args:
             raise AkiSyntaxError(
-                f'Too many arguments (expected {max_args}, got {argcount})',
+                f"Too many arguments (expected {max_args}, got {argcount})",
                 pos
-                #node.args[argcount-1].position
+                # node.args[argcount-1].position
             )
 
     def _check_arg_types(self, node, types):
-        for _,n in enumerate(node.args):
-            if n.type!=types[_]:
+        for _, n in enumerate(node.args):
+            if n.type != types[_]:
                 raise AkiSyntaxError(
-                    f'Argument {_} is the wrong type (expected {types[_].description()}, got {n.type.description()}'
+                    f"Argument {_} is the wrong type (expected {types[_].description()}, got {n.type.description()}"
                 )
 
     def _check_pointer(self, obj, node):
-        '''
+        """
         Determines if a given item is a pointer or object.
-        '''
+        """
         if not obj.type.is_pointer:
             raise CodegenError(
-                'Parameter must be a pointer or object',
-                node.args[0].position
+                "Parameter must be a pointer or object", node.args[0].position
             )
 
     def _get_obj_noload(self, node, arg=None, ptr_check=True):
-        '''
+        """
         Returns a pointer (or variable reference) to a codegenned object,
         but don't load from the pointer.
         This is used when we want to work with the variable reference,
         for instance to get object tracking data.
-        '''
+        """
         if not arg:
             arg = node.args[0]
 
@@ -66,14 +81,14 @@ class Builtins():
 
         if ptr_check:
             self._check_pointer(codegen, node)
-        
+
         return codegen
 
     def _extract_data_ptr(self, convert_from, node):
-        '''
+        """
         Follows the generic u_mem data pointer
         in an object header to the object data
-        '''
+        """
 
         gep = self.builder.gep(
             convert_from,
@@ -84,7 +99,7 @@ class Builtins():
                 self._i32(0),
                 # ptr to mem
                 self._i32(self.vartypes._header.DATA_PTR),
-            ]
+            ],
         )
 
         gep = self.builder.load(gep)
@@ -92,29 +107,23 @@ class Builtins():
         return gep
 
     def _extract_ptr(self, convert_from, node):
-        '''
+        """
         Returns a generic u_mem pointer
         to the first element of an object
-        '''
-        gep = self.builder.gep(
-            convert_from,
-            [
-                self._i32(0),
-            ]
-        )
+        """
+        gep = self.builder.gep(convert_from, [self._i32(0)])
 
         bc = self.builder.bitcast(
-            gep, self.vartypes.u_mem.as_pointer(),
-            '.extract.ptr'
+            gep, self.vartypes.u_mem.as_pointer(), ".extract.ptr"
         )  # pylint: disable=E1111
 
         return bc
 
     def _extract_array(self, convert_from, node):
-        '''
+        """
         Returns a generic u_mem pointer
         to the start of an object's data body
-        '''
+        """
         gep = self.builder.gep(
             convert_from,
             [
@@ -122,12 +131,11 @@ class Builtins():
                 self._i32(0),
                 # ptr to body
                 self._i32(1),
-            ]
+            ],
         )
 
         bc = self.builder.bitcast(
-            gep, self.vartypes.u_mem.as_pointer(),
-            '.extract.array'
+            gep, self.vartypes.u_mem.as_pointer(), ".extract.array"
         )  # pylint: disable=E1111
 
         return bc
@@ -149,8 +157,7 @@ class Builtins():
 
         if v1 is None:
             raise CodegenError(
-                f'Unknown type or class "{vt.name}"',
-                node.args[0].position
+                f'Unknown type or class "{vt.name}"', node.args[0].position
             )
 
         if v1.is_pointer:
@@ -159,11 +166,14 @@ class Builtins():
         sizeof = v1.get_abi_size(self.vartypes._target_data)
 
         call = self._codegen_Call(
-            Call(node.position, 'c_alloc',
-                 [Number(node.position, sizeof, self.vartypes.u_size)]))
+            Call(
+                node.position,
+                "c_alloc",
+                [Number(node.position, sizeof, self.vartypes.u_size)],
+            )
+        )
 
-        b1 = self.builder.bitcast(
-            call, v1.as_pointer())  # pylint: disable=E1111
+        b1 = self.builder.bitcast(call, v1.as_pointer())  # pylint: disable=E1111
 
         if v1.is_obj:
             b2 = self.builder.alloca(b1.type)
@@ -176,9 +186,9 @@ class Builtins():
         return b2
 
     def _codegen_Builtins_c_obj_free(self, node):
-        '''
+        """
         Deallocates memory for an object created with c_obj_alloc.
-        '''
+        """
 
         self._check_arg_length(node)
 
@@ -186,14 +196,15 @@ class Builtins():
 
         if not expr.tracked:
             raise CodegenError(
-                f'"{node.args[0].name}" is not an allocated object', node.args[0].position)
+                f'"{node.args[0].name}" is not an allocated object',
+                node.args[0].position,
+            )
 
         # Mark the variable in question as untracked
         self._set_tracking(expr, None, None, False)
 
         addr = self.builder.load(expr)
-        addr2 = self.builder.bitcast(
-            addr, self.vartypes.u_mem.as_pointer())
+        addr2 = self.builder.bitcast(addr, self.vartypes.u_mem.as_pointer())
 
         # TODO: replace with call to
         # .object.obj.__del__
@@ -203,23 +214,21 @@ class Builtins():
         # ? bitcast to obj wrapper?
         # or just get obj header ptr and use that?
 
-        call = self._codegen_Call(
-            Call(node.position, 'c_free', [addr2])
-        )
+        call = self._codegen_Call(Call(node.position, "c_free", [addr2]))
 
         # TODO: zero after free, automatically
 
         return call
 
     def _codegen_Builtins_c_obj_ref(self, node):
-        '''
+        """
         Returns a typed pointer to the object.
-        '''
+        """
 
         self._check_arg_length(node)
 
         expr = self._get_obj_noload(node)
-        s1 = self._alloca('obj_ref', expr.type)
+        s1 = self._alloca("obj_ref", expr.type)
         self.builder.store(expr, s1)
         return s1
 
@@ -255,7 +264,7 @@ class Builtins():
         # we edit it manually
 
         self._set_tracking(ptr, None, None, False)
-        #ptr.tracked = False
+        # ptr.tracked = False
 
         return ptr
 
@@ -284,12 +293,12 @@ class Builtins():
         return int_val
 
     def _codegen_Builtins_c_size(self, node):
-        '''
+        """
         Returns the size of the object's descriptor in bytes.
         For a string, this is NOT the size of the
         underlying string, but the size of the *structure*
         that describes a string.
-        '''
+        """
         self._check_arg_length(node)
         expr = self._codegen(node.args[0])
 
@@ -303,48 +312,30 @@ class Builtins():
         return ir.Constant(self.vartypes.u_size, s2)
 
     def _codegen_Builtins_c_data(self, node):
-        '''
+        """
         Returns the underlying C-style data element
         for an object with a pointer to the data.
-        '''
-        
+        """
+
         self._check_arg_length(node)
         convert_from = self._codegen(node.args[0])
 
-        if isinstance(
-            convert_from.type.pointee,
-            self.vartypes._strclass
-        ):
-            return self._extract_data_ptr(
-                convert_from, node
-            )
+        if isinstance(convert_from.type.pointee, self.vartypes._strclass):
+            return self._extract_data_ptr(convert_from, node)
 
-        elif isinstance(
-            convert_from.type.pointee,
-            self.vartypes._carrayclass
-        ):
-            return self._extract_ptr(
-                convert_from, node
-            )
+        elif isinstance(convert_from.type.pointee, self.vartypes._carrayclass):
+            return self._extract_ptr(convert_from, node)
 
-        elif isinstance(
-            convert_from.type.pointee,
-            self.vartypes._arrayclass
-        ):
-            return self._extract_array(
-                convert_from, node
-            )
+        elif isinstance(convert_from.type.pointee, self.vartypes._arrayclass):
+            return self._extract_array(convert_from, node)
 
         else:
-            raise CodegenError(
-                f'Error extracting c_data pointer',
-                node.position
-            )
+            raise CodegenError(f"Error extracting c_data pointer", node.position)
 
     def _codegen_Builtins_c_ptr(self, node):
-        '''
+        """
         Returns a u_mem ptr to anything
-        '''
+        """
 
         node = self._if_unsafe(node)
         self._check_arg_length(node, 1, 2)
@@ -358,9 +349,9 @@ class Builtins():
         return self.builder.bitcast(address_of, use_type.as_pointer())
 
     def _codegen_Builtins_c_addr(self, node):
-        '''
+        """
         Returns an unsigned value that is the address of the object in memory.
-        '''
+        """
 
         self._check_arg_length(node)
         address_of = self._get_obj_noload(node)
@@ -370,29 +361,30 @@ class Builtins():
         # c_addr as a pointer to a specific type (the reverse of this)
 
     def _codegen_Builtins_c_deref(self, node):
-        '''
+        """
         Dereferences a pointer to a primitive, like an int.
-        '''
+        """
 
         self._check_arg_length(node)
         ptr = self._get_obj_noload(node)
         ptr2 = self.builder.load(ptr)
 
-        if hasattr(ptr2.type, 'pointee'):
+        if hasattr(ptr2.type, "pointee"):
             ptr2 = self.builder.load(ptr2)
 
-        if hasattr(ptr2.type, 'pointee') and not self._if_unsafe(node):
+        if hasattr(ptr2.type, "pointee") and not self._if_unsafe(node):
             raise CodegenError(
                 f'"{node.args[0].name}" is not a reference to a scalar (use "c_obj_deref" for references to objects instead of scalars, or use "unsafe" to dereference regardless of type)',
-                node.args[0].position)
+                node.args[0].position,
+            )
 
         # XXX: self.builder.load clobbers with core._llvmlite_custom._IntType
         return ptr2
 
     def _codegen_Builtins_c_ref(self, node):
-        '''
+        """
         Returns a typed pointer to a primitive, like an int.
-        '''
+        """
 
         self._check_arg_length(node)
         expr = self._get_obj_noload(node)
@@ -400,15 +392,16 @@ class Builtins():
         if expr.type.is_obj_ptr():
             raise CodegenError(
                 f'"{node.args[0].name}" is not a scalar (use "c_obj_ref" for references to objects instead of scalars)',
-                node.args[0].position)
+                node.args[0].position,
+            )
 
         return expr
 
     def _codegen_Builtins_c_obj_deref(self, node):
-        '''
+        """
         Dereferences a pointer (itself passed as a pointer)
         and returns the object at the memory location.
-        '''
+        """
 
         self._check_arg_length(node)
 
@@ -424,24 +417,18 @@ class Builtins():
         if not isinstance(func_name, String):
             raise CodegenError(
                 f'First argument of "call" must be the name of a function as a string literal',
-                func_name.position
+                func_name.position,
             )
-        
-        return self._codegen(
-            Call(
-                node.position,
-                func_name.val,
-                node.args[1:]
-            )
-        )
-    
+
+        return self._codegen(Call(node.position, func_name.val, node.args[1:]))
+
     def _codegen_Builtins_cast(self, node):
-        '''
+        """
         Cast one data type as another, such as a pointer to a u64,
         or an i8 to a u32.
         Ignores signing.
         Will truncate bitwidths.
-        '''
+        """
 
         self._check_arg_length(node, 2, 2)
         cast_from = self._codegen(node.args[0])
@@ -449,7 +436,8 @@ class Builtins():
 
         cast_exception = CodegenError(
             f'Casting from type "{cast_from.type.describe()}" to type "{cast_to.describe()}" is not supported',
-            node.args[0].position)
+            node.args[0].position,
+        )
 
         while True:
 
@@ -520,8 +508,8 @@ class Builtins():
             else:
                 op = self.builder.trunc
                 break
-                #cast_exception.msg += ' (data would be truncated)'
-                #raise cast_exception
+                # cast_exception.msg += ' (data would be truncated)'
+                # raise cast_exception
 
             raise cast_exception
 
@@ -530,11 +518,11 @@ class Builtins():
         return result
 
     def _codegen_Builtins_convert(self, node):
-        '''
+        """
         Converts data between primitive value types, such as i8 to i32.
         Checks for signing and bitwidth.
         Conversions from or to pointers are not supported here.
-        '''
+        """
 
         self._check_arg_length(node, 2, 2)
         convert_from = self._codegen(node.args[0])
@@ -542,14 +530,17 @@ class Builtins():
 
         convert_exception = CodegenError(
             f'Converting from type "{convert_from.type.describe()}" to type "{convert_to.describe()}" is not supported',
-            node.args[0].position)
+            node.args[0].position,
+        )
 
         while True:
 
             # Conversions from/to an object are not allowed
 
             if convert_from.type.is_obj_ptr() or convert_to.is_obj_ptr():
-                explanation = f'\n(Converting from/to object types will be added later.)'
+                explanation = (
+                    f"\n(Converting from/to object types will be added later.)"
+                )
                 convert_exception.msg += explanation
                 raise convert_exception
 
@@ -568,7 +559,8 @@ class Builtins():
 
                 CodegenWarning(
                     f'Float to integer conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
-                    node.args[0].position).print(self)
+                    node.args[0].position,
+                ).print(self)
 
                 if convert_from.type.signed:
                     op = self.builder.fptosi
@@ -586,7 +578,8 @@ class Builtins():
 
                     CodegenWarning(
                         f'Integer to float conversions ("{convert_from.type.describe()}" to "{convert_to.describe()}") are inherently imprecise',
-                        node.args[0].position).print(self)
+                        node.args[0].position,
+                    ).print(self)
 
                     if convert_from.type.signed:
                         op = self.builder.sitofp
@@ -603,14 +596,16 @@ class Builtins():
                     if convert_from.type.signed and not convert_to.signed:
                         raise CodegenError(
                             f'Signed type "{convert_from.type.describe()}" cannot be converted to unsigned type "{convert_to.describe()}"',
-                            node.args[0].position)
+                            node.args[0].position,
+                        )
 
                     # Don't allow converting to a smaller bitwidth
 
                     if convert_from.type.width > convert_to.width:
                         raise CodegenError(
                             f'Type "{convert_from.type.describe()}" cannot be converted to type "{convert_to.describe()}" without possible truncation',
-                            node.args[0].position)
+                            node.args[0].position,
+                        )
 
                     # otherwise, extend bitwidth to convert
 
@@ -633,8 +628,8 @@ class Builtins():
         format_string = []
         variable_list = []
 
-        spacer = ''
-        separator = '\n'
+        spacer = ""
+        separator = "\n"
 
         # This is a crude, hacky way to implement varargs and kwargs,
         # and it only works on builtins.
@@ -677,8 +672,7 @@ class Builtins():
 
             except ParameterFormatError:
                 raise CodegenError(
-                    f'Parameter must follow the format "<name>=\'value\'"',
-                    n.position
+                    f"Parameter must follow the format \"<name>='value'\"", n.position
                 )
 
         for arg in node.args:
@@ -686,42 +680,28 @@ class Builtins():
             format_string.append(spacer)
 
             if isinstance(arg, String):
-                arg.val = arg.val.replace(r'%', r'%%')
+                arg.val = arg.val.replace(r"%", r"%%")
 
             if not isinstance(arg, FString):
-                arg = FString(
-                    arg.position,
-                    [arg]
-                )
+                arg = FString(arg.position, [arg])
 
             new_format_string, new_variable_list = self._codegen_FString(arg)
 
             format_string += new_format_string
             variable_list += new_variable_list
 
-            spacer = ' '
+            spacer = " "
 
         format_string.append(separator)
 
-        str_to_extract = String(self.vartypes,
-            node.position, ''.join(format_string)
-        )
+        str_to_extract = String(self.vartypes, node.position, "".join(format_string))
 
-        convert = Call(
-            node.position,
-            'c_data',
-            [str_to_extract]
-        )
+        convert = Call(node.position, "c_data", [str_to_extract])
 
         final_vars = [convert] + variable_list
 
         return self._codegen(
-            Call(
-                node.position,
-                'printf',
-                final_vars,
-                self.vartypes.i32
-            )
+            Call(node.position, "printf", final_vars, self.vartypes.i32)
         )
 
         # TODO: use snprintf to create the final string in memory,

@@ -5,37 +5,25 @@ import llvmlite.ir as ir
 # pylint: disable=E1101
 
 
-class Builtins_boxes():
+class Builtins_boxes:
     def _box_check(self, node):
-        '''
+        """
         Determine if a given variable is a container.
-        '''
-
-        # I don't think this is needed anymore,
-        # since we don't need to know anything about
-        # the variable holding the box here
-
-        #box_ptr = self._get_obj_noload(node, arg=0)
-        
-        # if isinstance(box_ptr, ir.AllocaInstr):
-        #     box_ptr = self.builder.load(box_ptr)
+        """
 
         box_ptr = self._codegen(node.args[0])
 
         if not box_ptr.type == self.vartypes.box.as_pointer():
-            raise CodegenError(
-                "Not a boxed value",
-                node.args[0].position
-            )
+            raise CodegenError("Not a boxed value", node.args[0].position)
 
         return box_ptr
 
     def _codegen_Builtins_unbox(self, node):
-        '''
+        """
         Extracts an object of a certain expected type from a container.
         If the wrong type is found, a supplied object of the correct type
         can be substituted.
-        '''
+        """
 
         # TODO: add object tracking along all paths
         # TODO: add box types for user-defined classes, too
@@ -46,8 +34,7 @@ class Builtins_boxes():
 
         if not isinstance(type_to_unwrap, VariableType):
             raise CodegenError(
-                f'Parameter must be a type descriptor',
-                node.args[1].position
+                f"Parameter must be a type descriptor", node.args[1].position
             )
 
         if len(node.args) > 2:
@@ -56,12 +43,13 @@ class Builtins_boxes():
 
             if value_to_substitute.type != type_to_unwrap.vartype:
                 raise CodegenError(
-                    f'Substitute value must be the same type as the expected type',
-                    node.args[2].position
+                    f"Substitute value must be the same type as the expected type",
+                    node.args[2].position,
                 )
         else:
             self._if_unsafe(
-                node, ' ("unbox" without a substitute value requires "unsafe")')
+                node, ' ("unbox" without a substitute value requires "unsafe")'
+            )
             value_to_substitute = None
 
         if type_to_unwrap.vartype.is_pointer:
@@ -73,13 +61,7 @@ class Builtins_boxes():
 
         ptr_to_unwrap = self.builder.gep(
             box_ptr,
-            [
-                self._i32(0),
-                self._i32(0),
-                self._i32(
-                    self.vartypes._header.DATA_PTR
-                )
-            ]
+            [self._i32(0), self._i32(0), self._i32(self.vartypes._header.DATA_PTR)],
         )
 
         unwrap = self.builder.load(ptr_to_unwrap)
@@ -88,43 +70,26 @@ class Builtins_boxes():
 
         type_to_expect = self.builder.gep(
             box_ptr,
-            [
-                self._i32(0),
-                self._i32(0),
-                self._i32(
-                    self.vartypes._header.OBJ_ENUM
-                )
-            ]
+            [self._i32(0), self._i32(0), self._i32(self.vartypes._header.OBJ_ENUM)],
         )
 
         # Allocate space for ptr to return value
 
-        return_ptr = self.builder.alloca(
-            type_to_unwrap.vartype
-        )
+        return_ptr = self.builder.alloca(type_to_unwrap.vartype)
 
         # Check that the expected type is the same
 
         pred = self.builder.icmp_unsigned(
-            '==',
+            "==",
             self.builder.load(type_to_expect),
-            ir.Constant(
-                self.vartypes.u_size,
-                enum_id
-            )
+            ir.Constant(self.vartypes.u_size, enum_id),
         )
 
         if value_to_substitute is None:
 
-            bitcast = self.builder.bitcast(
-                unwrap,
-                type_to_unwrap.vartype.as_pointer()
-            )
+            bitcast = self.builder.bitcast(unwrap, type_to_unwrap.vartype.as_pointer())
 
-            self.builder.store(
-                self.builder.load(bitcast),
-                return_ptr
-            )
+            self.builder.store(self.builder.load(bitcast), return_ptr)
 
         else:
 
@@ -134,14 +99,10 @@ class Builtins_boxes():
                     # This is the default pointer when all is well.
 
                     bitcast = self.builder.bitcast(
-                        unwrap,
-                        type_to_unwrap.vartype.as_pointer()
+                        unwrap, type_to_unwrap.vartype.as_pointer()
                     )
 
-                    self.builder.store(
-                        self.builder.load(bitcast),
-                        return_ptr
-                    )
+                    self.builder.store(self.builder.load(bitcast), return_ptr)
 
                 with otherwise:
 
@@ -149,70 +110,57 @@ class Builtins_boxes():
                     data_malloc = self._codegen(
                         Call(
                             node.position,
-                            'c_alloc',
-                            [ir.Constant(
-                                self.vartypes.u_size,
-                                self._obj_size(value_to_substitute)
-                            )]
+                            "c_alloc",
+                            [
+                                ir.Constant(
+                                    self.vartypes.u_size,
+                                    self._obj_size(value_to_substitute),
+                                )
+                            ],
                         )
                     )
 
                     # bitcast to the appropriate pointer type
                     data_ptr = self.builder.bitcast(
-                        data_malloc,
-                        value_to_substitute.type.as_pointer()
+                        data_malloc, value_to_substitute.type.as_pointer()
                     )
 
                     # store the data in our malloc'd space
-                    self.builder.store(
-                        value_to_substitute,
-                        data_ptr
-                    )
+                    self.builder.store(value_to_substitute, data_ptr)
 
                     # store pointer to data as our return item
 
                     bitcast = self.builder.bitcast(
-                        data_malloc,
-                        type_to_unwrap.vartype.as_pointer()
+                        data_malloc, type_to_unwrap.vartype.as_pointer()
                     )
 
-                    self.builder.store(
-                        self.builder.load(bitcast),
-                        return_ptr
-                    )
+                    self.builder.store(self.builder.load(bitcast), return_ptr)
 
         bitcast_ptr = self.builder.bitcast(
-            return_ptr,
-            type_to_unwrap.vartype.as_pointer()
+            return_ptr, type_to_unwrap.vartype.as_pointer()
         )
 
         return self.builder.load(bitcast_ptr)
 
     def _codegen_Builtins_objtype(self, node):
-        '''
+        """
         Retrieves the type of an object inside a container.
-        '''
+        """
 
         self._check_arg_length(node)
         box_ptr = self._box_check(node)
 
         box_type = self.builder.gep(
             box_ptr,
-            [
-                self._i32(0),
-                self._i32(0),
-                self._i32(
-                    self.vartypes._header.OBJ_ENUM
-                )
-            ]
+            [self._i32(0), self._i32(0), self._i32(self.vartypes._header.OBJ_ENUM)],
         )
 
         return self.builder.load(box_type)
 
     def _codegen_Builtins_box(self, node):
-        '''
+        """
         Place a variable inside a container.
-        '''
+        """
 
         # TODO: a problem raised by this
         # reassignments do not cause the underlying
@@ -245,29 +193,26 @@ class Builtins_boxes():
             enum_id = data_to_convert.type.enum_id
 
         data_malloc = self._codegen(
-            Call(node.position, 'c_alloc',
-                 [ir.Constant(self.vartypes.u_size,
-                              self._obj_size(data_to_convert))]
-                 )
+            Call(
+                node.position,
+                "c_alloc",
+                [ir.Constant(self.vartypes.u_size, self._obj_size(data_to_convert))],
+            )
         )
 
         # bitcast to the appropriate pointer type
-        data_ptr = self.builder.bitcast(
-            data_malloc,
-            data_to_convert.type.as_pointer()
-        )
+        data_ptr = self.builder.bitcast(data_malloc, data_to_convert.type.as_pointer())
 
         # store the data in our malloc'd space
-        self.builder.store(
-            data_to_convert,
-            data_ptr
-        )
+        self.builder.store(data_to_convert, data_ptr)
 
         # Allocate space for the object wrapper
         obj_alloc_ptr = self._codegen(
-            Call(node.position, 'c_obj_alloc',
-                 [VariableType(node.position, self.vartypes.box)]
-                 )
+            Call(
+                node.position,
+                "c_obj_alloc",
+                [VariableType(node.position, self.vartypes.box)],
+            )
         )
 
         # Get object data size
@@ -287,12 +232,7 @@ class Builtins_boxes():
         ):
 
             n_ptr = self.builder.gep(
-                obj_alloc,
-                [
-                    self._i32(0),
-                    self._i32(0),
-                    self._i32(n[1])
-                ]
+                obj_alloc, [self._i32(0), self._i32(0), self._i32(n[1])]
             )
 
             if n[0]:
@@ -300,10 +240,7 @@ class Builtins_boxes():
             else:
                 value = ir.Constant(n[2], n[3])
 
-            self.builder.store(
-                value,
-                n_ptr
-            )
+            self.builder.store(value, n_ptr)
 
         self._set_tracking(obj_alloc)
 
@@ -317,33 +254,27 @@ class Builtins_boxes():
 
         if not isinstance(type_instance, VariableType):
             raise CodegenError(
-                f'Parameter must be a type descriptor',
-                node.args[1].position
+                f"Parameter must be a type descriptor", node.args[1].position
             )
 
-        result =  item_to_check == type_instance.vartype.enum_id
+        result = item_to_check == type_instance.vartype.enum_id
 
-        # if the result is False, check and see instead if the 
+        # if the result is False, check and see instead if the
         # class of one inherits the class of the other
         # so that, for instance, i32 is an instance of int generally
 
-        return ir.Constant(
-            self.vartypes.bool,
-            result
-        )
+        return ir.Constant(self.vartypes.bool, result)
 
-    
-    def _codegen_Builtins_type(self, node, no_check = False):
-        '''
+    def _codegen_Builtins_type(self, node, no_check=False):
+        """
         Returns a constant enum that represents a type.
-        '''
+        """
 
         if no_check:
             type_obj = node
         else:
             self._check_arg_length(node)
             type_obj = node.args[0]
-
 
         # if this is a type, just use its enum
         # otherwise, codegen and extract a type
@@ -354,24 +285,15 @@ class Builtins_boxes():
         else:
             type_obj = self._codegen(type_obj).type
 
-        if type_obj in (
-            #ir.FunctionType,
-            self.vartypes.func,
-            self.vartypes.carray,
-            self.vartypes.array
-        ):
+        if type_obj in (self.vartypes.func, self.vartypes.carray, self.vartypes.array):
             enum_id = type_obj.enum_id
 
         elif type_obj.is_pointer:
             enum_id = type_obj.pointee.enum_id
 
         else:
-            # pathological case
             enum_id = type_obj.enum_id
 
-        enum_val = ir.Constant(
-            self.vartypes.u_size,
-            enum_id
-        )
+        enum_val = ir.Constant(self.vartypes.u_size, enum_id)
 
         return enum_val
