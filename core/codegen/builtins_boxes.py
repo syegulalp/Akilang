@@ -1,9 +1,10 @@
 from core.errors import CodegenError
-from core.ast_module import VariableType, Call
+from core.ast_module import VariableType, Call, Expr, ItemList
 import llvmlite.ir as ir
 
 # pylint: disable=E1101
 
+COMMON_ARGS = (Expr,)
 
 class Builtins_boxes:
     def _box_check(self, node):
@@ -29,13 +30,15 @@ class Builtins_boxes:
         # TODO: add box types for user-defined classes, too
 
         self._check_arg_length(node, 2, 3)
+        self._check_arg_types(node, (COMMON_ARGS, [VariableType], COMMON_ARGS))
+
         box_ptr = self._box_check(node)
         type_to_unwrap = node.args[1]
 
-        if not isinstance(type_to_unwrap, VariableType):
-            raise CodegenError(
-                f"Parameter must be a type descriptor", node.args[1].position
-            )
+        # if not isinstance(type_to_unwrap, VariableType):
+        #     raise CodegenError(
+        #         f"Parameter must be a type descriptor", node.args[1].position
+        #     )
 
         if len(node.args) > 2:
             # Generate the substitute data
@@ -148,6 +151,8 @@ class Builtins_boxes:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, (COMMON_ARGS,))
+
         box_ptr = self._box_check(node)
 
         box_type = self.builder.gep(
@@ -175,6 +180,7 @@ class Builtins_boxes:
         # (we should only allow one owner at a time)
 
         self._check_arg_length(node)
+        self._check_arg_types(node, (COMMON_ARGS+(ItemList,),))
 
         # malloc space for a copy of the data
         data_to_convert = self._codegen(node.args[0])
@@ -249,13 +255,15 @@ class Builtins_boxes:
     def _codegen_Builtins_isinstance(self, node):
 
         self._check_arg_length(node, 2, 2)
+        self._check_arg_types(node, (COMMON_ARGS,))
+
         item_to_check = self._codegen_Builtins_type(node.args[0], True).constant
         type_instance = node.args[1]
 
-        if not isinstance(type_instance, VariableType):
-            raise CodegenError(
-                f"Parameter must be a type descriptor", node.args[1].position
-            )
+        # if not isinstance(type_instance, VariableType):
+        #     raise CodegenError(
+        #         f"Parameter must be a type descriptor", node.args[1].position
+        #     )
 
         result = item_to_check == type_instance.vartype.enum_id
 
@@ -274,6 +282,7 @@ class Builtins_boxes:
             type_obj = node
         else:
             self._check_arg_length(node)
+            self._check_arg_types(node, (COMMON_ARGS+(VariableType,ItemList),))
             type_obj = node.args[0]
 
         # if this is a type, just use its enum

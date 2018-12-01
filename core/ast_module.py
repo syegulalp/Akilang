@@ -6,6 +6,11 @@ import llvmlite.ir as ir
 
 
 class Node(object):
+
+    @classmethod
+    def description(cls):
+        return cls.__name__.lower()
+
     def __init__(self, position):
         self.position = position
 
@@ -191,7 +196,7 @@ class Variable(Expr):
         return f"{self.vartype} {self.name}"
 
 
-class VariableType(Expr):
+class VariableType(Node):
     def __init__(self, position, vartype):
         super().__init__(position)
         self.vartype = vartype

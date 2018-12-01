@@ -15,7 +15,11 @@ from core.ast_module import (
     Unsafe,
     VariableType,
     If,
+    Expr
 )
+
+COMMON_ARGS = (Expr,)
+
 import llvmlite.ir as ir
 from core.tokens import Ops
 
@@ -48,11 +52,17 @@ class Builtins:
                 # node.args[argcount-1].position
             )
 
-    def _check_arg_types(self, node, types):
+    def _check_arg_types(self, node, types, ext_types=None):
         for _, n in enumerate(node.args):
-            if n.type != types[_]:
+            if _>len(types)-1:
+                t=ext_types
+            else:
+                t = types[_]
+            
+            if type(n).__base__ not in t and type(n) not in t:
                 raise AkiSyntaxError(
-                    f"Argument {_} is the wrong type (expected {types[_].description()}, got {n.type.description()}"
+                    f'Argument {_} is the wrong type (expected one of "{[x.description() for x in t]}", got "{type(n).description()}"',
+                    n.position
                 )
 
     def _check_pointer(self, obj, node):
@@ -148,6 +158,7 @@ class Builtins:
         # all generic calls to <type>.__new__()
 
         self._check_arg_length(node)
+        self._check_arg_types(node, ((VariableType,),))
 
         vt = node.args[0]
         v1 = vt.vartype
@@ -191,6 +202,7 @@ class Builtins:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, (COMMON_ARGS,))
 
         expr = self._get_obj_noload(node)
 
@@ -226,6 +238,7 @@ class Builtins:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, (COMMON_ARGS,))
 
         expr = self._get_obj_noload(node)
         s1 = self._alloca("obj_ref", expr.type)
@@ -235,6 +248,7 @@ class Builtins:
     def _codegen_Builtins_c_ptr_math(self, node):
 
         self._check_arg_length(node, 2, 2)
+        self._check_arg_types(node, (COMMON_ARGS, COMMON_ARGS))
 
         ptr = self._codegen(node.args[0])
         int_from_ptr = self.builder.ptrtoint(ptr, self.vartypes.u_size)
@@ -254,6 +268,7 @@ class Builtins:
 
         node = self._if_unsafe(node)
         self._check_arg_length(node, 2, 2)
+        self._check_arg_types(node, (COMMON_ARGS, COMMON_ARGS))
 
         ptr = self._codegen(node.args[0])
         value = self._codegen(node.args[1])
@@ -270,6 +285,7 @@ class Builtins:
 
     def _codegen_Builtins_c_gep(self, node):
         self._check_arg_length(node, 1, None)
+        self._check_arg_types(node, (COMMON_ARGS,), COMMON_ARGS)
         obj = self._codegen(node.args[0])
 
         if (len(node.args)) < 2:
@@ -289,6 +305,7 @@ class Builtins:
     def _codegen_Builtins_c_ptr_int(self, node):
         self._check_arg_length(node)
         ptr = self._codegen(node.args[0])
+        self._check_arg_types(node, (COMMON_ARGS,))
         int_val = self.builder.ptrtoint(ptr, self.vartypes.u_size)
         return int_val
 
@@ -300,6 +317,7 @@ class Builtins:
         that describes a string.
         """
         self._check_arg_length(node)
+        self._check_arg_types(node, (COMMON_ARGS,))
         expr = self._codegen(node.args[0])
 
         if expr.type.is_obj_ptr():
@@ -318,6 +336,8 @@ class Builtins:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, (COMMON_ARGS+(String,),))
+
         convert_from = self._codegen(node.args[0])
 
         if isinstance(convert_from.type.pointee, self.vartypes._strclass):
@@ -339,6 +359,7 @@ class Builtins:
 
         node = self._if_unsafe(node)
         self._check_arg_length(node, 1, 2)
+        self._check_arg_types(node, [COMMON_ARGS], COMMON_ARGS)
         address_of = self._codegen(node.args[0])
 
         if len(node.args) > 1:
@@ -354,6 +375,8 @@ class Builtins:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, [COMMON_ARGS])
+
         address_of = self._get_obj_noload(node)
         return self.builder.ptrtoint(address_of, self.vartypes.u_size)
 
@@ -366,6 +389,8 @@ class Builtins:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, [COMMON_ARGS])
+
         ptr = self._get_obj_noload(node)
         ptr2 = self.builder.load(ptr)
 
@@ -387,6 +412,8 @@ class Builtins:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, [COMMON_ARGS])
+
         expr = self._get_obj_noload(node)
 
         if expr.type.is_obj_ptr():
@@ -404,6 +431,7 @@ class Builtins:
         """
 
         self._check_arg_length(node)
+        self._check_arg_types(node, [COMMON_ARGS, COMMON_ARGS])
 
         ptr = self._codegen(node.args[0])
         ptr2 = self.builder.load(ptr)
@@ -413,13 +441,8 @@ class Builtins:
 
     def _codegen_Builtins_call(self, node):
         self._check_arg_length(node, 1, None)
+        self._check_arg_types(node, [[String]], COMMON_ARGS)
         func_name = node.args[0]
-        if not isinstance(func_name, String):
-            raise CodegenError(
-                f'First argument of "call" must be the name of a function as a string literal',
-                func_name.position,
-            )
-
         return self._codegen(Call(node.position, func_name.val, node.args[1:]))
 
     def _codegen_Builtins_cast(self, node):
@@ -431,6 +454,8 @@ class Builtins:
         """
 
         self._check_arg_length(node, 2, 2)
+        self._check_arg_types(node, [COMMON_ARGS, [VariableType]])
+        
         cast_from = self._codegen(node.args[0])
         cast_to = self._codegen(node.args[1], False)
 
@@ -525,6 +550,8 @@ class Builtins:
         """
 
         self._check_arg_length(node, 2, 2)
+        self._check_arg_types(node, [COMMON_ARGS, [VariableType]])
+
         convert_from = self._codegen(node.args[0])
         convert_to = self._codegen(node.args[1], False)
 
@@ -624,6 +651,7 @@ class Builtins:
     def _codegen_Builtins_print(self, node):
 
         self._check_arg_length(node, 1, None)
+        self._check_arg_types(node, [COMMON_ARGS], COMMON_ARGS)
 
         format_string = []
         variable_list = []
