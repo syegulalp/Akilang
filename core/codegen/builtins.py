@@ -687,7 +687,9 @@ class Builtins():
 
         format_string.append(separator)
 
-        str_to_extract = String(node.position, ''.join(format_string))
+        str_to_extract = String(self.vartypes,
+            node.position, ''.join(format_string)
+        )
 
         convert = Call(
             node.position,

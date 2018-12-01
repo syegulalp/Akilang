@@ -183,7 +183,7 @@ class Expressions():
         self._get_next_token()
 
         if Puncs.OPEN_CURLY not in cur.value:
-            return String(cur.position, cur.value)
+            return String(self.vartypes, cur.position, cur.value)
 
         in_template = re.split(r'([{}])', cur.value)
 
@@ -212,7 +212,7 @@ class Expressions():
             n = n.replace(r'%', r'%%')
 
             exprs.append(
-                String(cur.position, n)
+                String(self.vartypes, cur.position, n)
             )
 
         # another way to do this:
@@ -291,7 +291,7 @@ class Expressions():
             for n in accessor.elements:
                 elements.append(int(n.val))
 
-            vartype = AkiArray(vartype, elements)
+            vartype = AkiArray(self.vartypes, vartype, elements)
 
             self._get_next_token()
 

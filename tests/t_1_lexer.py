@@ -1,7 +1,6 @@
 import unittest
 
 from core.lexer import Position, Lexer, Token, TokenKind
-from core.vartypes import VarTypes
 
 class TestLexer(unittest.TestCase):
 
@@ -23,7 +22,7 @@ class TestLexer(unittest.TestCase):
 
         pos = Position(l.buf, 1, 2)
         self.assertEqual(toks[2],
-                         Token(TokenKind.NUMBER, 1.0, VarTypes.f64, pos))
+                         Token(TokenKind.NUMBER, 1.0, l.vartypes.f64, pos))
 
         pos = Position(l.buf, 1, 3)
         self.assertEqual(toks[3], Token(TokenKind.EOF, '', None, pos))
@@ -32,7 +31,7 @@ class TestLexer(unittest.TestCase):
         l = Lexer('0.1519')
         toks = list(l.tokens())
         self.assertEqual(toks[0],
-                         Token(TokenKind.NUMBER, 0.1519, VarTypes.f64,
+                         Token(TokenKind.NUMBER, 0.1519, l.vartypes.f64,
                                pos))
 
     def test_token_kinds(self):
@@ -56,29 +55,29 @@ class TestLexer(unittest.TestCase):
 
         pos = Position(l.buf, 1, 0)
         self.assertEqual(toks[0],
-                         Token(TokenKind.NUMBER, 10.0, VarTypes.f64, pos))
+                         Token(TokenKind.NUMBER, 10.0, l.vartypes.f64, pos))
         pos = Position(l.buf, 1, 4)
         self.assertEqual(toks[1],
-                         Token(TokenKind.NUMBER, 10, VarTypes.i32, pos))
+                         Token(TokenKind.NUMBER, 10, l.vartypes.i32, pos))
 
         pos = Position(l.buf, 1, 7)
         self.assertEqual(toks[2],
-                         Token(TokenKind.NUMBER, 10.0, VarTypes.f32, pos))
+                         Token(TokenKind.NUMBER, 10.0, l.vartypes.f32, pos))
 
         pos = Position(l.buf, 1, 13)
         self.assertEqual(toks[3],
-                         Token(TokenKind.NUMBER, 1, VarTypes.bool, pos))
+                         Token(TokenKind.NUMBER, 1, l.vartypes.bool, pos))
 
         pos = Position(l.buf, 1, 16)
         self.assertEqual(toks[4],
-                         Token(TokenKind.NUMBER, 10, VarTypes.i8, pos))
+                         Token(TokenKind.NUMBER, 10, l.vartypes.i8, pos))
 
     def test_string_assignment(self):
         l = Lexer('"Hello world"')
         toks = list(l.tokens())
         pos = Position(1, 1)
         self.assertEqual(toks[0],
-                         Token(TokenKind.STRING, 'Hello world', VarTypes.str,
+                         Token(TokenKind.STRING, 'Hello world', l.vartypes.str,
                                pos))
 
     def test_skip_whitespace_comments(self):

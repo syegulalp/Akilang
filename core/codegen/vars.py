@@ -380,6 +380,7 @@ class Vars():
                 self.vartypes.carray
             ):
                 var_type = self.vartypes.array(
+                    self.vartypes,
                     node.initializer.elements[0].vartype,
                     [0]
                 )

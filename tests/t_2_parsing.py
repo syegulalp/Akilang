@@ -2,10 +2,11 @@ import unittest
 
 from core.parsing import Parser
 from core.ast_module import Function, Number, DEFAULT_PREC, Prototype
-from core.vartypes import VarTypes
 
 
 class TestParser(unittest.TestCase):
+
+    parser = Parser()
 
     maxDiff = None
 
@@ -15,64 +16,64 @@ class TestParser(unittest.TestCase):
         self.assertEqual(toplevel.body.flatten(), expected)
 
     def test_basic(self):
-        ast = Parser().parse_toplevel('2')
+        ast = self.parser.parse_toplevel('2')
         self.assertIsInstance(ast, Function)
         self.assertIsInstance(ast.body, Number)
         self.assertEqual(ast.body.val, 2)
 
     def test_basic_with_flattening(self):
-        ast = Parser().parse_toplevel('2')
-        self._assert_body(ast, ['Number', 2, VarTypes._DEFAULT_TYPE])
+        ast = self.parser.parse_toplevel('2')
+        self._assert_body(ast, ['Number', 2, self.parser.vartypes._DEFAULT_TYPE])
 
-        ast = Parser().parse_toplevel('foobar')
+        ast = self.parser.parse_toplevel('foobar')
         self._assert_body(ast, ['Variable', 'foobar', None, None])
 
     def test_expr_singleprec(self):
-        ast = Parser().parse_toplevel('2+3-4')
+        ast = self.parser.parse_toplevel('2+3-4')
         self._assert_body(ast, [
             'Binary', '-', [
-                'Binary', '+', ['Number', 2, VarTypes._DEFAULT_TYPE],
-                ['Number', 3, VarTypes._DEFAULT_TYPE]
-            ], ['Number', 4, VarTypes._DEFAULT_TYPE]
+                'Binary', '+', ['Number', 2, self.parser.vartypes._DEFAULT_TYPE],
+                ['Number', 3, self.parser.vartypes._DEFAULT_TYPE]
+            ], ['Number', 4, self.parser.vartypes._DEFAULT_TYPE]
         ])
 
     def test_expr_multiprec(self):
-        ast = Parser().parse_toplevel('2+3*4-9')
+        ast = self.parser.parse_toplevel('2+3*4-9')
         self._assert_body(ast, [
             'Binary', '-', [
-                'Binary', '+', ['Number', 2, VarTypes._DEFAULT_TYPE], [
-                    'Binary', '*', ['Number', 3, VarTypes._DEFAULT_TYPE],
-                    ['Number', 4, VarTypes._DEFAULT_TYPE]
+                'Binary', '+', ['Number', 2, self.parser.vartypes._DEFAULT_TYPE], [
+                    'Binary', '*', ['Number', 3, self.parser.vartypes._DEFAULT_TYPE],
+                    ['Number', 4, self.parser.vartypes._DEFAULT_TYPE]
                 ]
-            ], ['Number', 9, VarTypes._DEFAULT_TYPE]
+            ], ['Number', 9, self.parser.vartypes._DEFAULT_TYPE]
         ])
 
     def test_expr_parens(self):
-        ast = Parser().parse_toplevel('2.*(3.-4.)*7.')
+        ast = self.parser.parse_toplevel('2.*(3.-4.)*7.')
         self._assert_body(ast, [
             'Binary', '*', [
-                'Binary', '*', ['Number', 2.0, VarTypes.f64], [
-                    'Binary', '-', ['Number', 3.0, VarTypes.f64],
-                    ['Number', 4.0, VarTypes.f64]
+                'Binary', '*', ['Number', 2.0, self.parser.vartypes.f64], [
+                    'Binary', '-', ['Number', 3.0, self.parser.vartypes.f64],
+                    ['Number', 4.0, self.parser.vartypes.f64]
                 ]
-            ], ['Number', 7.0, VarTypes.f64]
+            ], ['Number', 7.0, self.parser.vartypes.f64]
         ])
 
     def test_externals(self):
-        ast = Parser().parse_toplevel('extern sin(arg)')
+        ast = self.parser.parse_toplevel('extern sin(arg)')
         self.assertEqual(ast.flatten(), ['Prototype', 'sin', 'i32 arg'])
 
-        ast = Parser().parse_toplevel('extern Foobar(nom denom abom)')
+        ast = self.parser.parse_toplevel('extern Foobar(nom denom abom)')
         self.assertEqual(ast.flatten(), [
             'Prototype', 'Foobar', 'i32 nom, i32 denom, i32 abom'
         ])
 
     def test_funcdef(self):
-        ast = Parser().parse_toplevel('def foo(x) 1 + bar(x)')
+        ast = self.parser.parse_toplevel('def foo(x) 1 + bar(x)')
 
         self.assertEqual(ast.flatten(), [
             'Function', ['Prototype', 'foo', 'i32 x'], [
-                'Binary', '+', ['Number', 1, VarTypes._DEFAULT_TYPE],
+                'Binary', '+', ['Number', 1, self.parser.vartypes._DEFAULT_TYPE],
                 ['Variable', 'bar', None,
                  ['Call', 'bar', None,
                   [['Variable', 'x', None, None]]
@@ -81,16 +82,15 @@ class TestParser(unittest.TestCase):
             ]]
         )
 
-    def test_unary(self):
-        p = Parser()
-        ast = p.parse_toplevel('def unary!(x) 0 - x')
+    def test_unary(self):        
+        ast = self.parser.parse_toplevel('def unary!(x) 0 - x')
         self.assertIsInstance(ast, Function)
         proto = ast.proto
         self.assertIsInstance(proto, Prototype)
         self.assertTrue(proto.isoperator)
         self.assertEqual(proto.name, 'unary.!')
 
-        ast = p.parse_toplevel('!a + !b - !!c')
+        ast = self.parser.parse_toplevel('!a + !b - !!c')
         self._assert_body(ast, [
             'Binary', '-', [
                 'Binary', '+', ['Unary', '!', ['Variable', 'a', None, None]],
@@ -99,7 +99,7 @@ class TestParser(unittest.TestCase):
         ])
 
     def test_binary_op_no_prec(self):
-        ast = Parser().parse_toplevel('def binary~ (a, b) a + b')
+        ast = self.parser.parse_toplevel('def binary~ (a, b) a + b')
         self.assertIsInstance(ast, Function)
         proto = ast.proto
         self.assertIsInstance(proto, Prototype)
@@ -108,7 +108,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(proto.name, 'binary.~')
 
     def test_binary_op_with_prec(self):
-        ast = Parser().parse_toplevel('def binary% 77(a, b) a + b')
+        ast = self.parser.parse_toplevel('def binary% 77(a, b) a + b')
         self.assertIsInstance(ast, Function)
         proto = ast.proto
         self.assertIsInstance(proto, Prototype)
@@ -124,18 +124,18 @@ class TestParser(unittest.TestCase):
         self._assert_body(ast, [
             'Binary', '*', [
                 'Binary', '*', ['Variable', 'a', None, None], [
-                    'Binary', '%', ['Number', 10, VarTypes._DEFAULT_TYPE],
-                    ['Number', 5, VarTypes._DEFAULT_TYPE]
+                    'Binary', '%', ['Number', 10, self.parser.vartypes._DEFAULT_TYPE],
+                    ['Number', 5, self.parser.vartypes._DEFAULT_TYPE]
                 ]
-            ], ['Number', 10, VarTypes._DEFAULT_TYPE]
+            ], ['Number', 10, self.parser.vartypes._DEFAULT_TYPE]
         ])
 
         ast = p.parse_toplevel('a % 20 * 5')
         self._assert_body(ast, [
             'Binary', '*', [
                 'Binary', '%', ['Variable', 'a', None, None],
-                ['Number', 20, VarTypes._DEFAULT_TYPE]
-            ], ['Number', 5, VarTypes._DEFAULT_TYPE]
+                ['Number', 20, self.parser.vartypes._DEFAULT_TYPE]
+            ], ['Number', 5, self.parser.vartypes._DEFAULT_TYPE]
         ])
 
     def test_binop_right_associativity(self):
@@ -144,8 +144,8 @@ class TestParser(unittest.TestCase):
         self._assert_body(ast, [
             'Binary', '=', ['Variable', 'x', None, None], [
                 'Binary', '=', ['Variable', 'y', None, None], [
-                    'Binary', '+', ['Number', 10, VarTypes._DEFAULT_TYPE],
-                    ['Number', 5, VarTypes._DEFAULT_TYPE]
+                    'Binary', '+', ['Number', 10, self.parser.vartypes._DEFAULT_TYPE],
+                    ['Number', 5, self.parser.vartypes._DEFAULT_TYPE]
                 ]
             ]
         ])

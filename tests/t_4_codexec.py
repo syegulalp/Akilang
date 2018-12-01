@@ -2,7 +2,6 @@ import unittest
 from ctypes import c_double, c_longlong
 
 from core.codexec import AkilangEvaluator
-from core.vartypes import VarTypes
 from core.errors import ParseError, CodegenError
 
 from tests import e, e2

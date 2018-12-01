@@ -1,5 +1,4 @@
 from collections import namedtuple
-from core.vartypes import VarTypes
 
 import llvmlite.ir as ir
 
@@ -140,11 +139,11 @@ class ItemList(ArrayAccessor):
 
 
 class String(Expr):
-    def __init__(self, position, val):
+    def __init__(self, vartypes, position, val):
         super().__init__(position)
         self.name = f"'{val[:32]}...'"
         self.val = val
-        self.vartype = VarTypes.str
+        self.vartype = vartypes.str
         self.anonymous = True
 
     def flatten(self):
