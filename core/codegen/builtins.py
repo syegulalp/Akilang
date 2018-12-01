@@ -1,4 +1,4 @@
-from core.errors import CodegenError, CodegenWarning, ParameterFormatError
+from core.errors import CodegenError, CodegenWarning, ParameterFormatError, AkiSyntaxError
 from core.ast_module import Variable, Call, Number, String, FString, ItemList, Binary, Unsafe, VariableType, If
 import llvmlite.ir as ir
 from core.tokens import Ops
@@ -12,16 +12,32 @@ class Builtins():
         if isinstance(node, Unsafe):
             return node.body
         if not self.allow_unsafe:
-            raise CodegenError(
+            raise AkiSyntaxError(
                 f'Operation must be enclosed in an "unsafe" block{explanation}', node.position)
         return node
 
-    def _check_arg_length(self, node, min_args=1):
-        if len(node.args) < min_args:
-            raise CodegenError(
-                f'Operation requires at least {min_args} argument{"s" if min_args>1 else ""}',
-                node.position
+    def _check_arg_length(self, node, min_args=1, max_args=1):
+        argcount = len(node.args)
+        pos = node.args[argcount-1].position if argcount>0 else node.position
+        if argcount < min_args:            
+            raise AkiSyntaxError(
+                f'Too few arguments (expected {min_args}, got {argcount})',
+                pos
             )
+
+        if max_args and len(node.args)> max_args:
+            raise AkiSyntaxError(
+                f'Too many arguments (expected {max_args}, got {argcount})',
+                pos
+                #node.args[argcount-1].position
+            )
+
+    def _check_arg_types(self, node, types):
+        for _,n in enumerate(node.args):
+            if n.type!=types[_]:
+                raise AkiSyntaxError(
+                    f'Argument {_} is the wrong type (expected {types[_].description()}, got {n.type.description()}'
+                )
 
     def _check_pointer(self, obj, node):
         '''
@@ -209,7 +225,7 @@ class Builtins():
 
     def _codegen_Builtins_c_ptr_math(self, node):
 
-        self._check_arg_length(node, 2)
+        self._check_arg_length(node, 2, 2)
 
         ptr = self._codegen(node.args[0])
         int_from_ptr = self.builder.ptrtoint(ptr, self.vartypes.u_size)
@@ -228,7 +244,7 @@ class Builtins():
     def _codegen_Builtins_c_ptr_mod(self, node):
 
         node = self._if_unsafe(node)
-        self._check_arg_length(node, 2)
+        self._check_arg_length(node, 2, 2)
 
         ptr = self._codegen(node.args[0])
         value = self._codegen(node.args[1])
@@ -244,7 +260,7 @@ class Builtins():
         return ptr
 
     def _codegen_Builtins_c_gep(self, node):
-        self._check_arg_length(node)
+        self._check_arg_length(node, 1, None)
         obj = self._codegen(node.args[0])
 
         if (len(node.args)) < 2:
@@ -331,7 +347,7 @@ class Builtins():
         '''
 
         node = self._if_unsafe(node)
-        self._check_arg_length(node)
+        self._check_arg_length(node, 1, 2)
         address_of = self._codegen(node.args[0])
 
         if len(node.args) > 1:
@@ -403,7 +419,7 @@ class Builtins():
         return ptr3
 
     def _codegen_Builtins_call(self, node):
-        self._check_arg_length(node, 1)
+        self._check_arg_length(node, 1, None)
         func_name = node.args[0]
         if not isinstance(func_name, String):
             raise CodegenError(
@@ -427,7 +443,7 @@ class Builtins():
         Will truncate bitwidths.
         '''
 
-        self._check_arg_length(node, 2)
+        self._check_arg_length(node, 2, 2)
         cast_from = self._codegen(node.args[0])
         cast_to = self._codegen(node.args[1], False)
 
@@ -520,7 +536,7 @@ class Builtins():
         Conversions from or to pointers are not supported here.
         '''
 
-        self._check_arg_length(node, 2)
+        self._check_arg_length(node, 2, 2)
         convert_from = self._codegen(node.args[0])
         convert_to = self._codegen(node.args[1], False)
 
@@ -612,7 +628,7 @@ class Builtins():
 
     def _codegen_Builtins_print(self, node):
 
-        self._check_arg_length(node)
+        self._check_arg_length(node, 1, None)
 
         format_string = []
         variable_list = []

@@ -40,7 +40,7 @@ class Builtins_boxes():
         # TODO: add object tracking along all paths
         # TODO: add box types for user-defined classes, too
 
-        self._check_arg_length(node, 2)
+        self._check_arg_length(node, 2, 3)
         box_ptr = self._box_check(node)
         type_to_unwrap = node.args[1]
 
@@ -309,6 +309,12 @@ class Builtins_boxes():
 
         return obj_alloc
 
+    def _codegen_Builtins_isinstance(self, node):
+
+        self._check_arg_length(node, 2, 2)
+        item_to_check, type_instance = node.args
+        print ()
+    
     def _codegen_Builtins_type(self, node):
         '''
         Returns a constant enum that represents a type.
