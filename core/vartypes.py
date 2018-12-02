@@ -16,12 +16,16 @@ def make_type_as_ptr(my_type):
     return type_as_ptr
 
 
-class AkiObj:
+class AkiType(ir.Type):
+    pass
+    
+
+class AkiObj(AkiType):
     signed = False
     is_obj = True
 
 
-class AkiInt(ir.IntType):
+class AkiInt(AkiType, ir.IntType):
     is_obj = False
 
     _ctype = {
@@ -50,7 +54,7 @@ class AkiInt(ir.IntType):
         return self._ctype[self.signed][self.width]
 
 
-class AkiFloat:
+class AkiFloat(AkiType):
     signed = True
     is_obj = False
     p_fmt = "%f"
@@ -126,7 +130,7 @@ class AkiCArray(AkiObj, ir.ArrayType):
         self.as_pointer = make_type_as_ptr(self)
 
 
-class AkiCustomType:
+class AkiCustomType(AkiType):
     def __new__(cls, module, name, types, v_types):
         instance = module.context.get_identified_type(".class." + name)
 
@@ -288,9 +292,10 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     _vartypes = Map(
         {
             # abstract types
+            "vartype": AkiType,
+            "obj": Header,            
             "int": AkiInt,
-            "float": AkiFloat,
-            "obj": Header,
+            "float": AkiFloat,            
             # scalars
             # bitwidths universal across platforms
             "u1": _bool,

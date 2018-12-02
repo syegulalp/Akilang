@@ -255,21 +255,35 @@ class Builtins_boxes:
     def _codegen_Builtins_isinstance(self, node):
 
         self._check_arg_length(node, 2, 2)
-        self._check_arg_types(node, (COMMON_ARGS,))
+        lhs, rhs = node.args
+        
+        # no AST type check required because
+        # both types and expressions are valid here
 
-        item_to_check = self._codegen_Builtins_type(node.args[0], True).constant
-        type_instance = node.args[1]
+        if isinstance(lhs, VariableType):
+            lhs_gen = self._codegen_Builtins_type(lhs, True)
+        else:
+            lhs_gen = self._codegen(lhs, True).type.enum_id
 
-        # if not isinstance(type_instance, VariableType):
-        #     raise CodegenError(
-        #         f"Parameter must be a type descriptor", node.args[1].position
-        #     )
+        if isinstance(rhs, VariableType):
+            rhs_gen = self._codegen_Builtins_type(rhs, True)
+        else:
+            rhs_gen = self._codegen(rhs, True).type.enum_id
 
-        result = item_to_check == type_instance.vartype.enum_id
+        result = 0
 
-        # if the result is False, check and see instead if the
-        # class of one inherits the class of the other
-        # so that, for instance, i32 is an instance of int generally
+        if isinstance(lhs, VariableType):
+            if isinstance(rhs, VariableType):
+                # determine if one is a subclass of the other
+                result = issubclass(lhs.vartype.__class__, rhs.vartype)
+            # otherwise fail,
+            # because a type cannot be an instance of a non-type
+        
+        else:
+            if isinstance(rhs, VariableType):
+                result = lhs_gen == rhs_gen.constant
+            # otherwise fail,
+            # because an expression can't be an instance of an expression
 
         return ir.Constant(self.vartypes.bool, result)
 
