@@ -21,8 +21,6 @@ class NullBuilder:
             f"Operation cannot be performed outside of a function context"
         )
 
-nullbuilder = NullBuilder()
-
 class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow):
     def __init__(self, vartypes=None, module_name=None):
         '''
@@ -38,8 +36,8 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         self.module = ir.Module(module_name)
 
         # Current IR builder.
-        self.nullbuilder = nullbuilder
-        self.builder = nullbuilder
+        self.nullbuilder = NullBuilder()
+        self.builder = self.nullbuilder
 
         # Manages a symbol table while a function is being codegen'd.
         # Maps var names to ir.Value.
