@@ -1,3 +1,6 @@
+class SubError(Exception):
+    pass
+
 class MessageError(Exception):
     def __init__(self, msg, position):
         super().__init__(msg)

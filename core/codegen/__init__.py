@@ -1,6 +1,6 @@
 from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call, Pragma, Number
 from core.vartypes import generate_vartypes
-from core.errors import CodegenError
+from core.errors import CodegenError, SubError
 from core.mangling import mangle_args
 
 import llvmlite.ir as ir
@@ -14,6 +14,14 @@ from core.codegen.ops import Ops
 from core.codegen.controlflow import ControlFlow
 
 # pylint: disable=E1101
+
+class NullBuilder:
+    def __getattribute__(self, name):
+        raise SubError(
+            f"Operation cannot be performed outside of a function context"
+        )
+
+nullbuilder = NullBuilder()
 
 class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow):
     def __init__(self, vartypes=None, module_name=None):
@@ -30,7 +38,8 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         self.module = ir.Module(module_name)
 
         # Current IR builder.
-        self.builder = None
+        self.nullbuilder = nullbuilder
+        self.builder = nullbuilder
 
         # Manages a symbol table while a function is being codegen'd.
         # Maps var names to ir.Value.
@@ -235,7 +244,10 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         '''
 
         method = f'_codegen_{node.__class__.__name__}'
-        result = getattr(self, method)(node)
+        try:
+            result = getattr(self, method)(node)
+        except SubError as e:
+            raise CodegenError(str(e), node.position)
 
         if check_for_type and not hasattr(result, 'type'):
             raise CodegenError(
