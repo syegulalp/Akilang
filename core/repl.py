@@ -50,7 +50,7 @@ preceded by a dot sign:
     .export|ex <filename>
                   : Dump current module to file in LLVM assembler format.
                   : Uses output.ll in current directory as default.
-    .help|.       : Show this message.
+    .help|.?      : Show this message. (A single . also invokes help)
     .rerun|..     : Reload the Python code and restart the REPL. 
     .rl[c|r]      : Reset the interpreting engine and reload the last .aki
                     file loaded in the REPL. Add c to run .cp afterwards.
@@ -58,7 +58,7 @@ preceded by a dot sign:
     .reset|~      : Reset the interpreting engine.
     .run|r        : Run the main() function (if present) in the current
                     module.
-    .test|tests   : Run unit tests.
+    .test|t       : Run unit tests.
     .version|ver  : Print version information.
     .<file>.      : Load <file>.aki from the src directory.
                     For instance, .l. will load the Conway's Life demo.
@@ -85,6 +85,7 @@ class Repl():
     def __init__(self):
         self.commands = {
             'test': self.run_tests,
+            't': self.run_tests,
             'reset': self.reset,
             '~': self.reset,
             'rerun': self.reload_all,
@@ -291,7 +292,9 @@ class Repl():
             except:
                 pass
             cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
-            cprint('Type help or a command to be interpreted', 'green')
+            cprint('Type ', 'green', end='')
+            cprint('.help', 'white', end='')
+            cprint(' or a command to be interpreted', 'green')
             command = ""
             while not command in ['exit', 'quit']:
                 self.run_command(command)
