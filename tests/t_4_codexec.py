@@ -762,11 +762,25 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.evaluate('type(32U)==type(u64)'), 1)
         self.assertEqual(self.e.evaluate('type(1b)==type(0b)'), 1)
         self.assertEqual(self.e.evaluate('type(1.0)==type(0.00)'), 1)
-        #self.assertEqual(self.e.evaluate('type(i32[20])==type(array)'), 0)
+        self.assertEqual(self.e.evaluate('type(i32[20])==type(array)'), 0)
         self.assertEqual(self.e.evaluate('type(i32[20])==type(i32[64])'), 1)
         self.assertEqual(self.e.evaluate('type([20])==type([64])'), 1)
         self.assertEqual(self.e.evaluate('type([20])==type(carray)'), 1)
-        
+
+    def test_isinstance(self):
+        self.e.reset()
+        self.assertEqual(self.e.evaluate('isinstance("Hi",str)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance("Hi",obj)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance(32,i32)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance(32,int)'), 1)
+        self.assertEqual(self.e.evaluate('type(32u)==type(u32)'), 1)
+        self.assertEqual(self.e.evaluate('type(32U)==type(u64)'), 1)
+        self.assertEqual(self.e.evaluate('type(1b)==type(0b)'), 1)
+        self.assertEqual(self.e.evaluate('type(1.0)==type(0.00)'), 1)
+        self.assertEqual(self.e.evaluate('type(i32[20])==type(array)'), 0)
+        self.assertEqual(self.e.evaluate('type(i32[20])==type(i32[64])'), 1)
+        self.assertEqual(self.e.evaluate('type([20])==type([64])'), 1)
+        self.assertEqual(self.e.evaluate('type([20])==type(carray)'), 1)        
 
     def test_box_type(self):
         self.e2.reset()
@@ -777,7 +791,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('objtype(box(1b))==type(0b)'), 1)
         self.assertEqual(self.e2.evaluate('objtype(box(1.0))==type(0.00)'), 1)
         self.assertEqual(self.e2.evaluate('objtype(box({var x:i32[20] x}))==type(i32[64])'), 1)
-        #self.assertEqual(self.e2.evaluate('objtype(box({var x:i32[20] x}))==type(array)'), 1)
+        self.assertEqual(self.e2.evaluate('objtype(box({var x:i32[20] x}))==type(array)'), 0)
         self.assertEqual(self.e2.evaluate('objtype(box([20]))==type([64])'), 1)
         self.assertEqual(self.e2.evaluate('objtype(box([20]))==type(carray)'), 1)
     

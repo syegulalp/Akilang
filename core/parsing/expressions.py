@@ -245,7 +245,7 @@ class Expressions():
                 self.cur_tok.position
             )
 
-        if isinstance(vartype, self.vartypes.func.__class__):
+        if vartype == self.vartypes.func:
             self._get_next_token()
 
             arguments = []

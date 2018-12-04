@@ -155,6 +155,7 @@ class AkiArray(AkiObj, ir.LiteralStructType):
 
     del_id = "array"
     del_as_ptr = True
+    v_id = 'array'
 
     def __init__(self, vartypes, my_type, elements):
 
@@ -184,6 +185,7 @@ class AkiArray(AkiObj, ir.LiteralStructType):
 
         return obj
 
+AkiArray.as_pointer = make_type_as_ptr(AkiArray)
 
 class AkiHeader(AkiObj, ir.IdentifiedStructType):
     DATA_SIZE = 0
@@ -293,7 +295,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         {
             # abstract types
             "vartype": AkiType,
-            "obj": Header,            
+            "obj": Header,
             "int": AkiInt,
             "float": AkiFloat,            
             # scalars
@@ -353,4 +355,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
 
     _default_platform_vartypes[module.triple] = _vartypes
 
+    #print (_vartypes.array.as_pointer())
+
     return _vartypes
+

@@ -40,6 +40,7 @@ class Builtins:
     def _check_arg_length(self, node, min_args=1, max_args=1):
         argcount = len(node.args)
         pos = node.args[argcount - 1].position if argcount > 0 else node.position
+        
         if argcount < min_args:
             raise AkiSyntaxError(
                 f"Too few arguments (expected {min_args}, got {argcount})", pos
@@ -49,7 +50,6 @@ class Builtins:
             raise AkiSyntaxError(
                 f"Too many arguments (expected {max_args}, got {argcount})",
                 pos
-                # node.args[argcount-1].position
             )
 
     def _check_arg_types(self, node, types, ext_types=None):

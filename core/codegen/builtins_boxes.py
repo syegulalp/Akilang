@@ -6,6 +6,7 @@ import llvmlite.ir as ir
 
 COMMON_ARGS = (Expr,)
 
+
 class Builtins_boxes:
     def _box_check(self, node):
         """
@@ -167,20 +168,10 @@ class Builtins_boxes:
         Place a variable inside a container.
         """
 
-        # TODO: a problem raised by this
-        # reassignments do not cause the underlying
-        # object to be removed
-
-        # if we have a variable with a tracked value
-        # (not a constant),
-        # and we reassign that variable,
-        # then the tracked value has to be discarded.
-        # we have to generate a destructor for the object
-        # at the reassignment.
-        # (we should only allow one owner at a time)
+        # TODO: not yet possible to make a box in a uni block
 
         self._check_arg_length(node)
-        self._check_arg_types(node, (COMMON_ARGS+(ItemList,),))
+        self._check_arg_types(node, (COMMON_ARGS + (ItemList,),))
 
         # malloc space for a copy of the data
         data_to_convert = self._codegen(node.args[0])
@@ -253,70 +244,76 @@ class Builtins_boxes:
         return obj_alloc
 
     def _codegen_Builtins_isinstance(self, node):
+        '''
+        Returns whether or not a given vartype, class, or variable
+        is an instance of a vartype or class.
+        '''
 
         self._check_arg_length(node, 2, 2)
+        self._check_arg_types(node, (COMMON_ARGS + (VariableType,), (VariableType,)))
+
         lhs, rhs = node.args
-        
-        # no AST type check required because
-        # both types and expressions are valid here
 
-        if isinstance(lhs, VariableType):
-            lhs_gen = self._codegen_Builtins_type(lhs, True)
-        else:
-            lhs_gen = self._codegen(lhs, True).type.enum_id
-
-        if isinstance(rhs, VariableType):
-            rhs_gen = self._codegen_Builtins_type(rhs, True)
-        else:
-            rhs_gen = self._codegen(rhs, True).type.enum_id
+        # The default is false
 
         result = 0
 
-        if isinstance(lhs, VariableType):
-            if isinstance(rhs, VariableType):
-                # determine if one is a subclass of the other
-                result = issubclass(lhs.vartype.__class__, rhs.vartype)
-            # otherwise fail,
-            # because a type cannot be an instance of a non-type
-        
+        # If rhs type is an object, get its underlying type
+
+        if rhs.vartype.is_obj_ptr():
+            rhs_type = rhs.vartype.pointee
         else:
-            if isinstance(rhs, VariableType):
-                result = lhs_gen == rhs_gen.constant
-            # otherwise fail,
-            # because an expression can't be an instance of an expression
+            rhs_type = rhs.vartype
+
+        # If lhs is not a vartype, codegen and get its type
+
+        if not isinstance(lhs, VariableType):
+            lhs_gen = self._codegen(lhs, True)
+            lhs_type = lhs_gen.type
+        else:
+            lhs_type = lhs.vartype
+
+        # extract pointee if obj type
+
+        if lhs_type.is_obj_ptr():
+            lhs_type = lhs_type.pointee
+
+        # compare enum ids first
+
+        result = lhs_type.enum_id == rhs_type.enum_id
+
+        # if no luck, compare subclass membership of types
+
+        if not result:
+            result = issubclass(lhs_type.__class__, rhs_type.__class__)
 
         return ir.Constant(self.vartypes.bool, result)
 
     def _codegen_Builtins_type(self, node, no_check=False):
-        """
+        '''
         Returns a constant enum that represents a type.
-        """
+        '''
 
         if no_check:
             type_obj = node
         else:
             self._check_arg_length(node)
-            self._check_arg_types(node, (COMMON_ARGS+(VariableType,ItemList),))
+            self._check_arg_types(node, (COMMON_ARGS + (VariableType, ItemList),))
             type_obj = node.args[0]
 
-        # if this is a type, just use its enum
-        # otherwise, codegen and extract a type
-        # then use that type's enum
-
         if isinstance(type_obj, VariableType):
-            type_obj = type_obj.vartype
+            enum_id = getattr(type_obj.vartype, "enum_id", None)
+            if enum_id is None:
+                if type_obj.vartype.is_pointer:
+                    enum_id = getattr(type_obj.vartype.pointee, "enum_id", None)
         else:
             type_obj = self._codegen(type_obj).type
+            if type_obj.is_pointer:
+                enum_id = type_obj.pointee.enum_id
+            else:
+                enum_id = type_obj.enum_id
 
-        if type_obj in (self.vartypes.func, self.vartypes.carray, self.vartypes.array):
-            enum_id = type_obj.enum_id
+        if enum_id is None:
+            raise Exception
 
-        elif type_obj.is_pointer:
-            enum_id = type_obj.pointee.enum_id
-
-        else:
-            enum_id = type_obj.enum_id
-
-        enum_val = ir.Constant(self.vartypes.u_size, enum_id)
-
-        return enum_val
+        return ir.Constant(self.vartypes.u_size, enum_id)
