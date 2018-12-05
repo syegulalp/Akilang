@@ -766,6 +766,10 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.evaluate('type(i32[20])==type(i32[64])'), 1)
         self.assertEqual(self.e.evaluate('type([20])==type([64])'), 1)
         self.assertEqual(self.e.evaluate('type([20])==type(carray)'), 1)
+        
+        # TODO: func enums should be distinct by type
+        # self.assertEqual(self.e.evaluate('type(func(i32):i32)==type(func)'), 0)
+
 
     def test_isinstance(self):
         self.e.reset()
@@ -773,14 +777,20 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.evaluate('isinstance("Hi",obj)'), 1)
         self.assertEqual(self.e.evaluate('isinstance(32,i32)'), 1)
         self.assertEqual(self.e.evaluate('isinstance(32,int)'), 1)
-        self.assertEqual(self.e.evaluate('type(32u)==type(u32)'), 1)
-        self.assertEqual(self.e.evaluate('type(32U)==type(u64)'), 1)
-        self.assertEqual(self.e.evaluate('type(1b)==type(0b)'), 1)
-        self.assertEqual(self.e.evaluate('type(1.0)==type(0.00)'), 1)
-        self.assertEqual(self.e.evaluate('type(i32[20])==type(array)'), 0)
-        self.assertEqual(self.e.evaluate('type(i32[20])==type(i32[64])'), 1)
-        self.assertEqual(self.e.evaluate('type([20])==type([64])'), 1)
-        self.assertEqual(self.e.evaluate('type([20])==type(carray)'), 1)        
+        self.assertEqual(self.e.evaluate('isinstance(32u, u32)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance(32U, u64)'), 1)
+        
+        self.assertEqual(self.e.evaluate('isinstance(1.0F, f64)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance(1.0f, f32)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance(i32[20], array)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance(i32[20], obj)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance(i32[20], i32[64])'), 1)
+        self.assertEqual(self.e.evaluate('isinstance([20], carray)'), 1)
+        self.assertEqual(self.e.evaluate('isinstance([20], array)'), 0)
+        self.assertEqual(self.e.evaluate('isinstance(func(i32):i32, func)'), 1)
+
+        self.e2.reset()
+        self.assertEqual(self.e2.evaluate('isinstance(True, bool))'), 1)
 
     def test_box_type(self):
         self.e2.reset()
@@ -794,6 +804,15 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('objtype(box({var x:i32[20] x}))==type(array)'), 0)
         self.assertEqual(self.e2.evaluate('objtype(box([20]))==type([64])'), 1)
         self.assertEqual(self.e2.evaluate('objtype(box([20]))==type(carray)'), 1)
+    
+    def test_unbox_instance_type(self):
+        self.e2.reset()
+        self.assertEqual(self.e2.evaluate('{var x=box("Hi") isinstance(unbox(x,str,"Yo"), str)}'), 1)
+        self.assertEqual(self.e2.evaluate('{var x=box(32) isinstance(unbox(x,i32,0), i32)}'), 1)
+        self.assertEqual(self.e2.evaluate('{var x=box(32u) isinstance(unbox(x,u32,0u), u32)}'), 1)
+        self.assertEqual(self.e2.evaluate('{var x=box(32U) isinstance(unbox(x,u64,0U), u64)}'), 1)
+        self.assertEqual(self.e2.evaluate('{var x=box(1b) isinstance(unbox(x,bool,0b), bool)}'), 1)
+        self.assertEqual(self.e2.evaluate('{var x=box(1.0) isinstance(unbox(x,f64,0.0), f64)}'), 1.0)
     
     def test_unbox_type(self):
         # success tests

@@ -100,7 +100,7 @@ class Float32(AkiFloat, ir.FloatType):
     width = 32
 
     def __new__(cls):
-        instance = super().__new__(cls)
+        instance = super(ir.FloatType, cls).__new__(cls)
         instance.__class__ = Float32
         return instance
 
@@ -110,7 +110,7 @@ class Float64(AkiFloat, ir.DoubleType):
     width = 64
 
     def __new__(cls):
-        instance = super().__new__(cls)
+        instance = super(ir.DoubleType, cls).__new__(cls)
         instance.__class__ = Float64
         return instance
 

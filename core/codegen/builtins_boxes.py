@@ -250,7 +250,7 @@ class Builtins_boxes:
         """
 
         self._check_arg_length(node, 2, 2)
-        self._check_arg_types(node, (COMMON_ARGS + (VariableType,), (VariableType,)))
+        self._check_arg_types(node, (COMMON_ARGS + (VariableType, ItemList), (VariableType,)))
 
         lhs, rhs = node.args
 
@@ -286,7 +286,10 @@ class Builtins_boxes:
         # if no luck, compare subclass membership of types
 
         if not result:
-            result = issubclass(lhs_type.__class__, rhs_type)
+            if rhs_type.__class__ == type:
+                result = issubclass(lhs_type.__class__, rhs_type)
+            else:
+                result = issubclass(lhs_type.__class__, rhs_type.__class__)
 
         return ir.Constant(self.vartypes.bool, result)
 
