@@ -6,7 +6,7 @@ from core.ast_module import (
     VariableType, Unsafe, Continue, Try, Raise,
     Pass, FString
 )
-from core.vartypes import AkiCustomType, AkiArray
+from core.vartypes import AkiCustomType, AkiArray, AkiType
 from core.errors import ParseError
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Ops, Puncs
@@ -302,7 +302,7 @@ class Expressions():
         # like obj, to this function, the results are mangled
         # eventually I'd like to have proper as_pointer operations for the classmethod
 
-        if not vartype.as_pointer == AkiCustomType.as_pointer:
+        if not vartype.as_pointer == AkiType.as_pointer:
             while is_ptr > 0:
                 vartype = vartype.as_pointer(getattr(vartype, 'addrspace', 0))
                 is_ptr -= 1
