@@ -63,6 +63,7 @@ for k,v in MyType.__dict__.items():
 _Type.is_obj = None
 _Type.v_id = None
 _Type.del_as_ptr = False
+_Type.explicit_ptr = False
 
 _Type.post_new_bitcast = lambda *a, **ka: None
 

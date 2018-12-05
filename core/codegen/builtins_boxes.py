@@ -250,7 +250,9 @@ class Builtins_boxes:
         """
 
         self._check_arg_length(node, 2, 2)
-        self._check_arg_types(node, (COMMON_ARGS + (VariableType, ItemList), (VariableType,)))
+        self._check_arg_types(
+            node, (COMMON_ARGS + (VariableType, ItemList), (VariableType,))
+        )
 
         lhs, rhs = node.args
 
@@ -312,7 +314,7 @@ class Builtins_boxes:
                     enum_id = getattr(type_obj.vartype.pointee, "enum_id", None)
         else:
             type_obj = self._codegen(type_obj).type
-            if type_obj.is_pointer:
+            if isinstance(type_obj, ir.PointerType) and not type_obj.explicit_ptr:
                 enum_id = type_obj.pointee.enum_id
             else:
                 enum_id = type_obj.enum_id

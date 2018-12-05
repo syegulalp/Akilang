@@ -6,7 +6,7 @@ from core.ast_module import (
     VariableType, Unsafe, Continue, Try, Raise,
     Pass, FString
 )
-from core.vartypes import AkiCustomType, AkiArray, AkiType
+from core.vartypes import AkiCustomType, AkiArray, AkiType, set_type_id
 from core.errors import ParseError
 from core.operators import binop_info, Associativity, set_binop_info, UNASSIGNED
 from core.tokens import Builtins, Ops, Puncs
@@ -228,9 +228,11 @@ class Expressions():
         # but a variable type that is part of an AST node.
 
         is_ptr = 0
+        explicit_ptr = False
 
         while self.cur_tok.kind == TokenKind.PTR:
-            is_ptr += 1
+            explicit_ptr = True
+            is_ptr += 1            
             self._get_next_token()
 
         if self.cur_tok.value in self.vartypes:
@@ -306,6 +308,11 @@ class Expressions():
             while is_ptr > 0:
                 vartype = vartype.as_pointer(getattr(vartype, 'addrspace', 0))
                 is_ptr -= 1
+
+        if explicit_ptr:
+            set_type_id(self.vartypes, vartype)
+        
+        vartype.explicit_ptr = explicit_ptr
 
         return vartype
 

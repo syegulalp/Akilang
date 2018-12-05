@@ -37,7 +37,8 @@ PARSE_ACTIONS = {
     TokenKind.BREAK: 'break',
     TokenKind.UNSAFE: 'unsafe',
     TokenKind.PASS: 'pass',
-    TokenKind.VARTYPE: 'standalone_vartype'
+    TokenKind.VARTYPE: 'standalone_vartype',
+    TokenKind.PTR: 'standalone_vartype'
 }
 
 # pylint: disable=E1101
