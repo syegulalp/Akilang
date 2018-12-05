@@ -298,9 +298,14 @@ class Expressions():
         if vartype.is_obj:
             is_ptr += 1
 
-        while is_ptr > 0:
-            vartype = vartype.as_pointer(getattr(vartype, 'addrspace', 0))
-            is_ptr -= 1
+        # TODO: this check occurs because when we pass a base class,
+        # like obj, to this function, the results are mangled
+        # eventually I'd like to have proper as_pointer operations for the classmethod
+
+        if not vartype.as_pointer == AkiCustomType.as_pointer:
+            while is_ptr > 0:
+                vartype = vartype.as_pointer(getattr(vartype, 'addrspace', 0))
+                is_ptr -= 1
 
         return vartype
 

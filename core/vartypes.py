@@ -18,12 +18,11 @@ def make_type_as_ptr(my_type):
 
 class AkiType(ir.Type):
     pass
-    
 
 class AkiObj(AkiType):
+    v_id='obj'
     signed = False
     is_obj = True
-
 
 class AkiInt(AkiType, ir.IntType):
     is_obj = False
@@ -295,9 +294,11 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
         {
             # abstract types
             "vartype": AkiType,
-            "obj": Header,
+            "obj": AkiObj,
+            "header": Header,
             "int": AkiInt,
-            "float": AkiFloat,            
+            "float": AkiFloat,
+            
             # scalars
             # bitwidths universal across platforms
             "u1": _bool,

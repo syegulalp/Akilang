@@ -5,6 +5,7 @@ import ctypes
 _Type = ir.types.Type
 
 class MyType():
+    
     def is_func_ptr(self):
         '''
         Reports whether or not a given type

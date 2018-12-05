@@ -244,10 +244,10 @@ class Builtins_boxes:
         return obj_alloc
 
     def _codegen_Builtins_isinstance(self, node):
-        '''
+        """
         Returns whether or not a given vartype, class, or variable
         is an instance of a vartype or class.
-        '''
+        """
 
         self._check_arg_length(node, 2, 2)
         self._check_arg_types(node, (COMMON_ARGS + (VariableType,), (VariableType,)))
@@ -260,7 +260,8 @@ class Builtins_boxes:
 
         # If rhs type is an object, get its underlying type
 
-        if rhs.vartype.is_obj_ptr():
+        # if rhs.vartype.is_obj_ptr():
+        if isinstance(rhs.vartype, ir.PointerType):
             rhs_type = rhs.vartype.pointee
         else:
             rhs_type = rhs.vartype
@@ -275,7 +276,7 @@ class Builtins_boxes:
 
         # extract pointee if obj type
 
-        if lhs_type.is_obj_ptr():
+        if isinstance(lhs_type, ir.PointerType):
             lhs_type = lhs_type.pointee
 
         # compare enum ids first
@@ -285,14 +286,14 @@ class Builtins_boxes:
         # if no luck, compare subclass membership of types
 
         if not result:
-            result = issubclass(lhs_type.__class__, rhs_type.__class__)
+            result = issubclass(lhs_type.__class__, rhs_type)
 
         return ir.Constant(self.vartypes.bool, result)
 
     def _codegen_Builtins_type(self, node, no_check=False):
-        '''
+        """
         Returns a constant enum that represents a type.
-        '''
+        """
 
         if no_check:
             type_obj = node

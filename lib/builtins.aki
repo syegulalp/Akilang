@@ -44,7 +44,7 @@ def c_str_to_int(my_str:str) :i32 pass
 #     0
 # }
 
-def '.obj.setobjdata'(my_obj: obj, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem): obj {
+def '.header.setobjdata'(my_obj: header, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem): header {
     # Insert the length
     var len_ptr = c_gep(my_obj,DATA_SIZE)
     unsafe c_ptr_mod(len_ptr, obj_len)
@@ -109,8 +109,8 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
 
     # replace with `call`
 
-    call ('.obj.setobjdata', 
-        unsafe cast(alloc, obj),
+    call ('.header.setobjdata', 
+        unsafe cast(alloc, header),
         False,
         True,
         str_len,
