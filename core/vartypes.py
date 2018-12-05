@@ -16,6 +16,15 @@ def make_type_as_ptr(my_type):
     return type_as_ptr
 
 
+def set_type_id(vartypes, type_to_check):
+    lookup = vartypes._enum_lookup.get(type_to_check.v_id)
+    if not lookup:
+        vartypes._enum_count +=1
+        type_to_check.enum_id = vartypes._enum_count
+        vartypes._enum_lookup[type_to_check.v_id] = type_to_check
+    else:
+        type_to_check.enum_id = lookup.enum_id
+
 class AkiType(ir.Type):
     pass
 
@@ -133,11 +142,10 @@ class AkiCustomType(AkiType):
     def __new__(cls, module, name, types, v_types):
         instance = module.context.get_identified_type(".class." + name)
 
-        # if not issubclass(instance.__class__, AkiObj):
-        class _this(AkiObj, instance.__class__):
-            pass
-
-        instance.__class__ = _this
+        if not issubclass(instance.__class__, AkiObj):
+            class _this(AkiObj, instance.__class__):
+                pass
+            instance.__class__ = _this
 
         instance.elements = types
         instance.v_types = v_types
@@ -212,14 +220,6 @@ class AkiFunc(AkiObj, ir.FunctionType):
     v_id = "func"
     is_obj = True
 
-def set_type_id(vartypes, type_to_check):
-    lookup = vartypes._enum_lookup.get(type_to_check.v_id)
-    if not lookup:
-        vartypes._enum_count +=1
-        type_to_check.enum_id = vartypes._enum_count
-        vartypes._enum_lookup[type_to_check.v_id] = type_to_check
-    else:
-        type_to_check.enum_id = lookup.enum_id
 
 _default_platform_module = ir.Module()
 _default_platform_vartypes = {}
@@ -355,8 +355,6 @@ def generate_vartypes(module=_default_platform_module, bytesize=8):
     _vartypes._enum_lookup = {}
 
     _default_platform_vartypes[module.triple] = _vartypes
-
-    #print (_vartypes.array.as_pointer())
 
     return _vartypes
 
