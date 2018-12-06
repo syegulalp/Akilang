@@ -184,7 +184,7 @@ class Builtins_boxes:
         # a box from a constant, then the box itself should
         # be a constant?
 
-        if data_to_convert.type.is_pointer:
+        if data_to_convert.type.is_pointer and not data_to_convert.type.explicit_ptr:
             enum_id = data_to_convert.type.pointee.enum_id
         else:
             enum_id = data_to_convert.type.enum_id

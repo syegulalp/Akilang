@@ -22,6 +22,7 @@ COMMON_ARGS = (Expr,)
 
 import llvmlite.ir as ir
 from core.tokens import Ops
+from core.vartypes import set_type_id
 
 # pylint: disable=E1101
 
@@ -353,19 +354,38 @@ class Builtins:
             raise CodegenError(f"Error extracting c_data pointer", node.position)
 
     def _codegen_Builtins_c_ptr(self, node):
+        '''
+        Returns a typed pointer to any object.
+        '''
+        self._check_arg_length(node)
+        self._check_arg_types(node, (COMMON_ARGS,))
+
+        a0 = self._get_obj_noload(node, ptr_check=False)
+        if not isinstance(a0, (ir.LoadInstr, ir.AllocaInstr)):
+            raise CodegenError(
+                f'Argument must be a variable or expression returning a variable',
+                node.args[0].position
+            )
+
+        a2 = self._extract_operand(a0)
+        return a2
+
+    
+    def _codegen_Builtins_c_ptr_mem(self, node):
         """
         Returns a u_mem ptr to anything
         """
 
-        node = self._if_unsafe(node)
+        #node = self._if_unsafe(node)
         self._check_arg_length(node, 1, 2)
-        self._check_arg_types(node, [COMMON_ARGS], COMMON_ARGS)
+        self._check_arg_types(node, (COMMON_ARGS,), COMMON_ARGS)
         address_of = self._codegen(node.args[0])
 
-        if len(node.args) > 1:
-            use_type = self._codegen(node.args[1], False)
-        else:
-            use_type = self.vartypes.u_mem
+        # if len(node.args) > 1:
+        #     use_type = self._codegen(node.args[1], False)
+        # else:
+
+        use_type = self.vartypes.u_mem
 
         return self.builder.bitcast(address_of, use_type.as_pointer())
 

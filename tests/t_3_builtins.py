@@ -130,3 +130,7 @@ class TestEvaluator(unittest.TestCase):
             }
         ''')
         self.assertEqual(self.e2.evaluate('main()'), 9)
+
+    def test_c_ptr(self):
+        pass
+        

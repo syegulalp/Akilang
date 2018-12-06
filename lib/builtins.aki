@@ -94,7 +94,7 @@ def '.object.str.__del__'(my_str: str):bool {
     }
     # free the data container
     # TODO: check flag first
-    unsafe c_free(c_ptr(my_str))
+    unsafe c_free(c_ptr_mem(my_str))
 }
 
 

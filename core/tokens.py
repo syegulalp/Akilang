@@ -118,26 +118,21 @@ OP_DUNDERS = {
 # Note that we do NOT use Ops for actual LLVM ops.
 
 Builtins = {
-    'c_addr',
     # c_alloc/c_free are provided by platformlib
-    # 'c_array_ptr',
+    'c_addr',    
     'c_data',
     'c_gep',
-    # 'c_raw_obj',
-    # 'c_ptr_set',
     'c_ref', 'c_deref',
     'c_size',
     'c_obj_alloc',
     'c_obj_free',
     'c_obj_ref', 'c_obj_deref',
-    # 'c_obj_size',
     'c_ptr',
+    'c_ptr_mem',
     'c_ptr_int',
     'c_ptr_math',
     'c_ptr_mod',
     'cast', 'convert',
-    # 'make',
-    # 'out',
     'print',
     'dummy',
     'box',
