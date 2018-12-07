@@ -78,7 +78,7 @@ class AkilangEvaluator(object):
         try:
             with open(f) as file:
                 buf = file.read()
-                #self.cached_lib.append(buf)
+                self.cached_lib.append(buf)
                 self.eval_all(buf)
         except (FileNotFoundError, ParseError, CodegenError) as err:
             print(
@@ -87,12 +87,12 @@ class AkilangEvaluator(object):
             self._reset_base()
             raise err
 
-    def reset(self, history=[]):
+    def reset(self, history=[], force=None):
         self._reset_base()
-        # if self.cached_lib:
-        #     for _ in self.cached_lib:
-        #         self.eval_all(_)
-        #     return
+        if self.cached_lib:
+            for _ in self.cached_lib:
+                self.eval_all(_)
+            return
 
         if self.basiclib_dir:
 
@@ -131,6 +131,7 @@ class AkilangEvaluator(object):
                 print(
                     colored("Could not run history:", 'red'),
                     self.basiclib_file)
+                self.cached_lib = []
                 self._reset_base()
         
 

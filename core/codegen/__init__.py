@@ -1,4 +1,13 @@
-from core.ast_module import Prototype, Function, Uni, Class, Decorator, Call, Pragma, Number
+from core.ast_module import (
+    Prototype,
+    Function,
+    Uni,
+    Class,
+    Decorator,
+    Call,
+    Pragma,
+    Number,
+)
 from core.vartypes import generate_vartypes
 from core.errors import CodegenError, SubError
 from core.mangling import mangle_args
@@ -15,15 +24,17 @@ from core.codegen.controlflow import ControlFlow
 
 # pylint: disable=E1101
 
+
 class NullBuilder:
     def __getattribute__(self, name):
-        raise SubError(
-            f"Operation cannot be performed outside of a function context"
-        )
+        raise SubError(f"Operation cannot be performed outside of a function context")
 
-class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow):
-    def __init__(self, vartypes=None, module_name=None):
-        '''
+
+class LLVMCodeGenerator(
+    Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow
+):
+    def __init__(self, vartypes=None, module_name=None, context=None):
+        """
         Initialize the code generator.
         This creates a new LLVM module into which code is generated. The
         generate_code() method can be called multiple times. It adds the code
@@ -31,9 +42,14 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         the node.
         At any time, the current LLVM module being constructed can be obtained
         from the module attribute.
-        '''
+        """
         # Current module.
-        self.module = ir.Module(module_name)
+        if context:
+            opts = [module_name, context]
+        else:
+            opts = [module_name]
+
+        self.module = ir.Module(*opts)
 
         # Current IR builder.
         self.nullbuilder = NullBuilder()
@@ -92,8 +108,8 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
     def init_evaluator(self):
         if self.evaluator is None:
             from core import codexec
-            self.evaluator = codexec.AkilangEvaluator(
-                True, vartypes=self.vartypes)
+
+            self.evaluator = codexec.AkilangEvaluator(True, vartypes=self.vartypes)
         else:
             self.evaluator.reset()
         return self.evaluator
@@ -103,58 +119,54 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         return self._const_counter
 
     def _int(self, pyval):
-        '''
+        """
         Returns a constant for Python int value.
         Used for gep, so it returns a value that is the bitwidth
         of the pointer size for the needed architecture.
-        '''
+        """
         return ir.Constant(self.vartypes.u_size, int(pyval))
 
     def _i32(self, pyval):
-        '''
+        """
         Returns a constant for 32-bit int value.
         Also used for gep where a 32-bit value is required.
-        '''
+        """
         return ir.Constant(self.vartypes.u32, int(pyval))
 
     def generate_code(self, node):
-        assert isinstance(node, (Prototype, Function,
-                                 Uni, Class, Decorator, Pragma))
+        assert isinstance(node, (Prototype, Function, Uni, Class, Decorator, Pragma))
         return self._codegen(node, False)
 
     def _extract_operand(self, val):
-        '''
+        """
         Extracts the first operand for a load or alloca statement.
         Used to examine the actual variable underlying such.
         This is used mainly when determining if a variable being traced
         through a function has its heap_alloc attribute set,
         to further determine if it needs to be disposed automatically
         when it goes out of scope.
-        '''
-        if hasattr(val, 'operands') and val.operands:
+        """
+        if hasattr(val, "operands") and val.operands:
             return val.operands[0]
         else:
             return val
 
     def _get_var(self, node, lhs):
-        '''
+        """
         Retrieves variable, if any, from a load op.
         Used mainly for += and -= ops.
-        '''
+        """
         if isinstance(lhs, ir.Constant):
-            raise CodegenError(
-                r"Can't assign value to literal",
-                node.position
-            )
+            raise CodegenError(r"Can't assign value to literal", node.position)
         return self._extract_operand(lhs)
 
     def _isize(self):
-        '''
+        """
         Returns a constant of the pointer size for the currently configured architecture.
         The size is obtained from the LLVMCodeGenerator object, and is set when
         that object is instantiated. By default it's the pointer size for the current
         hardware, but you will be able to override it later.
-        '''
+        """
         return ir.Constant(self.varTypes.u_size, self.pointer_size)
 
     def _obj_size_type(self, obj):
@@ -179,13 +191,19 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         if lhs.heap_alloc:
             lhs.tracked = True
 
-    def _alloca(self, name,
-                alloca_type=None, size=None, current_block=False,
-                malloc=False, node=None):
-        '''
+    def _alloca(
+        self,
+        name,
+        alloca_type=None,
+        size=None,
+        current_block=False,
+        malloc=False,
+        node=None,
+    ):
+        """
         Create an alloca, by default in the entry BB of the current function.
         Set current_block=True to use the current block.
-        '''
+        """
 
         assert alloca_type is not None
 
@@ -207,6 +225,7 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
             # then return a properly typed pointer from the malloc
 
         else:
+
             def make_alloc():
                 return self.builder.alloca(alloca_type, size=size, name=name)
 
@@ -217,9 +236,9 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
                 return make_alloc()
 
     def _varaddr(self, node, report=True):
-        '''
+        """
         Retrieve the address of a variable indicated by a Variable AST object.
-        '''
+        """
         if report:
             name = node.name
         else:
@@ -230,27 +249,27 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         if v is None:
             if not report:
                 return None
-            raise CodegenError(f'Undefined variable "{node.name}"',
-                               node.position)
+            raise CodegenError(f'Undefined variable "{node.name}"', node.position)
         return v
 
     def _codegen(self, node, check_for_type=True):
-        '''
+        """
         Node visitor. Dispatches upon node type.
         For AST node of class Foo, calls self._codegen_Foo. Each visitor is
         expected to return a llvmlite.ir.Value.
-        '''
+        """
 
-        method = f'_codegen_{node.__class__.__name__}'
+        method = f"_codegen_{node.__class__.__name__}"
         try:
             result = getattr(self, method)(node)
         except SubError as e:
             raise CodegenError(str(e), node.position)
 
-        if check_for_type and not hasattr(result, 'type'):
+        if check_for_type and not hasattr(result, "type"):
             raise CodegenError(
-                f'Expression does not return a value along all code paths, or expression returns an untyped value',
-                node.position)
+                f"Expression does not return a value along all code paths, or expression returns an untyped value",
+                node.position,
+            )
 
         self.previous = result
 
@@ -258,19 +277,17 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
 
     def _codegen_dunder_methods(self, node):
         call = self._codegen_Call(
-            Call(node.position, node.name,
-                 node.args
-                 ),
-            obj_method=True
+            Call(node.position, node.name, node.args), obj_method=True
         )
         return call
 
     def _codegen_methodcall(self, node, lhs, rhs):
         func = self.module.globals.get(
-            f'binary.{node.op}{mangle_args((lhs.type,rhs.type))}')
+            f"binary.{node.op}{mangle_args((lhs.type,rhs.type))}"
+        )
         if func is None:
             raise NotImplementedError
-        return self.builder.call(func, [lhs, rhs], 'userbinop')
+        return self.builder.call(func, [lhs, rhs], "userbinop")
 
     def _codegen_autodispose(self, item_list, to_check, node=None):
         for _, var_to_dispose in item_list:
@@ -302,17 +319,12 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
         sig = v_target.del_signature()
 
         if v_target.del_as_ptr:
-            ref = self.builder.bitcast(
-                ref,
-                self.vartypes.u_mem.as_pointer()
-            )
+            ref = self.builder.bitcast(ref, self.vartypes.u_mem.as_pointer())
 
         # TODO: merge this with the existing
         # dunder-method call mechanism?
 
-        del_name = self.module.globals.get(
-            sig+mangle_args([ref.type])
-        )
+        del_name = self.module.globals.get(sig + mangle_args([ref.type]))
 
         # TODO: symtab should contain the position
         # for the first creation of a class object
@@ -320,12 +332,8 @@ class LLVMCodeGenerator(Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, Con
 
         if del_name is None:
             raise CodegenError(
-                f'No "__del__" method found for "{v_target.signature()}"',
-                node.position
+                f'No "__del__" method found for "{v_target.signature()}"', node.position
             )
 
-        self.builder.call(
-            del_name,
-            [ref],
-            f'{var_to_dispose.name}.delete'
-        )
+        self.builder.call(del_name, [ref], f"{var_to_dispose.name}.delete")
+

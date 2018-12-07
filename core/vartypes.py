@@ -225,7 +225,7 @@ _default_platform_module = ir.Module()
 _default_platform_vartypes = {}
 
 
-def generate_vartypes(module=_default_platform_module, bytesize=8):
+def generate_vartypes(module=_default_platform_module, bytesize=8, force=None, cache_key=None):
 
     # if no module, assume current platform
     # cache a copy of the default platform module

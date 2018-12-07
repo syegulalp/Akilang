@@ -123,7 +123,7 @@ class Repl():
         reload(parsing)
         self.history = []
         print("Command history cleared")
-        self.executor.reset()
+        self.executor.reset(force=True)
         print("Interpreting engine reset")        
         self.last_file = None
 
@@ -193,6 +193,7 @@ class Repl():
         if command[-1] == '.':
             command += 'aki'
         try:
+            self.executor.reset(force=True)
             with open(f'{paths["source_dir"]}\\{command}', encoding='utf8') as file:
                 f = file.read()
                 print(f'{command} read in ({len(f)} bytes)')
