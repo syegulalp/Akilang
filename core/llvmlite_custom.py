@@ -77,6 +77,7 @@ class _PointerType(ir.types.PointerType):
         self.signed = signed
         self.descr = lambda: "ptr " + v_id
         self.p_fmt = getattr(a[0], 'p_fmt', None)
+        self.explicit_ptr = getattr(a[0], 'explicit_ptr', False)
         self.c_type = ctypes.c_void_p
 
     def as_pointer(self, addrspace=0):
