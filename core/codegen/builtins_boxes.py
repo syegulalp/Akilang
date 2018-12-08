@@ -184,7 +184,10 @@ class Builtins_boxes:
         # a box from a constant, then the box itself should
         # be a constant?
 
-        if data_to_convert.type.is_pointer and not data_to_convert.type.explicit_ptr:
+        if (
+            isinstance(data_to_convert.type, ir.PointerType)
+            and not data_to_convert.type.explicit_ptr
+        ):
             enum_id = data_to_convert.type.pointee.enum_id
         else:
             enum_id = data_to_convert.type.enum_id
@@ -269,7 +272,6 @@ class Builtins_boxes:
             rhs_type = rhs.vartype
 
         # If lhs is not a vartype, codegen and get its type
-
         if not isinstance(lhs, VariableType):
             lhs_gen = self._codegen(lhs, True)
             lhs_type = lhs_gen.type
@@ -277,16 +279,13 @@ class Builtins_boxes:
             lhs_type = lhs.vartype
 
         # extract pointee if obj type
-
         if isinstance(lhs_type, ir.PointerType):
             lhs_type = lhs_type.pointee
 
         # compare enum ids first
-
         result = lhs_type.enum_id == rhs_type.enum_id
 
         # if no luck, compare subclass membership of types
-
         if not result:
             if rhs_type.__class__ == type:
                 result = issubclass(lhs_type.__class__, rhs_type)
