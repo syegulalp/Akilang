@@ -33,7 +33,7 @@ class NullBuilder:
 class LLVMCodeGenerator(
     Builtins_Class, Builtins_boxes, Toplevel, Vars, Ops, ControlFlow
 ):
-    def __init__(self, vartypes=None, module_name=None, context=None):
+    def __init__(self, vartypes=None, module_name=None, context=None, force=False):
         """
         Initialize the code generator.
         This creates a new LLVM module into which code is generated. The
@@ -43,13 +43,13 @@ class LLVMCodeGenerator(
         At any time, the current LLVM module being constructed can be obtained
         from the module attribute.
         """
-        # Current module.
-        if context:
-            opts = [module_name, context]
+        
+        if force:
+            context = ir.context.Context()
+            self.module = ir.Module(module_name, context=context)
+            vartypes = generate_vartypes(self.module, force=True)
         else:
-            opts = [module_name]
-
-        self.module = ir.Module(*opts)
+            self.module = ir.Module(module_name)
 
         # Current IR builder.
         self.nullbuilder = NullBuilder()

@@ -225,16 +225,17 @@ _default_platform_module = ir.Module()
 _default_platform_vartypes = {}
 
 
-def generate_vartypes(module=_default_platform_module, bytesize=8, force=None, cache_key=None):
+def generate_vartypes(module=_default_platform_module, bytesize=8, force=False):
 
     # if no module, assume current platform
     # cache a copy of the default platform module
     # for the lifetime of the app
 
-    try:
-        return _default_platform_vartypes[module.triple]
-    except Exception:
-        pass
+    if not force:
+        try:
+            return _default_platform_vartypes[module.triple]
+        except Exception:
+            pass
 
     # Initialize target data for the module.
     target_data = binding.create_target_data(module.data_layout)
@@ -249,7 +250,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8, force=None, c
 
     _bool = Bool()
 
-    Header = ir.global_context.get_identified_type(".object_header.")
+    Header = module.context.get_identified_type(".object_header.")
     Header.__class__ = AkiHeader
     Header.elements = (
         # total length of data element in bytes as u64
@@ -276,7 +277,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8, force=None, c
 
     # create objects dependent on the ABI size
 
-    Box = ir.global_context.get_identified_type(".box.")
+    Box = module.context.get_identified_type(".box.")
     Box.__class__ = AkiBox
     Box.elements = (
         Header,
@@ -285,7 +286,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8, force=None, c
 
     Box.as_pointer = make_type_as_ptr(Box)
 
-    Str = ir.global_context.get_identified_type(".object.str")
+    Str = module.context.get_identified_type(".object.str")
     Str.__class__ = AkiStr
     Str.elements = (Header,)
     Str.as_pointer = make_type_as_ptr(Str)
