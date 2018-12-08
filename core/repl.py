@@ -151,9 +151,9 @@ class Repl():
     def reload_all(self, *a):
         raise ReloadException()
 
-    def run_tests(self, *a):
+    def run_tests(self, command):
         import unittest
-        tests = unittest.defaultTestLoader.discover("tests", "*.py")
+        tests = unittest.defaultTestLoader.discover("tests", '*.py')
         unittest.TextTestRunner().run(tests)
 
     def run_program(self, *a):
