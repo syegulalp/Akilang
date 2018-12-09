@@ -142,6 +142,8 @@ class AkiCustomType(AkiType):
     def __new__(cls, module, name, types, v_types):
         instance = module.context.get_identified_type(".class." + name)
 
+        # this should not be required, but I'm leaving it in
+        # for the sake of safety
         if not issubclass(instance.__class__, AkiObj):
             class _this(AkiObj, instance.__class__):
                 pass
