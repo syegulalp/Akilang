@@ -65,39 +65,9 @@ def '.header.setobjdata'(my_obj: header, malloc_1:bool, malloc_2:bool, obj_len:u
 }
 
 
-@nomod
-def '.object.str.__len__'(my_str:str):u64{    
-    var f1 = c_gep(my_str,0,DATA_SIZE)
-    c_deref(f1)
-}
+### STR ###
 
-# TODO: untested
-def '.object.array.__del__'(my_obj:ptr u_mem):bool {
-    unsafe c_free(my_obj)
-}
-
-@nomod
-def '.object.str.__index__'(my_str:str, index:i32) :u8 {
-    var f1 = c_gep(my_str,0,OBJ_PTR)
-    var f2 = c_gep(f1)
-    var f3 = c_ptr_math(f2, cast(index,u64))
-    c_gep(f3)
-}
-
-# TODO: untested
-
-def '.object.str.__del__'(my_str: str):bool {
-    var f1 = c_gep(my_str,0,OBJ_MALLOC)
-    when c_deref(f1) then {
-        # free the data element
-        unsafe c_free(c_data(my_str))
-    }
-    # free the data container
-    # TODO: check flag first
-    unsafe c_free(c_ptr_mem(my_str))
-}
-
-
+### new
 
 @track
 def '.object.str.__new__'(my_obj:ptr u_mem):str {
@@ -143,6 +113,38 @@ def '.object.str.__new__'(my_bool: bool):str {
     #if my_bool then TRUE else FALSE
 }
 
+@track
+def '.object.str.__new__'(my_obj:i32):str {
+    str(int_to_c_str(my_obj))
+}
+
+
+## other str functions
+
+@nomod
+def '.object.str.__len__'(my_str:str):u64{    
+    var f1 = c_gep(my_str,0,DATA_SIZE)
+    c_deref(f1)
+}
+
+@nomod
+def '.object.str.__index__'(my_str:str, index:i32) :u8 {
+    var f1 = c_gep(my_str,0,OBJ_PTR)
+    var f2 = c_gep(f1)
+    var f3 = c_ptr_math(f2, cast(index,u64))
+    c_gep(f3)
+}
+
+def '.object.str.__del__'(my_str: str):bool {
+    var f1 = c_gep(my_str,0,OBJ_MALLOC)
+    when c_deref(f1) then {
+        # free the data element
+        unsafe c_free(c_data(my_str))
+    }
+    # free the data container
+    # TODO: check flag first
+    unsafe c_free(c_ptr_mem(my_str))
+}
 
 
 # TODO: placeholder
@@ -153,10 +155,6 @@ def '.object.box.__del__'(my_obj: box):bool {
     # call its destructor as well?
 }
 
-@track
-def '.object.str.__new__'(my_obj:i32):str {
-    str(int_to_c_str(my_obj))
-}
 
 @nomod
 def '.i32.__new__'(my_obj:str):i32 {
@@ -167,3 +165,7 @@ def '.i32.__new__'(my_obj:str):i32 {
 # string obj eq testing
 # test data pointers, length, then the strings themselves
 
+# TODO: untested
+def '.object.array.__del__'(my_obj:ptr u_mem):bool {
+    unsafe c_free(my_obj)
+}
