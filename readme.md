@@ -2,7 +2,7 @@
 
 Eventually, this might become something useful for production. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
 
-> ⚠ This project is currently very unstable and may break between updates.
+> ⚠ This project is currently very unstable. However, you should always be able to pull from `master`, run the demos, and pass the test suite.
 
 [This document](whats-next.md) gives you an idea of what's being worked on right now and in the near future.
 
@@ -27,7 +27,7 @@ The language's syntax and goals are in heavy flux, but this is the basic idea I 
 
 Even if any of these features are only implemented in miniature, the idea would be to polish the implementations as completely as possible, so they could set the best possible example. For instance, if the standard library only had a proof-of-concept number of modules, the *way* they worked would be refined so that the practices around them could support a larger standard library.
 
-By deliberately keeping the scope of the implementation at PoC level (or, rather, by accepting such a scope as a by-product of the fact that this is a hobby project for now), it ought to be easier to keep a good grasp on the basics, and to avoid conceptual problems that could bite us later.
+By deliberately keeping the scope of the implementation at PoC level (or, rather, by accepting such a scope as a by-product of the fact that this is a hobby project for now), it ought to be easier to keep a good grasp on the basics, and to avoid conceptual problems that could bite us later. It also makes it easier to tear down and rebuild in the event we find we've written ourselves into a conceptual corner.
 
 Another likely goal would be to make this a language that encourages quick interactive development by way of its workflow. For instance, invoking the compiler with a certain set of command-line switches would fire up an editor for a new or existing project, and preconfigure the REPL to reload-and-run that project whenever you input the `.rlr` command.
 
@@ -127,8 +127,8 @@ The idea would be to provide a slew of fun examples that could be run out of the
 * [Very minimal language docs.](language.md)
 * No file or network I/O.
 * No way to create applications that span more than one file or module.
-* Processing user input is still highly primitive -- e.g., no way yet to manipulate/slice strings.
-* Builds console applications only. No way yet to build windowed-only apps.
+* Processing user input and data structures is still highly primitive -- e.g., no way yet to manipulate/slice strings.
+* On Windows: Builds console applications only. No way yet to build windowed-only apps.
 
 There's tons more limitations not enumerated here, but in time I will open them as formal GitHub issues and try to address them.
 
