@@ -140,7 +140,8 @@ Builtins = {
     'objtype',
     'unbox',
     'call',
-    'isinstance'
+    'isinstance',
+    'refcount'
 }
 
 Builtin = {

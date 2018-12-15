@@ -15,7 +15,7 @@ from core.ast_module import (
     Unsafe,
     VariableType,
     If,
-    Expr
+    Expr,
 )
 
 COMMON_ARGS = (Expr,)
@@ -41,7 +41,7 @@ class Builtins:
     def _check_arg_length(self, node, min_args=1, max_args=1):
         argcount = len(node.args)
         pos = node.args[argcount - 1].position if argcount > 0 else node.position
-        
+
         if argcount < min_args:
             raise AkiSyntaxError(
                 f"Too few arguments (expected {min_args}, got {argcount})", pos
@@ -49,21 +49,20 @@ class Builtins:
 
         if max_args and len(node.args) > max_args:
             raise AkiSyntaxError(
-                f"Too many arguments (expected {max_args}, got {argcount})",
-                pos
+                f"Too many arguments (expected {max_args}, got {argcount})", pos
             )
 
     def _check_arg_types(self, node, types, ext_types=None):
         for _, n in enumerate(node.args):
-            if _>len(types)-1:
-                t=ext_types
+            if _ > len(types) - 1:
+                t = ext_types
             else:
                 t = types[_]
-            
+
             if type(n).__base__ not in t and type(n) not in t:
                 raise AkiSyntaxError(
                     f'Argument {_} is the wrong type (expected one of "{[x.description() for x in t]}", got "{type(n).description()}"',
-                    n.position
+                    n.position,
                 )
 
     def _check_pointer(self, obj, node):
@@ -337,7 +336,7 @@ class Builtins:
         """
 
         self._check_arg_length(node)
-        self._check_arg_types(node, (COMMON_ARGS+(String,),))
+        self._check_arg_types(node, (COMMON_ARGS + (String,),))
 
         convert_from = self._codegen(node.args[0])
 
@@ -354,29 +353,28 @@ class Builtins:
             raise CodegenError(f"Error extracting c_data pointer", node.position)
 
     def _codegen_Builtins_c_ptr(self, node):
-        '''
+        """
         Returns a typed pointer to any object.
-        '''
+        """
         self._check_arg_length(node)
         self._check_arg_types(node, (COMMON_ARGS,))
 
         a0 = self._get_obj_noload(node, ptr_check=False)
         if not isinstance(a0, (ir.LoadInstr, ir.AllocaInstr)):
             raise CodegenError(
-                f'Argument must be a variable or expression returning a variable',
-                node.args[0].position
+                f"Argument must be a variable or expression returning a variable",
+                node.args[0].position,
             )
 
         a2 = self._extract_operand(a0)
         return a2
 
-    
     def _codegen_Builtins_c_ptr_mem(self, node):
         """
         Returns a u_mem ptr to anything
         """
 
-        #node = self._if_unsafe(node)
+        # node = self._if_unsafe(node)
         self._check_arg_length(node, 1, 2)
         self._check_arg_types(node, (COMMON_ARGS,), COMMON_ARGS)
         address_of = self._codegen(node.args[0])
@@ -475,7 +473,7 @@ class Builtins:
 
         self._check_arg_length(node, 2, 2)
         self._check_arg_types(node, [COMMON_ARGS, [VariableType]])
-        
+
         cast_from = self._codegen(node.args[0])
         cast_to = self._codegen(node.args[1], False)
 
@@ -667,6 +665,21 @@ class Builtins:
         result = op(convert_from, convert_to)
         result.type = convert_to
         return result
+
+    def _codegen_Builtins_refcount(self, node):
+        self._check_arg_length(node)
+        self._check_arg_types(node, [COMMON_ARGS])
+
+        arg = self._codegen(node.args[0])
+        if not arg.type.is_obj_ptr():
+            raise CodegenError(f"Parameter must be an object", node.args[0].position)
+
+        refcount = self.builder.gep(
+            arg,
+            [self._i32(0), self._i32(0), self._i32(self.vartypes.header.OBJ_REFCOUNT)],
+        )
+
+        return self.builder.load(refcount)
 
     def _codegen_Builtins_print(self, node):
 
