@@ -60,7 +60,7 @@ for k,v in MyType.__dict__.items():
     if not k.startswith('__'):
         setattr(_Type,k,v)
 
-_Type.is_obj = None
+_Type.is_obj = False
 _Type.v_id = None
 _Type.del_as_ptr = False
 _Type.explicit_ptr = False
