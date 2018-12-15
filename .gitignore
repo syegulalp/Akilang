@@ -9,6 +9,9 @@ _build
 .sync
 .vscode
 src/test
+*.profile
+stats.txt
+performance.md
 
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
