@@ -21,7 +21,7 @@ class Toplevel():
         # w/finding existing vars in a subeval, maybe by way of
         # passing it the current eval as a parameter?
 
-        e = self.init_evaluator()
+        e = None
 
         for n in node.pragmas:
             if not isinstance(n, Binary):
@@ -31,6 +31,8 @@ class Toplevel():
                 )
 
             if isinstance(n.rhs, Variable):
+                if e is None:
+                    e = self.init_evaluator() 
                 val = e.eval_and_return(n.rhs).value
 
             # an inline string literal doesn't need to be evaled
