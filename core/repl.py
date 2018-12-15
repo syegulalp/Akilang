@@ -59,7 +59,8 @@ preceded by a dot sign:
     .run|r        : Run the main() function (if present) in the current
                     module.
     .test|t       : Run unit tests.
-    .version|ver  : Print version information.
+    .version|ver|v
+                  : Print version information.
     .<file>.      : Load <file>.aki from the src directory.
                     For instance, .l. will load the Conway's Life demo.
 
@@ -73,7 +74,7 @@ On the command line, the initial dot sign can be replaced with a double dash:
     
     aki --test
     aki --myfile.aki
-    """
+"""
 
 
 def errprint(msg):
@@ -205,12 +206,17 @@ class Repl():
                 print(f"Compile time: {finish_time:.3f}s")
 
                 # import cProfile
+                # start_time = perf_counter()
                 # cProfile.runctx('self.print_eval(f)', globals(),
                 #         locals(), 'main.profile')
+                # finish_time = perf_counter()-start_time
+                # print(f"Compile time: {finish_time:.3f}s")                
                 # with open('stats.txt', 'w') as stream:
                 #     import pstats
                 #     stats = pstats.Stats('main.profile', stream=stream)
                 #     stats.sort_stats('calls').print_stats()
+
+                
 
         except (FileNotFoundError, OSError):
             errprint("File or command not found: " + command)
