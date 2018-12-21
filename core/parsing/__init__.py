@@ -286,6 +286,7 @@ class Parser(Expressions, Toplevel):
 
         if self._cur_tok_is_punctuator(Puncs.CLOSE_BRACKET):
             elements = None
+            self._get_next_token()
             return ItemList(start, elements)
 
         while True:
