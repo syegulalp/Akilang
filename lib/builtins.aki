@@ -22,18 +22,25 @@ def c_alloc(bytes:u_size):ptr u_mem pass
 def int_to_c_str(my_int:i32): ptr u_mem pass
 def c_str_to_int(my_str:str) :i32 pass
 
-
 # The actual builtins.
 
 # Incr and decr refcount
 
-# def '.obj..__incr__'(my_obj: obj) {
-#     var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
-#     var f2 = c_deref(f1)
-#     var f3 = f2+=1U
-#     unsafe c_ptr_mod(f1, f3)
-#     0
-# }
+def '.obj..__incr__'(my_obj: header) {    
+    # If underlying obj is not malloc'd,
+    # we do not need to track it    
+    var malloc = c_deref(
+        c_gep(my_obj, OBJ_MALLOC)
+    )
+
+    when malloc then {
+        var f1 = c_gep(my_obj,OBJ_REFCOUNT)
+        var f2 = c_deref(f1)
+        var f3 = f2+=1U
+        unsafe c_ptr_mod(f1, f3)
+    }
+    0
+}
 
 # def '.obj..__decr__'(my_obj: obj) {
 #     var f1 = c_gep(my_obj,0,OBJ_REFCOUNT)
@@ -71,6 +78,9 @@ def '.header.setobjdata'(my_obj: header, malloc_1:bool, malloc_2:bool, obj_len:u
 
 @track
 def '.object.str.__new__'(my_obj:ptr u_mem):str {
+    # This assumes the underlying data has been malloc'd;
+    # we'll add a flag later for that
+
     # Determine the string length since this is raw data
     var str_len = c_strlen(my_obj)
     
@@ -81,7 +91,7 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
 
     call ('.header.setobjdata', 
         unsafe cast(alloc, header),
-        False,
+        True,
         True,
         str_len,
         my_obj
