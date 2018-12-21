@@ -1,13 +1,28 @@
 import llvmlite.ir as ir
 from core.errors import CodegenError, CodegenWarning
-from core.ast_module import Variable, Call, ArrayAccessor, Number, ItemList, Global, String, Number, ItemList, FString, Unsafe, Binary, Unary, Array
+from core.ast_module import (
+    Variable,
+    Call,
+    ArrayAccessor,
+    Number,
+    ItemList,
+    Global,
+    String,
+    Number,
+    ItemList,
+    FString,
+    Unsafe,
+    Binary,
+    Unary,
+    Array,
+)
 from core.mangling import mangle_call
 from core.vartypes import AkiArray
 
 # pylint: disable=E1101
 
 
-class Vars():
+class Vars:
     def _codegen_NoneType(self, node):
         pass
 
@@ -38,32 +53,23 @@ class Vars():
 
     def _codegen_ArrayAccessor(self, node):
         return self._codegen_Call(
-            Call(
-                node.position,
-                "index",
-                [
-                    self.last_inline
-                ]+node.elements,
-            ),
+            Call(node.position, "index", [self.last_inline] + node.elements),
             obj_method=True,
         )
 
     def _codegen_ArrayElement(self, node, array):
-        '''
+        """
         Returns a pointer to the requested element of an array.
-        '''
+        """
 
         elements = [self._codegen(n) for n in node.elements]
 
-        accessor = [
-            self._i32(0),
-            self._i32(1),
-        ] + elements
+        accessor = [self._i32(0), self._i32(1)] + elements
 
         # First, try to obtain a conventional array accessor element
 
         try:
-            ptr = self.builder.gep(array, accessor, False, f'{array.name}')
+            ptr = self.builder.gep(array, accessor, False, f"{array.name}")
         except Exception as e:
             pass
         else:
@@ -74,14 +80,17 @@ class Vars():
         if not self.allow_unsafe:
             raise CodegenError(
                 f'Accessor "{array.name}" into unindexed object requires "unsafe" block',
-                node.position)
+                node.position,
+            )
         try:
             ptr = self.builder.gep(
-                array, [self._i32(0)] + elements, False, f'{array.name}')
+                array, [self._i32(0)] + elements, False, f"{array.name}"
+            )
         except AttributeError as e:
             raise CodegenError(
                 f'Unindexed accessor for "{array.name}" requires a compile-time constant',
-                node.position)
+                node.position,
+            )
         except Exception as e:
             raise e
         else:
@@ -91,7 +100,8 @@ class Vars():
 
         raise CodegenError(
             f'Invalid array accessor for "{array.name}" (maybe wrong number of dimensions?)',
-            node.position)
+            node.position,
+        )
 
     def _codegen_LoadInstr(self, node):
         return node
@@ -122,7 +132,7 @@ class Vars():
         while True:
 
             if previous_node is None and isinstance(current_node, Variable):
-                if isinstance(getattr(current_node, 'child', None), (Call,)):
+                if isinstance(getattr(current_node, "child", None), (Call,)):
                     previous_node = current_node
                     current_node = current_node.child
                     continue
@@ -130,7 +140,7 @@ class Vars():
                 latest = self._varaddr(current_node)
 
                 if constant is False:
-                    constant = getattr(latest, 'global_constant', False)
+                    constant = getattr(latest, "global_constant", False)
 
                 current_load = not latest.type.is_obj_ptr()
 
@@ -151,8 +161,7 @@ class Vars():
 
                 if isinstance(latest.type.pointee, AkiArray):
                     # manually generate array index lookup
-                    latest = self._codegen_ArrayElement(
-                        current_node, array_element)
+                    latest = self._codegen_ArrayElement(current_node, array_element)
                     current_load = not latest.type.is_obj_ptr()
 
                 else:
@@ -161,9 +170,7 @@ class Vars():
                         Call(
                             previous_node.position,
                             "index",
-                            [
-                                previous
-                            ]+current_node.elements,
+                            [previous] + current_node.elements,
                         ),
                         obj_method=True,
                     )
@@ -185,34 +192,31 @@ class Vars():
                     oo = latest.type.pointee
                 except AttributeError:
                     raise CodegenError(
-                        f'Not a pointer or object', current_node.position)
+                        f"Not a pointer or object", current_node.position
+                    )
 
                 _latest_vid = oo.v_id
                 _cls = self.class_symtab[_latest_vid]
-                _pos = _cls.v_types[current_node.name]['pos']
+                _pos = _cls.v_types[current_node.name]["pos"]
 
-                index = [
-                    self._i32(0),
-                    self._i32(_pos)
-                ]
+                index = [self._i32(0), self._i32(_pos)]
 
                 latest = self.builder.gep(
-                    latest, index, True,
-                    previous_node.name + '.' + current_node.name)
+                    latest, index, True, previous_node.name + "." + current_node.name
+                )
 
                 current_load = not latest.type.is_obj_ptr()
 
             # pathological case
             else:
-                raise CodegenError(
-                    f'Unknown variable instance', current_node.position)
+                raise CodegenError(f"Unknown variable instance", current_node.position)
 
-            child = getattr(current_node, 'child', None)
+            child = getattr(current_node, "child", None)
             if child is None:
                 break
 
             if current_load:
-                latest = self.builder.load(latest, node.name+'.accessor')
+                latest = self.builder.load(latest, node.name + ".accessor")
 
             previous_node = current_node
             current_node = child
@@ -221,11 +225,11 @@ class Vars():
         # If the final value is a global constant,
         # just return the underlying constant,
         # not a variable reference
-        
-        if getattr(latest,'global_constant',None):
+
+        if getattr(latest, "global_constant", None):
             latest = latest.initializer
             return latest
-        
+
         if noload is True:
             latest.global_constant = constant
             return latest
@@ -243,63 +247,59 @@ class Vars():
         current = self._string_base(node)
         if hasattr(node, "child"):
             return self._codegen_Variable(
-                node.child, start_with=[
-                    node, current, current, ]
+                node.child, start_with=[node, current, current]
             )
         return current
 
     def _string_base(self, node, global_constant=True):
-        '''
+        """
         Core function for code generation for strings.        
         This will also be called when we create strings dynamically
         in the course of a function, or statically during compilation.
-        '''
+        """
         # only strings codegenned from source should be stored as LLVM globals
         string = node.val
         module = self.module
-        string_length = len(string.encode('utf8')) + 1
+        string_length = len(string.encode("utf8")) + 1
         data_type = ir.ArrayType(ir.IntType(8), string_length)
 
-        str_name = f'.str.{len(module.globals)}'
+        str_name = f".str.{len(module.globals)}"
 
         # Create the LLVM constant value for the underlying string data.
 
         str_const = self._codegen(
-            Global(node.position,
-                   ir.Constant(
-                       data_type,
-                       bytearray(string, 'utf8') + b'\x00'),
-                   f'{str_name}.dat',
-                   global_constant=True
-                   )
+            Global(
+                node.position,
+                ir.Constant(data_type, bytearray(string, "utf8") + b"\x00"),
+                f"{str_name}.dat",
+                global_constant=True,
+            )
         )
 
         # Get pointer to first element in string's byte array
         # and bitcast it to a ptr i8.
 
-        spt = str_const.gep([self._int(0)]).bitcast(
-            self.vartypes.u_mem.as_pointer())
+        spt = str_const.gep([self._int(0)]).bitcast(self.vartypes.u_mem.as_pointer())
 
         # Set the string object data.
 
         initializer = self.vartypes.str(
-            [[
-                ir.Constant(self.vartypes.u64, string_length),
-                spt,
-                ir.Constant(self.vartypes.u64, self.vartypes.str.enum_id),
-                ir.Constant(self.vartypes.u64, 0),
-                ir.Constant(self.vartypes.bool, 0),
-                ir.Constant(self.vartypes.bool, 0)
-            ], ])
+            [
+                [
+                    ir.Constant(self.vartypes.u64, string_length),
+                    spt,
+                    ir.Constant(self.vartypes.u64, self.vartypes.str.enum_id),
+                    ir.Constant(self.vartypes.u64, 0),
+                    ir.Constant(self.vartypes.bool, 0),
+                    ir.Constant(self.vartypes.bool, 0),
+                ]
+            ]
+        )
 
         # Create the string object that points to the constant.
 
         str_val = self._codegen(
-            Global(node.position,
-                   initializer,
-                   str_name,
-                   global_constant=True
-                   )
+            Global(node.position, initializer, str_name, global_constant=True)
         )
 
         return str_val
@@ -308,34 +308,34 @@ class Vars():
         base_vartype = None
         element_list = []
 
+        if node.elements is None:
+            node.elements = [Number(node.position, 0, self.vartypes._DEFAULT_TYPE)]
+
         for element in node.elements:
             if base_vartype is None:
                 base_vartype = element.vartype
             elif base_vartype != element.vartype:
                 raise CodegenError(
                     f'Constant array definition is not of a consistent type (expected "{base_vartype.describe()}", got "{x.vartype.describe()}"',
-                    element.position
+                    element.position,
                 )
             try:
                 element_list.append(ir.Constant(element.vartype, element.val))
             except AttributeError:
                 raise CodegenError(
-                    f'Constant array definition has an invalid element',
-                    element.position
+                    f"Constant array definition has an invalid element",
+                    element.position,
                 )
 
         const = ir.Constant(
-            self.vartypes.carray(base_vartype, len(node.elements)),
-            element_list
+            self.vartypes.carray(base_vartype, len(node.elements)), element_list
         )
 
-        return self._codegen(
-            Global(node.position, const)
-        )
+        return self._codegen(Global(node.position, const))
 
     def _codegen_Global(self, node):
         if node.name is None:
-            node.name = f'.const.{self.const_counter()}'
+            node.name = f".const.{self.const_counter()}"
 
         global_var = ir.GlobalVariable(self.module, node.type, node.name)
         global_var.storage_class = node.storage_class
@@ -350,7 +350,9 @@ class Vars():
     # TODO: create value FIRST, then variable so we know what
     # kind of type to give to it if needed
 
-    def _codegen_create_variable(self, node, local_alloca=False, is_const=False, is_uni=False):
+    def _codegen_create_variable(
+        self, node, local_alloca=False, is_const=False, is_uni=False
+    ):
 
         var_name = node.name
         var_type = node.vartype
@@ -358,16 +360,12 @@ class Vars():
 
         var_ref = self.func_symtab.get(var_name)
         if var_ref is not None:
-            raise CodegenError(
-                f'"{var_name}" already defined in local scope',
-                position
-            )
+            raise CodegenError(f'"{var_name}" already defined in local scope', position)
 
         var_ref = self.module.globals.get(var_name, None)
         if var_ref is not None:
             raise CodegenError(
-                f'"{var_name}" already defined in universal scope',
-                position
+                f'"{var_name}" already defined in universal scope', position
             )
 
         # Special case handler.
@@ -375,14 +373,9 @@ class Vars():
         # we'll find someplace more suitable for them.
 
         if isinstance(node.initializer, ItemList):
-            if isinstance(
-                var_type.pointee,
-                self.vartypes.carray
-            ):
+            if isinstance(var_type.pointee, self.vartypes.carray):
                 var_type = self.vartypes.array(
-                    self.vartypes,
-                    node.initializer.elements[0].vartype,
-                    [0]
+                    self.vartypes, node.initializer.elements[0].vartype, [0]
                 )
 
             else:
@@ -394,26 +387,22 @@ class Vars():
 
             var_ref = self._codegen(
                 Global(
-                    position,
-                    None,
-                    var_name,
-                    type=var_type,
-                    global_constant=is_const
+                    position, None, var_name, type=var_type, global_constant=is_const
                 )
             )
         else:
 
             var_ref = self._alloca(
-                var_name, allocation_type,
-                current_block=local_alloca,
-                node=node
+                var_name, allocation_type, current_block=local_alloca, node=node
             )
 
             self.func_symtab[var_name] = var_ref
 
         return var_ref
 
-    def _codegen_create_initializer(self, node_var, node_init, is_const=False, is_uni=False):
+    def _codegen_create_initializer(
+        self, node_var, node_init, is_const=False, is_uni=False
+    ):
 
         # node_var = variable AST node
         # node_init = initializer AST node
@@ -427,7 +416,7 @@ class Vars():
                             node_var.position,
                             ir.Constant(node_var.vartype.pointee, None),
                             f"{node_var.name}.init",
-                            global_constant=is_const
+                            global_constant=is_const,
                         )
                     )
                 else:
@@ -443,38 +432,32 @@ class Vars():
                 if isinstance(node_var.vartype.pointee, self.vartypes.func):
                     value = self._codegen(node_var)
                 else:
-                    value = self._alloca('obj', node_var.vartype.pointee)
+                    value = self._alloca("obj", node_var.vartype.pointee)
                 return value
 
             if node_var.vartype.is_pointer:
                 # Null pointer
-                _ = self._codegen(
-                    Number(
-                        node_var.position,
-                        0,
-                        self.vartypes.u_size
-                    )
-                )
-                value = self.builder.inttoptr(
-                    _,
-                    node_var.vartype
-                )
+                _ = self._codegen(Number(node_var.position, 0, self.vartypes.u_size))
+                value = self.builder.inttoptr(_, node_var.vartype)
                 return value
 
             # Zero scalar
-            value = self._codegen(
-                Number(
-                    node_var.position,
-                    0,
-                    node_var.vartype
-                )
-            )
+            value = self._codegen(Number(node_var.position, 0, node_var.vartype))
             return value
 
         value = self._codegen(node_init)
         return value
 
-    def _codegen_variable_assignment(self, node_var, node_init, var_ref, init_ref, element_count=None, is_const=False, is_uni=False):
+    def _codegen_variable_assignment(
+        self,
+        node_var,
+        node_init,
+        var_ref,
+        init_ref,
+        element_count=None,
+        is_const=False,
+        is_uni=False,
+    ):
 
         # node_var = AST node of variable
         # node_init = AST node of initializer
@@ -494,10 +477,14 @@ class Vars():
             element_count = len(init_ref.initializer.constant)
             array_length = var_ref.type.pointee.elements[1].count
 
-            if var_ref.type.pointee.elements[1].element != init_ref.type.pointee.element:
+            if (
+                var_ref.type.pointee.elements[1].element
+                != init_ref.type.pointee.element
+            ):
                 raise CodegenError(
                     f'Array declaration and initializer types do not match (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
-                    node_var.position)
+                    node_var.position,
+                )
 
             if array_length == 0:
                 var_ref.type.pointee.elements[1].count = element_count
@@ -505,24 +492,22 @@ class Vars():
 
             if element_count > array_length:
                 raise CodegenError(
-                    f'Array initializer is too long (expected {array_length} elements, got {element_count})',
-                    node_init.position
+                    f"Array initializer is too long (expected {array_length} elements, got {element_count})",
+                    node_init.position,
                 )
 
             if element_count < array_length:
                 CodegenWarning(
-                    f'Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})',
-                    node_init.position
+                    f"Array initializer does not fill entire array; remainder will be zero-filled (array has {array_length} elements; initializer has {element_count})",
+                    node_init.position,
                 ).print(self)
 
-                for _ in range(0, array_length-element_count):
+                for _ in range(0, array_length - element_count):
                     init_ref.initializer.constant.append(
-                        ir.Constant(init_ref.initializer.type.element,
-                                    None)
+                        ir.Constant(init_ref.initializer.type.element, None)
                     )
 
-                init_ref.initializer.type.count = len(
-                    init_ref.initializer.constant)
+                init_ref.initializer.type.count = len(init_ref.initializer.constant)
 
                 element_count = init_ref.initializer.type.count
 
@@ -533,20 +518,19 @@ class Vars():
                 initializer = ir.Constant(
                     var_ref.type.pointee,
                     [
-                        [self.vartypes.u_size(
-                            var_ref.type.pointee.elements[1].count
-                        ),
-                            ir.Constant(
-                            self.vartypes.u_mem.as_pointer(),
-                            None
-                        ),
+                        [
+                            self.vartypes.u_size(
+                                #var_ref.type.pointee.elements[1].count
+                                element_count
+                            ),
+                            ir.Constant(self.vartypes.u_mem.as_pointer(), None),
                             self.vartypes.u_size(0),
                             self.vartypes.u_size(0),
                             self.vartypes.bool(0),
                             self.vartypes.bool(0),
                         ],
-                        init_ref.initializer
-                    ]
+                        init_ref.initializer,
+                    ],
                 )
 
                 var_ref.initializer = initializer
@@ -556,38 +540,57 @@ class Vars():
 
             else:
 
+                initializer = ir.Constant(
+                    self.vartypes.header,
+                    [
+                        self.vartypes.u_size(
+                            element_count
+                        ),
+                        ir.Constant(self.vartypes.u_mem.as_pointer(), None),
+                        self.vartypes.u_size(0),
+                        self.vartypes.u_size(0),
+                        self.vartypes.bool(0),
+                        self.vartypes.bool(0),
+                    ],
+                )
+
+                # Set the header values
+
+                ptr_ref = self.builder.gep(var_ref,
+                        [self._i32(0),
+                        self._i32(0)]
+                    )
+                    
+                self.builder.store(
+                        initializer,
+                        ptr_ref
+                    )
+
                 element_width = (
                     init_ref.type.pointee.element.width // self.vartypes._byte_width
                 ) * element_count
 
                 # Get the pointer to the data area for the target
 
-                sub_var_ref = self.builder.gep(
-                    var_ref,
-                    [
-                        self._i32(0),
-                        self._i32(1)
-                    ],
-                )
+                sub_var_ref = self.builder.gep(var_ref, [self._i32(0), self._i32(1)])
 
                 sub_var_ref = self.builder.bitcast(
-                    sub_var_ref,
-                    self.vartypes.u_mem.as_pointer()
+                    sub_var_ref, self.vartypes.u_mem.as_pointer()
                 )
 
                 sub_val = self.builder.bitcast(
-                    init_ref,
-                    self.vartypes.u_mem.as_pointer()
+                    init_ref, self.vartypes.u_mem.as_pointer()
                 )
 
                 # Copy the constant into the data area
 
                 llvm_memcpy = self.module.declare_intrinsic(
-                    'llvm.memcpy',
-                    [self.vartypes.u_mem.as_pointer(),
-                     self.vartypes.u_mem.as_pointer(),
-                     self.vartypes.u_size
-                     ]
+                    "llvm.memcpy",
+                    [
+                        self.vartypes.u_mem.as_pointer(),
+                        self.vartypes.u_mem.as_pointer(),
+                        self.vartypes.u_size,
+                    ],
                 )
 
                 self.builder.call(
@@ -595,21 +598,15 @@ class Vars():
                     [
                         sub_var_ref,
                         sub_val,
-                        ir.Constant(
-                            self.vartypes.u64,
-                            element_width
-                        ),
+                        ir.Constant(self.vartypes.u64, element_width),
                         ir.Constant(
                             # default alignment
                             self.vartypes.u32,
-                            0
+                            0,
                         ),
-                        ir.Constant(
-                            ir.IntType(1),
-                            False
-                        )
+                        ir.Constant(ir.IntType(1), False),
                     ],
-                    f'.{node_var.name}.memcpy.'
+                    f".{node_var.name}.memcpy.",
                 )
 
             type_ok = True
@@ -622,12 +619,14 @@ class Vars():
             if var_ref.type.pointee != init_ref.type:
                 raise CodegenError(
                     f'Type declaration and variable assignment type do not match (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
-                    node_var.position)
+                    node_var.position,
+                )
 
             if var_ref.type.pointee.signed != init_ref.type.signed:
                 raise CodegenError(
                     f'Type declaration and variable assignment type have signed/unsigned mismatch (expected "{var_ref.type.describe()}", got "{init_ref.type.describe()}")',
-                    node_var.position)
+                    node_var.position,
+                )
 
         # Uni/const do not have tracking
         # otherwise, set up tracking
@@ -658,7 +657,28 @@ class Vars():
         self.func_symtab[node_var.name] = var_ref
         self.builder.store(init_ref, var_ref)
 
+        # TODO: before we set refcount, we need to set the bit
+        # in the header that indicates the allocation for the object
+
+        self._refcount(var_ref, node_var)
+
         return var_ref
+
+    def _refcount(self, var_ref, node):
+        # Get the underlying allocation for the variable
+        alloc = self.builder.load(var_ref)
+
+        # Refcounts are not incremented on non-objects
+        if not alloc.type.is_obj_ptr():
+            return
+
+        # Bitcast the object to a bare header
+        f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
+
+        # Call incr on header
+        f3 = self._codegen(
+            Call(node.position, ".obj..__incr__", [f2], self.vartypes.i32)
+        )
 
     def _codegen_Var(self, node, local_alloca=False, is_const=False, is_uni=False):
         for variable in node.vars:
@@ -667,11 +687,13 @@ class Vars():
             if var_ref is not None:
                 raise CodegenError(
                     f'Duplicate found in universal symbol table: "{variable.name}"',
-                    variable.position)
+                    variable.position,
+                )
 
             if is_const and variable.initializer is None:
                 raise CodegenError(
-                    f'Constants must have an assignment: "{variable.name}"', variable.position
+                    f'Constants must have an assignment: "{variable.name}"',
+                    variable.position,
                 )
 
             value = None
@@ -693,8 +715,7 @@ class Vars():
 
                 # initializer also needs
                 value = self._codegen_create_initializer(
-                    variable, variable.initializer,
-                    is_const, is_uni
+                    variable, variable.initializer, is_const, is_uni
                 )
 
                 # but no variable vartype
@@ -705,25 +726,20 @@ class Vars():
 
             # create the variable reference
 
-            var = self._codegen_create_variable(
-                variable, False, is_const, is_uni)
+            var = self._codegen_create_variable(variable, False, is_const, is_uni)
 
             # create the initializer if there isn't one yet
 
             if value is None:
                 value = self._codegen_create_initializer(
-                    variable, variable.initializer,
-                    is_const, is_uni
+                    variable, variable.initializer, is_const, is_uni
                 )
 
             # assignment is performed even if the value is "empty"
             # so we can assign zero initializers
 
             assignment = self._codegen_variable_assignment(
-                variable, variable.initializer,
-                var, value,
-                None,
-                is_const, is_uni
+                variable, variable.initializer, var, value, None, is_const, is_uni
             )
 
     # TODO: merge _codegen_variable_assignment
@@ -732,16 +748,15 @@ class Vars():
 
         if not isinstance(lhs, Variable):
             raise CodegenError(
-                f'Left-hand side of expression is not a variable and cannot be assigned a value at runtime',
-                lhs.position
+                f"Left-hand side of expression is not a variable and cannot be assigned a value at runtime",
+                lhs.position,
             )
 
         ptr = self._codegen_Variable(lhs, noload=True)
 
-        if getattr(ptr, 'global_constant', False):
+        if getattr(ptr, "global_constant", False):
             raise CodegenError(
-                f'"{lhs.name}" is a constant and cannot be modified',
-                lhs.position
+                f'"{lhs.name}" is a constant and cannot be modified', lhs.position
             )
 
         is_func = ptr.type.is_func_ptr()
@@ -752,14 +767,15 @@ class Vars():
             if not value:
                 raise CodegenError(
                     f'Call to unknown function "{rhs.name}" with signature "{[n.describe() for n in ptr.type.pointee.pointee.args]}" (maybe this call signature is not implemented for this function?)',
-                    rhs.position)
-            if 'varfunc' not in value.decorators:
+                    rhs.position,
+                )
+            if "varfunc" not in value.decorators:
                 raise CodegenError(
                     f'Function "{rhs.name}" must be decorated with "@varfunc" to allow variable assignments',
-                    rhs.position
+                    rhs.position,
                 )
 
-            #ptr.decorators = value.decorators
+            # ptr.decorators = value.decorators
             # XXX: Not possible to trace function decorators across
             # function pointer boundaries
             # One POSSIBLE way to do it would be to have a specialized type
@@ -773,9 +789,7 @@ class Vars():
             if isinstance(rhs, ItemList):
                 array_value = self._codegen(rhs)
                 ptr = self.builder.load(ptr)
-                value = self._codegen_variable_assignment(
-                    lhs, rhs, ptr, array_value,
-                )
+                value = self._codegen_variable_assignment(lhs, rhs, ptr, array_value)
                 return value
             else:
                 value = self._codegen(rhs)
@@ -784,20 +798,25 @@ class Vars():
 
         if self.allow_unsafe:
             if ptr.type.pointee != value.type:
-                value = self.builder.bitcast(
-                    value,
-                    ptr.type.pointee
-                )
+                value = self.builder.bitcast(value, ptr.type.pointee)
 
         if ptr.type.pointee != value.type:
-            if getattr(lhs, 'accessor', None):
+            if getattr(lhs, "accessor", None):
                 error_string = f'Cannot assign value of type "{value.type.describe()}" to element of array "{ptr.pointer.name}" of type "{ptr.type.pointee.describe()}"'
             else:
-                error_string = f'Cannot assign value of type "{value.type.describe()}" to variable "{ptr.name}" of type "{ptr.type.pointee.describe()}"',
+                error_string = (
+                    f'Cannot assign value of type "{value.type.describe()}" to variable "{ptr.name}" of type "{ptr.type.pointee.describe()}"',
+                )
             raise CodegenError(error_string, rhs.position)
 
         self.builder.store(value, ptr)
         self._copy_tracking(ptr, value)
+        
+        # TODO: before we set refcount, we need to set the bit
+        # in the header that indicates the allocation for the object
+
+        self._refcount(ptr, rhs)
+
         return value
 
     def _codegen_FString(self, node):
@@ -828,42 +847,27 @@ class Vars():
                 element = self._codegen(n)
                 format_type = element.type.p_fmt
 
-                if format_type == '%B':
-                    format_type = '%s'
-                    bool_str = Call(
-                        node.position,
-                        '.object.str.__new__',
-                        [n]
-                    )
+                if format_type == "%B":
+                    format_type = "%s"
+                    bool_str = Call(node.position, ".object.str.__new__", [n])
 
-                    var_app = Call(
-                        node.position,
-                        'c_data',
-                        [bool_str]
-                    )
+                    var_app = Call(node.position, "c_data", [bool_str])
 
-                elif format_type == '%s':
-                    var_app = Call(
-                        node.position,
-                        'c_data',
-                        [n]
-                    )
+                elif format_type == "%s":
+                    var_app = Call(node.position, "c_data", [n])
 
-                elif format_type in ('%u', '%i', '%f'):
+                elif format_type in ("%u", "%i", "%f"):
                     var_app = element
 
                 else:
                     n = self._if_unsafe(
-                        n, f' (variable {n.body.name if isinstance(n, Unsafe) else n.name} is potentially raw data)'
+                        n,
+                        f" (variable {n.body.name if isinstance(n, Unsafe) else n.name} is potentially raw data)",
                     )
 
-                    format_type = '%s'
+                    format_type = "%s"
 
-                    var_app = Call(
-                        node.position,
-                        'c_data',
-                        [n]
-                    )
+                    var_app = Call(node.position, "c_data", [n])
 
                 format_string.append(format_type)
                 variable_list.append(var_app)
