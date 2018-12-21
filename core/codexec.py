@@ -102,9 +102,7 @@ class AkilangEvaluator(object):
         if self.cached_lib:
             for _ in self.cached_lib:
                 self.eval_all(_)
-            return
-
-        if self.basiclib_dir:
+        elif self.basiclib_dir:
 
             # First, load the builtins
             self.load_file(os.path.join(self.basiclib_dir, "builtins.aki"))
