@@ -203,7 +203,8 @@ class AkiHeader(AkiObj, ir.IdentifiedStructType):
     OBJ_REFCOUNT = 3
     OBJ_MALLOC = 4
     HEADER_MALLOC = 5
-
+    v_id = "header"
+    is_obj = True
 
 class AkiBox(AkiObj, ir.IdentifiedStructType):
     v_id = "box"
@@ -270,8 +271,8 @@ def generate_vartypes(module=_default_platform_module, bytesize=8, force=False):
         # default is also 0
         _bool,
     )
-
     Header.packed = True
+    Header.as_pointer = make_type_as_ptr(Header)
 
     # for arrays at compile time, we can encode the dimensions at compile time
     # and any calls will be optimized out to constants anyway
