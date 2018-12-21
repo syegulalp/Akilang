@@ -165,8 +165,8 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.evaluate('foo(5)'), 30)
 
     def test_array_assignment(self):
-        self.e.reset()
-        self.e.evaluate('''
+        self.e2.reset()
+        self.e2.evaluate('''
             def main(){
                 var a:i32[3,32,32]
                 a[0,8,16]=1
@@ -175,7 +175,7 @@ class TestEvaluator(unittest.TestCase):
                 return a[0,8,16]+a[1,31,16]+a[2,0,0]
             }
         ''')
-        self.assertEqual(self.e.evaluate('main()'), 7)
+        self.assertEqual(self.e2.evaluate('main()'), 7)
 
     def test_uni_assignment(self):
         self.e.reset()
@@ -226,7 +226,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.evaluate('main()'), 43)
 
     def test_class_assignment(self):
-        self.e.reset()
+        self.e2.reset()
 
         n = '''class myClass {
                 x:i32
@@ -250,7 +250,7 @@ class TestEvaluator(unittest.TestCase):
             }
             main()
             '''
-        self.assertEqual(self.e.eval_all(n), 0)
+        self.assertEqual(self.e2.eval_all(n), 0)
 
     def test_incr_decr(self):
         self.e.reset()
@@ -291,7 +291,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.eval_all(n), 10)
 
     def test_function_pointer(self):
-        self.e.reset()
+        self.e2.reset()
         n = '''
         @varfunc {
             def f1(a:i32):i32 {
@@ -315,10 +315,10 @@ class TestEvaluator(unittest.TestCase):
 
         main()'''
 
-        self.assertEqual(self.e.eval_all(n), 5)
+        self.assertEqual(self.e2.eval_all(n), 5)
 
     def test_object_pass_array(self):
-        self.e.reset()
+        self.e2.reset()
         n = '''
         def fn1(x:i32[8]) :i32[8] {
             x[0]=64
@@ -334,7 +334,7 @@ class TestEvaluator(unittest.TestCase):
 
         main()'''
 
-        self.assertEqual(self.e.eval_all(n), 64)
+        self.assertEqual(self.e2.eval_all(n), 64)
 
     def test_constant_promotion(self):
         #self.e.reset()
@@ -473,7 +473,7 @@ class TestEvaluator(unittest.TestCase):
 
         # test dimensioned return, implicit and explicit
 
-        self.e.reset()
+        self.e2.reset()
         n = '''
         def fn1(x:i32[]):i32[] {
             x[12]=64
@@ -497,7 +497,7 @@ class TestEvaluator(unittest.TestCase):
         }
         main()
         '''
-        self.assertEqual(self.e.eval_all(n), 64+32)
+        self.assertEqual(self.e2.eval_all(n), 64+32)
 
         # test dimensionless return, both explicit and implicit
 
@@ -583,7 +583,7 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.eval_all(n), 0)
 
     def test_array_inline_init(self):
-        self.e.reset()
+        self.e2.reset()
         n = '''
         def main(){
             var xx:i32[31]
@@ -592,7 +592,7 @@ class TestEvaluator(unittest.TestCase):
         }
         main()
         '''
-        self.assertEqual(self.e.eval_all(n), 56)
+        self.assertEqual(self.e2.eval_all(n), 56)
 
     def test_array_uni_init(self):
         self.e.reset()

@@ -22,8 +22,8 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e.evaluate('ref()'), 0)
 
     def test_c_objref(self):
-        self.e.reset()
-        self.e.evaluate('''
+        self.e2.reset()
+        self.e2.evaluate('''
             def ref(){
                     var a="Hello world", 
                         c=c_obj_ref(a),
@@ -32,7 +32,7 @@ class TestEvaluator(unittest.TestCase):
                         then 0 else 1
                 }
             ''')
-        self.assertEqual(self.e.evaluate('ref()'), 0)
+        self.assertEqual(self.e2.evaluate('ref()'), 0)
 
     def test_c_cast(self):
         self.e.reset()
@@ -94,8 +94,8 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(self.e2.evaluate('main()'), 0)
 
     def test_c_ptr_math(self):
-        self.e.reset()
-        self.e.evaluate('''
+        self.e2.reset()
+        self.e2.evaluate('''
             def main(){
                 var x:i32[4]
                 x[0]=32
@@ -104,11 +104,11 @@ class TestEvaluator(unittest.TestCase):
                 c_deref(y)
             }
         ''')
-        self.assertEqual(self.e.evaluate('main()'), 64)
+        self.assertEqual(self.e2.evaluate('main()'), 64)
 
     def test_c_ptr_mod(self):
-        self.e.reset()
-        self.e.evaluate('''
+        self.e2.reset()
+        self.e2.evaluate('''
             def main(){
                 var x:i32[4]
                 x[0]=32
@@ -119,7 +119,7 @@ class TestEvaluator(unittest.TestCase):
                 c_deref(y)
             }
         ''')
-        self.assertEqual(self.e.evaluate('main()'), 128)
+        self.assertEqual(self.e2.evaluate('main()'), 128)
 
     def test_c_strlen(self):
         self.e2.reset()
