@@ -11,7 +11,12 @@ _build
 src/test
 *.profile
 stats.txt
-performance.md
+other.md
+next.md
+config.ini
+vv.bat
+a2.bat
+
 
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
@@ -156,7 +161,4 @@ _dist
 
 # # Windows shortcuts
 # *.lnk
-next.md
-config.ini
-vv.bat
-a2.bat
+
