@@ -1,7 +1,7 @@
 # Conway's Game Of Life in Akilang
 
 pragma {
-    size_level = 2
+    size_level = 0
 }
 
 const {
@@ -22,8 +22,6 @@ uni {
 def reset() {
     gen=0U
     var y,x
-    # this preallocates those variables as i32, the default
-    # otherwise they're allocated repeatedly within the loop
     loop (y=0, y<HEIGHT)
         loop (x=0, x<WIDTH)
             field[world,y,x] = (
