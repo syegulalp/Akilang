@@ -191,8 +191,10 @@ class AkiArray(AkiObj, ir.LiteralStructType):
 
     def post_new_bitcast(self, builder, obj):
         obj = builder.bitcast(obj, self.as_pointer())
-
         return obj
+
+    def convert_result(self, result, return_value, vartypes):
+        return f'{return_value.type.pointee.v_id}'
 
 AkiArray.as_pointer = make_type_as_ptr(AkiArray)
 
@@ -217,6 +219,14 @@ class AkiStr(AkiObj, ir.IdentifiedStructType):
     v_id = "str"
     is_obj = True
     p_fmt = "%s"
+
+    def convert_result(self, result, return_value, vartypes):
+        result = ctypes.cast(
+            result + vartypes._byte_width, ctypes.POINTER(ctypes.c_char_p)
+        )
+        result = ctypes.cast(result.contents, ctypes.POINTER(ctypes.c_char_p))
+        result = f'"{str(ctypes.string_at(result),"utf8")}"'
+        return result
 
 
 class AkiFunc(AkiObj, ir.FunctionType):

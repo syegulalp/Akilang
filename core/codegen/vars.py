@@ -540,6 +540,8 @@ class Vars:
 
             else:
 
+                # Set the header
+                
                 initializer = ir.Constant(
                     self.vartypes.header,
                     [

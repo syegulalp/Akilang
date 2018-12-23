@@ -310,13 +310,15 @@ class AkilangEvaluator(object):
                 print(colored(f"OS error: {e}", "red"))
                 return Result(-1, ast, rawIR, optIR, None)
 
-            if return_value.type.v_id == "ptr_str":
-                result = cast(
-                    result + self.codegen.vartypes._byte_width, POINTER(c_char_p)
+            if return_value.type.is_obj_ptr():
+                result = return_value.type.pointee.convert_result(
+                    result,
+                    return_value,
+                    self.codegen.vartypes,                    
                 )
-                result = cast(result.contents, POINTER(c_char_p))
-                result = f'"{str(string_at(result),"utf8")}"'
 
+            # TODO: we also need to convert results for bare arrays
+            
             return Result(result, ast, rawIR, optIR, end_time - start_time)
 
     def eval_and_return(self, node):
