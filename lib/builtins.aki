@@ -87,8 +87,6 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Allocate an object of the correct size and type
     var alloc = c_obj_alloc(str)
 
-    # replace with `call`
-
     call ('.header.setobjdata', 
         unsafe cast(alloc, header),
         True,
@@ -97,22 +95,9 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
         my_obj
     )
 
-    # # Insert the length
-    # var len_ptr = c_gep(alloc,0 ,DATA_SIZE)
-    # unsafe c_ptr_mod(len_ptr, str_len)
+    # the flags for memory allocation are set here
+    # we may not want to do this
 
-    # # Point to the data
-    # var data_ptr = c_gep(alloc,0, OBJ_PTR)
-    # unsafe c_ptr_mod(data_ptr, my_obj)
-
-    # # the object data is not malloc'd (yet)
-    # var obj_data_ptr = c_gep(alloc,0, OBJ_MALLOC)
-    # unsafe c_ptr_mod(obj_data_ptr, False)
-
-    # # the object itself is malloc'd
-    # var h_data_ptr = c_gep(alloc,0, HEADER_MALLOC)
-    # unsafe c_ptr_mod(h_data_ptr, True)
-    
     # Return the string object
     return alloc
 }
