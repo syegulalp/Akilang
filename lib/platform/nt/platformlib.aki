@@ -103,7 +103,7 @@ def utf_to_wide(in_str:str):ptr u8 {
 def inkey():i32 {
     var key:i32
     key=_getwch()
-    if (key==0 or key==224) then key=_getwch()
+    when (key==0 or key==224) then key=_getwch()
     return key
 }
 

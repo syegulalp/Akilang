@@ -48,6 +48,19 @@ def '.obj..__decr__'(my_obj: header) {
     var f3:u64
     when f2>0U then f3=f2-=1U 
     unsafe c_ptr_mod(f1, f3)
+    when f3==0U then {
+        var obj_data_ptr = c_gep(my_obj, OBJ_MALLOC)
+        var obj_data = c_deref(obj_data_ptr)
+        when obj_data then {
+            var data_ptr = c_gep(my_obj, OBJ_PTR)
+            unsafe c_free(c_deref(data_ptr))
+        }
+        var h_data_ptr = c_gep(my_obj, HEADER_MALLOC)
+        var h_data = c_deref(h_data_ptr)
+        when h_data then {
+            unsafe c_free(c_ptr_mem(my_obj))
+        }
+    }
     0
 }
 
