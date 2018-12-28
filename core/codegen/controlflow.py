@@ -556,7 +556,7 @@ class ControlFlow():
 
         if not obj_method:
             if node.name in Dunders:
-                return self._codegen_dunder_methods(node)
+                return self._dunder_method(node)
             if node.name in Builtins:
                 return getattr(self, '_codegen_Builtins_' + node.name)(node)
 
@@ -766,11 +766,11 @@ class ControlFlow():
         body_val = self._codegen(node.body)
 
         for n in reversed(new_bindings):
-            self._codegen_autodispose(
+            self._autodispose(
                 [
                     [n, self.func_symtab[n]]
                 ],
-                None)
+                node)
             del self.func_symtab[n]
 
         return body_val

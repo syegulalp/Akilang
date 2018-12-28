@@ -112,7 +112,7 @@ class Ops():
 
         try:
             if vartype.is_obj_ptr():
-                return self._codegen_methodcall(node, lhs, rhs)
+                return self._methodcall(node, lhs, rhs)
 
             # Integer operations
             # TODO: no overflow checking!
@@ -180,7 +180,7 @@ class Ops():
                     return x
 
                 else:
-                    return self._codegen_methodcall(node, lhs, rhs)
+                    return self._methodcall(node, lhs, rhs)
 
             # floating-point operations
 
@@ -224,7 +224,7 @@ class Ops():
                         f'Operator "{node.op}" not supported for "float" or "double" types',
                         node.lhs.position)
                 else:
-                    return self._codegen_methodcall(node, lhs, rhs)
+                    return self._methodcall(node, lhs, rhs)
 
             # Pointer equality
 
@@ -242,7 +242,7 @@ class Ops():
                     raise NotImplementedError
 
             else:
-                return self._codegen_methodcall(node, lhs, rhs)
+                return self._methodcall(node, lhs, rhs)
 
         except NotImplementedError:
             raise CodegenError(

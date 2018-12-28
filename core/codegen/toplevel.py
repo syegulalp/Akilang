@@ -370,7 +370,7 @@ class Toplevel():
         # Be sure to exclude anything we return!
 
         if to_check:
-            self._codegen_autodispose(
+            self._autodispose(
                 reversed(list(self.func_symtab.items())),
                 to_check,
                 node

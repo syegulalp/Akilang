@@ -275,13 +275,13 @@ class LLVMCodeGenerator(
 
         return result
 
-    def _codegen_dunder_methods(self, node):
+    def _dunder_method(self, node):
         call = self._codegen_Call(
             Call(node.position, node.name, node.args), obj_method=True
         )
         return call
 
-    def _codegen_methodcall(self, node, lhs, rhs):
+    def _methodcall(self, node, lhs, rhs):
         func = self.module.globals.get(
             f"binary.{node.op}{mangle_args((lhs.type,rhs.type))}"
         )
@@ -289,30 +289,18 @@ class LLVMCodeGenerator(
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], "userbinop")
 
-    def _codegen_autodispose(self, item_list, to_check, node=None):
+    def _autodispose(self, item_list, to_check, node=None):
         for _, var_to_dispose in item_list:
-
             if var_to_dispose is to_check:
-                continue
-
-            # TODO: skip autodispose conditions:
-            # if this is an input argument,
-            # and it's still being tracked (e.g., not given away),
-            # and the variable in question has not been deleted
-            # manually at any time,
-            # ...?
-
-            if var_to_dispose.input_arg is not None:
-                pass
-
+                continue            
             if var_to_dispose.tracked:
-
                 if not var_to_dispose.type.pointee.is_obj_ptr():
                     continue
+                self._decr_refcount(var_to_dispose, node)
+                #self._call_del_method(var_to_dispose)
 
-                self._codegen_call_del_method(var_to_dispose)
 
-    def _codegen_call_del_method(self, var_to_dispose):
+    def _call_del_method(self, var_to_dispose, node=None):
         ref = self.builder.load(var_to_dispose)
 
         v_target = var_to_dispose.type.pointee.pointee
@@ -337,3 +325,34 @@ class LLVMCodeGenerator(
 
         self.builder.call(del_name, [ref], f"{var_to_dispose.name}.delete")
 
+    def _incr_refcount(self, var_ref, node):
+        # Get the underlying allocation for the variable
+        alloc = self.builder.load(var_ref)
+
+        # Refcounts are not incremented on non-objects
+        if not alloc.type.is_obj_ptr():
+            return
+
+        # Bitcast the object to a bare header
+        f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
+
+        # Call incr on header
+        f3 = self._codegen(
+            Call(node.position, ".obj..__incr__", [f2], self.vartypes.i32)
+        )
+
+    def _decr_refcount(self, var_ref, node):
+        # Get the underlying allocation for the variable
+        alloc = self.builder.load(var_ref)
+
+        # Refcounts are not incremented on non-objects
+        if not alloc.type.is_obj_ptr():
+            return
+
+        # Bitcast the object to a bare header
+        f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
+
+        # Call incr on header
+        f3 = self._codegen(
+            Call(node.position, ".obj..__decr__", [f2], self.vartypes.i32)
+        )        

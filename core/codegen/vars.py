@@ -662,25 +662,9 @@ class Vars:
         # TODO: before we set refcount, we need to set the bit
         # in the header that indicates the allocation for the object
 
-        self._refcount(var_ref, node_var)
+        self._incr_refcount(var_ref, node_var)
 
         return var_ref
-
-    def _refcount(self, var_ref, node):
-        # Get the underlying allocation for the variable
-        alloc = self.builder.load(var_ref)
-
-        # Refcounts are not incremented on non-objects
-        if not alloc.type.is_obj_ptr():
-            return
-
-        # Bitcast the object to a bare header
-        f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
-
-        # Call incr on header
-        f3 = self._codegen(
-            Call(node.position, ".obj..__incr__", [f2], self.vartypes.i32)
-        )
 
     def _codegen_Var(self, node, local_alloca=False, is_const=False, is_uni=False):
         for variable in node.vars:
@@ -817,7 +801,7 @@ class Vars:
         # TODO: before we set refcount, we need to set the bit
         # in the header that indicates the allocation for the object
 
-        self._refcount(ptr, rhs)
+        self._incr_refcount(ptr, rhs)
 
         return value
 
