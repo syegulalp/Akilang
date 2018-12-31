@@ -242,13 +242,13 @@ class Repl():
                     print()
         except lexer.AkiSyntaxError as err:
             errprint(f'Syntax error: {err}')
-            self.executor.reset(self.history)
+            #self.executor.reset(self.history)
         except parsing.ParseError as err:
             errprint(f'Parse error: {err}')
-            self.executor.reset(self.history)
+            #self.executor.reset(self.history)
         except codegen.CodegenError as err:
-            errprint(f'Eval error: {err}')
-            self.executor.reset(self.history)
+            errprint(f'Eval error: {err}')            
+            self.del_last()
         except RuntimeError as err:
             errprint(f'LLVM error: {err}')
         except (Exception, BaseException) as err:
@@ -256,6 +256,11 @@ class Repl():
             print('Aborting.')
             # self.executor.reset()
             raise err
+
+    def del_last(self):
+        g = self.executor.codegen.module.globals
+        last = list(g.keys())[-1]
+        del g[last]
 
     def run_command(self, command):
         print(colorama.Fore.YELLOW, end='')
