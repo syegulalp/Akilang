@@ -6,90 +6,90 @@ This is a document of Aki syntax and usage.
 
 - [Aki language basics](#aki-language-basics)
 - [Introduction](#introduction)
-    - [Expressions](#expressions)
-    - [Functions and function calls](#functions-and-function-calls)
-        - [Bare function prototypes (a/k/a forward definitions)](#bare-function-prototypes-aka-forward-definitions)
-    - [Variables and variable typing](#variables-and-variable-typing)
+  - [Expressions](#expressions)
+  - [Functions and function calls](#functions-and-function-calls)
+    - [Bare function prototypes (a/k/a forward definitions)](#bare-function-prototypes-aka-forward-definitions)
+  - [Variables and variable typing](#variables-and-variable-typing)
 - [Symbols](#symbols)
-    - [Operators](#operators)
-        - [`=` Assignment](#-assignment)
-        - [`==` Equality test](#-equality-test)
-        - [`!=` Negative equality test](#-negative-equality-test)
-        - [`>`/`>=` Greater than / or equal to test](#-greater-than--or-equal-to-test)
-        - [`<`/`<=` Less than / or equal to test](#-less-than--or-equal-to-test)
-        - [`+` Addition operator](#-addition-operator)
-        - [`-` Subtraction operator](#--subtraction-operator)
-        - [`*` Multiplication operator](#-multiplication-operator)
-        - [`/` Division operator](#-division-operator)
-        - [`and`/`or`/`xor`/`not` operators](#andorxornot-operators)
-    - [Parentheses `()`](#parentheses-)
-    - [Curly braces `{}`](#curly-braces-)
-    - [Hash symbol `#`](#hash-symbol-)
-    - [Decorator symbol `@`](#decorator-symbol-)
+  - [Operators](#operators)
+    - [`=` Assignment](#-assignment)
+    - [`==` Equality test](#-equality-test)
+    - [`!=` Negative equality test](#-negative-equality-test)
+    - [`>`/`>=` Greater than / or equal to test](#-greater-than--or-equal-to-test)
+    - [`<`/`<=` Less than / or equal to test](#-less-than--or-equal-to-test)
+    - [`+` Addition operator](#-addition-operator)
+    - [`-` Subtraction operator](#--subtraction-operator)
+    - [`*` Multiplication operator](#-multiplication-operator)
+    - [`/` Division operator](#-division-operator)
+    - [`and`/`or`/`xor`/`not` operators](#andorxornot-operators)
+  - [Parentheses `()`](#parentheses-)
+  - [Curly braces `{}`](#curly-braces-)
+  - [Hash symbol `#`](#hash-symbol-)
+  - [Decorator symbol `@`](#decorator-symbol-)
 - [Top-level keywords](#top-level-keywords)
-    - [`binary`](#binary)
-    - [`const`](#const)
-    - [`class`](#class)
-    - [`def`](#def)
-    - [`extern`](#extern)
-    - [`pragma`](#pragma)
-        - [`loop_vectorize`](#loop_vectorize)
-        - [`size_level`](#size_level)
-        - [`slp_vectorize`](#slp_vectorize)
-        - [`opt_level`](#opt_level)
-        - [`unroll_loops`](#unroll_loops)
-    - [`unary`](#unary)
-    - [`uni`](#uni)
+  - [`binary`](#binary)
+  - [`const`](#const)
+  - [`class`](#class)
+  - [`def`](#def)
+  - [`extern`](#extern)
+  - [`pragma`](#pragma)
+    - [`loop_vectorize`](#loop_vectorize)
+    - [`opt_level`](#opt_level)
+    - [`size_level`](#size_level)
+    - [`slp_vectorize`](#slp_vectorize)
+    - [`unroll_loops`](#unroll_loops)
+  - [`unary`](#unary)
+  - [`uni`](#uni)
 - [Keywords](#keywords)
-    - [`break`](#break)
-    - [`default`](#default)
-    - [`if` / `then` / `elif` / `else`](#if--then--elif--else)
-    - [`loop`](#loop)
-    - [`match`](#match)
-    - [`not`](#not)
-    - [`return`](#return)
-    - [`unsafe`](#unsafe)
-    - [`var`](#var)
-    - [`while`](#while)
-    - [`with`](#with)
-    - [`when`](#when)
+  - [`break`](#break)
+  - [`default`](#default)
+  - [`if` / `then` / `elif` / `else`](#if--then--elif--else)
+  - [`loop`](#loop)
+  - [`match`](#match)
+  - [`not`](#not)
+  - [`return`](#return)
+  - [`unsafe`](#unsafe)
+  - [`var`](#var)
+  - [`while`](#while)
+  - [`with`](#with)
+  - [`when`](#when)
 - [Decorators](#decorators)
-    - [`@inline`](#inline)
-    - [`@noinline`](#noinline)
-    - [`@nomod`](#nomod)
-    - [`@unsafe_req`](#unsafe_req)
-    - [`@varfunc`](#varfunc)
+  - [`@inline`](#inline)
+  - [`@noinline`](#noinline)
+  - [`@nomod`](#nomod)
+  - [`@unsafe_req`](#unsafe_req)
+  - [`@varfunc`](#varfunc)
 - [Builtin functions](#builtin-functions)
-    - [`box` / `unbox`](#box--unbox)
-    - [`c_addr`](#c_addr)
-    - [`c_alloc` / `c_free`](#c_alloc--c_free)
-    - [`c_data`](#c_data)
-    - [`c_gep`](#c_gep)
-    - [`c_ref` / `c_deref`](#c_ref--c_deref)
-    - [`c_size`](#c_size)
-    - [`c_obj_alloc` / `c_obj_free`](#c_obj_alloc--c_obj_free)
-    - [`c_obj_ref` / `c_obj_deref`](#c_obj_ref--c_obj_deref)
-    - [`c_ptr_int`](#c_ptr_int)
-    - [`c_ptr_math`](#c_ptr_math)
-    - [`c_ptr_mod`](#c_ptr_mod)
-    - [`cast` / `convert`](#cast--convert)
-    - [`objtype`](#objtype)
-    - [`type`](#type)
+  - [`box` / `unbox`](#box--unbox)
+  - [`c_addr`](#c_addr)
+  - [`c_alloc` / `c_free`](#c_alloc--c_free)
+  - [`c_data`](#c_data)
+  - [`c_gep`](#c_gep)
+  - [`c_ref` / `c_deref`](#c_ref--c_deref)
+  - [`c_size`](#c_size)
+  - [`c_obj_alloc` / `c_obj_free`](#c_obj_alloc--c_obj_free)
+  - [`c_obj_ref` / `c_obj_deref`](#c_obj_ref--c_obj_deref)
+  - [`c_ptr_int`](#c_ptr_int)
+  - [`c_ptr_math`](#c_ptr_math)
+  - [`c_ptr_mod`](#c_ptr_mod)
+  - [`cast` / `convert`](#cast--convert)
+  - [`objtype`](#objtype)
+  - [`type`](#type)
 - [Methods](#methods)
-    - [`len`](#len)
+  - [`len`](#len)
 - [Library functions](#library-functions)
-    - [`inkey`](#inkey)
-    - [`print`](#print)
+  - [`inkey`](#inkey)
+  - [`print`](#print)
 - [Types:](#types)
-    - [`bool (u1)`](#bool-u1)
-    - [`byte (u8)`](#byte-u8)
-    - [`i8/16/32/64`](#i8163264)
-    - [`u8/16/32/64`](#u8163264)
-    - [`f32/64`](#f3264)
-    - [`array`](#array)
-    - [`obj`](#obj)
-    - [`str`](#str)
-    - [`ptr`](#ptr)
+  - [`bool (u1)`](#bool-u1)
+  - [`byte (u8)`](#byte-u8)
+  - [`i8/16/32/64`](#i8163264)
+  - [`u8/16/32/64`](#u8163264)
+  - [`f32/64`](#f3264)
+  - [`array`](#array)
+  - [`obj`](#obj)
+  - [`str`](#str)
+  - [`ptr`](#ptr)
 
 # Introduction
 
@@ -435,11 +435,11 @@ The keys and values must both be constants.
 ```
 pragma {
     # these are the defaults
-    unroll_loops = True
-    loop_vectorize = True
-    slp_vectorize = True
+    loop_vectorize = True    
     opt_level = 3
     size_level = 0
+    slp_vectorize = True
+    unroll_loops = True
 }
 ```
 
@@ -449,6 +449,10 @@ Right now the available options are little more than one-to-one correspondants t
 
 A boolean value that indicates whether the compiler should use loop vectorization optimizations. Default is `True`.
 
+### `opt_level`
+
+An integer from 0 to 3 that indicates the overall optimization level for the compiler. Default is `3`.
+
 ### `size_level`
 
 An integer from 0 to 2 that indicates how aggressively the compiler optimizes for program size. Default is `0`.
@@ -456,10 +460,6 @@ An integer from 0 to 2 that indicates how aggressively the compiler optimizes fo
 ### `slp_vectorize`
 
 A boolean value that indicates whether the compiler should apply SLP vectorization to loops. Default is `True`.
-
-### `opt_level`
-
-An integer from 0 to 3 that indicates the overall optimization level for the compiler. Default is `3`.
 
 ### `unroll_loops`
 
