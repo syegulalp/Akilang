@@ -1,4 +1,4 @@
-from core.ast_module import Var, Binary, Variable, Number
+from core.ast_module import Var, Binary, Variable, Number, Call
 from core.vartypes import SignedInt, AkiArray
 from core.errors import CodegenError, ParseError, BlockExit
 from core.tokens import Builtins, Dunders, Builtin
@@ -308,6 +308,32 @@ class ControlFlow():
         self.breaks = True
         self.builder.branch(exit)
 
+    def _stacksave(self, node):
+        stacksave = self.module.declare_intrinsic(
+            "llvm.stacksave",
+            [],
+            ir.FunctionType(self.vartypes.u_mem.as_pointer(), [])
+        )
+
+        result = self.builder.call(
+            stacksave,
+            [],
+        )
+        return result
+
+    def _stackrestore(self, node, restore_point):
+        stackrestore = self.module.declare_intrinsic(
+            "llvm.stackrestore",
+            [],
+            ir.FunctionType(ir.VoidType(), [self.vartypes.u_mem.as_pointer()])
+        )
+
+        result = self.builder.call(
+            stackrestore,
+            [restore_point],
+        )
+        return result
+    
     def _codegen_Loop(self, node):
         # Output this as:
         #   ...
@@ -337,16 +363,30 @@ class ControlFlow():
             self.builder.branch(loopbody_bb)
             self.builder.function.basic_blocks.append(loopbody_bb)
             self.builder.position_at_start(loopbody_bb)
+            
+            # Preserve state of stack at start of loop
+            save_point = self._stacksave(node)
+            
             self.loop_exit.append(
                 (loopafter_bb, loopbody_bb)
             )
             self._codegen(node.body, False)
+            term = self.builder.block.is_terminated
             self.loop_exit.pop()
-            if not self.builder.block.is_terminated:
+            
+            # If this loop does not immediately exit,
+            # restore the stack now
+            if not term:
+                self._stackrestore(node, save_point)
                 self.builder.branch(loopbody_bb)
             self.builder.function.basic_blocks.append(loopafter_bb)
             self.builder.position_at_start(loopafter_bb)
+            
+            # If the loop exited, restore the stack now
+            if term:
+                self._stackrestore(node, save_point)            
             return
+
         else:
             self.loop_exit.append(
                 (loopafter_bb, loopcounter_bb)
@@ -378,7 +418,7 @@ class ControlFlow():
         self.builder.function.basic_blocks.append(loopcond_bb)
         self.builder.position_at_start(loopcond_bb)
 
-        # Set the symbol table to to reach de local counting variable.
+        # Set the symbol table to to reach local counting variable.
         # If it shadows an existing variable, save it before and restore it later.
         oldval = self.func_symtab.get(node.start_expr.name)
         self.func_symtab[node.start_expr.name] = var_addr
@@ -410,9 +450,15 @@ class ControlFlow():
         self.builder.function.basic_blocks.append(loopbody_bb)
         self.builder.position_at_start(loopbody_bb)
 
+        # Preserve state of stack at start of loop body
+        save_point = self._stacksave(node.body)
+
         # Emit the body of the loop.
         # Note that we ignore the value computed by the body.
         self._codegen(node.body, False)
+
+        # Restore stack state at end of loop body
+        self._stackrestore(node.body, save_point)
 
         # If the step is unknown, make it increment by 1
         if node.step_expr is None:
