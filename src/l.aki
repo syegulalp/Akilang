@@ -17,6 +17,15 @@ uni {
     divider:byte[DIVIDER_WIDTH],
     world=0,
     gen:u64
+    cursor_x,
+    cursor_y 
+}
+
+def clear() {
+    var y,x
+    loop (y=0, y<HEIGHT)
+        loop (x=0, x<WIDTH)
+            field[world,y,x] = 0B
 }
 
 def reset() {
@@ -58,6 +67,10 @@ def show() {
         z+=1
     }
     output[z]=0B
+
+    output[
+        (cursor_y * (WIDTH+1)+cursor_x)
+        ] = 43B
     
     print('Generation: {gen} -- Population: {pop}\n{unsafe divider}\n{unsafe output}{unsafe divider}')
            
@@ -88,6 +101,8 @@ def life() {
 }
 
 def setup(){
+    cursor_x = WIDTH/2
+    cursor_y = HEIGHT/2
     var x
     loop (x=0, x<DIVIDER_WIDTH-1)
         divider[x]=177B
@@ -95,8 +110,14 @@ def setup(){
     reset()
     print ("Conway's Game Of Life
 
+Arrows to move cursor (+)
+
+z - place cell
+x - clear cell
 r - randomize
 q - quit
+c - clear
+
 Any other key will evolve the pattern
 
 Press any key to begin ... ")
@@ -108,14 +129,29 @@ def main(){
     loop {
         show()
         match inkey() {
+            99: {
+                print ("Clear!")
+                clear()
+            }
+            120: field[world,cursor_y,cursor_x]=0B
+            122: field[world,cursor_y,cursor_x]=1B
             113, 81: break
             114, 82: {
                 print("Randomize!")
                 randomize()                
             }
-            default: print("Next gen")
+            72: cursor_y-=1
+            80: cursor_y+=1
+            75: cursor_x-=1
+            77: cursor_x+=1
+            default: {
+                print("Next gen")
+                life()
+            }
         }
-        life()
+        cursor_y = (cursor_y+HEIGHT) mod HEIGHT
+        cursor_x = (cursor_x+WIDTH) mod WIDTH
+
     }
     print ("Goodbye!")
     return 0
