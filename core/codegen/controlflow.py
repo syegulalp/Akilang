@@ -520,6 +520,7 @@ class ControlFlow():
 
     def _codegen_While(self, node):
         # This is a modified version of a For.
+        # TODO: Merge this into For if at all possible.
 
         # Define blocks
         loopcond_bb = ir.Block(self.builder.function, 'loopcond')
@@ -573,8 +574,14 @@ class ControlFlow():
         self.builder.function.basic_blocks.append(loopbody_bb)
         self.builder.position_at_start(loopbody_bb)
 
+        # Preserve state of stack at start of loop body
+        save_point = self._stacksave(node.body)
+
         # Emit the body of the loop.
         body_val = self._codegen(node.body, False)
+
+        # Restore stack state at end of loop body
+        self._stackrestore(node.body, save_point)
 
         # The value of the body has to be placed into a special
         # return variable so it's valid across all code paths
@@ -765,7 +772,7 @@ class ControlFlow():
         if callee_func in self.gives_alloc:
             self._set_tracking(call_to_return, None, True, True)
 
-        if callee_func.tracked == True:
+        if callee_func.tracked is True:
             self._set_tracking(call_to_return, None, True, True)
 
         if 'unsafe_req' in final_call.decorators and not self.allow_unsafe:
