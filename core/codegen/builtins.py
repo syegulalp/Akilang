@@ -16,6 +16,8 @@ from core.ast_module import (
     VariableType,
     If,
     Expr,
+    ArrayAccessor,
+    Reference
 )
 
 COMMON_ARGS = (Expr,)
@@ -674,6 +676,25 @@ class Builtins:
 
         return self.builder.load(refcount)
 
+    def _codegen_Builtins_ord(self, node):
+        self._check_arg_length(node)
+        self._check_arg_types(node, [COMMON_ARGS])
+
+        ord_arg = node.args[0]
+        if not ord_arg.vartype==self.vartypes.str:
+            raise CodegenError(f'Parameter must be a single-character string',
+            ord_arg.position)
+        
+        if len(ord_arg.val)>1:
+            raise CodegenError(f'Parameter must be a single-character string',
+            ord_arg.position)
+
+        ord_str = self._codegen(ord_arg)
+        ord_sub = ArrayAccessor(ord_arg.position, [self.vartypes.i64(0)])
+        ord_ref = Reference(ord_arg.position, ord_str, ord_sub)
+
+        return self._codegen(ord_ref)
+    
     def _codegen_Builtins_print(self, node):
 
         self._check_arg_length(node, 1, None)

@@ -1,6 +1,7 @@
 import unittest
 
 from core.codexec import AkilangEvaluator
+from core.errors import ParseError, CodegenError
 from ctypes import c_longlong
 
 from tests import e, e2
@@ -142,6 +143,12 @@ class TestEvaluator(unittest.TestCase):
         # This is wrong but will be fixed: it should eventually be 1
         #self.assertEqual(self.e2.evaluate('{var x:str="Hello there" refcount(x)}'), 0)
 
+    def test_ord(self):
+        self.e2.reset()
+        self.assertEqual(self.e2.evaluate('ord("a")'), 97)
+        with self.assertRaises(CodegenError):
+            self.e2.evaluate('ord("a2")')
+    
     def test_c_ptr(self):
         pass
         

@@ -134,6 +134,7 @@ Builtins = {
     'c_ptr_mod',
     'cast', 'convert',
     'print',
+    'ord',
     'dummy',
     'box',
     'type',

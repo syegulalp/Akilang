@@ -32,6 +32,12 @@ class Expr(Node):
 class Continue(Expr):
     pass
 
+class Reference(Expr):
+    def __init__(self, position, reference=None, child=None):
+        super().__init__(position)
+        self.name = reference.get_reference()
+        self.reference = reference
+        self.child = child
 
 class Global(Expr):
     def __init__(self, position, const=None, name=None, global_constant=True, storage_class='private', type=None, unnamed_addr=True):

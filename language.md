@@ -74,6 +74,7 @@ This is a document of Aki syntax and usage.
   - [`c_ptr_mod`](#c_ptr_mod)
   - [`cast` / `convert`](#cast--convert)
   - [`objtype`](#objtype)
+  - [`ord`](#ord)
   - [`type`](#type)
 - [Methods](#methods)
   - [`len`](#len)
@@ -1003,6 +1004,16 @@ Returns a module-specific value that corresponds to a variable type held inside 
 var x=obj("Hi there!")
 objtype(x)==type(str)
 ```
+
+## `ord`
+
+Returns the ASCII (eventually UTF-8) codepoint of a single character.
+
+```
+ord("a")
+```
+
+yields `97`.
 
 ## `type`
 

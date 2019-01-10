@@ -50,6 +50,9 @@ class Vars:
 
     def _codegen_CallInstr(self, node):
         return node
+    
+    def _codegen_Argument(self, node):
+        return node
 
     def _codegen_ArrayAccessor(self, node):
         return self._codegen_Call(
@@ -105,6 +108,14 @@ class Vars:
 
     def _codegen_LoadInstr(self, node):
         return node
+
+    def _codegen_Reference(self, node):
+        new_var = Variable(node.position,
+            node.name,
+            child= node.child
+        )
+        self.func_symtab[node.name] = node.reference
+        return self._codegen(new_var)
 
     def _codegen_Variable(self, node, noload=False, start_with=None):
 
