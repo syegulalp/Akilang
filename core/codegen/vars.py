@@ -659,9 +659,6 @@ class Vars:
         self.func_symtab[node_var.name] = var_ref
         self.builder.store(init_ref, var_ref)
 
-        # TODO: before we set refcount, we need to set the bit
-        # in the header that indicates the allocation for the object
-
         self._incr_refcount(var_ref, node_var)
 
         return var_ref
@@ -796,11 +793,7 @@ class Vars:
             raise CodegenError(error_string, rhs.position)
 
         self.builder.store(value, ptr)
-        self._copy_tracking(ptr, value)
-        
-        # TODO: before we set refcount, we need to set the bit
-        # in the header that indicates the allocation for the object
-
+        self._copy_tracking(ptr, value)        
         self._incr_refcount(ptr, rhs)
 
         return value

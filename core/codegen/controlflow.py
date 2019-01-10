@@ -797,7 +797,6 @@ class ControlFlow():
 
         # if result is tracked, add to our ALLOCATION tracking list
         if call_to_return.tracked:
-            #self.allocations[call_to_return._name]=call_to_return
             self.alloc_stack[-1][call_to_return._name]=call_to_return
 
         return call_to_return
