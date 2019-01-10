@@ -220,6 +220,7 @@ class Repl():
 
         except (FileNotFoundError, OSError):
             errprint("File or command not found: " + command)
+            self.executor.reset(history=self.history)
 
     def print_eval(self, code):
         '''
