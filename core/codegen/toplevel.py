@@ -273,6 +273,8 @@ class Toplevel():
         self.func_returncalled = False
         self.func_returntype = func.return_value.type
         self.func_returnblock = func.append_basic_block('exit')        
+        
+        self.alloc_stack.append({})
 
         # Create the BB that holds the function's variable definitions.
         bb_vars = func.append_basic_block('var_defs')
@@ -374,7 +376,9 @@ class Toplevel():
                 reversed(list(self.func_symtab.items())),
                 to_check,
                 node
-            )
+            )        
+        
+        #self._autodispose_alloc(node, to_check)
 
         # TODO: if this function throws exceptions,
         # we need to return an object wrapper, not a bare object
@@ -396,10 +400,18 @@ class Toplevel():
         self.func_returnblock = None
         self.func_returncalled = None
         self.func_varblock = None
+        
+        self.alloc_stack.pop()
 
-        #self.builder = None
         self.builder = self.nullbuilder
 
+    def _autodispose_alloc(self, node, to_check):
+        for _, var_to_dispose in self.alloc_stack[-1].items():            
+            if var_to_dispose is to_check:
+                continue
+            self._decr_refcount(var_to_dispose, node, False)
+            self._free_obj(var_to_dispose, node)
+    
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)
 

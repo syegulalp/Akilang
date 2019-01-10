@@ -360,31 +360,42 @@ class ControlFlow():
         # If this loop has no conditions, codegen it with a manual exit
 
         if node.start_expr is None:
+
+            # Preserve state of stack BEFORE start of loop
+            #save_point = self._stacksave(node)
+            self.alloc_stack.append({})
+
             self.builder.branch(loopbody_bb)
             self.builder.function.basic_blocks.append(loopbody_bb)
             self.builder.position_at_start(loopbody_bb)
             
-            # Preserve state of stack at start of loop
-            save_point = self._stacksave(node)
-            
             self.loop_exit.append(
                 (loopafter_bb, loopbody_bb)
             )
+
             self._codegen(node.body, False)
+            self._autodispose_alloc(node, None)
+
             term = self.builder.block.is_terminated
             self.loop_exit.pop()
             
             # If this loop does not immediately exit,
             # restore the stack now
+
             if not term:
-                self._stackrestore(node, save_point)
+                self.alloc_stack.pop()
+                #self._stackrestore(node, save_point)
                 self.builder.branch(loopbody_bb)
+            
             self.builder.function.basic_blocks.append(loopafter_bb)
             self.builder.position_at_start(loopafter_bb)
             
             # If the loop exited, restore the stack now
             if term:
-                self._stackrestore(node, save_point)            
+                self.alloc_stack.pop()
+                #self._stackrestore(node, save_point)
+                
+
             return
 
         else:
@@ -451,14 +462,17 @@ class ControlFlow():
         self.builder.position_at_start(loopbody_bb)
 
         # Preserve state of stack at start of loop body
-        save_point = self._stacksave(node.body)
+        #save_point = self._stacksave(node.body)
+        self.alloc_stack.append({})
 
         # Emit the body of the loop.
         # Note that we ignore the value computed by the body.
         self._codegen(node.body, False)
 
         # Restore stack state at end of loop body
-        self._stackrestore(node.body, save_point)
+        self._autodispose_alloc(node.body, None)
+        self.alloc_stack.pop()
+        #self._stackrestore(node.body, save_point)
 
         # If the step is unknown, make it increment by 1
         if node.step_expr is None:
@@ -575,13 +589,13 @@ class ControlFlow():
         self.builder.position_at_start(loopbody_bb)
 
         # Preserve state of stack at start of loop body
-        save_point = self._stacksave(node.body)
+        #save_point = self._stacksave(node.body)
 
         # Emit the body of the loop.
         body_val = self._codegen(node.body, False)
 
         # Restore stack state at end of loop body
-        self._stackrestore(node.body, save_point)
+        #self._stackrestore(node.body, save_point)
 
         # The value of the body has to be placed into a special
         # return variable so it's valid across all code paths
@@ -781,11 +795,10 @@ class ControlFlow():
                 node.position
             )
 
-        # if callee_func.do_not_allocate == True:
-        #     call_to_return.do_not_allocate = True
-
-        # if 'nomod' in callee_func.decorators:
-        #     call_to_return.tracked=False
+        # if result is tracked, add to our ALLOCATION tracking list
+        if call_to_return.tracked:
+            #self.allocations[call_to_return._name]=call_to_return
+            self.alloc_stack[-1][call_to_return._name]=call_to_return
 
         return call_to_return
 

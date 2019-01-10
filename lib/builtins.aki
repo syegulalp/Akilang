@@ -5,7 +5,7 @@ const {
     False=0b
     True=1b
     DATA_SIZE = 0
-    OBJ_PTR = 1
+    DATA_PTR = 1
     OBJ_ENUM = 2
     OBJ_REFCOUNT = 3
     OBJ_MALLOC = 4
@@ -26,45 +26,70 @@ def c_str_to_int(my_str:str) :i32 pass
 
 # Incr and decr refcount
 
+extern printf(str_fmt :ptr i8, *va) :i32
+
 def '.obj..__incr__'(my_obj: header) {    
-    # If underlying obj is not malloc'd,
-    # we do not need to track it    
+    when unsafe cast(my_obj, u64)==0U then return 0
+    printf(c_data('Incr'))
+    var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
+
     var malloc = c_deref(
         c_gep(my_obj, OBJ_MALLOC)
     )
 
     when malloc then {
         var f1 = c_gep(my_obj,OBJ_REFCOUNT)
-        var f2 = c_deref(f1)
+        var f2 = c_deref(f1)        
         var f3 = f2+=1U
+        #printf(c_data('Count is now: %u'),f3)
         unsafe c_ptr_mod(f1, f3)
     }
-    0
+    1
 }
 
 def '.obj..__decr__'(my_obj: header) {
+    when unsafe cast(my_obj, u64)==0U then return 0
+    printf(c_data('Decr'))
     var f1 = c_gep(my_obj,OBJ_REFCOUNT)
-    var f2 = c_deref(f1)   
-    var f3:u64
-    when f2>0U then f3=f2-=1U 
-    unsafe c_ptr_mod(f1, f3)
+    var f2 = c_deref(f1) 
+    var f3:u64=0U
+    when f2>0U then {
+        f3=f2-=1U
+        unsafe c_ptr_mod(f1, f3)
+    }
+    var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
+    1
+}
+
+def '.obj.._free'(my_obj_ptr: ptr u_mem, my_obj:header) {
+
+    when unsafe cast(my_obj_ptr, u64)==0U then {
+        #printf(c_data("Addr unfound"))
+        return 0
+    }
+
+    var f1 = c_gep(my_obj,OBJ_REFCOUNT)
+    var f3 = c_deref(f1) 
     when f3==0U then {
-        var obj_data_ptr = c_gep(my_obj, OBJ_MALLOC)
-        var obj_data = c_deref(obj_data_ptr)
-        when obj_data then {
-            var data_ptr = c_gep(my_obj, OBJ_PTR)
-            unsafe c_free(c_deref(data_ptr))
+        var obj_malloc_ptr = c_gep(my_obj, OBJ_MALLOC)
+        var obj_malloc = c_deref(obj_malloc_ptr)
+        when obj_malloc then {
+            var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
+            unsafe c_free(data_ptr)
         }
         var h_data_ptr = c_gep(my_obj, HEADER_MALLOC)
         var h_data = c_deref(h_data_ptr)
         when h_data then {
-            unsafe c_free(c_ptr_mem(my_obj))
+            unsafe c_free(cast(my_obj, ptr u_mem))
         }
+        var z = c_ptr_mem(my_obj_ptr)
+        z = cast(0U, ptr u_mem)
     }
-    0
+    1
 }
 
-def '.header.setobjdata'(my_obj: header, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem): header {
+
+def '.header._setdata'(my_obj: header, malloc_1:bool, malloc_2:bool, obj_len:u64, my_data_ptr:ptr u_mem): header {
     # Insert the length
     var len_ptr = c_gep(my_obj,DATA_SIZE)
     unsafe c_ptr_mod(len_ptr, obj_len)
@@ -78,8 +103,11 @@ def '.header.setobjdata'(my_obj: header, malloc_1:bool, malloc_2:bool, obj_len:u
     unsafe c_ptr_mod(h_data_ptr, malloc_2)
 
     # Point to the data
-    var data_ptr = c_gep(my_obj, OBJ_PTR)
+    var data_ptr = c_gep(my_obj, DATA_PTR)
     unsafe c_ptr_mod(data_ptr, my_data_ptr)
+
+    var count_ptr = c_gep(my_obj, OBJ_REFCOUNT)    
+    unsafe c_ptr_mod(count_ptr, 0U)
 
     return my_obj
 }
@@ -100,16 +128,13 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     # Allocate an object of the correct size and type
     var alloc = c_obj_alloc(str)
 
-    call ('.header.setobjdata', 
+    call ('.header._setdata', 
         unsafe cast(alloc, header),
         True,
         True,
         str_len,
         my_obj
     )
-
-    # the flags for memory allocation are set here
-    # we may not want to do this
 
     # Return the string object
     return alloc
@@ -137,30 +162,10 @@ def '.object.str.__len__'(my_str:str):u64{
 
 @nomod
 def '.object.str.__index__'(my_str:str, index:i32) :u8 {
-    var f1 = c_gep(my_str,0,OBJ_PTR)
+    var f1 = c_gep(my_str,0,DATA_PTR)
     var f2 = c_gep(f1)
     var f3 = c_ptr_math(f2, cast(index,u64))
     c_gep(f3)
-}
-
-def '.object.str.__del__'(my_str: str):bool {
-    var f1 = c_gep(my_str,0,OBJ_MALLOC)
-    when c_deref(f1) then {
-        # free the data element
-        unsafe c_free(c_data(my_str))
-    }
-    # free the data container
-    # TODO: check flag first
-    unsafe c_free(c_ptr_mem(my_str))
-}
-
-
-# TODO: placeholder
-def '.object.box.__del__'(my_obj: box):bool {    
-    return True
-    # only the box object itself should be deleted?
-    # need to unpack the original object?
-    # call its destructor as well?
 }
 
 
@@ -173,7 +178,34 @@ def '.i32.__new__'(my_obj:str):i32 {
 # string obj eq testing
 # test data pointers, length, then the strings themselves
 
+
+
+
+
+
+
+### DELETED / DEFERRED
+
 # TODO: untested
-def '.object.array.__del__'(my_obj:ptr u_mem):bool {
-    unsafe c_free(my_obj)
-}
+#def '.object.array.__del__'(my_obj:ptr u_mem):bool {
+    #unsafe c_free(my_obj)
+#}
+
+# TODO: placeholder
+#def '.object.box.__del__'(my_obj: box):bool {    
+    #return True
+    # only the box object itself should be deleted?
+    # need to unpack the original object?
+    # call its destructor as well?
+#}
+
+#def '.object.str.__del__'(my_str: str):bool {
+    #var f1 = c_gep(my_str,0,OBJ_MALLOC)
+    #when c_deref(f1) then {
+        # free the data element
+        #unsafe c_free(c_data(my_str))
+    #}
+    # free the data container
+    # TODO: check flag first
+    #unsafe c_free(c_ptr_mem(my_str))
+#}

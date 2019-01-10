@@ -371,21 +371,14 @@ class Builtins:
 
     def _codegen_Builtins_c_ptr_mem(self, node):
         """
-        Returns a u_mem ptr to anything
+        Returns a u_mem ptr to anything, including another pointer
         """
 
-        # node = self._if_unsafe(node)
         self._check_arg_length(node, 1, 2)
         self._check_arg_types(node, (COMMON_ARGS,), COMMON_ARGS)
-        address_of = self._codegen(node.args[0])
+        address_of = self._get_obj_noload(node, ptr_check=False)
 
-        # if len(node.args) > 1:
-        #     use_type = self._codegen(node.args[1], False)
-        # else:
-
-        use_type = self.vartypes.u_mem
-
-        return self.builder.bitcast(address_of, use_type.as_pointer())
+        return self.builder.bitcast(address_of, self.vartypes.u_mem.as_pointer())
 
     def _codegen_Builtins_c_addr(self, node):
         """
@@ -519,9 +512,9 @@ class Builtins:
                 if not isinstance(cast_from.type, ir.IntType):
                     raise cast_exception
 
-                # and it has to be the same bitwidth
-                if cast_from.type.width != self.pointer_bitwidth:
-                    raise cast_exception
+                # # and it has to be the same bitwidth
+                # if cast_from.type.width != self.pointer_bitwidth:
+                #     raise cast_exception
 
                 op = self.builder.inttoptr
                 break
