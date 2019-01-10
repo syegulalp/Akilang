@@ -34,6 +34,8 @@ If an object is *returned* from a function, the function is marked by the compil
 
 ### Giveaways
 
+> This section is likely to be revised as it doesn't properly accommodate all the scenarios that might arise for it.
+
 If an object is used as an argument in a function call, it's considered "given away" and is unmarked for tracking. 
 
 *However*, if the object is given away to a function marked as `@no_mod`, this doesn't apply.
