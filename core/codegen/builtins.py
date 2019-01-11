@@ -691,19 +691,18 @@ class Builtins:
             ord_val = self._codegen(
                 Number(
                     ord_arg.position,
-                    int(ord(ord_arg.val[0])),
+                    ord(ord_arg.val[0]),
                     self.vartypes.i32
                 )
             )
         
         else:
             ord_str = self._codegen(ord_arg)
+            if ord_str.type != self.vartypes.str.as_pointer():
+                raise CodegenError(f'Parameter must be a single-character string', ord_arg.position)
             ord_sub = ArrayAccessor(ord_arg.position, [self.vartypes.i64(0)])
             ord_ref = Reference(ord_arg.position, ord_str, ord_sub)
-            try:
-                ord_val = self._codegen(ord_ref)
-            except Exception:
-                raise CodegenError(f'Parameter must be a single-character string', ord_arg.position)
+            ord_val = self._codegen(ord_ref)            
 
         return ord_val
     
