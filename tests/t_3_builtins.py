@@ -146,9 +146,16 @@ class TestEvaluator(unittest.TestCase):
     def test_ord(self):
         self.e2.reset()
         self.assertEqual(self.e2.evaluate('ord("a")'), 97)
+        self.assertEqual(self.e2.evaluate('{var x="a" ord(x)}'), 97)
+
         with self.assertRaises(CodegenError):
             self.e2.evaluate('ord("a2")')
+        with self.assertRaises(CodegenError):
+            self.e2.evaluate('ord(32)')
+        with self.assertRaises(CodegenError):
+            self.e2.evaluate('{var x=32 ord(x)}')
     
     def test_c_ptr(self):
         pass
+        
         

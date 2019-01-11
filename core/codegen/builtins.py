@@ -681,19 +681,31 @@ class Builtins:
         self._check_arg_types(node, [COMMON_ARGS])
 
         ord_arg = node.args[0]
-        if not ord_arg.vartype==self.vartypes.str:
-            raise CodegenError(f'Parameter must be a single-character string',
-            ord_arg.position)
+
+        # TODO: compile to a constant if we are passed a constant string
+        # instead of a variable
+
+        if isinstance(ord_arg, String):
+            if len(ord_arg.val)>1:
+                raise CodegenError(f'Parameter must be a single-character string', ord_arg.position)
+            ord_val = self._codegen(
+                Number(
+                    ord_arg.position,
+                    int(ord(ord_arg.val[0])),
+                    self.vartypes.i32
+                )
+            )
         
-        if len(ord_arg.val)>1:
-            raise CodegenError(f'Parameter must be a single-character string',
-            ord_arg.position)
+        else:
+            ord_str = self._codegen(ord_arg)
+            ord_sub = ArrayAccessor(ord_arg.position, [self.vartypes.i64(0)])
+            ord_ref = Reference(ord_arg.position, ord_str, ord_sub)
+            try:
+                ord_val = self._codegen(ord_ref)
+            except Exception:
+                raise CodegenError(f'Parameter must be a single-character string', ord_arg.position)
 
-        ord_str = self._codegen(ord_arg)
-        ord_sub = ArrayAccessor(ord_arg.position, [self.vartypes.i64(0)])
-        ord_ref = Reference(ord_arg.position, ord_str, ord_sub)
-
-        return self._codegen(ord_ref)
+        return ord_val
     
     def _codegen_Builtins_print(self, node):
 
