@@ -53,6 +53,7 @@ class TokenKind(Enum):
     WHILE = -1650
     MATCH = -1660
     DEFAULT = -1665
+    DEL = -1700
 
 
 ESCAPES = {
@@ -155,7 +156,7 @@ Builtin = {
 Dunders = {
     'len',
     'index',
-    'del'
+    #'del'
 }
 
 # with these, we should check to see if there's a specific dunder implementation

@@ -47,9 +47,19 @@ def '.obj..__incr__'(my_obj: header) {
     1
 }
 
-def '.obj..__decr__'(my_obj: header) {
-    when unsafe cast(my_obj, u64)==0U then return 0
-    printf(c_data('Decr'))
+def '.obj..__decr__'(my_obj_ptr: ptr u_mem, my_obj:header) {
+    print ("Enter decr")
+    print ("1:", unsafe cast(my_obj_ptr, u64))
+    print ("2:", c_deref(unsafe cast(my_obj_ptr, ptr u_size)))
+    
+    when unsafe cast(my_obj_ptr, u64)==0U then {
+        printf(c_data("Addr unfound for decr"))
+        return 0
+    }
+
+    #when unsafe cast(my_obj, u64)==0U then return 0
+   
+
     var f1 = c_gep(my_obj,OBJ_REFCOUNT)
     var f2 = c_deref(f1) 
     var f3:u64=0U
@@ -57,14 +67,19 @@ def '.obj..__decr__'(my_obj: header) {
         f3=f2-=1U
         unsafe c_ptr_mod(f1, f3)
     }
-    var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
+    #var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
     1
 }
 
 def '.obj.._free'(my_obj_ptr: ptr u_mem, my_obj:header) {
+    #print ("Enter free")
+    #print ("1:", unsafe cast(my_obj_ptr, u64))
+    #print ("2:", c_deref(unsafe cast(my_obj_ptr, ptr u_size)))
+    #print ("3:", unsafe cast(my_obj, u64))
+
 
     when unsafe cast(my_obj_ptr, u64)==0U then {
-        #printf(c_data("Addr unfound"))
+        #printf(c_data("Addr unfound for free"))
         return 0
     }
 
@@ -82,8 +97,18 @@ def '.obj.._free'(my_obj_ptr: ptr u_mem, my_obj:header) {
         when h_data then {
             unsafe c_free(cast(my_obj, ptr u_mem))
         }
-        var z = c_ptr_mem(my_obj_ptr)
-        z = cast(0U, ptr u_mem)
+        var z = cast(c_deref(my_obj_ptr), u_size)
+        z=0U
+        #print ("Free ",z)
+
+        #var z = cast(my_obj_ptr, ptr u_size)
+        #var t = c_deref(z)
+        #t = 0U
+        #unsafe c_ptr_mod(z, 0U)
+        #z = cast(0U, ptr u_size)
+        #t=0U
+        #printf(c_data('Free'))
+        #print ("Free",z)
     }
     1
 }

@@ -4,7 +4,7 @@ from core.ast_module import (
     Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
     Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number,
     VariableType, Unsafe, Continue, Try, Raise,
-    Pass, FString
+    Pass, FString, Del
 )
 from core.vartypes import AkiCustomType, AkiArray, AkiType, set_type_id
 from core.errors import ParseError
@@ -17,6 +17,16 @@ import re
 
 
 class Expressions():
+    def _parse_del_expr(self):
+        start = self.cur_tok.position       
+        self._get_next_token()
+        if self.cur_tok.value == Puncs.OPEN_PAREN:
+            del_list = self._parse_argument_list(True)
+            self._get_next_token()
+        else:
+            del_list = [self._parse_identifier_expr()]
+        return Del(start, del_list)
+
     def _parse_pass_expr(self):
         self._get_next_token()
         return Pass(self.cur_tok.position)

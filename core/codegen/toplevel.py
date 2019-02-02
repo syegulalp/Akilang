@@ -264,6 +264,7 @@ class Toplevel():
         # Reset the symbol table. Prototype generation will pre-populate it with
         # function arguments.
         self.func_symtab = {}
+        self.deleted_symtab = {}
 
         # Create the function skeleton from the prototype.
         func = self._codegen(node.proto, False)
@@ -409,8 +410,8 @@ class Toplevel():
         for _, var_to_dispose in self.alloc_stack[-1].items():            
             if var_to_dispose is to_check:
                 continue
-            self._decr_refcount(var_to_dispose, node, False)
-            self._free_obj(var_to_dispose, node)
+            # self._decr_refcount(var_to_dispose, node, False)
+            # self._free_obj(var_to_dispose, node)
     
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)

@@ -59,6 +59,9 @@ class LLVMCodeGenerator(
         # Maps var names to ir.Value.
         self.func_symtab = {}
 
+        # Holds objects that have been deleted in a function
+        self.deleted_symtab = {}
+
         # Allocations that need tracking.
         # self.allocations = {}
         self.alloc_stack = []
@@ -253,6 +256,9 @@ class LLVMCodeGenerator(
         if v is None:
             if not report:
                 return None
+            v=self.deleted_symtab.get(name)
+            if v:
+                raise CodegenError(f'Variable "{node.name}" previously deleted at {v.deleted_at} and is inaccessible from this position', node.position)
             raise CodegenError(f'Undefined variable "{node.name}"', node.position)
         return v
 
@@ -300,9 +306,9 @@ class LLVMCodeGenerator(
             if var_to_dispose.tracked:
                 if not var_to_dispose.type.pointee.is_obj_ptr():
                     continue
-                self._decr_refcount(var_to_dispose, node)
-                self._free_obj(var_to_dispose, node)
-                #self._call_del_method(var_to_dispose)
+                # self._decr_refcount(var_to_dispose, node)                
+                # self._free_obj(var_to_dispose, node)
+                # self._call_del_method(var_to_dispose)
 
 
     def _call_del_method(self, var_to_dispose, node=None):
@@ -331,12 +337,13 @@ class LLVMCodeGenerator(
         self.builder.call(del_name, [ref], f"{var_to_dispose.name}.delete")
 
     def _incr_refcount(self, var_ref, node):
-        # Get the underlying allocation for the variable
-        alloc = self.builder.load(var_ref)
 
         # Refcounts are not incremented on untracked objects
-        if not alloc.tracked:
+        if not var_ref.tracked:
             return
+        
+        # Get the underlying allocation for the variable
+        alloc = self.builder.load(var_ref)
 
         # Bitcast the object to a bare header
         f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
@@ -347,45 +354,66 @@ class LLVMCodeGenerator(
         )
 
     def _decr_refcount(self, var_ref, node, load=True):
+        print ("Load:", load)
+        # Refcounts are not incremented on untracked objects
+        if not var_ref.tracked:
+            return
+            
         # Get the underlying allocation for the variable
         # (default operation)
 
         if load:                
             alloc = self.builder.load(var_ref)
+            
+            v1 = self.builder.alloca(var_ref.type)
+            v2 = self.builder.store(var_ref, v1)
+            # print (v1)
+
+            fa = self.builder.ptrtoint(v1, self.vartypes.u_size)
+            print (fa)
+            fb = self.builder.inttoptr(fa, self.vartypes.u_mem.as_pointer())
+            f4 = fb
         else:
             alloc = var_ref
+            f4 = self.builder.bitcast(var_ref, self.vartypes.u_mem.as_pointer())
 
-        # Refcounts are not incremented on untracked objects
-        if not alloc.tracked:
-            return
 
-        # Bitcast the object to a bare header
+        # get addr of alloc
+        
+        print ("var ref:", var_ref)
+        print ("var_ref type:", var_ref.type)
+        print ("alloc type:", alloc.type)
+        print ("f4:", f4)
+        print ('----')
+
         f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
 
         # Call decr on header
         f3 = self._codegen(
-            Call(node.position, ".obj..__decr__", [f2], self.vartypes.i32)
+            Call(node.position, ".obj..__decr__", [f4, f2], self.vartypes.i32)
         )
-
-        f4 = self.builder.bitcast(var_ref, self.vartypes.u_mem.as_pointer())
 
         f5 = self._codegen(
             Call(node.position, ".obj.._free", [f4, f2], self.vartypes.i32)
         )
 
     def _free_obj(self, var_ref, node):
-        return
-        alloc = self.builder.load(var_ref)
+        #return
+        #print ("Free:", var_ref, var_ref.tracked)
         
-        if not alloc.tracked:
+        if not var_ref.tracked:
+            #print ("Not tracked")
             return
         
-        print (var_ref.type)
+        #print (var_ref.type)
+
+        #alloc = self.builder.load(var_ref)
 
         # Bitcast the pointer to the object to raw memory
         f2 = self.builder.bitcast(var_ref, self.vartypes.u_mem.as_pointer())
+        f3 = self.builder.bitcast(var_ref, self.vartypes.header.as_pointer())
 
         # Call free on header
-        f3 = self._codegen(
-            Call(node.position, ".obj.._free", [f2], self.vartypes.i32)
+        self._codegen(
+            Call(node.position, ".obj.._free", [f2, f3], self.vartypes.i32)
         )

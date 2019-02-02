@@ -52,6 +52,10 @@ class Global(Expr):
         self.storage_class = storage_class
         self.unnamed_addr = unnamed_addr
 
+class Del(Expr):
+    def __init__(self, position, del_list = None):
+        super().__init__(position)
+        self.del_list = del_list
 
 class Pragma(Node):
     def __init__(self, position, pragmas):

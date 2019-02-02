@@ -682,9 +682,6 @@ class Builtins:
 
         ord_arg = node.args[0]
 
-        # TODO: compile to a constant if we are passed a constant string
-        # instead of a variable
-
         if isinstance(ord_arg, String):
             if len(ord_arg.val)>1:
                 raise CodegenError(f'Parameter must be a single-character string', ord_arg.position)

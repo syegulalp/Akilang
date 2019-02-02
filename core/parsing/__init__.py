@@ -37,6 +37,7 @@ PARSE_ACTIONS = {
     TokenKind.BREAK: 'break',
     TokenKind.UNSAFE: 'unsafe',
     TokenKind.PASS: 'pass',
+    TokenKind.DEL: 'del',
     TokenKind.VARTYPE: 'standalone_vartype',
     TokenKind.PTR: 'standalone_vartype'
 }

@@ -53,6 +53,12 @@ class Vars:
     
     def _codegen_Argument(self, node):
         return node
+    
+    def _codegen_GEPInstr(self, node):
+        return node
+    
+    def _codegen_StoreInstr(self, node):
+        return node
 
     def _codegen_ArrayAccessor(self, node):
         return self._codegen_Call(
@@ -670,7 +676,7 @@ class Vars:
         self.func_symtab[node_var.name] = var_ref
         self.builder.store(init_ref, var_ref)
 
-        self._incr_refcount(var_ref, node_var)
+        # self._incr_refcount(var_ref, node_var)
 
         return var_ref
 
@@ -805,7 +811,8 @@ class Vars:
 
         self.builder.store(value, ptr)
         self._copy_tracking(ptr, value)        
-        self._incr_refcount(ptr, rhs)
+
+        # self._incr_refcount(ptr, rhs)
 
         return value
 
@@ -863,3 +870,26 @@ class Vars:
                 variable_list.append(var_app)
 
         return (format_string, variable_list)
+        
+    def _codegen_Del(self, node):
+        for var in node.del_list:
+            var_to_find = self.func_symtab.get(var.name, None)
+            
+            if var_to_find is None:
+                
+                raise CodegenError(
+                    f'Can\'t delete undefined variable "{var.name}"',
+                    var.position
+                )
+            
+            if not var_to_find.tracked:
+                raise CodegenError(
+                    f'Variable "{var.name}" is not a tracked object and cannot be deleted',
+                    var.position
+                )
+            
+            self._free_obj(var_to_find, var)
+            setattr(var_to_find,'deleted_at',var.position)
+            self.deleted_symtab[var.name] = var_to_find
+            del self.func_symtab[var.name]
+            
