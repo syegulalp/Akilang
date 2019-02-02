@@ -31,6 +31,7 @@ This is a document of Aki syntax and usage.
   - [`const`](#const)
   - [`class`](#class)
   - [`def`](#def)
+  - [`del`](#del)
   - [`extern`](#extern)
   - [`pragma`](#pragma)
     - [`loop_vectorize`](#loop_vectorize)
@@ -412,6 +413,17 @@ def add(a:u64, b:u64):u64{
     return a+b
 }
 ```
+
+## `del`
+
+Deletes an object and frees its used memory.
+
+```
+var x=str(32)
+del x
+```
+
+Once a variable is deleted it cannot be re-used unless it is re-initialized.
 
 ## `extern`
 
