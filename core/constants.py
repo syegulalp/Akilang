@@ -1,6 +1,6 @@
 PRODUCT = "Aki"
-VERSION = '0.0.2019.01.09'
-COPYRIGHT = "2018"
+VERSION = '0.0.2019.02.01'
+COPYRIGHT = "2019"
 
 CONFIG_INI_DEFAULTS = '''[paths]
 lib_dir=lib
