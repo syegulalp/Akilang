@@ -71,45 +71,23 @@ def '.obj..__decr__'(my_obj_ptr: ptr u_mem, my_obj:header) {
     1
 }
 
-def '.obj.._free'(my_obj_ptr: ptr u_mem, my_obj:header) {
-    #print ("Enter free")
-    #print ("1:", unsafe cast(my_obj_ptr, u64))
-    #print ("2:", c_deref(unsafe cast(my_obj_ptr, ptr u_size)))
-    #print ("3:", unsafe cast(my_obj, u64))
+def '.obj.__del__'(my_obj:header) {
+    var obj_malloc_ptr = c_gep(my_obj, OBJ_MALLOC)
+    var obj_malloc = c_deref(obj_malloc_ptr)
 
-
-    when unsafe cast(my_obj_ptr, u64)==0U then {
-        #printf(c_data("Addr unfound for free"))
-        return 0
+    when obj_malloc then {    
+        print ("Data ptr: true")
+        var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
+        unsafe c_free(data_ptr)
     }
 
-    var f1 = c_gep(my_obj,OBJ_REFCOUNT)
-    var f3 = c_deref(f1) 
-    when f3==0U then {
-        var obj_malloc_ptr = c_gep(my_obj, OBJ_MALLOC)
-        var obj_malloc = c_deref(obj_malloc_ptr)
-        when obj_malloc then {
-            var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
-            unsafe c_free(data_ptr)
-        }
-        var h_data_ptr = c_gep(my_obj, HEADER_MALLOC)
-        var h_data = c_deref(h_data_ptr)
-        when h_data then {
-            unsafe c_free(cast(my_obj, ptr u_mem))
-        }
-        var z = cast(c_deref(my_obj_ptr), u_size)
-        z=0U
-        #print ("Free ",z)
-
-        #var z = cast(my_obj_ptr, ptr u_size)
-        #var t = c_deref(z)
-        #t = 0U
-        #unsafe c_ptr_mod(z, 0U)
-        #z = cast(0U, ptr u_size)
-        #t=0U
-        #printf(c_data('Free'))
-        #print ("Free",z)
+    var h_data_ptr = c_gep(my_obj, HEADER_MALLOC)
+    var h_data = c_deref(h_data_ptr)
+    when h_data then {
+        print ("Header ptr: true")
+        unsafe c_free(cast(my_obj, ptr u_mem))
     }
+   
     1
 }
 
@@ -121,7 +99,7 @@ def '.header._setdata'(my_obj: header, malloc_1:bool, malloc_2:bool, obj_len:u64
 
     # the object data is malloc'd
     var obj_data_ptr = c_gep(my_obj, OBJ_MALLOC)
-    unsafe c_ptr_mod(obj_data_ptr, malloc_1)
+    unsafe c_ptr_mod(obj_data_ptr, malloc_1)    
 
     # the object itself is malloc'd
     var h_data_ptr = c_gep(my_obj, HEADER_MALLOC)
@@ -165,11 +143,14 @@ def '.object.str.__new__'(my_obj:ptr u_mem):str {
     return alloc
 }
 
+
 @nomod
 def '.object.str.__new__'(my_bool: bool):str {
     if my_bool then 'True' else 'False'
     #if my_bool then TRUE else FALSE
 }
+
+
 
 @track
 def '.object.str.__new__'(my_obj:i32):str {

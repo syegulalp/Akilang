@@ -407,13 +407,13 @@ class LLVMCodeGenerator(
         
         #print (var_ref.type)
 
-        #alloc = self.builder.load(var_ref)
+        alloc = self.builder.load(var_ref)
 
         # Bitcast the pointer to the object to raw memory
-        f2 = self.builder.bitcast(var_ref, self.vartypes.u_mem.as_pointer())
-        f3 = self.builder.bitcast(var_ref, self.vartypes.header.as_pointer())
+        #f2 = self.builder.bitcast(var_ref, self.vartypes.u_mem.as_pointer())
+        f3 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
 
         # Call free on header
         self._codegen(
-            Call(node.position, ".obj.._free", [f2, f3], self.vartypes.i32)
+            Call(node.position, ".obj.__del__", [f3], self.vartypes.i32)
         )
