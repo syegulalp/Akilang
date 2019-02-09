@@ -1,10 +1,38 @@
 from core.tokens import TokenKind
 from core.ast_module import (
-    Variable, Call, Number, Break, Return, String, Match,
-    Do, Var, While, If, When, Loop, Array, ArrayAccessor, Class, Const,
-    Uni, With, Binary, Unary, DEFAULT_PREC, Prototype, Function, Number,
-    VariableType, Unsafe, Continue, Try, Raise,
-    Pass, FString, Del
+    Variable,
+    Call,
+    Number,
+    Break,
+    Return,
+    String,
+    Match,
+    Do,
+    Var,
+    While,
+    If,
+    When,
+    Loop,
+    Array,
+    ArrayAccessor,
+    Class,
+    Const,
+    Uni,
+    With,
+    Binary,
+    Unary,
+    DEFAULT_PREC,
+    Prototype,
+    Function,
+    Number,
+    VariableType,
+    Unsafe,
+    Continue,
+    Try,
+    Raise,
+    Pass,
+    FString,
+    Del,
 )
 from core.vartypes import AkiCustomType, AkiArray, AkiType, set_type_id
 from core.errors import ParseError
@@ -16,9 +44,9 @@ import re
 # pylint: disable=E1101
 
 
-class Expressions():
+class Expressions:
     def _parse_del_expr(self):
-        start = self.cur_tok.position       
+        start = self.cur_tok.position
         self._get_next_token()
         if self.cur_tok.value == Puncs.OPEN_PAREN:
             del_list = self._parse_argument_list(True)
@@ -70,7 +98,7 @@ class Expressions():
 
     def _parse_modifiers(self, current):
         start = current.position
-        id_name = getattr(current, 'name', None)
+        id_name = getattr(current, "name", None)
         toplevel = current
 
         while True:
@@ -81,10 +109,7 @@ class Expressions():
 
             elif self._cur_tok_is_punctuator(Puncs.OPEN_PAREN):
                 args = self._parse_argument_list()
-                child = Call(
-                    start, id_name, args,
-                    self.cur_tok.vartype
-                )
+                child = Call(start, id_name, args, self.cur_tok.vartype)
 
             elif self.cur_tok.value == Puncs.PERIOD:
                 self._get_next_token()
@@ -104,8 +129,8 @@ class Expressions():
         start = self.cur_tok.position
         id_name = self.cur_tok.value
 
-        if id_name == '':
-            raise ParseError('Identifier expected', start)
+        if id_name == "":
+            raise ParseError("Identifier expected", start)
 
         if id_name in Builtins:
             return self._parse_builtin(id_name)
@@ -121,8 +146,7 @@ class Expressions():
 
     def _parse_number_expr(self):
 
-        result = Number(self.cur_tok.position, self.cur_tok.value,
-                        self.cur_tok.vartype)
+        result = Number(self.cur_tok.position, self.cur_tok.value, self.cur_tok.vartype)
         self._get_next_token()  # consume the number
         return result
 
@@ -133,11 +157,11 @@ class Expressions():
         return expr
 
     def _parse_standalone_vartype_expr(self):
-        '''
+        """
         Currently used for parsing variable types that are passed
         as an argument to a function. This is an exceptional case
         that will in time be eliminated.
-        '''
+        """
         pos = self.cur_tok.position
         vartype = self._parse_vartype_expr()
 
@@ -148,11 +172,7 @@ class Expressions():
         if self._cur_tok_is_punctuator(Puncs.OPEN_PAREN):
             args = self._parse_argument_list(True)
             self._get_next_token()
-            return Call(
-                pos,
-                vartype.new_signature(),
-                args, vartype
-            )
+            return Call(pos, vartype.new_signature(), args, vartype)
 
         return VariableType(pos, vartype)
 
@@ -167,9 +187,7 @@ class Expressions():
         self._get_next_token()  # consume `with`
 
         if self.cur_tok.kind != TokenKind.VAR:
-            raise ParseError(
-                f'Invalid "with" expression', self.cur_tok.position
-            )
+            raise ParseError(f'Invalid "with" expression', self.cur_tok.position)
 
         vars = self._parse_var_expr()
         body = self._parse_expression()
@@ -195,7 +213,7 @@ class Expressions():
         if Puncs.OPEN_CURLY not in cur.value:
             return String(self.vartypes, cur.position, cur.value)
 
-        in_template = re.split(r'([{}])', cur.value)
+        in_template = re.split(r"([{}])", cur.value)
 
         exprs = []
         escape = False
@@ -215,15 +233,13 @@ class Expressions():
                 continue
 
             escape = False
-            if n and n[-1] == '\\':
+            if n and n[-1] == "\\":
                 escape = True
                 n = n[0:-1]
 
-            n = n.replace(r'%', r'%%')
+            n = n.replace(r"%", r"%%")
 
-            exprs.append(
-                String(self.vartypes, cur.position, n)
-            )
+            exprs.append(String(self.vartypes, cur.position, n))
 
         # another way to do this:
         # keep count of how many actual unescaped {} we have
@@ -242,7 +258,7 @@ class Expressions():
 
         while self.cur_tok.kind == TokenKind.PTR:
             explicit_ptr = True
-            is_ptr += 1            
+            is_ptr += 1
             self._get_next_token()
 
         if self.cur_tok.value in self.vartypes:
@@ -253,8 +269,8 @@ class Expressions():
 
         else:
             raise ParseError(
-                f'Expected a variable type but got {self.cur_tok.value} instead',
-                self.cur_tok.position
+                f"Expected a variable type but got {self.cur_tok.value} instead",
+                self.cur_tok.position,
             )
 
         if vartype == self.vartypes.func:
@@ -295,8 +311,8 @@ class Expressions():
 
             if not fixed_size:
                 raise ParseError(
-                    f'Array size cannot be set dynamically with a variable; use a constant',
-                    n.position
+                    f"Array size cannot be set dynamically with a variable; use a constant",
+                    n.position,
                 )
 
             elements = []
@@ -316,20 +332,20 @@ class Expressions():
 
         if not vartype.as_pointer == AkiType.as_pointer:
             while is_ptr > 0:
-                vartype = vartype.as_pointer(getattr(vartype, 'addrspace', 0))
+                vartype = vartype.as_pointer(getattr(vartype, "addrspace", 0))
                 is_ptr -= 1
 
         if explicit_ptr:
             set_type_id(self.vartypes, vartype)
-        
+
         vartype.explicit_ptr = explicit_ptr
 
         return vartype
 
     def _parse_cast_expr(self):
-        return self._parse_convert_expr('cast')
+        return self._parse_convert_expr("cast")
 
-    def _parse_convert_expr(self, callee='convert'):
+    def _parse_convert_expr(self, callee="convert"):
         start = self.cur_tok.position
         self._get_next_token()
         self._match(TokenKind.PUNCTUATOR, Puncs.OPEN_PAREN)
@@ -356,7 +372,8 @@ class Expressions():
                     if default is not None:
                         raise ParseError(
                             '"default" keyword specified multiple times in "match" statement',
-                            self.cur_tok.position)
+                            self.cur_tok.position,
+                        )
                     set_default = True
                     self._get_next_token()
                     break
@@ -408,7 +425,7 @@ class Expressions():
 
         while not self._cur_tok_is_punctuator(Puncs.CLOSE_CURLY):
             name, type = self._parse_var_declaration()
-            vars[name] = {'type': type, 'id': var_id}
+            vars[name] = {"type": type, "id": var_id}
             if self._cur_tok_is_punctuator(Puncs.COMMA):
                 self._get_next_token()
             var_id += 1
@@ -417,8 +434,8 @@ class Expressions():
         v_types = {}
         n = 0
         for k, v in vars.items():
-            types.append(v['type'])
-            v_types[k] = {'pos': n, 'type': v}
+            types.append(v["type"])
+            v_types[k] = {"pos": n, "type": v}
             n += 1
 
         vartype = AkiCustomType(self.module, class_name, types, v_types)
@@ -450,9 +467,7 @@ class Expressions():
             if isinstance(init, String):
                 init.anonymous = False
 
-            vars.append(
-                Variable(pos, name, vartype, None, init)
-            )
+            vars.append(Variable(pos, name, vartype, None, init))
 
             if not self._cur_tok_is_punctuator(Puncs.COMMA):
                 break
@@ -544,9 +559,5 @@ class Expressions():
         self._get_next_token()
         return Continue(start)
 
-    _if_eq_checks = (
-        _parse_if_expr,
-        _parse_while_expr,
-        _parse_when_expr
+    _if_eq_checks = (_parse_if_expr, _parse_while_expr, _parse_when_expr)
 
-    )

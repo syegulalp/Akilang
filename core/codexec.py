@@ -312,13 +312,11 @@ class AkilangEvaluator(object):
 
             if return_value.type.is_obj_ptr():
                 result = return_value.type.pointee.convert_result(
-                    result,
-                    return_value,
-                    self.codegen.vartypes,                    
+                    result, return_value, self.codegen.vartypes
                 )
 
             # TODO: we also need to convert results for bare arrays
-            
+
             return Result(result, ast, rawIR, optIR, end_time - start_time)
 
     def eval_and_return(self, node):

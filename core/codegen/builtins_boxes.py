@@ -36,11 +36,6 @@ class Builtins_boxes:
         box_ptr = self._box_check(node)
         type_to_unwrap = node.args[1]
 
-        # if not isinstance(type_to_unwrap, VariableType):
-        #     raise CodegenError(
-        #         f"Parameter must be a type descriptor", node.args[1].position
-        #     )
-
         if len(node.args) > 2:
             # Generate the substitute data
             value_to_substitute = self._codegen(node.args[2])
@@ -265,7 +260,6 @@ class Builtins_boxes:
 
         # If rhs type is an object, get its underlying type
 
-        # if rhs.vartype.is_obj_ptr():
         if isinstance(rhs.vartype, ir.PointerType):
             rhs_type = rhs.vartype.pointee
         else:

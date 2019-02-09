@@ -1,19 +1,32 @@
-from core.ast_module import _ANONYMOUS, Binary, Variable, String, Number, Global, ItemList
+from core.ast_module import (
+    _ANONYMOUS,
+    Binary,
+    Variable,
+    String,
+    Number,
+    Global,
+    ItemList,
+)
 import llvmlite.ir as ir
-from core.mangling import mangle_call, mangle_args, mangle_types, mangle_optional_args, MANGLE_SEPARATOR
+from core.mangling import (
+    mangle_call,
+    mangle_args,
+    mangle_types,
+    mangle_optional_args,
+    MANGLE_SEPARATOR,
+)
 from core.errors import CodegenError, CodegenWarning
 from core.tokens import decorator_collisions
 
 # pylint: disable=E1101
 
 
-class Toplevel():
-
+class Toplevel:
     def _codegen_Pragma(self, node):
-        '''
+        """
         Iterate through a `pragma` block and register each
         name/value pair with the module's metadata.
-        '''
+        """
 
         # At some point we'll just make this into an extension of
         # `const`, but I think we need special processing for now
@@ -27,12 +40,12 @@ class Toplevel():
             if not isinstance(n, Binary):
                 raise CodegenError(
                     'Invalid "pragma" declaration (must be in the format "<identifier> = <value>")',
-                    n.position
+                    n.position,
                 )
 
             if isinstance(n.rhs, Variable):
                 if e is None:
-                    e = self.init_evaluator() 
+                    e = self.init_evaluator()
                 val = e.eval_and_return(n.rhs).value
 
             # an inline string literal doesn't need to be evaled
@@ -46,21 +59,21 @@ class Toplevel():
                 except:
                     raise CodegenError(
                         'Invalid "pragma" declaration (value must be a string or integer)',
-                        n.rhs.position
+                        n.rhs.position,
                     )
 
             else:
                 raise CodegenError(
                     'Invalid "pragma" declaration (value must be a string or integer)',
-                    n.rhs.position
+                    n.rhs.position,
                 )
 
             self.pragmas[n.lhs.name] = val
 
     def _codegen_Decorator(self, node):
-        '''
+        """
         Set the decorator stack and generate the code tagged by the decorator.
-        '''
+        """
 
         self.func_decorators.append(node.name)
         for n in node.body:
@@ -96,11 +109,8 @@ class Toplevel():
         if node.vartype is None:
             node.vartype = self.vartypes._DEFAULT_TYPE
 
-        #functype = ir.FunctionType(
-        functype = self.vartypes.func(
-            node.vartype,
-            vartypes+vartypes_with_defaults
-        )
+        # functype = ir.FunctionType(
+        functype = self.vartypes.func(node.vartype, vartypes + vartypes_with_defaults)
 
         public_name = funcname
 
@@ -111,8 +121,12 @@ class Toplevel():
         # TODO: identify anonymous functions with a property
         # not by way of their nomenclature
 
-        if node.extern is False and not funcname.startswith('_ANONYMOUS.') and funcname != 'main':
-            linkage = 'private'
+        if (
+            node.extern is False
+            and not funcname.startswith("_ANONYMOUS.")
+            and funcname != "main"
+        ):
+            linkage = "private"
             if len(vartypes) > 0:
                 funcname = public_name + mangle_args(vartypes)
             else:
@@ -134,8 +148,7 @@ class Toplevel():
 
             if not isinstance(existing_func, ir.Function):
                 raise CodegenError(
-                    f'Function/universal name collision "{funcname}"',
-                    node.position
+                    f'Function/universal name collision "{funcname}"', node.position
                 )
 
             # If we're redefining a forward declaration,
@@ -147,7 +160,8 @@ class Toplevel():
             if len(existing_func.function_type.args) != len(functype.args):
                 raise CodegenError(
                     f'Redefinition of function "{public_name}" with different number of arguments',
-                    node.position)
+                    node.position,
+                )
         else:
             # Otherwise create a new function
 
@@ -164,8 +178,7 @@ class Toplevel():
 
         for x, n in enumerate(node.argnames):
             if n.initializer is not None:
-                func.args[x].default_value = self._codegen(
-                    n.initializer, False)
+                func.args[x].default_value = self._codegen(n.initializer, False)
 
         if node.varargs:
             func.ftype.var_arg = True
@@ -183,13 +196,13 @@ class Toplevel():
 
         decorators = [n.name for n in self.func_decorators]
 
-        varfunc = 'varfunc' in decorators
+        varfunc = "varfunc" in decorators
 
         for a, b in decorator_collisions:
             if a in decorators and b in decorators:
                 raise CodegenError(
                     f'Function cannot be decorated with both "@{a}" and "@{b}"',
-                    node.position
+                    node.position,
                 )
 
         # Calling convention.
@@ -197,7 +210,7 @@ class Toplevel():
 
         if node.varargs is None:
             if not node.extern:
-                func.calling_convention = 'fastcc'
+                func.calling_convention = "fastcc"
 
         # Linkage.
         # Default is 'private' if it's not extern, an anonymous function, or main
@@ -210,43 +223,43 @@ class Toplevel():
 
         # Enable optnone for main() or anything
         # designated as a target for a function pointer.
-        if funcname == 'main' or varfunc:
-            func.attributes.add('optnone')
-            func.attributes.add('noinline')
+        if funcname == "main" or varfunc:
+            func.attributes.add("optnone")
+            func.attributes.add("noinline")
 
         # Inlining. Operator functions are inlined by default.
 
         if (
             # function is manually inlined
-            ('inline' in decorators)
+            ("inline" in decorators)
             or
             # function is an operator, not @varfunc,
             # and not @noinline
-            (node.isoperator and not varfunc and 'noinline' not in decorators)
+            (node.isoperator and not varfunc and "noinline" not in decorators)
         ):
-            func.attributes.add('alwaysinline')
+            func.attributes.add("alwaysinline")
 
         # function is @noinline
         # or function is @varfunc
-        if 'noinline' in decorators:
-            func.attributes.add('noinline')
+        if "noinline" in decorators:
+            func.attributes.add("noinline")
 
         # End inlining.
 
         # External calls, by default, no recursion
         if node.extern:
-            func.attributes.add('norecurse')
-            func.linkage = 'dllimport'
+            func.attributes.add("norecurse")
+            func.linkage = "dllimport"
 
         # By default, no lazy binding
-        func.attributes.add('nonlazybind')
+        func.attributes.add("nonlazybind")
 
         # By default, no stack unwinding
-        func.attributes.add('nounwind')
+        func.attributes.add("nounwind")
 
         func.decorators = decorators
 
-        if 'track' in decorators:
+        if "track" in decorators:
             self._set_tracking(func, None, None, True)
 
         return func
@@ -273,34 +286,32 @@ class Toplevel():
         self.func_incontext = func
         self.func_returncalled = False
         self.func_returntype = func.return_value.type
-        self.func_returnblock = func.append_basic_block('exit')        
-        
+        self.func_returnblock = func.append_basic_block("exit")
+
         self.alloc_stack.append({})
 
         # Create the BB that holds the function's variable definitions.
-        bb_vars = func.append_basic_block('var_defs')
+        bb_vars = func.append_basic_block("var_defs")
         self.func_varblock = bb_vars
         self.builder = ir.IRBuilder(bb_vars)
 
         # Set return argument in exit block
-        self.func_returnarg = self._alloca(
-            '!return', self.func_returntype, node=node)        
+        self.func_returnarg = self._alloca("!return", self.func_returntype, node=node)
 
         # Add all arguments to the symbol table and create their allocas
         for _, arg in enumerate(func.args):
-            
+
             # We don't shadow existing variables names, ever
             if self.func_symtab.get(arg.name) or self.module.globals.get(arg.name):
                 raise CodegenError(
                     f'"{arg.name}" is already defined in this scope',
-                    node.proto.argnames[_].position
-                )            
-            
+                    node.proto.argnames[_].position,
+                )
+
             if arg.type.is_obj_ptr():
                 alloca = arg
             else:
-                alloca = self._alloca(arg.name, arg.type,
-                                      node=node.proto.argnames[_])
+                alloca = self._alloca(arg.name, arg.type, node=node.proto.argnames[_])
                 self.builder.store(arg, alloca)
 
             self.func_symtab[arg.name] = alloca
@@ -311,9 +322,9 @@ class Toplevel():
         exit_block_idx = func.blocks.index(self.func_returnblock)
 
         # Create the entry BB in the function and set a new builder to it.
-        bb_entry = func.append_basic_block('entry')
+        bb_entry = func.append_basic_block("entry")
         self.builder.branch(bb_entry)
-        self.builder = ir.IRBuilder(bb_entry)        
+        self.builder = ir.IRBuilder(bb_entry)
 
         # Generate code for the body
         retval = self._codegen(node.body, False)
@@ -324,15 +335,17 @@ class Toplevel():
             pass
         else:
 
-            if not hasattr(retval, 'type'):
+            if not hasattr(retval, "type"):
                 raise CodegenError(
                     f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.describe()}" but no concluding expression with an explicit return type was supplied',
-                    node.position)
+                    node.position,
+                )
 
             if retval is None and func.return_value.type is not None:
                 raise CodegenError(
                     f'Function "{node.proto.name}" has a return value of type "{func.return_value.type.describe()}" but no expression with an explicit return type was supplied',
-                    node.position)
+                    node.position,
+                )
 
             # We need to have return type compatibility checking
             # performed on a separate instance of the object,
@@ -346,11 +359,12 @@ class Toplevel():
             if func.return_value.type != retval2.type:
                 if node.proto.name.startswith(_ANONYMOUS):
                     func.return_value.type = retval.type
-                    self.func_returnarg = self._alloca('!return', retval.type)
+                    self.func_returnarg = self._alloca("!return", retval.type)
                 else:
                     raise CodegenError(
                         f'Prototype for function "{node.proto.name}" has return type "{func.return_value.type.describe()}", but returns "{retval.type.describe()}" instead (maybe an implicit return?)',
-                        node.proto.position)
+                        node.proto.position,
+                    )
 
             self.builder.store(retval2, self.func_returnarg)
             self.builder.branch(self.func_returnblock)
@@ -373,13 +387,9 @@ class Toplevel():
         # Be sure to exclude anything we return!
 
         if to_check:
-            self._autodispose(
-                reversed(list(self.func_symtab.items())),
-                to_check,
-                node
-            )        
-        
-        #self._autodispose_alloc(node, to_check)
+            self._autodispose(reversed(list(self.func_symtab.items())), to_check, node)
+
+        # self._autodispose_alloc(node, to_check)
 
         # TODO: if this function throws exceptions,
         # we need to return an object wrapper, not a bare object
@@ -389,11 +399,7 @@ class Toplevel():
 
         # Move the `exit` block to the end of the function
         # to improve readability in the LLVM IR
-        func.blocks.append(
-            func.blocks.pop(
-                exit_block_idx
-            )
-        )
+        func.blocks.append(func.blocks.pop(exit_block_idx))
 
         self.func_incontext = None
         self.func_returntype = None
@@ -401,21 +407,13 @@ class Toplevel():
         self.func_returnblock = None
         self.func_returncalled = None
         self.func_varblock = None
-        
+
         self.alloc_stack.pop()
 
         self.builder = self.nullbuilder
 
-    def _autodispose_alloc(self, node, to_check):
-        for _, var_to_dispose in self.alloc_stack[-1].items():            
-            if var_to_dispose is to_check:
-                continue
-            # self._decr_refcount(var_to_dispose, node, False)
-            # self._free_obj(var_to_dispose, node)
-    
     def _codegen_Const(self, node):
         return self._codegen_Uni(node, True)
 
-    # doesn't work yet
     def _codegen_Uni(self, node, const=False):
         return self._codegen_Var(node, False, const, True)

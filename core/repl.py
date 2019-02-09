@@ -5,6 +5,7 @@ import llvmlite
 import sys
 from importlib import reload
 from termcolor import colored, cprint
+
 colorama.init()
 
 from time import perf_counter
@@ -14,15 +15,16 @@ import gc
 
 def config():
     import configparser
+
     cfg = configparser.ConfigParser()
     while 1:
         try:
-            with open('config.ini') as file:
+            with open("config.ini") as file:
                 cfg.read_file(file)
         except FileNotFoundError:
-            cprint(f'"config.ini" file recreated', 'red')
+            cprint(f'"config.ini" file recreated', "red")
             defaults = CONFIG_INI_DEFAULTS
-            with open('config.ini', 'w') as file:
+            with open("config.ini", "w") as file:
                 file.write(defaults)
         else:
             break
@@ -31,13 +33,23 @@ def config():
 
 
 cfg = config()
-paths = cfg['paths']
+paths = cfg["paths"]
 
-from core import errors, vartypes, lexer, operators, parsing, ast_module, codegen, codexec, compiler
+from core import (
+    errors,
+    vartypes,
+    lexer,
+    operators,
+    parsing,
+    ast_module,
+    codegen,
+    codexec,
+    compiler,
+)
 
 from core.errors import ReloadException
 
-PROMPT = 'A>'
+PROMPT = "A>"
 
 USAGE = f"""From the {PROMPT} prompt, type Aki code or enter special commands
 preceded by a dot sign:
@@ -50,7 +62,7 @@ preceded by a dot sign:
     .export|ex <filename>
                   : Dump current module to file in LLVM assembler format.
                   : Uses output.ll in current directory as default.
-    .help|.?      : Show this message. (A single . also invokes help)
+    .help|.?|.    : Show this message.
     .rerun|..     : Reload the Python code and restart the REPL. 
     .rl[c|r]      : Reset the interpreting engine and reload the last .aki
                     file loaded in the REPL. Add c to run .cp afterwards.
@@ -78,43 +90,41 @@ On the command line, the initial dot sign can be replaced with a double dash:
 
 
 def errprint(msg):
-    cprint(msg, 'red', file=sys.stderr)
+    cprint(msg, "red", file=sys.stderr)
 
 
-class Repl():
-
+class Repl:
     def __init__(self):
         self.commands = {
-            'test': self.run_tests,
-            't': self.run_tests,
-            'reset': self.reset,
-            '~': self.reset,
-            'rerun': self.reload_all,
-            '.': self.reload_all,
-            'r': self.run_program,
-            'run': self.run_program,
-            'help': self.print_usage,
-            '?': self.print_usage,
-            '': self.print_usage,
-            'dump': self.dump_module,
-            'dp': self.dump_module,
-            'compile': self.compile_module,
-            'cp': self.compile_module,
-            'export': self.export_module,
-            'ex': self.export_module,
-            'about': self.about,
-            'ab': self.about,
-            'quit': self.quit,
-            'exit': self.quit,
-            'stop': self.quit,
-            'q': self.quit,
-            'rl': self.reload_module,
-            'rlc': self.reload_module,
-            'rlr': self.reload_module,
-            'version': self.version,
-            'ver': self.version,
-            'v': self.version
-
+            "test": self.run_tests,
+            "t": self.run_tests,
+            "reset": self.reset,
+            "~": self.reset,
+            "rerun": self.reload_all,
+            ".": self.reload_all,
+            "r": self.run_program,
+            "run": self.run_program,
+            "help": self.print_usage,
+            "?": self.print_usage,
+            "": self.print_usage,
+            "dump": self.dump_module,
+            "dp": self.dump_module,
+            "compile": self.compile_module,
+            "cp": self.compile_module,
+            "export": self.export_module,
+            "ex": self.export_module,
+            "about": self.about,
+            "ab": self.about,
+            "quit": self.quit,
+            "exit": self.quit,
+            "stop": self.quit,
+            "q": self.quit,
+            "rl": self.reload_module,
+            "rlc": self.reload_module,
+            "rlr": self.reload_module,
+            "version": self.version,
+            "ver": self.version,
+            "v": self.version,
         }
 
         self.history = []
@@ -125,28 +135,28 @@ class Repl():
         self.history = []
         print("Command history cleared")
         self.executor.reset(force=True)
-        print("Interpreting engine reset")        
+        print("Interpreting engine reset")
         self.last_file = None
 
     def version(self, *a):
-        print('Python :', sys.version)
-        print('LLVM   :', '.'.join(
-            (str(n) for n in llvmlite.binding.llvm_version_info))
+        print("\nPython :", sys.version)
+        print(
+            "LLVM   :", ".".join((str(n) for n in llvmlite.binding.llvm_version_info))
         )
-        print('pyaki  :', VERSION)
+        print("pyaki  :", VERSION, "\n")
 
     def reload_module(self, command):
         if self.last_file is None:
-            errprint('No previous command to reload')
+            errprint("No previous command to reload")
             return
 
         reload(parsing)
         self.executor.reset()
         self.load_command(self.last_file)
 
-        if command == 'rlr':
+        if command == "rlr":
             self.run_program(command)
-        elif command == 'rlc':
+        elif command == "rlc":
             self.compile_module(command)
 
     def reload_all(self, *a):
@@ -154,17 +164,19 @@ class Repl():
 
     def run_tests(self, command):
         import unittest
-        tests = unittest.defaultTestLoader.discover("tests", '*.py')
+
+        tests = unittest.defaultTestLoader.discover("tests", "*.py")
         unittest.TextTestRunner().run(tests)
 
     def run_program(self, *a):
-        self.print_eval('main()')
+        self.print_eval("main()")
 
     def print_usage(self, *a):
         print(USAGE)
 
     def about(self, *a):
         print(ABOUT)
+        self.version()
 
     def quit(self, *a):
         sys.exit()
@@ -173,36 +185,37 @@ class Repl():
         print(self.executor.codegen.module)
 
     def compile_module(self, *a):
-        compiler.compile(self.executor.codegen, 'output')
+        compiler.compile(self.executor.codegen, "output")
 
     def export_module(self, command):
         try:
-            filename = command.split(' ')[1]
-            if '.' not in filename:
+            filename = command.split(" ")[1]
+            if "." not in filename:
                 filename += ".ll"
         except IndexError:
             import os
-            filename = f'output{os.sep}output.ll'
 
-        with open(filename, 'w') as file:
+            filename = f"output{os.sep}output.ll"
+
+        with open(filename, "w") as file:
             output = str(self.executor.codegen.module)
             file.write(output)
 
-        print(f'{len(output)} bytes written to {filename}')
+        print(f"{len(output)} bytes written to {filename}")
 
     def load_command(self, command):
-        if command[-1] == '.':
-            command += 'aki'
+        if command[-1] == ".":
+            command += "aki"
         try:
             self.executor.reset(force=True)
-            with open(f'{paths["source_dir"]}\\{command}', encoding='utf8') as file:
+            with open(f'{paths["source_dir"]}\\{command}', encoding="utf8") as file:
                 f = file.read()
-                print(f'{command} read in ({len(f)} bytes)')
+                print(f"{command} read in ({len(f)} bytes)")
                 self.last_file = command
 
                 start_time = perf_counter()
                 self.print_eval(f)
-                finish_time = perf_counter()-start_time
+                finish_time = perf_counter() - start_time
                 print(f"Compile time: {finish_time:.3f}s")
 
                 # import cProfile
@@ -210,51 +223,49 @@ class Repl():
                 # cProfile.runctx('self.print_eval(f)', globals(),
                 #         locals(), 'main.profile')
                 # finish_time = perf_counter()-start_time
-                # print(f"Compile time: {finish_time:.3f}s")                
+                # print(f"Compile time: {finish_time:.3f}s")
                 # with open('stats.txt', 'w') as stream:
                 #     import pstats
                 #     stats = pstats.Stats('main.profile', stream=stream)
                 #     stats.sort_stats('calls').print_stats()
-
-                
 
         except (FileNotFoundError, OSError):
             errprint("File or command not found: " + command)
             self.executor.reset(history=self.history)
 
     def print_eval(self, code):
-        '''
+        """
         Evaluate the given code with evaluator engine
         using the instance options.
         Print the evaluation results.
-        '''
+        """
         results = self.executor.eval_generator(code)
         try:
             for result in results:
                 if not result.value is None:
-                    cprint(result.value, 'green')
+                    cprint(result.value, "green")
                 else:
                     self.history.append(result.ast)
-                if self.options.get('verbose'):
-                    print('\n>>> Raw IR >>>\n')
-                    cprint(result.rawIR, 'green')
-                    print('\n>>> Optimized IR >>>\n')
-                    cprint(result.optIR, 'magenta')
+                if self.options.get("verbose"):
+                    print("\n>>> Raw IR >>>\n")
+                    cprint(result.rawIR, "green")
+                    print("\n>>> Optimized IR >>>\n")
+                    cprint(result.optIR, "magenta")
                     print()
         except lexer.AkiSyntaxError as err:
-            errprint(f'Syntax error: {err}')
-            #self.executor.reset(self.history)
+            errprint(f"Syntax error: {err}")
+            # self.executor.reset(self.history)
         except parsing.ParseError as err:
-            errprint(f'Parse error: {err}')
-            #self.executor.reset(self.history)
+            errprint(f"Parse error: {err}")
+            # self.executor.reset(self.history)
         except codegen.CodegenError as err:
-            errprint(f'Eval error: {err}')            
+            errprint(f"Eval error: {err}")
             self.del_last()
         except RuntimeError as err:
-            errprint(f'LLVM error: {err}')
+            errprint(f"LLVM error: {err}")
         except (Exception, BaseException) as err:
-            errprint(str(type(err)) + ' : ' + str(err))
-            print('Aborting.')
+            errprint(str(type(err)) + " : " + str(err))
+            print("Aborting.")
             # self.executor.reset()
             raise err
 
@@ -264,18 +275,18 @@ class Repl():
         del g[last]
 
     def run_command(self, command):
-        print(colorama.Fore.YELLOW, end='')
+        print(colorama.Fore.YELLOW, end="")
 
         if not command:
             pass
-        elif command[0] == '.':
+        elif command[0] == ".":
             # run dot command
             self.run_repl_command(command[1:])
         else:
             # command is an akilang code snippet so run it
             self.print_eval(command)
 
-        print(colorama.Style.RESET_ALL, end='')
+        print(colorama.Style.RESET_ALL, end="")
 
     def run_repl_command(self, command):
 
@@ -287,16 +298,14 @@ class Repl():
     def run(self, *a):
         self.core_vartypes = vartypes.generate_vartypes()
         self.options = locals()
-        self.options.pop('a')
+        self.options.pop("a")
 
         self.executor = codexec.AkilangEvaluator(
-            f'{paths["lib_dir"]}',
-            f'{paths["basiclib"]}',
-            vartypes=self.core_vartypes
+            f'{paths["lib_dir"]}', f'{paths["basiclib"]}', vartypes=self.core_vartypes
         )
 
         if len(sys.argv) >= 2:
-            command = ' '.join(sys.argv[1:]).replace('--', '.')
+            command = " ".join(sys.argv[1:]).replace("--", ".")
             self.run_command(command)
         else:
             # Enter a REPL loop
@@ -304,12 +313,12 @@ class Repl():
                 gc.freeze()
             except:
                 pass
-            cprint(f'{PRODUCT} v.{VERSION}', 'yellow')
-            cprint('Type ', 'green', end='')
-            cprint('.help', 'white', end='')
-            cprint(' or a command to be interpreted', 'green')
+            cprint(f"{PRODUCT} v.{VERSION}", "yellow")
+            cprint("Type ", "green", end="")
+            cprint(".help", "white", end="")
+            cprint(" or a command to be interpreted", "green")
             command = ""
-            while not command in ['exit', 'quit']:
+            while not command in ["exit", "quit"]:
                 self.run_command(command)
-                cprint(PROMPT, 'white', end='')
+                cprint(PROMPT, "white", end="")
                 command = input().strip()

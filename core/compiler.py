@@ -1,4 +1,4 @@
-#OUTPUT_DIR = 'output'
+# OUTPUT_DIR = 'output'
 
 import subprocess
 import pathlib
@@ -11,13 +11,13 @@ def optimize(llvm_module, pragmas={}):
 
     pmb = llvm.create_pass_manager_builder()
 
-    pmb.loop_vectorize = pragmas.get('loop_vectorize', True)
-    pmb.slp_vectorize = pragmas.get('slp_vectorize', True)
+    pmb.loop_vectorize = pragmas.get("loop_vectorize", True)
+    pmb.slp_vectorize = pragmas.get("slp_vectorize", True)
 
-    pmb.opt_level = pragmas.get('opt_level', 3)
-    pmb.size_level = pragmas.get('size_level', 0)
+    pmb.opt_level = pragmas.get("opt_level", 3)
+    pmb.size_level = pragmas.get("size_level", 0)
 
-    pmb.disable_unroll_loops = not (pragmas.get('unroll_loops', True))
+    pmb.disable_unroll_loops = not (pragmas.get("unroll_loops", True))
 
     pm = llvm.create_module_pass_manager()
     pmb.populate(pm)
@@ -29,7 +29,7 @@ def optimize(llvm_module, pragmas={}):
 def compile(codegen, filename):
     module = codegen.module
 
-    print('Parsing source.')
+    print("Parsing source.")
 
     import llvmlite.binding as llvm
 
@@ -43,51 +43,49 @@ def compile(codegen, filename):
 
     import os
     import errno
+
     try:
         os.makedirs(paths["output_dir"])
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
 
-    with open(f'{paths["output_dir"]}{os.sep}{filename}.opt.llvm',
-              'w') as file:
+    with open(f'{paths["output_dir"]}{os.sep}{filename}.opt.llvm', "w") as file:
         file.write(str(llvm_module))
 
-    print('Creating object file.')
+    print("Creating object file.")
 
     tm2 = llvm.Target.from_default_triple()
-    tm = tm2.create_target_machine(opt=3, codemodel='large')
+    tm = tm2.create_target_machine(opt=3, codemodel="large")
     tm.add_analysis_passes(pm)
 
     with llvm.create_mcjit_compiler(llvm_module, tm) as ee:
         ee.finalize_object()
         output_file = tm.emit_object(llvm_module)
-        with open(
-            f'{paths["output_dir"]}{os.sep}{filename}.obj',
-                'wb') as file:
+        with open(f'{paths["output_dir"]}{os.sep}{filename}.obj', "wb") as file:
             file.write(output_file)
 
-    print(f'{len(output_file)} bytes written.')
-    print('Linking object file.')
+    print(f"{len(output_file)} bytes written.")
+    print("Linking object file.")
 
-    if os.name == 'nt':
+    if os.name == "nt":
 
         from core.repl import cfg
 
-        extension = 'exe'
+        extension = "exe"
 
         cmds = [
             r"pushd .",
             f'call {cfg["nt_compiler"]["path"]} amd64',
-            r'popd',
+            r"popd",
             f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
-            r'exit %errorlevel%',
+            r"exit %errorlevel%",
         ]
 
-        shell_cmd = [os.environ['COMSPEC']]
+        shell_cmd = [os.environ["COMSPEC"]]
 
     else:
-        raise Exception('Non-Win32 OSes not yet supported')
+        raise Exception("Non-Win32 OSes not yet supported")
 
     try:
         p = subprocess.Popen(
@@ -100,7 +98,7 @@ def compile(codegen, filename):
 
         for cmd in cmds:
             for line in p.stdout:
-                ln = line.decode('utf-8').strip()
+                ln = line.decode("utf-8").strip()
                 if len(ln) == 0:
                     break
                 print(ln)
@@ -112,15 +110,15 @@ def compile(codegen, filename):
 
             print()
 
-            p.stdin.write(bytes(cmd+'\n', 'utf-8'))
+            p.stdin.write(bytes(cmd + "\n", "utf-8"))
             p.stdin.flush()
 
-        errs = ''.join([n.decode('utf-8') for n in p.stderr.readlines()])
+        errs = "".join([n.decode("utf-8") for n in p.stderr.readlines()])
         if len(errs):
             raise Exception(errs)
 
     except Exception as e:
-        print(f'Build failed with the following error:\n{e}')
+        print(f"Build failed with the following error:\n{e}")
 
     else:
         print(

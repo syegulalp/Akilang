@@ -12,7 +12,7 @@ class Associativity(Enum):
     RIGHT = 2
 
 
-BinOpInfo = namedtuple('BinOpInfo', ['precedence', 'associativity'])
+BinOpInfo = namedtuple("BinOpInfo", ["precedence", "associativity"])
 
 BUILTIN_OP = {
     Ops.ASSIGN: BinOpInfo(2, Associativity.RIGHT),
@@ -35,19 +35,11 @@ BUILTIN_OP = {
     Ops.DIVIDE: BinOpInfo(40, Associativity.LEFT),
 }
 
-BUILTIN_UNARY_OP = {
-    Ops.NOT,
-    Ops.NEG
-}
+BUILTIN_UNARY_OP = {Ops.NOT, Ops.NEG}
 
-UNASSIGNED = {
-    '!', '$', '%', '`', '^', '\\'
-}
+UNASSIGNED = {"!", "$", "%", "`", "^", "\\"}
 
-IN_PLACE_OPS = {
-    Ops.INCR,
-    Ops.DECR
-}
+IN_PLACE_OPS = {Ops.INCR, Ops.DECR}
 
 FALSE_BINOP_INFO = BinOpInfo(-1, Associativity.UNDEFINED)
 
@@ -58,7 +50,7 @@ FALSE_BINOP_INFO = BinOpInfo(-1, Associativity.UNDEFINED)
 # def builtin_operators():
 # return sorted(BUILTIN_OP.keys())
 
-#_binop_map = dict(BUILTIN_OP)
+# _binop_map = dict(BUILTIN_OP)
 
 
 def binop_info(tok):
@@ -68,6 +60,7 @@ def binop_info(tok):
         return BUILTIN_OP[value]
     except KeyError:
         from core.lexer import TokenKind, Puncs
+
         if kind == TokenKind.PUNCTUATOR and value not in Puncs.ALL:
             raise ParseError(f'Undefined operator: "{value}"', position)
         # Return a false binop info that has no precedence
@@ -76,4 +69,4 @@ def binop_info(tok):
 
 def set_binop_info(op, precedence, associativity):
     BUILTIN_OP[op] = BinOpInfo(precedence, associativity)
-    #_binop_map[op] = BinOpInfo(precedence, associativity)
+    # _binop_map[op] = BinOpInfo(precedence, associativity)

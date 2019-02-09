@@ -43,7 +43,7 @@ class LLVMCodeGenerator(
         At any time, the current LLVM module being constructed can be obtained
         from the module attribute.
         """
-        
+
         if force:
             context = ir.context.Context()
             self.module = ir.Module(module_name, context=context)
@@ -63,7 +63,6 @@ class LLVMCodeGenerator(
         self.deleted_symtab = {}
 
         # Allocations that need tracking.
-        # self.allocations = {}
         self.alloc_stack = []
 
         # Decorator stack for whatever function is currently in context.
@@ -113,6 +112,9 @@ class LLVMCodeGenerator(
         self.suppress_warnings = True
 
     def init_evaluator(self):
+        """
+        Initialize the sub-evaluator for a module, which is re-used as needed.
+        """
         if self.evaluator is None:
             from core import codexec
 
@@ -129,7 +131,7 @@ class LLVMCodeGenerator(
         """
         Returns a constant for Python int value.
         Used for gep, so it returns a value that is the bitwidth
-        of the pointer size for the needed architecture.
+        of the pointer size for the needed architecture, typically 64 bits.
         """
         return ir.Constant(self.vartypes.u_size, int(pyval))
 
@@ -183,6 +185,9 @@ class LLVMCodeGenerator(
         return self._obj_size_type(obj.type)
 
     def _set_tracking(self, node, do_not_allocate=True, heap_alloc=True, tracked=True):
+        """
+        Set the initial tracking data on a variable or allocation.
+        """
         if heap_alloc is not None:
             node.heap_alloc = heap_alloc
         if do_not_allocate is not None:
@@ -191,6 +196,9 @@ class LLVMCodeGenerator(
             node.tracked = tracked
 
     def _copy_tracking(self, lhs, rhs):
+        """
+        Propagate tracking data on a given allocation or variable to another variable.
+        """
         lhs.heap_alloc = rhs.heap_alloc
         lhs.input_arg = rhs.input_arg
         lhs.tracked = rhs.tracked
@@ -214,15 +222,7 @@ class LLVMCodeGenerator(
 
         assert alloca_type is not None
 
-        # print (alloca_type)
-        # mem_alloc_size = alloca_type.get_abi_size(self.vartypes._target_data)
-        # mem_alloc = self._codegen_Call(
-        #     Call(node.position, 'c_alloc',
-        #          [Number(node.position, mem_alloc_size, self.vartypes.u_size)]))
-        # print (mem_alloc)
-
         if malloc:
-
             pass
 
             # Placeholder for when we use this to perform heap
@@ -256,9 +256,12 @@ class LLVMCodeGenerator(
         if v is None:
             if not report:
                 return None
-            v=self.deleted_symtab.get(name)
+            v = self.deleted_symtab.get(name)
             if v:
-                raise CodegenError(f'Variable "{node.name}" previously deleted at {v.deleted_at} and is inaccessible from this position', node.position)
+                raise CodegenError(
+                    f'Variable "{node.name}" previously deleted at {v.deleted_at} and is inaccessible from this position',
+                    node.position,
+                )
             raise CodegenError(f'Undefined variable "{node.name}"', node.position)
         return v
 
@@ -286,12 +289,19 @@ class LLVMCodeGenerator(
         return result
 
     def _dunder_method(self, node):
+        """
+        Generates a call for a dunder method.
+        This has been broken out so that it can be re-used elsewhere.
+        """
         call = self._codegen_Call(
             Call(node.position, node.name, node.args), obj_method=True
         )
         return call
 
     def _methodcall(self, node, lhs, rhs):
+        """
+        Generates a method call for a binop.
+        """
         func = self.module.globals.get(
             f"binary.{node.op}{mangle_args((lhs.type,rhs.type))}"
         )
@@ -299,121 +309,42 @@ class LLVMCodeGenerator(
             raise NotImplementedError
         return self.builder.call(func, [lhs, rhs], "userbinop")
 
+    def _free_obj(self, var_ref, node):
+        """
+        Generates a delete action to free an object from memory.
+        """
+        if not var_ref.tracked:
+            return
+
+        # Bitcast the pointer to the object to raw memory
+        raw_mem = self.builder.bitcast(
+            self.builder.load(var_ref), self.vartypes.header.as_pointer()
+        )
+
+        # Call free on header
+        self._codegen(Call(node.position, ".obj.__del__", [raw_mem], self.vartypes.i32))
+
     def _autodispose(self, item_list, to_check, node=None):
+        """
+        Placeholder function for auto-disposal of variables.
+        """
         for _, var_to_dispose in item_list:
             if var_to_dispose is to_check:
-                continue            
+                continue
             if var_to_dispose.tracked:
                 if not var_to_dispose.type.pointee.is_obj_ptr():
                     continue
-                # self._decr_refcount(var_to_dispose, node)                
+                # self._decr_refcount(var_to_dispose, node)
                 # self._free_obj(var_to_dispose, node)
                 # self._call_del_method(var_to_dispose)
 
+    def _autodispose_alloc(self, node, to_check):
+        """
+        Placeeholder function for the auto-disposal of allocations.
+        """
+        for _, var_to_dispose in self.alloc_stack[-1].items():
+            if var_to_dispose is to_check:
+                continue
+            # self._decr_refcount(var_to_dispose, node, False)
+            # self._free_obj(var_to_dispose, node)
 
-    def _call_del_method(self, var_to_dispose, node=None):
-        ref = self.builder.load(var_to_dispose)
-
-        v_target = var_to_dispose.type.pointee.pointee
-        sig = v_target.del_signature()
-
-        if v_target.del_as_ptr:
-            ref = self.builder.bitcast(ref, self.vartypes.u_mem.as_pointer())
-
-        # TODO: merge this with the existing
-        # dunder-method call mechanism?
-
-        del_name = self.module.globals.get(sig + mangle_args([ref.type]))
-
-        # TODO: symtab should contain the position
-        # for the first creation of a class object
-        # so we can indicate errors like this precisely
-
-        if del_name is None:
-            raise CodegenError(
-                f'No "__del__" method found for "{v_target.signature()}"', node.position
-            )
-
-        self.builder.call(del_name, [ref], f"{var_to_dispose.name}.delete")
-
-    def _incr_refcount(self, var_ref, node):
-
-        # Refcounts are not incremented on untracked objects
-        if not var_ref.tracked:
-            return
-        
-        # Get the underlying allocation for the variable
-        alloc = self.builder.load(var_ref)
-
-        # Bitcast the object to a bare header
-        f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
-
-        # Call incr on header
-        f3 = self._codegen(
-            Call(node.position, ".obj..__incr__", [f2], self.vartypes.i32)
-        )
-
-    def _decr_refcount(self, var_ref, node, load=True):
-        print ("Load:", load)
-        # Refcounts are not incremented on untracked objects
-        if not var_ref.tracked:
-            return
-            
-        # Get the underlying allocation for the variable
-        # (default operation)
-
-        if load:                
-            alloc = self.builder.load(var_ref)
-            
-            v1 = self.builder.alloca(var_ref.type)
-            v2 = self.builder.store(var_ref, v1)
-            # print (v1)
-
-            fa = self.builder.ptrtoint(v1, self.vartypes.u_size)
-            print (fa)
-            fb = self.builder.inttoptr(fa, self.vartypes.u_mem.as_pointer())
-            f4 = fb
-        else:
-            alloc = var_ref
-            f4 = self.builder.bitcast(var_ref, self.vartypes.u_mem.as_pointer())
-
-
-        # get addr of alloc
-        
-        print ("var ref:", var_ref)
-        print ("var_ref type:", var_ref.type)
-        print ("alloc type:", alloc.type)
-        print ("f4:", f4)
-        print ('----')
-
-        f2 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
-
-        # Call decr on header
-        f3 = self._codegen(
-            Call(node.position, ".obj..__decr__", [f4, f2], self.vartypes.i32)
-        )
-
-        f5 = self._codegen(
-            Call(node.position, ".obj.._free", [f4, f2], self.vartypes.i32)
-        )
-
-    def _free_obj(self, var_ref, node):
-        #return
-        #print ("Free:", var_ref, var_ref.tracked)
-        
-        if not var_ref.tracked:
-            #print ("Not tracked")
-            return
-        
-        #print (var_ref.type)
-
-        alloc = self.builder.load(var_ref)
-
-        # Bitcast the pointer to the object to raw memory
-        #f2 = self.builder.bitcast(var_ref, self.vartypes.u_mem.as_pointer())
-        f3 = self.builder.bitcast(alloc, self.vartypes.header.as_pointer())
-
-        # Call free on header
-        self._codegen(
-            Call(node.position, ".obj.__del__", [f3], self.vartypes.i32)
-        )

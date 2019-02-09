@@ -1,4 +1,3 @@
-
 class Map(dict):
     # https://stackoverflow.com/a/32107024
     def __init__(self, *args, **kwargs):

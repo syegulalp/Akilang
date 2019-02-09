@@ -17,7 +17,7 @@ from core.ast_module import (
     If,
     Expr,
     ArrayAccessor,
-    Reference
+    Reference,
 )
 
 COMMON_ARGS = (Expr,)
@@ -276,12 +276,11 @@ class Builtins:
         value = self._codegen(node.args[1])
         self.builder.store(value, ptr)
 
-        # XXX: I'm assuming a modified pointer object
+        # TODO: I'm assuming a modified pointer object
         # cannot be automatically disposed b/c
         # we edit it manually
 
         self._set_tracking(ptr, None, None, False)
-        # ptr.tracked = False
 
         return ptr
 
@@ -393,7 +392,7 @@ class Builtins:
         address_of = self._get_obj_noload(node)
         return self.builder.ptrtoint(address_of, self.vartypes.u_size)
 
-        # perhaps we should also have a way to cast
+        # TODO: perhaps we should also have a way to cast
         # c_addr as a pointer to a specific type (the reverse of this)
 
     def _codegen_Builtins_c_deref(self, node):
@@ -514,9 +513,9 @@ class Builtins:
                 if not isinstance(cast_from.type, ir.IntType):
                     raise cast_exception
 
-                # # and it has to be the same bitwidth
-                # if cast_from.type.width != self.pointer_bitwidth:
-                #     raise cast_exception
+                # and it has to be the same bitwidth
+                if cast_from.type.width != self.pointer_bitwidth:
+                    raise cast_exception
 
                 op = self.builder.inttoptr
                 break
@@ -546,8 +545,6 @@ class Builtins:
             else:
                 op = self.builder.trunc
                 break
-                # cast_exception.msg += ' (data would be truncated)'
-                # raise cast_exception
 
             raise cast_exception
 
@@ -683,26 +680,26 @@ class Builtins:
         ord_arg = node.args[0]
 
         if isinstance(ord_arg, String):
-            if len(ord_arg.val)>1:
-                raise CodegenError(f'Parameter must be a single-character string', ord_arg.position)
-            ord_val = self._codegen(
-                Number(
-                    ord_arg.position,
-                    ord(ord_arg.val[0]),
-                    self.vartypes.i32
+            if len(ord_arg.val) > 1:
+                raise CodegenError(
+                    f"Parameter must be a single-character string", ord_arg.position
                 )
+            ord_val = self._codegen(
+                Number(ord_arg.position, ord(ord_arg.val[0]), self.vartypes.i32)
             )
-        
+
         else:
             ord_str = self._codegen(ord_arg)
             if ord_str.type != self.vartypes.str.as_pointer():
-                raise CodegenError(f'Parameter must be a single-character string', ord_arg.position)
+                raise CodegenError(
+                    f"Parameter must be a single-character string", ord_arg.position
+                )
             ord_sub = ArrayAccessor(ord_arg.position, [self.vartypes.i64(0)])
             ord_ref = Reference(ord_arg.position, ord_str, ord_sub)
-            ord_val = self._codegen(ord_ref)            
+            ord_val = self._codegen(ord_ref)
 
         return ord_val
-    
+
     def _codegen_Builtins_print(self, node):
 
         self._check_arg_length(node, 1, None)

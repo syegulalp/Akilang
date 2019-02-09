@@ -6,7 +6,6 @@ import llvmlite.ir as ir
 
 
 class Node(object):
-
     @classmethod
     def description(cls):
         return cls.__name__.lower()
@@ -15,7 +14,7 @@ class Node(object):
         self.position = position
 
     def flatten(self):
-        return [self.__class__.__name__, 'flatten unimplemented']
+        return [self.__class__.__name__, "flatten unimplemented"]
 
     def dump(self, indent=0):
         return dump(self.flatten(), indent)
@@ -32,6 +31,7 @@ class Expr(Node):
 class Continue(Expr):
     pass
 
+
 class Reference(Expr):
     def __init__(self, position, reference=None, child=None):
         super().__init__(position)
@@ -39,8 +39,18 @@ class Reference(Expr):
         self.reference = reference
         self.child = child
 
+
 class Global(Expr):
-    def __init__(self, position, const=None, name=None, global_constant=True, storage_class='private', type=None, unnamed_addr=True):
+    def __init__(
+        self,
+        position,
+        const=None,
+        name=None,
+        global_constant=True,
+        storage_class="private",
+        type=None,
+        unnamed_addr=True,
+    ):
         super().__init__(position)
         self.const = const
         if const is None:
@@ -52,10 +62,12 @@ class Global(Expr):
         self.storage_class = storage_class
         self.unnamed_addr = unnamed_addr
 
+
 class Del(Expr):
-    def __init__(self, position, del_list = None):
+    def __init__(self, position, del_list=None):
         super().__init__(position)
         self.del_list = del_list
+
 
 class Pragma(Node):
     def __init__(self, position, pragmas):
@@ -98,7 +110,7 @@ class Number(Expr):
         super().__init__(position)
         self.val = val
         self.vartype = vartype
-        self.name = f'{self.val}'
+        self.name = f"{self.val}"
 
     def flatten(self):
         return [self.__class__.__name__, self.val, self.vartype]
@@ -107,7 +119,7 @@ class Number(Expr):
         return self.val == other.val and self.vartype == other.vartype
 
     def __str__(self):
-        return f'{self.vartype} {self.val}'
+        return f"{self.vartype} {self.val}"
 
 
 class Array(Expr):
@@ -116,24 +128,26 @@ class Array(Expr):
         self.elements = elements
         self.element_type = vartype
         self.val = None
-        self.name = f'{self.val}'
+        self.name = f"{self.val}"
 
     def flatten(self):
-        return [
-            self.__class__.__name__, self.elements, self.val, self.element_type
-        ]
+        return [self.__class__.__name__, self.elements, self.val, self.element_type]
 
     def __eq__(self, other):
-        return self.element_type == other.element_type and self.elements == other.elements and self.val == other.val
+        return (
+            self.element_type == other.element_type
+            and self.elements == other.elements
+            and self.val == other.val
+        )
 
     def __str__(self):
-        return f'{self.element_type.v_id}[{self.elements}]'
+        return f"{self.element_type.v_id}[{self.elements}]"
 
 
 class ArrayAccessor(Expr):
     def __init__(self, position, elements, child=None):
         super().__init__(position)
-        self.name = f'.arrayaccessor'
+        self.name = f".arrayaccessor"
         self.elements = elements
         self.child = child
 
@@ -144,13 +158,13 @@ class ArrayAccessor(Expr):
         return self.elements == other.elements
 
     def __str__(self):
-        return f'{self.elements}'
+        return f"{self.elements}"
 
 
 class ItemList(ArrayAccessor):
     def __init__(self, position, elements, child=None):
         super().__init__(position, elements, child)
-        self.name = f'.itemlist'
+        self.name = f".itemlist"
 
 
 class String(Expr):
@@ -198,8 +212,10 @@ class Variable(Expr):
 
     def flatten(self):
         return [
-            self.__class__.__name__, self.name, self.vartype,
-            self.child.flatten() if self.child is not None else None
+            self.__class__.__name__,
+            self.name,
+            self.vartype,
+            self.child.flatten() if self.child is not None else None,
         ]
 
     def __str__(self):
@@ -212,9 +228,7 @@ class VariableType(Node):
         self.vartype = vartype
 
     def flatten(self):
-        return [
-            self.__class__.__name__, self.vartype
-        ]
+        return [self.__class__.__name__, self.vartype]
 
     def __str__(self):
         return f"{self.vartype}"
@@ -225,7 +239,7 @@ class Unary(Expr):
         super().__init__(position)
         self.op = op
         self.rhs = rhs
-        self.name = f'{op} {rhs}'
+        self.name = f"{op} {rhs}"
 
     def flatten(self):
         return [self.__class__.__name__, self.op, self.rhs.flatten()]
@@ -237,13 +251,14 @@ class Binary(Expr):
         self.op = op
         self.lhs = lhs
         self.rhs = rhs
-        self.name = f'{lhs} {op} {rhs}'
+        self.name = f"{lhs} {op} {rhs}"
 
     def flatten(self):
         return [
-            self.__class__.__name__, self.op,
+            self.__class__.__name__,
+            self.op,
             self.lhs.flatten(),
-            self.rhs.flatten()
+            self.rhs.flatten(),
         ]
 
 
@@ -256,12 +271,14 @@ class Call(Expr):
 
     def flatten(self):
         return [
-            self.__class__.__name__, self.name, self.vartype,
-            [arg.flatten() for arg in self.args]
+            self.__class__.__name__,
+            self.name,
+            self.vartype,
+            [arg.flatten() for arg in self.args],
         ]
 
     def __str__(self):
-        return f'{self.args} {self.name}'
+        return f"{self.args} {self.name}"
 
 
 class Var(Expr):
@@ -270,10 +287,7 @@ class Var(Expr):
         self.vars = vars
 
     def flatten(self):
-        return [
-            self.__class__.__name__,
-            [var.flatten() for var in self.vars]
-        ]
+        return [self.__class__.__name__, [var.flatten() for var in self.vars]]
 
 
 class Match(Expr):
@@ -282,16 +296,18 @@ class Match(Expr):
         self.cond_item = cond_item
         self.match_list = match_list
         self.default = default
-        '''
+        """
         match_list is a list of tuples:
             (conditional argument (default ==),
             conditional value (type must match item),
             conditional expression)
-        '''
+        """
 
 
 class Try(Expr):
-    def __init__(self, position, try_expr, except_expr, else_expr=None, finally_expr=None):
+    def __init__(
+        self, position, try_expr, except_expr, else_expr=None, finally_expr=None
+    ):
         super().__init__(position)
         self.try_expr = try_expr
         self.except_expr = except_expr
@@ -304,7 +320,7 @@ class Try(Expr):
             self.try_expr.flatten(),
             self.except_expr.flatten(),
             self.else_expr.flatten(),
-            self.finally_expr.flatten()
+            self.finally_expr.flatten(),
         ]
 
 
@@ -320,7 +336,7 @@ class If(Expr):
             self.__class__.__name__,
             self.cond_expr.flatten(),
             self.then_expr.flatten(),
-            self.else_expr.flatten()
+            self.else_expr.flatten(),
         ]
 
 
@@ -336,7 +352,7 @@ class When(Expr):
             self.__class__.__name__,
             self.cond_expr.flatten(),
             self.then_expr.flatten(),
-            self.else_expr.flatten()
+            self.else_expr.flatten(),
         ]
 
 
@@ -347,11 +363,7 @@ class While(Expr):
         self.body = body
 
     def flatten(self):
-        return [
-            self.__class__.__name__,
-            self.cond_expr.flatten(),
-            self.body.flatten()
-        ]
+        return [self.__class__.__name__, self.cond_expr.flatten(), self.body.flatten()]
 
 
 class Do(Expr):
@@ -364,8 +376,7 @@ class Do(Expr):
 
 
 class Loop(Expr):
-    def __init__(self, position, id_name, start_expr, end_expr, step_expr,
-                 body):
+    def __init__(self, position, id_name, start_expr, end_expr, step_expr, body):
         super().__init__(position)
         self.id_name = id_name
         self.start_expr = start_expr
@@ -375,11 +386,12 @@ class Loop(Expr):
 
     def flatten(self):
         return [
-            self.__class__.__name__, self.id_name,
+            self.__class__.__name__,
+            self.id_name,
             self.start_expr.flatten(),
             self.end_expr.flatten(),
             self.step_expr.flatten() if self.step_expr else ["No step"],
-            self.body.flatten()
+            self.body.flatten(),
         ]
 
 
@@ -394,9 +406,8 @@ class With(Expr):
     def flatten(self):
         return [
             self.__class__.__name__,
-            [[var[0], var[1].flatten() if var[1] else None]
-             for var in self.vars.vars],
-            self.body.flatten()
+            [[var[0], var[1].flatten() if var[1] else None] for var in self.vars.vars],
+            self.body.flatten(),
         ]
 
 
@@ -409,8 +420,7 @@ class Uni(Expr):
     def flatten(self):
         return [
             self.__class__.__name__,
-            [[var[0], var[1].flatten() if var[1] else None]
-             for var in self.vars]
+            [[var[0], var[1].flatten() if var[1] else None] for var in self.vars],
         ]
 
 
@@ -435,15 +445,17 @@ DEFAULT_PREC = 30
 
 
 class Prototype(Node):
-    def __init__(self,
-                 position,
-                 name,
-                 argnames,
-                 isoperator=False,
-                 prec=DEFAULT_PREC,
-                 vartype=None,
-                 extern=False,
-                 varargs=None):
+    def __init__(
+        self,
+        position,
+        name,
+        argnames,
+        isoperator=False,
+        prec=DEFAULT_PREC,
+        vartype=None,
+        extern=False,
+        varargs=None,
+    ):
         super().__init__(position)
         self.name = name
         self.argnames = argnames
@@ -466,22 +478,19 @@ class Prototype(Node):
     _anonymous_count = 0
 
     def anon_name(self):
-        return f'{_ANONYMOUS}{self._anonymous_count}'
+        return f"{_ANONYMOUS}{self._anonymous_count}"
 
     @classmethod
     def Anonymous(klass, position, vartype=None):
         klass._anonymous_count += 1
-        return Prototype(
-            position,
-            klass.anon_name(klass), [],
-            vartype=vartype)
+        return Prototype(position, klass.anon_name(klass), [], vartype=vartype)
 
     def is_anonymous(self):
         return self.name.startswith(_ANONYMOUS)
 
     def flatten(self):
-        args = [f'{x.vartype} {x.name}' for x in self.argnames]
-        flattened = [self.__class__.__name__, self.name, ', '.join(args)]
+        args = [f"{x.vartype} {x.name}" for x in self.argnames]
+        flattened = [self.__class__.__name__, self.name, ", ".join(args)]
         if self.prec != DEFAULT_PREC:
             return flattened + [self.prec]
         else:
@@ -499,15 +508,10 @@ class Function(Node):
 
     @staticmethod
     def Anonymous(position, body, vartype=None):
-        return Function(position,
-                        Prototype.Anonymous(position, vartype=vartype), body)
+        return Function(position, Prototype.Anonymous(position, vartype=vartype), body)
 
     def flatten(self):
-        return [
-            self.__class__.__name__,
-            self.proto.flatten(),
-            self.body.flatten()
-        ]
+        return [self.__class__.__name__, self.proto.flatten(), self.body.flatten()]
 
 
 class Pointer(Expr):
@@ -532,7 +536,7 @@ def dump(flattened, indent=0):
             if isinstance(elem[0], list):
                 s += dump(elem, indent)
             else:
-                s += '\n' + dump(elem, indent + 2)
+                s += "\n" + dump(elem, indent + 2)
         else:
             s += str(elem)
         starting = False

@@ -1,7 +1,17 @@
 from core.lexer import TokenKind
 from core.ast_module import (
-    Array, Const, Uni, String, Function, Prototype, Number,
-    Variable, DEFAULT_PREC, Unary, Pragma, ItemList
+    Array,
+    Const,
+    Uni,
+    String,
+    Function,
+    Prototype,
+    Number,
+    Variable,
+    DEFAULT_PREC,
+    Unary,
+    Pragma,
+    ItemList,
 )
 from core.operators import UNASSIGNED, set_binop_info, Associativity
 from core.errors import ParseError
@@ -10,7 +20,7 @@ from core.tokens import Ops, Puncs
 # pylint: disable=E1101
 
 
-class Toplevel():
+class Toplevel:
     def _parse_pragma_expr(self):
         start = self.cur_tok.position
 
@@ -27,14 +37,13 @@ class Toplevel():
                 break
             t = self._parse_expression()
             pragmas.append(t)
-            
 
         return Pragma(start, pragmas)
 
     def _parse_var_declaration(self):
-        '''
+        """
         Parse variable declarations in uni/var/const blocks.
-        '''
+        """
 
         # Not used for variable *references*, which are a little different.
         # Doesn't yet handle initializer assignment because that's handled
@@ -62,8 +71,8 @@ class Toplevel():
             arr_start = self.cur_tok.position
             elements = self._parse_array_accessor()
 
-            # I don't think we need to extract a pointer type here
-
+            # I don't think we need to extract a pointer type here.
+            # We had this before but I'm leaving it in for reference.
             # oo = getattr(vartype, 'pointee', None)
             # if oo is not None:
             #     print (oo)
@@ -119,7 +128,7 @@ class Toplevel():
             # merge with other functions if possible
 
             if const and init and not isinstance(init, ItemList):
-                if hasattr(init, 'val'):
+                if hasattr(init, "val"):
                     self.consts[name] = Number(start, init.val, init.vartype)
                 else:
 
@@ -136,11 +145,7 @@ class Toplevel():
 
                     tt = []
                     for k, v in self.consts.items():
-                        tt.append(
-                            Variable(
-                                v.position, k, None, initializer=v
-                            )
-                        )
+                        tt.append(Variable(v.position, k, None, initializer=v))
 
                     t = ast_type(self.cur_tok.position, tt)
 
@@ -156,7 +161,8 @@ class Toplevel():
                     # Codegen a function that obtains the computed result
                     # for this constant
                     self.evaluator.codegen.generate_code(
-                        Function.Anonymous(start, init))
+                        Function.Anonymous(start, init)
+                    )
 
                     # Extract the variable type of that function
                     r_val = self.evaluator.codegen.module.globals[
@@ -168,7 +174,7 @@ class Toplevel():
                     # Run the function with the proper return type
                     e = self.evaluator._eval_ast(
                         Function.Anonymous(start, init, vartype=r_type),
-                        return_type=r_type.c_type
+                        return_type=r_type.c_type,
                     )
 
                     # TODO: use an AST node type that complements the results
@@ -180,9 +186,7 @@ class Toplevel():
                     init = Number(start, e.value, e.ast.proto.vartype)
                     self.consts[name] = init
 
-            vars.append(
-                Variable(start, name, vartype, initializer=init)
-            )
+            vars.append(Variable(start, name, vartype, initializer=init))
 
             if is_bracketed:
 
@@ -208,7 +212,8 @@ class Toplevel():
 
             raise ParseError(
                 f'Expected variable declaration but got "{self.cur_tok.value}" instead',
-                self.cur_tok.position)
+                self.cur_tok.position,
+            )
 
     def _parse_expression(self):
         self.level += 1
@@ -248,19 +253,20 @@ class Toplevel():
             if self.cur_tok.value not in UNASSIGNED:
                 raise ParseError(
                     f'Expected unassigned operator after "unary", got {self.cur_tok.value} instead',
-                    self.cur_tok.position)
-            name = f'unary.{self.cur_tok.value}'
+                    self.cur_tok.position,
+                )
+            name = f"unary.{self.cur_tok.value}"
             r_name = self.cur_tok.value
             self._get_next_token()
 
         elif self.cur_tok.kind == TokenKind.BINARY:
             self._get_next_token()
-            if self.cur_tok.kind not in (TokenKind.IDENTIFIER,
-                                         TokenKind.OPERATOR):
+            if self.cur_tok.kind not in (TokenKind.IDENTIFIER, TokenKind.OPERATOR):
                 raise ParseError(
                     f'Expected identifier or unassigned operator after "binary", got {self.cur_tok.value} instead',
-                    self.cur_tok.position)
-            name = f'binary.{self.cur_tok.value}'
+                    self.cur_tok.position,
+                )
+            name = f"binary.{self.cur_tok.value}"
             r_name = self.cur_tok.value
             self._get_next_token()
 
@@ -268,16 +274,17 @@ class Toplevel():
             if self.cur_tok.kind == TokenKind.NUMBER:
                 prec = int(self.cur_tok.value)
                 if not (0 < prec < 101):
-                    raise ParseError(f'Invalid precedence: {prec} (valid values are 1-100)',
-                                     self.cur_tok.position)
+                    raise ParseError(
+                        f"Invalid precedence: {prec} (valid values are 1-100)",
+                        self.cur_tok.position,
+                    )
                 self._get_next_token()
 
             # Add the new operator to our precedence table so we can properly
             # parse it.
 
-            #set_binop_info(name[-1], prec, Associativity.LEFT)
-
-            # we previously used the above when operators were only a single character
+            # previously used when operators were only a single character:
+            # set_binop_info(name[-1], prec, Associativity.LEFT)
 
             set_binop_info(r_name, prec, Associativity.LEFT)
 
@@ -308,7 +315,7 @@ class Toplevel():
                     identifier,
                     avartype if avartype is not None else self.vartypes._DEFAULT_TYPE,
                     None,
-                    default_value
+                    default_value,
                 )
             )
 
@@ -323,18 +330,28 @@ class Toplevel():
         if self._cur_tok_is_punctuator(Puncs.COLON):
             self._get_next_token()
             vartype = self._parse_vartype_expr()
-            # self._get_next_token()
 
-        if name.startswith('binary') and len(argnames) != 2:
-            raise ParseError(f'Expected binary operator to have two operands, got {len(argnames)} instead',
-                             self.cur_tok.position)
-        elif name.startswith('unary') and len(argnames) != 1:
-            raise ParseError(f'Expected unary operator to have one operand, got {len(argnames)} instead',
-                             self.cur_tok.position)
+        if name.startswith("binary") and len(argnames) != 2:
+            raise ParseError(
+                f"Expected binary operator to have two operands, got {len(argnames)} instead",
+                self.cur_tok.position,
+            )
+        elif name.startswith("unary") and len(argnames) != 1:
+            raise ParseError(
+                f"Expected unary operator to have one operand, got {len(argnames)} instead",
+                self.cur_tok.position,
+            )
 
-        return Prototype(start, name, argnames,
-                         name.startswith(('unary', 'binary')), prec, vartype,
-                         extern, varargname)
+        return Prototype(
+            start,
+            name,
+            argnames,
+            name.startswith(("unary", "binary")),
+            prec,
+            vartype,
+            extern,
+            varargname,
+        )
 
     def _parse_external(self):
         self._get_next_token()  # consume 'extern'

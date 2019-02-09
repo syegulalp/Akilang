@@ -50,13 +50,13 @@ class Vars:
 
     def _codegen_CallInstr(self, node):
         return node
-    
+
     def _codegen_Argument(self, node):
         return node
-    
+
     def _codegen_GEPInstr(self, node):
         return node
-    
+
     def _codegen_StoreInstr(self, node):
         return node
 
@@ -72,7 +72,6 @@ class Vars:
         """
 
         elements = [self._codegen(n) for n in node.elements]
-
         accessor = [self._i32(0), self._i32(1)] + elements
 
         # First, try to obtain a conventional array accessor element
@@ -116,10 +115,7 @@ class Vars:
         return node
 
     def _codegen_Reference(self, node):
-        new_var = Variable(node.position,
-            node.name,
-            child= node.child
-        )
+        new_var = Variable(node.position, node.name, child=node.child)
         self.func_symtab[node.name] = node.reference
         return self._codegen(new_var)
 
@@ -536,10 +532,7 @@ class Vars:
                     var_ref.type.pointee,
                     [
                         [
-                            self.vartypes.u_size(
-                                #var_ref.type.pointee.elements[1].count
-                                element_count
-                            ),
+                            self.vartypes.u_size(element_count),
                             ir.Constant(self.vartypes.u_mem.as_pointer(), None),
                             self.vartypes.u_size(0),
                             self.vartypes.u_size(0),
@@ -558,13 +551,11 @@ class Vars:
             else:
 
                 # Set the header
-                
+
                 initializer = ir.Constant(
                     self.vartypes.header,
                     [
-                        self.vartypes.u_size(
-                            element_count
-                        ),
+                        self.vartypes.u_size(element_count),
                         ir.Constant(self.vartypes.u_mem.as_pointer(), None),
                         self.vartypes.u_size(0),
                         self.vartypes.u_size(0),
@@ -575,15 +566,9 @@ class Vars:
 
                 # Set the header values
 
-                ptr_ref = self.builder.gep(var_ref,
-                        [self._i32(0),
-                        self._i32(0)]
-                    )
-                    
-                self.builder.store(
-                        initializer,
-                        ptr_ref
-                    )
+                ptr_ref = self.builder.gep(var_ref, [self._i32(0), self._i32(0)])
+
+                self.builder.store(initializer, ptr_ref)
 
                 element_width = (
                     init_ref.type.pointee.element.width // self.vartypes._byte_width
@@ -810,7 +795,7 @@ class Vars:
             raise CodegenError(error_string, rhs.position)
 
         self.builder.store(value, ptr)
-        self._copy_tracking(ptr, value)        
+        self._copy_tracking(ptr, value)
 
         # self._incr_refcount(ptr, rhs)
 
@@ -870,26 +855,25 @@ class Vars:
                 variable_list.append(var_app)
 
         return (format_string, variable_list)
-        
+
     def _codegen_Del(self, node):
         for var in node.del_list:
             var_to_find = self.func_symtab.get(var.name, None)
-            
+
             if var_to_find is None:
-                
+
                 raise CodegenError(
-                    f'Can\'t delete undefined variable "{var.name}"',
-                    var.position
+                    f'Can\'t delete undefined variable "{var.name}"', var.position
                 )
-            
+
             if not var_to_find.tracked:
                 raise CodegenError(
                     f'Variable "{var.name}" is not a tracked object and cannot be deleted',
-                    var.position
+                    var.position,
                 )
-            
+
             self._free_obj(var_to_find, var)
-            setattr(var_to_find,'deleted_at',var.position)
+            setattr(var_to_find, "deleted_at", var.position)
             self.deleted_symtab[var.name] = var_to_find
             del self.func_symtab[var.name]
-            
+

@@ -19,19 +19,22 @@ def make_type_as_ptr(my_type):
 def set_type_id(vartypes, type_to_check):
     lookup = vartypes._enum_lookup.get(type_to_check.v_id)
     if not lookup:
-        vartypes._enum_count +=1
+        vartypes._enum_count += 1
         type_to_check.enum_id = vartypes._enum_count
         vartypes._enum_lookup[type_to_check.v_id] = type_to_check
     else:
         type_to_check.enum_id = lookup.enum_id
 
+
 class AkiType(ir.Type):
     pass
 
+
 class AkiObj(AkiType):
-    v_id='obj'
+    v_id = "obj"
     signed = False
     is_obj = True
+
 
 class AkiInt(AkiType, ir.IntType):
     is_obj = False
@@ -145,8 +148,10 @@ class AkiCustomType(AkiType):
         # this should not be required, but I'm leaving it in
         # for the sake of safety
         if not issubclass(instance.__class__, AkiObj):
+
             class _this(AkiObj, instance.__class__):
                 pass
+
             instance.__class__ = _this
 
         instance.elements = types
@@ -164,7 +169,7 @@ class AkiArray(AkiObj, ir.LiteralStructType):
 
     del_id = "array"
     del_as_ptr = True
-    v_id = 'array'
+    v_id = "array"
 
     def __init__(self, vartypes, my_type, elements):
 
@@ -194,9 +199,11 @@ class AkiArray(AkiObj, ir.LiteralStructType):
         return obj
 
     def convert_result(self, result, return_value, vartypes):
-        return f'{return_value.type.pointee.v_id}'
+        return f"{return_value.type.pointee.v_id}"
+
 
 AkiArray.as_pointer = make_type_as_ptr(AkiArray)
+
 
 class AkiHeader(AkiObj, ir.IdentifiedStructType):
     DATA_SIZE = 0
@@ -207,6 +214,7 @@ class AkiHeader(AkiObj, ir.IdentifiedStructType):
     HEADER_MALLOC = 5
     v_id = "header"
     is_obj = True
+
 
 class AkiBox(AkiObj, ir.IdentifiedStructType):
     v_id = "box"
@@ -312,7 +320,6 @@ def generate_vartypes(module=_default_platform_module, bytesize=8, force=False):
             "header": Header,
             "int": AkiInt,
             "float": AkiFloat,
-            
             # scalars
             # bitwidths universal across platforms
             "u1": _bool,
@@ -357,7 +364,7 @@ def generate_vartypes(module=_default_platform_module, bytesize=8, force=False):
     _vartypes._DEFAULT_RETURN_VALUE = ir.Constant(_vartypes._DEFAULT_TYPE, 0)
 
     # enumerant for type identifiers
-    _enum = {}    
+    _enum = {}
 
     for _, n in enumerate(_vartypes):
         if not n.startswith("_"):

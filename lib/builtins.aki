@@ -28,49 +28,6 @@ def c_str_to_int(my_str:str) :i32 pass
 
 extern printf(str_fmt :ptr i8, *va) :i32
 
-def '.obj..__incr__'(my_obj: header) {    
-    when unsafe cast(my_obj, u64)==0U then return 0
-    printf(c_data('Incr'))
-    var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
-
-    var malloc = c_deref(
-        c_gep(my_obj, OBJ_MALLOC)
-    )
-
-    when malloc then {
-        var f1 = c_gep(my_obj,OBJ_REFCOUNT)
-        var f2 = c_deref(f1)        
-        var f3 = f2+=1U
-        #printf(c_data('Count is now: %u'),f3)
-        unsafe c_ptr_mod(f1, f3)
-    }
-    1
-}
-
-def '.obj..__decr__'(my_obj_ptr: ptr u_mem, my_obj:header) {
-    print ("Enter decr")
-    print ("1:", unsafe cast(my_obj_ptr, u64))
-    print ("2:", c_deref(unsafe cast(my_obj_ptr, ptr u_size)))
-    
-    when unsafe cast(my_obj_ptr, u64)==0U then {
-        printf(c_data("Addr unfound for decr"))
-        return 0
-    }
-
-    #when unsafe cast(my_obj, u64)==0U then return 0
-   
-
-    var f1 = c_gep(my_obj,OBJ_REFCOUNT)
-    var f2 = c_deref(f1) 
-    var f3:u64=0U
-    when f2>0U then {
-        f3=f2-=1U
-        unsafe c_ptr_mod(f1, f3)
-    }
-    #var data_ptr = c_gep(c_gep(my_obj, DATA_PTR))
-    1
-}
-
 def '.obj.__del__'(my_obj:header) {
     var obj_malloc_ptr = c_gep(my_obj, OBJ_MALLOC)
     var obj_malloc = c_deref(obj_malloc_ptr)
@@ -167,6 +124,17 @@ def '.object.str.__len__'(my_str:str):u64{
 }
 
 @nomod
+def '.i32.__new__'(my_obj:str):i32 {
+    c_str_to_int(my_obj)
+}
+
+# TODO:
+# string obj eq testing
+# test data pointers, length, then the strings themselves
+
+# are these still used?
+
+@nomod
 def '.object.str.__index__'(my_str:str, index:i64) :u8 {
     var f1 = c_gep(my_str,0,DATA_PTR)
     var f2 = c_gep(f1)
@@ -177,45 +145,3 @@ def '.object.str.__index__'(my_str:str, index:i64) :u8 {
 def '.object.str.__index__'(my_str:str, index:i32) :u8 {
     my_str[convert(index,i64)]
 }
-
-
-@nomod
-def '.i32.__new__'(my_obj:str):i32 {
-    c_str_to_int(my_obj)
-}
-
-# TODO:
-# string obj eq testing
-# test data pointers, length, then the strings themselves
-
-
-
-
-
-
-
-### DELETED / DEFERRED
-
-# TODO: untested
-#def '.object.array.__del__'(my_obj:ptr u_mem):bool {
-    #unsafe c_free(my_obj)
-#}
-
-# TODO: placeholder
-#def '.object.box.__del__'(my_obj: box):bool {    
-    #return True
-    # only the box object itself should be deleted?
-    # need to unpack the original object?
-    # call its destructor as well?
-#}
-
-#def '.object.str.__del__'(my_str: str):bool {
-    #var f1 = c_gep(my_str,0,OBJ_MALLOC)
-    #when c_deref(f1) then {
-        # free the data element
-        #unsafe c_free(c_data(my_str))
-    #}
-    # free the data container
-    # TODO: check flag first
-    #unsafe c_free(c_ptr_mem(my_str))
-#}
