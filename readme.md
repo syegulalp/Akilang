@@ -10,7 +10,7 @@ This project is an attempt to create a compiler, language server, and REPL in Py
 
 Eventually, this might become something useful for real work. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
 
-* [This document](next.md) gives you an idea of what's being worked on right now and in the near future.
+* [This document](whats-next.md) gives you an idea of what's being worked on right now and in the near future.
 * You can see a demo movie (now outdated) of the language in action [here.](https://www.youtube.com/watch?v=9vZ4oFCFOl8)
 
 <!-- 
