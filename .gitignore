@@ -20,6 +20,7 @@ issues
 parser.out
 in.aki
 *.akib
+/a.bat
 
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
