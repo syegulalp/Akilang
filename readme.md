@@ -2,7 +2,7 @@
 
 > ⚠ This project is pre-pre-alpha and does not yet work. It's being rewritten completely from the ground up.
 
-<! --
+<!--
 > ⚠ This project is currently very unstable and should not be used in production. However, you should always be able to pull from `master`, run the demos, and pass the test suite. (The test suite compiles the demos internally as well.)
 -->
 
@@ -54,6 +54,8 @@ Some guidelines about what we want Aki to be, by way of aphorisms (also in flux)
 
 # Code examples
 
+> Note that these do not work yet. This message will go away when they do.
+
 ## Hello, world!
 
 ```
@@ -95,7 +97,7 @@ def main() {
     return 0
 }
 ```
-
+<!--
 # Quickstart
 
 You'll need Python 3.6 and Windows 10 64-bit.
@@ -109,6 +111,7 @@ You'll need Python 3.6 and Windows 10 64-bit.
 7. If you have the Microsoft Visual Studio tools installed, you can enter `.l.` to load the Conway's Life demo, then enter `.cp` to compile it to a standalone binary in the `\output` subdirectory. (Make sure `nt_compiler_path` in `config.ini` points to the correct location for `vcvarsall.bat`. This limitation will be removed in the future.)
 
 There's also going to be a standalone binary version of the compiler, most likely by way of `pyinstaller`.
+-->
 
 # Limitations
 
@@ -123,9 +126,9 @@ This project is based (very loosely) on the
 [Pykaleidoscope project](https://github.com/frederickjeanguerin/pykaleidoscope) by [Frédéric Guérin](https://github.com/frederickjeanguerin), 
 derived in turn from the [Pykaleidoscope project](https://github.com/eliben/pykaleidoscope) by [Eli Bendersky](https://github.com/eliben). (An earlier version of this project used their code directly; this version is a complete rewrite from scratch.)
 
-The original project was made available under the [Unlicense](https://github.com/eliben/pykaleidoscope/blob/master/LICENSE). This version is distributed under the [MIT license](LICENSE.TXT).
+The original Pykaleidoscope project was made available under the [Unlicense](https://github.com/eliben/pykaleidoscope/blob/master/LICENSE). This version is distributed under the [MIT license](LICENSE.TXT).
 
-Licensing for included modules:
+Licensing for included and to-be-included modules:
 
 * [llvmlite](http://llvmlite.pydata.org/en/latest/): [BSD 2-Clause "Simplified" License](https://github.com/numba/llvmlite/blob/master/LICENSE)
 * [termcolor](https://pypi.org/project/termcolor/): MIT License
