@@ -24,7 +24,7 @@
   * [x] also bitwise and/or by way of `&` and `|` ops
 * [x] Unary ops
   * [x] (`-`) - numerical (bitwise)
-  * [x] (`not`) - logical (i1 result)
+  * [x] (`not`) - logical (`i1` result)
 * [x] Variable declarations, assignment, retrieval
     [x] Declaration/init
     [x] Retrieval
@@ -40,7 +40,7 @@
 * [ ] Comments
 * [ ] Inline typing for constants
 * [ ] Function type
-* Test suite
+* [ ] Test suite
   * [x] Lexer
   * [ ] Parser
   * [ ] Compiler
