@@ -1,6 +1,10 @@
 # **Aki**:  a compiler for a simple language, built with Python 3.6+ and the [LLVM framework](https://www.llvm.org) by way of the [llvmlite](http://llvmlite.pydata.org/en/latest/) library
 
+> ⚠ This project is pre-pre-alpha and does not yet work. It's being rewritten completely from the ground up.
+
+<! --
 > ⚠ This project is currently very unstable and should not be used in production. However, you should always be able to pull from `master`, run the demos, and pass the test suite. (The test suite compiles the demos internally as well.)
+-->
 
 This project is an attempt to create a compiler, language server, and REPL in Python for a simple language that's compiled to native machine code.
 
