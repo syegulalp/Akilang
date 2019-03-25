@@ -1,129 +1,84 @@
-# OUTPUT_DIR = 'output'
-
-import subprocess
-import pathlib
-
-from core.repl import paths
+import llvmlite.binding as llvm
+from llvmlite import ir
+import datetime
 
 
-def optimize(llvm_module, pragmas={}):
-    import llvmlite.binding as llvm
+class AkiCompiler:
+    def __init__(self):
+        """
+        Create an ExecutionEngine suitable for JIT code generation on
+        the host CPU.  The engine is reusable for an arbitrary number of
+        modules.
+        """
 
-    pmb = llvm.create_pass_manager_builder()
+        llvm.initialize()
+        llvm.initialize_native_target()
+        llvm.initialize_native_asmprinter()
 
-    pmb.loop_vectorize = pragmas.get("loop_vectorize", True)
-    pmb.slp_vectorize = pragmas.get("slp_vectorize", True)
+        # Create a target machine representing the host
+        self.target = llvm.Target.from_default_triple()
+        self.target_machine = self.target.create_target_machine()
 
-    pmb.opt_level = pragmas.get("opt_level", 3)
-    pmb.size_level = pragmas.get("size_level", 0)
+        # And an execution engine with an empty backing module
+        backing_mod = llvm.parse_assembly("")
+        self.engine = llvm.create_mcjit_compiler(backing_mod, self.target_machine)
 
-    pmb.disable_unroll_loops = not (pragmas.get("unroll_loops", True))
+        # Not used yet
+        # engine.set_object_cache(export,None)
 
-    pm = llvm.create_module_pass_manager()
-    pmb.populate(pm)
-    pm.run(llvm_module)
+    def compile_ir(self, llvm_ir):
+        """
+        Compile the LLVM IR string with the given engine.
+        The compiled module object is returned.
+        """
 
-    return llvm_module, pm
+        # Create a LLVM module object from the IR
+        mod = llvm.parse_assembly(llvm_ir)
+        mod.verify()
 
+        # Now add the module and make sure it is ready for execution
+        self.engine.add_module(mod)
+        self.engine.finalize_object()
+        self.engine.run_static_constructors()
+        return mod
 
-def compile(codegen, filename):
-    module = codegen.module
+    def compile_bc(self, bc):
+        """
+        Compile the LLVM bitcode with the given engine.
+        The compiled module object is returned.
+        """
 
-    print("Parsing source.")
+        mod = llvm.parse_bitcode(bc)
+        mod.verify()
 
-    import llvmlite.binding as llvm
+        # Now add the module and make sure it is ready for execution
+        self.engine.add_module(mod)
+        self.engine.finalize_object()
+        self.engine.run_static_constructors()
+        return mod
 
-    llvm.initialize()
-    llvm.initialize_native_target()
-    llvm.initialize_native_asmprinter()
+    def compile_module(self, module):
+        """
+        JIT-compiles the module for immediate execution.
+        """
 
-    llvm_module = llvm.parse_assembly(str(module))
+        llvm_ir = str(module)
 
-    llvm_module, pm = optimize(llvm_module, codegen.pragmas)
+        # Write IR to file for debugging
+        with open(r"output//module.llvm", "w") as file:
+            file.write(f"; File written at {datetime.datetime.now()}\n")
+            file.write(llvm_ir)
 
-    import os
-    import errno
+        # Compiler IR to assembly
+        mod = self.compile_ir(llvm_ir)
 
-    try:
-        os.makedirs(paths["output_dir"])
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+        # Write assembly to file
+        with open(r"output//module.llvmbc", "wb") as file:
+            file.write(mod.as_bitcode())
 
-    with open(f'{paths["output_dir"]}{os.sep}{filename}.opt.llvm', "w") as file:
-        file.write(str(llvm_module))
+        return mod
 
-    print("Creating object file.")
-
-    tm2 = llvm.Target.from_default_triple()
-    tm = tm2.create_target_machine(opt=3, codemodel="large")
-    tm.add_analysis_passes(pm)
-
-    with llvm.create_mcjit_compiler(llvm_module, tm) as ee:
-        ee.finalize_object()
-        output_file = tm.emit_object(llvm_module)
-        with open(f'{paths["output_dir"]}{os.sep}{filename}.obj', "wb") as file:
-            file.write(output_file)
-
-    print(f"{len(output_file)} bytes written.")
-    print("Linking object file.")
-
-    if os.name == "nt":
-
-        from core.repl import cfg
-
-        extension = "exe"
-
-        cmds = [
-            r"pushd .",
-            f'call {cfg["nt_compiler"]["path"]} amd64',
-            r"popd",
-            f'link.exe {paths["output_dir"]}{os.sep}{filename}.obj -defaultlib:ucrt msvcrt.lib user32.lib kernel32.lib legacy_stdio_definitions.lib /SUBSYSTEM:CONSOLE /MACHINE:X64 /OUT:{paths["output_dir"]}{os.sep}{filename}.{extension} /OPT:REF',
-            r"exit %errorlevel%",
-        ]
-
-        shell_cmd = [os.environ["COMSPEC"]]
-
-    else:
-        raise Exception("Non-Win32 OSes not yet supported")
-
-    try:
-        p = subprocess.Popen(
-            shell_cmd,
-            shell=False,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
-        for cmd in cmds:
-            for line in p.stdout:
-                ln = line.decode("utf-8").strip()
-                if len(ln) == 0:
-                    break
-                print(ln)
-
-            p.poll()
-            r = p.returncode
-            if r is not None:
-                break
-
-            print()
-
-            p.stdin.write(bytes(cmd + "\n", "utf-8"))
-            p.stdin.flush()
-
-        errs = "".join([n.decode("utf-8") for n in p.stderr.readlines()])
-        if len(errs):
-            raise Exception(errs)
-
-    except Exception as e:
-        print(f"Build failed with the following error:\n{e}")
-
-    else:
-        print(
-            f'Build successful for {paths["output_dir"]}{os.sep}{filename}.{extension}.'
-        )
-
-    finally:
-        p.terminate()
+    def get_addr(self, func_name="main"):
+        # Obtain module entry point
+        func_ptr = self.engine.get_function_address(func_name)
+        return func_ptr

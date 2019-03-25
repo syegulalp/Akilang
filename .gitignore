@@ -1,8 +1,8 @@
 # Project-specific
 
 .obsolete
-output/
-dump/
+output
+dump
 _work
 _dist
 _build
@@ -17,7 +17,9 @@ config.ini
 vv.bat
 a2.bat
 issues
-
+parser.out
+in.aki
+*.akib
 
 # Byte-compiled / optimized / DLL files
 **/__pycache__/

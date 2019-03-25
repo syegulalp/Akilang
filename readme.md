@@ -1,29 +1,33 @@
-**Aki** is a compiler for a simple language, built with Python 3.6+ and the [LLVM framework](https://www.llvm.org) by way of the [llvmlite](http://llvmlite.pydata.org/en/latest/) library.
+# **Aki**:  a compiler for a simple language, built with Python 3.6+ and the [LLVM framework](https://www.llvm.org) by way of the [llvmlite](http://llvmlite.pydata.org/en/latest/) library
 
-Eventually, this might become something useful for production. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
+> ⚠ This project is currently very unstable and should not be used in production. However, you should always be able to pull from `master`, run the demos, and pass the test suite. (The test suite compiles the demos internally as well.)
 
-> ⚠ This project is currently very unstable. However, you should always be able to pull from `master`, run the demos, and pass the test suite.
+This project is an attempt to create a compiler, language server, and REPL in Python for a simple language that's compiled to native machine code.
 
-[This document](whats-next.md) gives you an idea of what's being worked on right now and in the near future.
+Eventually, this might become something useful for real work. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
 
-[This document](language.md) is a work-in-progress tour of the language's syntax.
+* [This document](next.md) gives you an idea of what's being worked on right now and in the near future.
+* You can see a demo movie (now outdated) of the language in action [here.](https://www.youtube.com/watch?v=9vZ4oFCFOl8)
 
-[This document](memory.md) discusses Aki's aims in terms of memory management.
+<!-- 
+* [This document](language.md) is a work-in-progress tour of the language's syntax.
+-->
 
-You can see a short demo movie of the language in action [here.](https://www.youtube.com/watch?v=9vZ4oFCFOl8)
+**If you're a fan of Python, LLVM, compilers, or any combination of the above, [learn how to contribute.](CONTRIBUTING.md)**
 
-# Goals and ideals
+# Features, goals, and ideals
 
 The language's syntax and goals are in heavy flux, but this is the basic idea I want to aim for:
 
-* Compile to compact machine-native code with no external runtime and as few external dependencies as possible.
+* Compile to compact machine-native code with a minimal runtime and as few external dependencies as possible.
+* Use LLVM as our code generation system, so we can theoretically compile to any target LLVM supports, like WebAssembly.
 * Strong typing, eventually to be made dynamic by way of an object system a la Python.
 * Keep the core of the language small, but provide useful native constructs a la Python (Unicode strings, lists, dictionaries, tuples, sets, etc.).
+* Your choice of memory management methods as need dictates. Use garbage collected memory management when you need to throw together a quick script; use static memory management (by way of syntactical contrusctions) when you want speed and performance.
 * A batteries-included standard library, yet again like Python.
 * Good tooling for package and project management, including out-of-the-box code formatting tools, akin to Rust/Go/C#.
+* Integrated support for C libraries; the ability to import a C header file for a (compiled) library and use it as-is.
 * While we're dreaming: Make the language self-hosting.
-
-(A more detailed features-in-progress list is [here](mvp.md).)
 
 Even if any of these features are only implemented in miniature, the idea would be to polish the implementations as completely as possible, so they could set the best possible example. For instance, if the standard library only had a proof-of-concept number of modules, the *way* they worked would be refined so that the practices around them could support a larger standard library.
 
@@ -94,61 +98,33 @@ You'll need Python 3.6 and Windows 10 64-bit.
 
 1. Clone or download the repo.
 2. `pip install -r requirements.txt` to ensure you have all the requirements.
-2. Run `python aki.py` to start the REPL.
-3. Enter `.l.` to load the Conway's Life demo from the `src` directory.
-4. Enter `.r` to run the demo.
-5. Hit `q` to exit Conway's Life. Enter `.` to see all commands.
-6. If you have the Microsoft Visual Studio tools installed, you can enter `.l.` to load the Conway's Life demo, then enter `.cp` to compile it to a standalone binary in the `\output` subdirectory. (Make sure `nt_compiler_path` in `config.ini` points to the correct location for `vcvarsall.bat`. This limitation will be removed in the future.)
+3. Run `python aki.py` to start the REPL.
+4. Enter `.l.` to load the Conway's Life demo from the `src` directory.
+5. Enter `.r` to run the demo.
+6. Hit `q` to exit Conway's Life. Enter `.` to see all commands.
+7. If you have the Microsoft Visual Studio tools installed, you can enter `.l.` to load the Conway's Life demo, then enter `.cp` to compile it to a standalone binary in the `\output` subdirectory. (Make sure `nt_compiler_path` in `config.ini` points to the correct location for `vcvarsall.bat`. This limitation will be removed in the future.)
 
 There's also going to be a standalone binary version of the compiler, most likely by way of `pyinstaller`.
 
-# Examples
-
-A few built-in code examples are available and can be run from the compiler's REPL:
-
-* [Your basic Fibonacci sequence](src/fib.aki)
-* [FizzBuzz](src/fb.aki) (after all, why not?)
-* [Conway's Game Of Life](src/l.aki)
-* [Robots](src/robots.aki) (incomplete)
-* [A rudimentary invocation of a message box on Win32](src/msg.aki)
-
-The idea would be to provide a slew of fun examples that could be run out of the box, eventually including demos that use GUIs.
-
 # Limitations
 
-... Yes, we have them. To wit:
+(Apart from the language itself being a minimal affair, that is.)
 
-* The only development platform supported right now is Windows 10 64-bit. In theory it should be easy to port to Linux, and I've already made provisions for things like the standard library to exist in incarnations for each platform.
-* **Very** messy, α-quality code. Compiler crashes *a lot*; no guarantees that generated programs won't leak memory like crazy, tons of behavioral bugs in the REPL, etc. The included demos described above should work, though.
-* Compiled programs depend almost entirely on LLVM's native optimizations for performance. For instance, there's no attempt yet to use SIMD or other vectorization instructions.
-* All memory is stack-allocated right now. Heap allocation is in progress but is still very primitive.
-* No higher-level error handling mechanisms -- e.g., integer overflows are not trapped in any way.
-* No way to obtain command-line parameters for executables.
-* [Very minimal language docs.](language.md)
-* No file or network I/O.
-* No way to create applications that span more than one file or module.
-* Processing user input and data structures is still highly primitive -- e.g., no way yet to manipulate/slice strings.
-* On Windows: Builds console applications only. No way yet to build windowed-only apps.
-
-There's tons more limitations not enumerated here, but in time I will open them as formal GitHub issues and try to address them.
-
-In sum, don't even *think* about using this for production; if you do, you're either a high roller or you're trying to find out if someone up there likes you.
-
-# Contributing
-
-Pull requests are welcome. See the [Code of Conduct](code-of-conduct.md) for rules about how to interact with and participate in this project.
+* Currently only Windows 10 64-bit is supported. We'd like to add support for other systems in time, though.
+* When we add string support, we have no plans to support any encoding other than UTF-8, and whatever encodings are used in the kernel of a given target platform.
 
 # Derivation and licensing
 
-This project is based on the 
+This project is based (very loosely) on the 
 [Pykaleidoscope project](https://github.com/frederickjeanguerin/pykaleidoscope) by [Frédéric Guérin](https://github.com/frederickjeanguerin), 
-derived in turn from the [Pykaleidoscope project](https://github.com/eliben/pykaleidoscope) by [Eli Bendersky](https://github.com/eliben).
+derived in turn from the [Pykaleidoscope project](https://github.com/eliben/pykaleidoscope) by [Eli Bendersky](https://github.com/eliben). (An earlier version of this project used their code directly; this version is a complete rewrite from scratch.)
 
 The original project was made available under the [Unlicense](https://github.com/eliben/pykaleidoscope/blob/master/LICENSE). This version is distributed under the [MIT license](LICENSE.TXT).
 
-Licensing for subprojects:
+Licensing for included modules:
 
 * [llvmlite](http://llvmlite.pydata.org/en/latest/): [BSD 2-Clause "Simplified" License](https://github.com/numba/llvmlite/blob/master/LICENSE)
 * [termcolor](https://pypi.org/project/termcolor/): MIT License
 * [colorama](https://pypi.org/project/colorama/): [BSD License](https://github.com/tartley/colorama/blob/master/LICENSE.txt)
+* [sly](https://github.com/dabeaz/sly): [MIT-style license](https://github.com/dabeaz/sly/blob/master/LICENSE)
 
