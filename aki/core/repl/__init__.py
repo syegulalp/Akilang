@@ -20,6 +20,7 @@ ir.builder.IRBuilder.comment = comment
 
 import gc
 import ctypes
+import os
 
 from core.lex import AkiLexer
 from core.parse import AkiParser
@@ -58,6 +59,8 @@ class Repl:
 
         with open("examples/in.aki") as file:
             text = file.read()
+            file_size = os.fstat(file.fileno()).st_size
+        print(f"Read {file_size} bytes")
         tokens = self.lexer.tokenize(text)
         ast = self.parser.parse(tokens, text)
         self.codegen.text = text
