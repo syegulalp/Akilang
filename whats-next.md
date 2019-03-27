@@ -17,7 +17,7 @@
 * [x] Detailed error messages
   * [x] Including lexer/parser error handling
 * [x] Function calls
-    * [x] Anonymous calls in CLI
+  * [x] Anonymous calls in CLI
 * [x] `if/else` (yields expression)
 * [x] `when/else` (yields result of test)
 * [x] Comparison ops (`==, !=, <, >, <=, >=, and, or`)
@@ -26,12 +26,13 @@
   * [x] (`-`) - numerical (bitwise)
   * [x] (`not`) - logical (`i1` result)
 * [x] Variable declarations, assignment, retrieval
-    [x] Declaration/init
-    [x] Retrieval
-    [x] Assignment
+  * [x] Declaration/init
+  * [x] Retrieval
+  * [x] Assignment
 * [x] Loop constructions
   * [x] Var inside and outside of loops
   * [x] `break` to exit from blocks
+* [x] Loaded programs and REPL use different JITs to allow efficient code reuse
 
 ## In progress
 
