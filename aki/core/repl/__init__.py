@@ -31,20 +31,24 @@ from core.astree import Function, Call, Prototype, VarType, ExpressionBlock, Top
 from core.error import AkiBaseErr
 from core.error import ReloadException, QuitException
 
-
-class Repl:
+class JIT():
     def __init__(self):
-
         self.lexer = AkiLexer()
-        self.parser = AkiParser()
-
-        gc.freeze()
-
+        self.parser = AkiParser()        
+        self.anon_counter = 0
+        self.reset()        
+    
+    def reset(self):
         self.module = ir.Module()
         self.codegen = AkiCodeGen(self.module)
         self.compiler = AkiCompiler()
 
-        self.anon_counter = 0
+class Repl:
+    def __init__(self):
+        gc.freeze()
+        
+        self.main_cpl = JIT()
+        self.repl_cpl = JIT()        
 
     def run_tests(self, *a):
         import unittest
@@ -53,19 +57,19 @@ class Repl:
         unittest.TextTestRunner().run(tests)
 
     def load_file(self, *a):
-        self.module = ir.Module()
-        self.codegen = AkiCodeGen(self.module)
-        self.compiler = AkiCompiler()
+        self.main_cpl.reset()
 
         with open("examples/in.aki") as file:
             text = file.read()
             file_size = os.fstat(file.fileno()).st_size
         print(f"Read {file_size} bytes")
-        tokens = self.lexer.tokenize(text)
-        ast = self.parser.parse(tokens, text)
-        self.codegen.text = text
-        self.codegen.eval(ast)
-        self.compiler.compile_module(self.module)
+        
+        tokens = self.main_cpl.lexer.tokenize(text)
+        ast = self.main_cpl.parser.parse(tokens, text)
+        self.main_cpl.codegen.text = text
+        self.main_cpl.codegen.eval(ast)
+        self.main_cpl.compiler.compile_module(
+            self.main_cpl.module, 'main')
 
     def quit(self, *a):
         raise QuitException
@@ -103,14 +107,16 @@ class Repl:
 
     def interactive(self, text):
 
+        self.repl_cpl.reset()
+
         # Tokenize input
 
-        tokens = self.lexer.tokenize(text)
-        ast = self.parser.parse(tokens, text)
+        tokens = self.repl_cpl.lexer.tokenize(text)
+        ast = self.repl_cpl.parser.parse(tokens, text)
 
         # Iterate through tokens
 
-        self.codegen.text = text
+        self.repl_cpl.codegen.text = text
 
         for _ in ast:
 
@@ -118,8 +124,8 @@ class Repl:
 
             if isinstance(_, TopLevel):
 
-                self.codegen.eval([_])
-                self.compiler.compile_module(self.module)
+                self.repl_cpl.codegen.eval([_])
+                self.repl_cpl.compiler.compile_module(self.repl_cpl.module)
                 continue
 
             # Other commands are wrapped in an anonymous
@@ -129,25 +135,29 @@ class Repl:
 
                 # Generate anonymous function
 
-                self.anon_counter += 1
+                self.repl_cpl.anon_counter += 1
 
-                call_name = f".ANONYMOUS_{self.anon_counter}"
+                call_name = f".ANONYMOUS_{self.repl_cpl.anon_counter}"
                 proto = Prototype(_.p, call_name, (), VarType(_.p, None))
                 func = Function(_.p, proto, ExpressionBlock(_.p, [_]))
 
+                self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
+
                 try:
-                    self.codegen.eval([func])
+                    self.repl_cpl.codegen.eval([func])
                 except AkiBaseErr as e:
-                    del self.module.globals[call_name]
+                    del self.repl_cpl.module.globals[call_name]
                     raise e
 
-                self.compiler.compile_module(self.module)
-
+                if self.main_cpl.compiler.mod_ref:
+                    self.repl_cpl.compiler.backing_mod.link_in(self.main_cpl.compiler.mod_ref, True)
+                
+                self.repl_cpl.compiler.compile_module(self.repl_cpl.module, 'repl')
+                
                 # Retrieve a pointer to the function
+                func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
-                func_ptr = self.compiler.get_addr(call_name)
-
-                return_val = self.module.globals[
+                return_val = self.repl_cpl.module.globals[
                     call_name
                 ].return_value.aki.return_type.aki_type.c()
 
@@ -166,11 +176,6 @@ class Repl:
                 res = cfunc()
                 print(res)
 
-                # Delete the anonymous function
-                # ideally we should do this by having the anon
-                # in another module, link in the target function,
-                # and then drop the anon module entirely
 
-                del self.module.globals[call_name]
 
     cmds = {"t": run_tests, "l": load_file, "q": quit, ".": reload}

@@ -64,6 +64,10 @@ class AkiCodeGen:
         self.fn = None
         self.text = None
 
+        # Other codegen modules to check for namespaces.
+        # Resolved top to bottom.
+        self.other_modules = []
+
     def init_func_handlers(self):
 
         # Initialize function state handlers.
@@ -91,7 +95,7 @@ class AkiCodeGen:
     def _codegen_LLVMInstr(self, node):
         return node.llvm_instr
 
-    def _name(self, node, name_to_find):
+    def _name(self, node, name_to_find, other_module=None):
         """
         Retrieve a name reference, not the underlying value,
         from the symbol table or the list of globals.
@@ -103,6 +107,16 @@ class AkiCodeGen:
 
         if name is None:
             name = self.module.globals.get(name_to_find, None)
+        
+        for _ in self.other_modules:
+            name = _.module.globals.get(name_to_find, None)
+            if name is not None:
+                link = ir.Function(self.module, 
+                    name.ftype,
+                    name.name
+                )
+                
+                return name
 
         if name is None:
             raise AkiNameErr(node, self.text, f'Name "{name_to_find}" not found')
@@ -183,6 +197,8 @@ class AkiCodeGen:
             name=node.name,
         )
 
+        proto.calling_convention = 'fastcc'
+        
         # Set variable types for function
 
         proto.aki = node

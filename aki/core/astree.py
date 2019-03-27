@@ -205,11 +205,12 @@ class Prototype(ASTNode):
     Function prototype.
     """
 
-    def __init__(self, p, name, arguments, return_type):
+    def __init__(self, p, name, arguments, return_type, is_declaration = False):
         super().__init__(p)
         self.name = name
         self.arguments = arguments
         self.return_type = return_type
+        self.is_declaration = is_declaration        
 
     def __eq__(self, other):
         return (
