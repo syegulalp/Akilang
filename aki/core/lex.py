@@ -52,6 +52,7 @@ class AkiLexer(Lexer):
         ELSE,
         LOOP,
         BREAK,
+        WITH,
     }
 
     ignore = " \t"
@@ -68,6 +69,7 @@ class AkiLexer(Lexer):
     NAME["else"] = ELSE
     NAME["loop"] = LOOP
     NAME["break"] = BREAK
+    NAME["with"] = WITH
 
     INT_DIV = r"//"
 
@@ -100,7 +102,7 @@ class AkiLexer(Lexer):
         self.lineno = 1
         return super().tokenize(text)
 
-    @_(r"\d?[.]\d+")
+    @_(r"\d+[.]\d+")
     def FLOAT(self, t):
         t.value = float(t.value)
         return t

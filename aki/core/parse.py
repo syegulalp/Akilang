@@ -18,6 +18,7 @@ from core.astree import (
     Assignment,
     LoopExpr,
     Break,
+    WithExpr,
 )
 from core.error import AkiSyntaxErr
 
@@ -118,8 +119,12 @@ class AkiParser(Parser):
     # binop assignment
 
     @_("NAME ASSIGN expr")
-    def expr(self, p):
+    def assignment_expr(self, p):
         return Assignment(Pos(p), p[1], Name(Pos(p), p[0]), p.expr)
+
+    @_("assignment_expr")
+    def expr(self, p):
+        return p.assignment_expr
 
     # `def` function
 
@@ -131,10 +136,10 @@ class AkiParser(Parser):
     def toplevels(self, p):
         return [p.toplevel]
 
-    @_("DEF NAME arglist vartype multiline_expr")
+    @_("DEF NAME arglist vartype expr_block")
     def toplevel(self, p):
         proto = Prototype(Pos(p), p.NAME, p.arglist, p.vartype)
-        func = Function(Pos(p), proto, p.multiline_expr)
+        func = Function(Pos(p), proto, p.expr_block)
         return func
 
     @_("expr")
@@ -233,15 +238,15 @@ class AkiParser(Parser):
 
     @_("NAME vartype")
     def varlistelement(self, p):
-        return Name(Pos(p), p.NAME)
+        return Name(Pos(p), p.NAME, None, p.vartype)
 
     @_("NAME vartype ASSIGN expr")
     def varlistelement(self, p):
         return Name(Pos(p), p.NAME, p.expr, p.vartype)
 
-    @_("varlist COMMA varlistelement")
+    @_("varlistelements COMMA varlistelement")
     def varlistelements(self, p):
-        return p.varlist + [p.varlistelement]
+        return p.varlistelements + [p.varlistelement]
 
     @_("varlistelement")
     def varlistelements(self, p):
@@ -258,28 +263,28 @@ class AkiParser(Parser):
     # "if/when" expressions
 
     @_("multiline_expr")
-    def multi_expr(self, p):
+    def expr_block(self, p):
         return p.multiline_expr
 
     @_("expr")
-    def multi_expr(self, p):
+    def expr_block(self, p):
         return p.expr
 
-    @_("IF multi_expr multi_expr ELSE multi_expr")
+    @_("IF expr_block expr_block ELSE expr_block")
     def if_expr(self, p):
-        return IfExpr(Pos(p), p.multi_expr0, p.multi_expr1, p.multi_expr2)
+        return IfExpr(Pos(p), p.expr_block0, p.expr_block1, p.expr_block2)
 
-    @_("IF multi_expr multi_expr empty")
+    @_("IF expr_block expr_block empty")
     def when_expr(self, p):
-        return WhenExpr(Pos(p), p.multi_expr0, p.multi_expr1, None)
+        return WhenExpr(Pos(p), p.expr_block0, p.expr_block1, None)
 
-    @_("WHEN multi_expr multi_expr ELSE multi_expr")
+    @_("WHEN expr_block expr_block ELSE expr_block")
     def when_expr(self, p):
-        return WhenExpr(Pos(p), p.multi_expr0, p.multi_expr1, p.multi_expr2)
+        return WhenExpr(Pos(p), p.expr_block0, p.expr_block1, p.expr_block2)
 
-    @_("WHEN multi_expr multi_expr empty")
+    @_("WHEN expr_block expr_block empty")
     def when_expr(self, p):
-        return WhenExpr(Pos(p), p.multi_expr0, p.multi_expr1, None)
+        return WhenExpr(Pos(p), p.expr_block0, p.expr_block1, None)
 
     @_("when_expr")
     def expr(self, p):
@@ -289,19 +294,21 @@ class AkiParser(Parser):
     def expr(self, p):
         return p.if_expr
 
-    @_("")
-    def empty(self, p):
-        pass
-
     # "loop" expressions
 
-    @_("LOOP exprlist multi_expr")
-    def loop_expr(self, p):
-        return LoopExpr(Pos(p), p.exprlist, p.multi_expr)
+    @_("VAR varlistelement", "assignment_expr")
+    def loop_expr_var(self, p):
+        if isinstance(p[0], Assignment):
+            return p.assignment_expr
+        return VarList(Pos(p), [p.varlistelement])    
 
-    @_("LOOP empty multi_expr")
+    @_("LOOP LPAREN loop_expr_var COMMA expr COMMA expr RPAREN expr_block")
     def loop_expr(self, p):
-        return LoopExpr(Pos(p), [], p.multi_expr)
+        return LoopExpr(Pos(p), [p.loop_expr_var, p.expr0, p.expr1], p.expr_block)
+
+    @_("LOOP empty expr_block", "LOOP LPAREN RPAREN expr_block")
+    def loop_expr(self, p):
+        return LoopExpr(Pos(p), [], p.expr_block)
 
     @_("loop_expr")
     def expr(self, p):
@@ -311,3 +318,18 @@ class AkiParser(Parser):
     @_("BREAK")
     def expr(self, p):
         return Break(Pos(p))
+
+    # "with" expressions
+
+    @_("WITH varlist expr_block")
+    def with_expr(self, p):
+        return WithExpr(Pos(p), p.varlist, p.expr_block)
+
+    @_("with_expr")
+    def expr(self, p):
+        return p.with_expr
+
+
+    @_("")
+    def empty(self, p):
+        pass

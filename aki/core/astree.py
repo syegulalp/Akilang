@@ -54,7 +54,7 @@ class VarType(Expression):
         self.vartype = vartype
 
     def flatten(self):
-        return [self.__class__.__name__, self.vartype]
+        return [self.__class__.__name__, str(self.vartype)]
 
     def __eq__(self, other):
         return self.vartype == other.vartype
@@ -76,7 +76,7 @@ class Name(Expression):
         return self.name == other.name
 
     def flatten(self):
-        return [self.__class__.__name__, self.name, self.val, self.vartype]
+        return [self.__class__.__name__, self.name, self.val.flatten() if self.val else None, self.vartype.flatten() if self.vartype else None]
 
 
 class VarList(Expression):
@@ -92,7 +92,7 @@ class VarList(Expression):
         return self.vars == other.vars
 
     def flatten(self):
-        return [self.__class__.__name__, self.vars.flatten()]
+        return [self.__class__.__name__, [_.flatten() for _ in self.vars] if self.vars else []]
 
 
 class Argument(ASTNode):
@@ -109,7 +109,7 @@ class Argument(ASTNode):
         return self.name == other.name and self.vartype == other.vartype
 
     def flatten(self):
-        return [self.__class__.__name__, self.name, self.vartype]
+        return [self.__class__.__name__, self.name, self.vartype.flatten()]
 
 
 class Constant(Expression):
@@ -126,7 +126,7 @@ class Constant(Expression):
         return self.val == other.val and self.vartype == other.vartype
 
     def flatten(self):
-        return [self.__class__.__name__, self.val, self.vartype]
+        return [self.__class__.__name__, self.val, self.vartype.flatten()]
 
 
 class UnOp(Expression):
@@ -192,7 +192,7 @@ class IfExpr(ASTNode):
             self.__class__.__name__,
             self.if_expr.flatten(),
             self.then_expr.flatten(),
-            self.else_expr.flatten(),
+            self.else_expr.flatten() if self.else_expr else None,
         ]
 
 
@@ -205,12 +205,12 @@ class Prototype(ASTNode):
     Function prototype.
     """
 
-    def __init__(self, p, name, arguments, return_type, is_declaration = False):
+    def __init__(self, p, name, arguments, return_type, is_declaration=False):
         super().__init__(p)
         self.name = name
         self.arguments = arguments
         self.return_type = return_type
-        self.is_declaration = is_declaration        
+        self.is_declaration = is_declaration
 
     def __eq__(self, other):
         return (
@@ -218,7 +218,9 @@ class Prototype(ASTNode):
         )
 
     def flatten(self):
-        return [self.__class__.__name__, self.arguments, self.return_type]
+        return [self.__class__.__name__,
+            [_.flatten() for _ in self.arguments] if self.arguments else [],
+            self.return_type.flatten() if self.return_type else None]
 
 
 class Function(TopLevel, ASTNode):
@@ -232,7 +234,7 @@ class Function(TopLevel, ASTNode):
         self.body = body
 
     def flatten(self):
-        return [self.__class__.__name__, self.prototype.flatten(), self.body.flatten()]
+        return [self.__class__.__name__, self.prototype.flatten(), [_.flatten() for _ in self.body.body]]
 
 
 class Call(Expression, Prototype):
@@ -255,7 +257,7 @@ class ExpressionBlock(Expression):
         self.body = body
 
     def flatten(self):
-        return [self.__class__.__name__, self.body.flatten()]
+        return [self.__class__.__name__, [_.flatten() for _ in self.body]]
 
 
 class LLVMOp(Expression):
@@ -298,8 +300,24 @@ class LoopExpr(Expression):
         super().__init__(p)
         self.conditions = conditions
         self.body = body
+    
+    def flatten(self):
+        return [self.__class__.__name__, [_.flatten() for _ in self.conditions], self.body.flatten()]
 
 
 class Break(Expression):
     def __init__(self, p):
         super().__init__(p)
+
+    def flatten(self):
+        return [self.__class__.__name__]
+
+
+class WithExpr(Expression):
+    def __init__(self, p, varlist: VarList, body: ExpressionBlock):
+        super().__init__(p)
+        self.varlist = varlist
+        self.body = body
+
+    def flatten(self):
+        return [self.__class__.__name__, [_.flatten() for _ in self.varlist.vars], self.body.flatten()]

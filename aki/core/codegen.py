@@ -23,6 +23,7 @@ from core.astree import (
     Name,
     VarList,
     Assignment,
+    WithExpr
 )
 from core.error import AkiNameErr, AkiTypeErr, AkiOpError, AkiBaseErr, AkiSyntaxErr
 
@@ -159,6 +160,16 @@ class AkiCodeGen:
         node.aki_type = vartype
         node.llvm_type = vartype.llvm_type
 
+    def _delete_var(self, name):
+        """
+        Deletes a variable from the local scope.
+        Eventually this will be where we make decisions about
+        deallocating heap-allocated objects when they
+        pass out of scope, etc.
+        """
+
+        del self.fn.symtab[name]
+    
     #### Top-level statements
 
     def _codegen_Prototype(self, node):
@@ -360,6 +371,14 @@ class AkiCodeGen:
 
         self.builder.branch(self.fn.breakpoints[-1])
 
+    def _codegen_WithExpr(self, node):
+        
+        self._codegen(node.varlist)
+        body = self._codegen(node.body)
+        for _ in node.varlist.vars:
+            self._delete_var(_.name)
+        return body
+    
     def _codegen_LoopExpr(self, node):
 
         local_symtab = {}
@@ -450,7 +469,7 @@ class AkiCodeGen:
         # Remove local objects from symbol table
 
         for _ in local_symtab:
-            del self.fn.symtab[_]
+            self._delete_var(_)
 
         return loop_body
 
