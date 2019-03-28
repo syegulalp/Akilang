@@ -23,7 +23,7 @@ from core.astree import (
     Name,
     VarList,
     Assignment,
-    WithExpr
+    WithExpr,
 )
 from core.error import AkiNameErr, AkiTypeErr, AkiOpError, AkiBaseErr, AkiSyntaxErr
 
@@ -108,15 +108,12 @@ class AkiCodeGen:
 
         if name is None:
             name = self.module.globals.get(name_to_find, None)
-        
+
         for _ in self.other_modules:
             name = _.module.globals.get(name_to_find, None)
             if name is not None:
-                link = ir.Function(self.module, 
-                    name.ftype,
-                    name.name
-                )
-                
+                link = ir.Function(self.module, name.ftype, name.name)
+
                 return name
 
         if name is None:
@@ -169,7 +166,7 @@ class AkiCodeGen:
         """
 
         del self.fn.symtab[name]
-    
+
     #### Top-level statements
 
     def _codegen_Prototype(self, node):
@@ -208,8 +205,8 @@ class AkiCodeGen:
             name=node.name,
         )
 
-        proto.calling_convention = 'fastcc'
-        
+        proto.calling_convention = "fastcc"
+
         # Set variable types for function
 
         proto.aki = node
@@ -341,7 +338,7 @@ class AkiCodeGen:
             if _.val is None:
                 if _.vartype is None:
                     _.vartype = VarType(_.p, DefaultType.type_id)
-                    self._add_node_props(_.vartype)
+                self._add_node_props(_.vartype)
                 _.val = Constant(
                     _.p, _.vartype.aki_type.default(), VarType(_.p, _.vartype.vartype)
                 )
@@ -372,13 +369,13 @@ class AkiCodeGen:
         self.builder.branch(self.fn.breakpoints[-1])
 
     def _codegen_WithExpr(self, node):
-        
+
         self._codegen(node.varlist)
         body = self._codegen(node.body)
         for _ in node.varlist.vars:
             self._delete_var(_.name)
         return body
-    
+
     def _codegen_LoopExpr(self, node):
 
         local_symtab = {}
