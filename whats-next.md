@@ -33,17 +33,17 @@
   * [x] Var inside and outside of loops
   * [x] `break` to exit from blocks
 * [x] Loaded programs and REPL use different JITs to allow efficient code reuse
+* [x] `with` context for variables
 
 ## In progress
 
-* [ ] `with` context for variables
 * [ ] `case` statement for matching against enums
 * [ ] Comments
 * [ ] Inline typing for constants
-* [ ] Function type
+* [ ] Function type (for function pointers)
 * [ ] Test suite
   * [x] Lexer
-  * [ ] Parser
+  * [x] Parser
   * [ ] Compiler
 * [ ] Complete CLI
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker.
