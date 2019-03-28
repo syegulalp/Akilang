@@ -19,22 +19,6 @@ c_ref = {
 }
 
 
-class AkiProperties:
-    """
-    Used to store a copy of the Aki type and AST objects
-    in an LLVM object, so that they can be accessed after
-    codegen of that object.
-
-    These objects are attached to an LLVM value such as an Instruction.
-    They are NOT attached to the TYPE of that instruction!
-    """
-
-    def __init__(self, aki_type=None, name=None, value=None):
-        self.vartype = aki_type
-        self.name = name
-        self.value = value
-
-
 class AkiType:
     def __str__(self):
         return f":{self.type_id}"
@@ -68,6 +52,8 @@ class AkiFunction(AkiObject):
     def __init__(self, llvm_func):
         self.llvm_type = llvm_func.type
         self.type_id = f"func()"
+        # eventually this will return
+        # e.g., `func(:i32,:i32):i32`
 
     def c(self):
         return ctypes.c_void_p

@@ -1,6 +1,5 @@
 from llvmlite import ir
 from core.akitypes import (
-    AkiProperties,
     AkiBool,
     AkiInt,
     AkiUnsignedInt,
