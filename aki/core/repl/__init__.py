@@ -18,7 +18,6 @@ def comment(self, txt):
 
 ir.builder.IRBuilder.comment = comment
 
-import gc
 import ctypes
 import os
 
@@ -32,21 +31,20 @@ from core.error import AkiBaseErr
 from core.error import ReloadException, QuitException
 
 class JIT():
+    lexer = AkiLexer()
+    parser = AkiParser()
+    compiler = AkiCompiler()
+    
     def __init__(self):
-        self.lexer = AkiLexer()
-        self.parser = AkiParser()        
-        self.anon_counter = 0
+        self.anon_counter = 0        
         self.reset()        
     
     def reset(self):
         self.module = ir.Module()
-        self.codegen = AkiCodeGen(self.module)
-        self.compiler = AkiCompiler()
+        self.codegen = AkiCodeGen(self.module)       
 
 class Repl:
     def __init__(self):
-        gc.freeze()
-        
         self.main_cpl = JIT()
         self.repl_cpl = JIT()        
 
@@ -58,7 +56,7 @@ class Repl:
 
     def load_file(self, *a):
         self.main_cpl.reset()
-
+        
         with open("examples/in.aki") as file:
             text = file.read()
             file_size = os.fstat(file.fileno()).st_size
@@ -66,6 +64,7 @@ class Repl:
         
         tokens = self.main_cpl.lexer.tokenize(text)
         ast = self.main_cpl.parser.parse(tokens, text)
+
         self.main_cpl.codegen.text = text
         self.main_cpl.codegen.eval(ast)
         self.main_cpl.compiler.compile_module(
@@ -94,7 +93,8 @@ class Repl:
         if text[0] == ".":
             command = text[1:]
         else:
-            self.interactive(text)
+            for _ in self.interactive(text):
+                print (_)
             return
 
         cmd_func = self.cmds.get(command, None)
@@ -105,7 +105,18 @@ class Repl:
 
         return cmd_func(self, text)
 
-    def interactive(self, text):
+    def interactive(self, text, immediate_mode=False):
+        # Immediate mode processes everything in the repl compiler.
+        # Nothing is retained.
+
+        if immediate_mode:
+            main = self.repl_cpl
+            main_file = None
+            repl_file = None
+        else:
+            main = self.main_cpl
+            main_file = 'main'
+            repl_file = 'repl'
 
         self.repl_cpl.reset()
 
@@ -123,58 +134,55 @@ class Repl:
             # Toplevel commands are compiled in directly
 
             if isinstance(_, TopLevel):
-
-                self.repl_cpl.codegen.eval([_])
-                self.repl_cpl.compiler.compile_module(self.repl_cpl.module)
+                main.codegen.eval([_])
+                main.compiler.compile_module(main.module, main_file)
                 continue
 
             # Other commands are wrapped in an anonymous
             # function and executed
 
-            else:
+            self.repl_cpl.anon_counter += 1
 
-                # Generate anonymous function
+            call_name = f".ANONYMOUS.{self.repl_cpl.anon_counter}"
+            proto = Prototype(_.p, call_name, (), VarType(_.p, None))
+            func = Function(_.p, proto, ExpressionBlock(_.p, [_]))
 
-                self.repl_cpl.anon_counter += 1
-
-                call_name = f".ANONYMOUS_{self.repl_cpl.anon_counter}"
-                proto = Prototype(_.p, call_name, (), VarType(_.p, None))
-                func = Function(_.p, proto, ExpressionBlock(_.p, [_]))
-
+            if not immediate_mode:
                 self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
 
-                try:
-                    self.repl_cpl.codegen.eval([func])
-                except AkiBaseErr as e:
-                    del self.repl_cpl.module.globals[call_name]
-                    raise e
+            try:
+                self.repl_cpl.codegen.eval([func])
+            except AkiBaseErr as e:
+                del self.repl_cpl.module.globals[call_name]
+                raise e
 
+            if not immediate_mode:
                 if self.main_cpl.compiler.mod_ref:
                     self.repl_cpl.compiler.backing_mod.link_in(self.main_cpl.compiler.mod_ref, True)
-                
-                self.repl_cpl.compiler.compile_module(self.repl_cpl.module, 'repl')
-                
-                # Retrieve a pointer to the function
-                func_ptr = self.repl_cpl.compiler.get_addr(call_name)
+            
+            self.repl_cpl.compiler.compile_module(self.repl_cpl.module, repl_file)
+            
+            # Retrieve a pointer to the function
+            func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
-                return_val = self.repl_cpl.module.globals[
-                    call_name
-                ].return_value.aki.return_type.aki_type.c()
+            return_val = self.repl_cpl.module.globals[
+                call_name
+            ].return_value.aki.return_type.aki_type.c()
 
-                # Get the function signature
-                # We're not using this right now but it might
-                # come in handy later if we need to pass
-                # parameters to the anon func for whatever reason.
+            # Get the function signature
+            # We're not using this right now but it might
+            # come in handy later if we need to pass
+            # parameters to the anon func for whatever reason.
 
-                # func_signature = [
-                #     _.aki.vartype.aki_type.c() for _ in module.globals[call_name].args
-                # ]
+            # func_signature = [
+            #     _.aki.vartype.aki_type.c() for _ in module.globals[call_name].args
+            # ]
 
-                # Generate a result
+            # Generate a result
 
-                cfunc = ctypes.CFUNCTYPE(return_val, *[])(func_ptr)
-                res = cfunc()
-                print(res)
+            cfunc = ctypes.CFUNCTYPE(return_val, *[])(func_ptr)
+            res = cfunc()
+            yield res
 
 
 
