@@ -33,7 +33,7 @@ class AkiCompiler:
         self.backing_mod = llvm.parse_assembly("")
         self.engine = llvm.create_mcjit_compiler(self.backing_mod, self.target_machine)
         self.mod_ref = None
-    
+
 
     def compile_ir(self, llvm_ir):
         """
@@ -75,17 +75,19 @@ class AkiCompiler:
 
         llvm_ir = str(module)
 
-        # Write IR to file for debugging
-        with open(f"output//{filename}.llvm", "w") as file:
-            file.write(f"; File written at {datetime.datetime.now()}\n")
-            file.write(llvm_ir)
+        # Write IR to file for debugging        
+        if filename:            
+            with open(f"output//{filename}.llvm", "w") as file:
+                file.write(f"; File written at {datetime.datetime.now()}\n")
+                file.write(llvm_ir)
 
         # Compiler IR to assembly
         mod = self.compile_ir(llvm_ir)
 
         # Write assembly to file
-        with open(f"output//{filename}.llvmbc", "wb") as file:
-            file.write(mod.as_bitcode())
+        if filename:
+            with open(f"output//{filename}.llvmbc", "wb") as file:
+                file.write(mod.as_bitcode())
 
         #return mod
 
