@@ -50,10 +50,10 @@ class AkiFunction(AkiObject):
     signed = False
 
     def __init__(self, llvm_func):
+        self.llvm_func = llvm_func
         self.llvm_type = llvm_func.type
-        self.type_id = f"func()"
-        # eventually this will return
-        # e.g., `func(:i32,:i32):i32`
+
+        self.type_id = f'func({",".join([str(_.vartype.aki_type) for _ in llvm_func.aki.arguments])}){llvm_func.aki.return_type.aki_type}'
 
     def c(self):
         return ctypes.c_void_p
