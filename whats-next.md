@@ -11,7 +11,7 @@
 * [x] JIT compiler
 * [x] Basic types: `i/u32/64, f32/64`
 * [x] Math (`+, - , *, /, +=, -=`)
-  * [ ] `//` (integer-only division)
+  * [ ] `//` (integer-only division, always returns an `int` of some kind)
 * [x] Multi-statement procedures 
 * [x] Load from file (primitive)
 * [x] Detailed error messages
@@ -34,29 +34,51 @@
   * [x] `break` to exit from blocks
 * [x] Loaded programs and REPL use different JITs to allow efficient code reuse
 * [x] `with` context for variables
+* [x] Test suite
+  * [x] Lexer
+  * [x] Parser
+  * [x] Compiler
 
 ## In progress
 
+* [ ] Store Aki-native type signatures as LLVM metadata, if possible
 * [ ] `case` statement for matching against enums
+* [ ] External function references (`extern` context block with optional library identifier)
 * [ ] Comments
 * [ ] Inline typing for constants
+* [ ] `uni` for globals
+* [ ] `const` for constants
+* [ ] Complete CLI (as per earlier incarnation of project)
+* [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
+* [ ] Pointers and pointer types, mainly for compatibility with C right now
 * [ ] Function type (for function pointers)
-* [ ] Test suite
-  * [x] Lexer
-  * [x] Parser
-  * [ ] Compiler
-* [ ] Complete CLI
-* [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker.
 
 # Stage 1: Advanced variables and structures
 
-* [ ] Strings
 * [ ] N-dimensional arrays of scalars
-* [ ] Array and string slices
-* [ ] Classes and basic object structures
-* [ ] Auto-conversion rules for scalars
+* [ ] Type declarations
+* [ ] Classes and object structures
+* [ ] Object methods and method calls
+* [ ] Iterables by way of object methods
+* [ ] Array slices
+* [ ] Strings
+* [ ] String slinces
 * [ ] Call chains
 
 # Stage 2: Advanced error handling
 
+* [ ] Error/option types
+
 # Stage 3: Modules
+
+* [ ] Module imports
+* [ ] Use existing C headers as-is
+
+# Stage 4: Other stuff
+
+* [ ] Container objects
+* [ ] Lists
+* [ ] Dictionaries/hashmaps
+* [ ] Sets
+* [ ] Auto-conversion rules for scalars?
+* [ ] Garbage collection
