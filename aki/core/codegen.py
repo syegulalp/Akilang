@@ -52,6 +52,15 @@ class AkiCodeGen:
     Code generation module for Akilang.
     """
 
+    _comp_ops = {
+        "==": ".eqop",
+        "!=": ".neqop",
+        "<=": ".leqop",
+        ">=": ".geqop",
+        "<": ".ltop",
+        ">": ".gtop",
+    }
+
     def __init__(self, module=None):
 
         # Create an LLVM module if we aren't passed one.
@@ -101,24 +110,28 @@ class AkiCodeGen:
         from the symbol table or the list of globals.
         """
 
-        # First, look in the symbol table:
-
+        # First, look in the function symbol table:
         name = self.fn.symtab.get(name_to_find, None)
 
-        if name is None:
-            name = self.module.globals.get(name_to_find, None)
+        if name is not None:
+            return name
 
+        # Next, look in the globals:
+        name = self.module.globals.get(name_to_find, None)
+
+        if name is not None:
+            return name
+
+        # Next, look in other modules:
         for _ in self.other_modules:
             name = _.module.globals.get(name_to_find, None)
             if name is not None:
+                # emit function reference for this module
                 link = ir.Function(self.module, name.ftype, name.name)
-
                 return name
 
         if name is None:
             raise AkiNameErr(node, self.text, f'Name "{name_to_find}" not found')
-
-        return name
 
     def _aki(self, node, llvm_obj):
         pass
@@ -156,6 +169,16 @@ class AkiCodeGen:
         node.aki_type = vartype
         node.llvm_type = vartype.llvm_type
 
+    def _check_var_name(self, node, name, is_global=False):
+        context = self.module.globals if is_global else self.fn.symtab
+        if name in context:
+            raise AkiNameErr(
+                node, self.text, f'Name "{name}" already used in this context'
+            )
+
+    def _alloca(self, node, llvm_type, name, size=None, is_global=False):
+        return self.builder.alloca(llvm_type, size, name)
+
     def _delete_var(self, name):
         """
         Deletes a variable from the local scope.
@@ -176,10 +199,7 @@ class AkiCodeGen:
 
         # Name collision check
 
-        if node.name in self.module.globals:
-            raise AkiNameErr(
-                node, self.text, f'Name "{node.name}" already exists in this module"'
-            )
+        self._check_var_name(node, node.name, True)
 
         # Generate function arguments.
         # Add LLVM type information to each argument,
@@ -213,6 +233,11 @@ class AkiCodeGen:
         proto.aki.vartype = VarType(node, str(function_type))
         proto.aki.vartype.aki_type = function_type
 
+        # Add Aki type metadata
+
+        aki_type_metadata = self.module.add_metadata([str(proto.aki.vartype.aki_type)])
+        proto.set_metadata("aki.type", aki_type_metadata)
+
         return proto
 
     def _codegen_Function(self, node):
@@ -238,7 +263,8 @@ class AkiCodeGen:
         # var being looked up is a func arg.
 
         for a, b in zip(func.args, node.prototype.arguments):
-            var_alloc = self.builder.alloca(b.vartype.llvm_type, None, b.name)
+            self._check_var_name(b, b.name)
+            var_alloc = self._alloca(b, b.vartype.llvm_type, b.name)
             var_alloc.aki = b
             a.aki = b
             self.fn.symtab[b.name] = var_alloc
@@ -246,8 +272,8 @@ class AkiCodeGen:
 
         # Add return value holder.
 
-        self.fn.return_value = self.builder.alloca(
-            func.return_value.type, None, ".function_return_value"
+        self.fn.return_value = self._alloca(
+            node, func.return_value.type, ".function_return_value"
         )
 
         # Set Akitype values for the return value holder
@@ -327,10 +353,21 @@ class AkiCodeGen:
 
         return func
 
+    ### Blocks
+
+    def _codegen_ExpressionBlock(self, node):
+        result = None
+        for _ in node.body:
+            result = self._codegen(_)
+        return result
+
+    
     ### Declarations
 
     def _codegen_VarList(self, node):
         for _ in node.vars:
+
+            self._check_var_name(_, _.name)
 
             # Create defaults if no value or vartype
 
@@ -341,11 +378,15 @@ class AkiCodeGen:
                 _.val = Constant(
                     _.p, _.vartype.aki_type.default(), VarType(_.p, _.vartype.vartype)
                 )
+                # value = self._codegen(_.val)
             else:
+                # value = self._codegen(_.val)
+                if _.vartype.vartype is None:
+                    _.vartype.vartype = _.val.vartype.vartype
                 self._add_node_props(_.vartype)
 
             # Create an allocation for that type
-            var_ptr = self.builder.alloca(_.vartype.llvm_type, None, _.name)
+            var_ptr = self._alloca(_, _.vartype.llvm_type, _.name)
             # and store its node attributes
             var_ptr.aki = _
 
@@ -353,10 +394,46 @@ class AkiCodeGen:
             self.fn.symtab[_.name] = var_ptr
 
             # and store the value itself to the variable
-            value = self._codegen(_.val)
-            self.builder.store(value, var_ptr)
+            # by way of an Assignment op
+            self._codegen(Assignment(_.p, "=", Name(_.p, _.name), _.val))
 
     #### Control flow
+
+    def _codegen_Call(self, node):
+        """
+        Generate a function call from a Call node.
+        """
+
+        call_func = self._name(node, node.name)
+
+        args = []
+
+        if len(call_func.args) != len(node.arguments):
+            raise AkiBaseErr(
+                node,
+                self.text,
+                f'Function call to "{node.name}" expected {len(call_func.args)} arguments but got {len(node.arguments)}',
+            )
+
+        for id, arg in enumerate(node.arguments):
+            arg_val = self._codegen(arg)
+            arg_val.aki = arg
+            if arg_val.type != call_func.args[id].type:
+                raise AkiTypeErr(
+                    arg,
+                    self.text,
+                    f'Value "{arg.name}" of type "{arg_val.aki.vartype.aki_type}" does not match function argument {id+1} of type "{call_func.args[id].aki.vartype.aki_type}"',
+                )
+
+            args.append(arg_val)
+
+        call = self.builder.call(call_func, args, call_func.name + ".call")
+        call.aki = LLVMOp(
+            node, call_func.aki.return_type.aki_type, f"{call_func.name}()"
+        )
+
+        return call
+
 
     def _codegen_Break(self, node):
 
@@ -479,8 +556,8 @@ class AkiCodeGen:
             )
 
         self._add_node_props(node.then_expr.vartype)
-        if_result = self.builder.alloca(
-            node.then_expr.vartype.llvm_type, name="if_result"
+        if_result = self._alloca(
+            node.then_expr, node.then_expr.vartype.llvm_type, ".if_result"
         )
 
         if_expr = self._codegen(node.if_expr)
@@ -544,69 +621,27 @@ class AkiCodeGen:
 
     #### Operations
 
-    def _codegen_Assignment(self, node):
+    def _type_check_op(self, node, lhs, rhs):
+        lhs_atype = lhs.aki.vartype.aki_type
+        rhs_atype = rhs.aki.vartype.aki_type
 
-        lhs = node.lhs
-        rhs = node.rhs
+        if lhs_atype != rhs_atype:
 
-        if not isinstance(lhs, Name):
-            raise AkiOpError(node, self.text, f"Assignment target must be a variable")
+            error = f'"{lhs.aki.name}" (type{lhs_atype}) and "{rhs.aki.name}" (type{rhs_atype}) do not have compatible types for operation "{node.op}".'
 
-        ptr = self._name(node.lhs, lhs.name)
-        val = self._codegen(rhs)
-        self.builder.store(val, ptr)
-        return ptr
+            if lhs_atype.signed != rhs_atype.signed:
+                is_signed = lambda x: "Signed" if x else "Unsigned"
+                error += f'\nSigned/unsigned disagreement:\n - "{lhs.aki.name}" (type{lhs_atype}): {is_signed(lhs_atype.signed)}\n - "{rhs.aki.name}" (type{rhs_atype}): {is_signed(rhs_atype.signed)}'
 
-    def _codegen_ExpressionBlock(self, node):
-        result = None
-        for _ in node.body:
-            result = self._codegen(_)
-        return result
-
-    def _codegen_BinOpComparison(self, node):
-        return self._codegen_BinOp(node)
-
-    def _codegen_Call(self, node):
-        """
-        Generate a function call from a Call node.
-        """
-
-        call_func = self._name(node, node.name)
-
-        args = []
-
-        if len(call_func.args) != len(node.arguments):
-            raise AkiBaseErr(
-                node,
-                self.text,
-                f'Function call to "{node.name}" expected {len(call_func.args)} arguments but got {len(node.arguments)}',
-            )
-
-        for id, arg in enumerate(node.arguments):
-            arg_val = self._codegen(arg)
-            arg_val.aki = arg
-            if arg_val.type != call_func.args[id].type:
-                raise AkiTypeErr(
-                    arg,
-                    self.text,
-                    f'Value "{arg.name}" of type "{arg_val.aki.vartype.aki_type}" does not match function argument {id+1} of type "{call_func.args[id].aki.vartype.aki_type}"',
-                )
-
-            args.append(arg_val)
-
-        call = self.builder.call(call_func, args, call_func.name + ".call")
-        call.aki = LLVMOp(
-            node, call_func.aki.return_type.aki_type, f"{call_func.name}()"
-        )
-
-        return call
+            raise AkiTypeErr(node, self.text, error)
+        return lhs_atype, rhs_atype
 
     def _codegen_UnOp(self, node):
         """
         Generate a unary op from an AST UnOp node.
         """
 
-        op = self.unops.get(node.op, None)
+        op = self._unops.get(node.op, None)
 
         if op is None:
             raise AkiOpError(node, self.text, f'Operator "{node.op}" not yet supported')
@@ -662,147 +697,142 @@ class AkiCodeGen:
 
         return xor
 
-    def _codegen_BinOp(self, node):
-        """
-        Generate a binop, typically a math operation,
-        from an AST BinOp node.
+    _unops = {"-": _codegen_UnOp_Neg, "not": _codegen_UnOp_Not}
 
-        Variable assignments or in-place operations
-        are not handled here. Assignments have 
-        their own AST node, Assign; in-place ops are
-        converted to Assign nodes with a BinOp expression
-        as the value.
+    def _codegen_Assignment(self, node):
+        """
+        Assign value to variable pointer.
+        Note that we do not codegen lhs, since in theory
+        we already have that as a named value.
+        """
+
+        lhs = node.lhs
+        rhs = node.rhs
+
+        if not isinstance(lhs, Name):
+            raise AkiOpError(node, self.text, f"Assignment target must be a variable")
+
+        ptr = self._name(node.lhs, lhs.name)
+        val = self._codegen(rhs)
+
+        self._type_check_op(node, ptr, val)
+
+        self.builder.store(val, ptr)
+        return ptr
+
+    def _codegen_BinOpComparison(self, node):
+        """
+        Generate a comparison instruction (boolean result) for an op.
         """
 
         lhs = self._codegen(node.lhs)
         rhs = self._codegen(node.rhs)
 
         # Type checking for operation
-
-        lhs_atype = lhs.aki.vartype.aki_type
-        rhs_atype = rhs.aki.vartype.aki_type
-
-        if lhs_atype != rhs_atype:
-
-            error = f'"{lhs.aki.name}" (type{lhs_atype}) and "{rhs.aki.name}" (type{rhs_atype}) do not have compatible types for operation "{node.op}".'
-
-            if lhs_atype.signed != rhs_atype.signed:
-                is_signed = lambda x: "Signed" if x else "Unsigned"
-                error += f'\nSigned/unsigned disagreement:\n - "{lhs.aki.name}" (type{lhs_atype}): {is_signed(lhs_atype.signed)}\n - "{rhs.aki.name}" (type{rhs_atype}): {is_signed(rhs_atype.signed)}'
-
-            raise AkiTypeErr(node, self.text, error)
-
+        lhs_atype, rhs_atype = self._type_check_op(node, lhs, rhs)
         signed_op = lhs_atype.signed
 
         # Add appropriate instruction
 
-        instr = None
-
-        if isinstance(node, BinOpComparison):
-
-            # Generate instructions for a comparison operation,
-            # which yields a boolean value.
-
-            if isinstance(lhs_atype, AkiBaseFloat):
-                op = self.builder.fcmp_ordered
-            elif isinstance(lhs_atype, (AkiBaseInt, AkiBool)):
-                if lhs_atype.signed:
-                    op = self.builder.icmp_signed
-                else:
-                    op = self.builder.icmp_unsigned
+        if isinstance(lhs_atype, AkiBaseFloat):
+            op = self.builder.fcmp_ordered
+        elif isinstance(lhs_atype, (AkiBaseInt, AkiBool)):
+            if lhs_atype.signed:
+                op = self.builder.icmp_signed
             else:
-                raise AkiOpError(
-                    node,
-                    self.text,
-                    f'Comparison operator "{node.op}" not supported for type "{lhs_atype}"',
-                )
-
-            instr_type = AkiBool()
-
-            if node.op == "==":
-                instr = op("==", lhs, rhs, ".eqop")
-            elif node.op == "!=":
-                instr = op("!=", lhs, rhs, ".neqop")
-            elif node.op == "<=":
-                instr = op("<=", lhs, rhs, ".leqop")
-            elif node.op == ">=":
-                instr = op(">=", lhs, rhs, ".geqop")
-            elif node.op == "<":
-                instr = op("<", lhs, rhs, ".lt")
-            elif node.op == ">":
-                instr = op(">", lhs, rhs, ".gt")
-
+                op = self.builder.icmp_unsigned
         else:
+            raise AkiOpError(
+                node,
+                self.text,
+                f'Comparison operator "{node.op}" not supported for type "{lhs_atype}"',
+            )
 
-            # Generate instructions for a binop that yields
-            # a value of the same type as the inputs.
+        comp_op = self._comp_ops.get(node.op, None)
+        if comp_op is None:
+            raise AkiOpError(
+                node,
+                self.text,
+                f'Binary operator "{node.op}" not found for type "{lhs_atype}"',
+            )
 
-            instr_type = lhs_atype
+        instr = op(node.op, lhs, rhs, comp_op)
+        instr.aki = LLVMOp(node.lhs, AkiBool(), f"{node.op} operation")
+        return instr
 
-            if isinstance(lhs_atype, (AkiBaseInt, AkiBool)):
-                if node.op == "+":
-                    instr = self.builder.add(lhs, rhs, ".addop")
-                elif node.op == "-":
-                    instr = self.builder.sub(lhs, rhs, ".subop")
-                elif node.op == "*":
-                    instr = self.builder.mul(lhs, rhs, ".mulop")
-                elif node.op == "/":
-                    # XXX: trap unsigned division
-                    instr = self.builder.sdiv(lhs, rhs, ".divop")
-                elif node.op == "&":
-                    instr = self.builder.and_(lhs, rhs, ".bin_andop")
-                elif node.op == "|":
-                    instr = self.builder.or_(lhs, rhs, ".bin_orop")
+    def _codegen_BinOp(self, node):
+        lhs = self._codegen(node.lhs)
+        rhs = self._codegen(node.rhs)
 
-                elif node.op in ("and", "or"):
+        # Type checking for operation
+        lhs_atype, rhs_atype = self._type_check_op(node, lhs, rhs)
+        signed_op = lhs_atype.signed
 
-                    if not isinstance(lhs.aki.vartype.aki_type, AkiBool):
+        # Generate instructions for a binop that yields
+        # a value of the same type as the inputs.
 
-                        operand = self._codegen(
-                            BinOpComparison(
+        instr = None
+        instr_type = lhs_atype
+
+        if isinstance(lhs_atype, (AkiBaseInt, AkiBool)):
+            if node.op == "+":
+                instr = self.builder.add(lhs, rhs, ".addop")
+            elif node.op == "-":
+                instr = self.builder.sub(lhs, rhs, ".subop")
+            elif node.op == "*":
+                instr = self.builder.mul(lhs, rhs, ".mulop")
+            elif node.op == "/":
+                instr = self.builder.sdiv(lhs, rhs, ".divop")
+            elif node.op == "&":
+                instr = self.builder.and_(lhs, rhs, ".bin_andop")
+            elif node.op == "|":
+                instr = self.builder.or_(lhs, rhs, ".bin_orop")
+
+            elif node.op in ("and", "or"):
+
+                if not isinstance(lhs.aki.vartype.aki_type, AkiBool):
+
+                    operand = self._codegen(
+                        BinOpComparison(
+                            node.lhs,
+                            "!=",
+                            LLVMInstr(node.lhs, lhs),
+                            Constant(
                                 node.lhs,
-                                "!=",
-                                LLVMInstr(node.lhs, lhs),
-                                Constant(
-                                    node.lhs,
-                                    lhs.aki.vartype.aki_type.default(),
-                                    lhs.aki.vartype,
-                                ),
-                            )
-                        )
-
-                    else:
-                        operand = lhs
-
-                    if node.op == "and":
-                        true_op = LLVMInstr(node.rhs, rhs)
-                        false_op = LLVMInstr(node.lhs, lhs)
-
-                    else:
-                        true_op = LLVMInstr(node.lhs, lhs)
-                        false_op = LLVMInstr(node.rhs, rhs)
-
-                    result_test = self._codegen(
-                        IfExpr(
-                            operand.aki,
-                            LLVMInstr(operand.aki, operand),
-                            true_op,
-                            false_op,
+                                lhs.aki.vartype.aki_type.default(),
+                                lhs.aki.vartype,
+                            ),
                         )
                     )
 
-                    instr = result_test
-                    instr_type = lhs_atype
+                else:
+                    operand = lhs
 
-            elif isinstance(lhs_atype, AkiBaseFloat):
-                if node.op == "+":
-                    instr = self.builder.fadd(lhs, rhs, ".faddop")
-                elif node.op == "-":
-                    instr = self.builder.fsub(lhs, rhs, ".fsubop")
-                elif node.op == "*":
-                    instr = self.builder.fmul(lhs, rhs, ".fmulop")
-                elif node.op == "/":
-                    instr = self.builder.fdiv(lhs, rhs, ".fdivop")
+                if node.op == "and":
+                    true_op = LLVMInstr(node.rhs, rhs)
+                    false_op = LLVMInstr(node.lhs, lhs)
+
+                else:
+                    true_op = LLVMInstr(node.lhs, lhs)
+                    false_op = LLVMInstr(node.rhs, rhs)
+
+                result_test = self._codegen(
+                    IfExpr(
+                        operand.aki, LLVMInstr(operand.aki, operand), true_op, false_op
+                    )
+                )
+
+                instr = result_test
+
+        elif isinstance(lhs_atype, AkiBaseFloat):
+            if node.op == "+":
+                instr = self.builder.fadd(lhs, rhs, ".faddop")
+            elif node.op == "-":
+                instr = self.builder.fsub(lhs, rhs, ".fsubop")
+            elif node.op == "*":
+                instr = self.builder.fmul(lhs, rhs, ".fmulop")
+            elif node.op == "/":
+                instr = self.builder.fdiv(lhs, rhs, ".fdivop")
 
         if instr is None:
             raise AkiOpError(
@@ -849,4 +879,3 @@ class AkiCodeGen:
         node.name = node.val
         return constant
 
-    unops = {"-": _codegen_UnOp_Neg, "not": _codegen_UnOp_Not}
