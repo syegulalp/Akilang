@@ -100,16 +100,17 @@ class Argument(ASTNode):
     Function argument, with optional type declaration.
     """
 
-    def __init__(self, p, name, vartype=None):
+    def __init__(self, p, name, vartype=None, default_value=None):
         super().__init__(p)
         self.name = name
         self.vartype = vartype
+        self.default_value = default_value
 
     def __eq__(self, other):
         return self.name == other.name and self.vartype == other.vartype
 
     def flatten(self):
-        return [self.__class__.__name__, self.name, self.vartype.flatten()]
+        return [self.__class__.__name__, self.name, self.vartype.flatten(), self.default_value.flatten() if self.default_value else None]
 
 
 class Constant(Expression):

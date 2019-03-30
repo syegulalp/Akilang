@@ -207,7 +207,17 @@ class AkiCodeGen:
 
         func_args = []
 
+        require_defaults = False
+
         for _ in node.arguments:
+            if _.default_value is not None:
+                require_defaults = True
+            if not _.default_value and require_defaults:
+                raise AkiSyntaxErr(
+                    _,
+                    self.text,
+                    f'Function "{node.name}" has non-default argument "{_.name}" after default arguments',
+                )
             self._add_node_props(_.vartype)
             func_args.append(_.vartype.llvm_type)
 
@@ -361,7 +371,6 @@ class AkiCodeGen:
             result = self._codegen(_)
         return result
 
-    
     ### Declarations
 
     def _codegen_VarList(self, node):
@@ -405,26 +414,38 @@ class AkiCodeGen:
         """
 
         call_func = self._name(node, node.name)
-
         args = []
 
-        if len(call_func.args) != len(node.arguments):
-            raise AkiBaseErr(
-                node,
-                self.text,
-                f'Function call to "{node.name}" expected {len(call_func.args)} arguments but got {len(node.arguments)}',
-            )
+        for _, f_arg in enumerate(call_func.args):
 
-        for id, arg in enumerate(node.arguments):
+            # If we're out of supplied arguments,
+            # see if the function has default args.
+
+            if _ + 1 > len(node.arguments):
+                default_arg_value = f_arg.aki.default_value
+                if default_arg_value is None:
+                    raise AkiBaseErr(
+                        node,
+                        self.text,
+                        f'Function call to "{node.name}" expected {len(call_func.args)} arguments but got {len(node.arguments)}',
+                    )
+                arg_val = self._codegen(default_arg_value)
+                arg_val.aki = f_arg.aki
+                args.append(arg_val)
+                continue
+
+            # If we still have supplied arguments,
+            # use them instead.
+
+            arg = node.arguments[_]
             arg_val = self._codegen(arg)
             arg_val.aki = arg
-            if arg_val.type != call_func.args[id].type:
+            if arg_val.type != call_func.args[_].type:
                 raise AkiTypeErr(
                     arg,
                     self.text,
-                    f'Value "{arg.name}" of type "{arg_val.aki.vartype.aki_type}" does not match function argument {id+1} of type "{call_func.args[id].aki.vartype.aki_type}"',
+                    f'Value "{arg.name}" of type "{arg_val.aki.vartype.aki_type}" does not match function argument {_+1} of type "{call_func.args[_].aki.vartype.aki_type}"',
                 )
-
             args.append(arg_val)
 
         call = self.builder.call(call_func, args, call_func.name + ".call")
@@ -433,7 +454,6 @@ class AkiCodeGen:
         )
 
         return call
-
 
     def _codegen_Break(self, node):
 

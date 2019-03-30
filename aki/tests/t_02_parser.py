@@ -28,6 +28,10 @@ class TestLexer(unittest.TestCase):
         for text, result in tests:
             self.assertEqual(self._parse(text), result)
 
+    def __e(self, tests):
+        for text, result in tests:
+            self.assertEqual(self.__parse(text), result)
+
     def test_constant(self):
         self._e(
             (
@@ -237,7 +241,7 @@ class TestLexer(unittest.TestCase):
                             "Function",
                             [
                                 "Prototype",
-                                [["Argument", "x", ["VarType", "None"]]],
+                                [["Argument", "x", ["VarType", "None"], None]],
                                 ["VarType", "None"],
                             ],
                             [

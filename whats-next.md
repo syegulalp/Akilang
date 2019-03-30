@@ -38,6 +38,7 @@
   * [x] Lexer
   * [x] Parser
   * [x] Compiler
+* [x] Default function argument values
 
 ## In progress
 
@@ -52,6 +53,7 @@
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
 * [ ] Pointers and pointer types, mainly for compatibility with C right now
 * [ ] Function type (for function pointers)
+* [ ] Positional and named/optional arguments
 
 # Stage 1: Advanced variables and structures
 
@@ -62,7 +64,7 @@
 * [ ] Iterables by way of object methods
 * [ ] Array slices
 * [ ] Strings
-* [ ] String slinces
+* [ ] String slices
 * [ ] Call chains
 
 # Stage 2: Advanced error handling
@@ -72,7 +74,6 @@
 # Stage 3: Modules
 
 * [ ] Module imports
-* [ ] Use existing C headers as-is
 
 # Stage 4: Other stuff
 
@@ -81,4 +82,8 @@
 * [ ] Dictionaries/hashmaps
 * [ ] Sets
 * [ ] Auto-conversion rules for scalars?
+
+# Stage 5: Beyond The Impossible (for me right now, anyway)
+
 * [ ] Garbage collection
+* [ ] Use existing C headers as-is

@@ -146,12 +146,6 @@ class AkiParser(Parser):
     def toplevel(self, p):
         return p.expr
 
-    # @_("DEF NAME arglist vartype expr")
-    # def function_def(self, p):
-    #     proto = Prototype(Pos(p), p.NAME, p.arglist, p.vartype)
-    #     func = Function(Pos(p), proto, p.expr)
-    #     return func
-
     # Argument list definition
     # Used for function definition signatures
     # Arglists and exprlists are deliberately different entities
@@ -164,14 +158,6 @@ class AkiParser(Parser):
     def arglist(self, p):
         return p.args
 
-    @_("COLON NAME")
-    def vartype(self, p):
-        return VarType(Pos(p), p.NAME)
-
-    @_("empty")
-    def vartype(self, p):
-        return VarType(Pos(p), None)
-
     @_("args COMMA arg")
     def args(self, p):
         return p.args + [p.arg]
@@ -180,9 +166,29 @@ class AkiParser(Parser):
     def args(self, p):
         return [p.arg]
 
-    @_("NAME vartype")
+    @_("NAME varassign")
     def arg(self, p):
-        return Argument(Pos(p), p.NAME, p.vartype)
+        return Argument(Pos(p), p.NAME, *p.varassign)
+
+    @_("vartype argassign")
+    def varassign(self, p):
+        return p.vartype, p.argassign
+    
+    @_("COLON NAME")
+    def vartype(self, p):
+        return VarType(Pos(p), p.NAME)
+
+    @_("empty")
+    def vartype(self, p):
+        return VarType(Pos(p), None)
+
+    @_("ASSIGN expr")
+    def argassign(self, p):
+        return p.expr
+
+    @_("empty")
+    def argassign(self, p):
+        return None
 
     # Function call
 
