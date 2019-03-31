@@ -1,7 +1,7 @@
 # Test all code generation functions.
 
 import unittest
-from core.error import AkiTypeErr, AkiSyntaxErr
+from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr
 
 
 class TestLexer(unittest.TestCase):
@@ -91,12 +91,9 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_type_trapping(self):
-        self._ex(AkiTypeErr,
-            (
-                (r"var x:f32=1", None),
-                (r"var x:i32=1.0", None),
-                (r"3+32.0", None),
-            )
+        self._ex(
+            AkiTypeErr,
+            ((r"var x:f32=1", None), (r"var x:i32=1.0", None), (r"3+32.0", None)),
         )
 
     def test_function_defs(self):
@@ -109,17 +106,30 @@ class TestLexer(unittest.TestCase):
 
     def test_break(self):
         self._e(((r"def m1(z){var q=0 loop () {q+=1 when q==20 break} q} m1(0)", 20),))
-    
+
     def test_default_function_arguments(self):
         self._e(
             (
-                (r"def m1(z=1){z} m1()",1),
-                (r"def m1(y,z=1){y+z} m1(2)",3),
-                (r"def m1(y=2,z=1){y+z} m1()",3),
+                (r"def m1(z=1){z} m1()", 1),
+                (r"def m1(y,z=1){y+z} m1(2)", 3),
+                (r"def m1(y=2,z=1){y+z} m1()", 3),
             )
         )
-        self._ex(AkiSyntaxErr,
+        self._ex(AkiSyntaxErr, ((r"def m1(z=1,y){z+y}", None),))
+
+    def test_func_arg_type_trapping(self):
+        self._ex(
+            AkiTypeErr,
+            ((r"def m1(x:i32){x} m1(1.0)", None), (r"def m1(x:f32){x} m1(3)", None)),
+        )
+
+    def test_func_arg_count_trapping(self):
+        self._ex(
+            AkiSyntaxErr,
             (
-                (r"def m1(z=1,y){z+y}", None),
-            )
+                (r"def m1(x=1,y=2){x+y} m1(1,2,3)", None),
+                (r"def m1(x,y,z){x+y} m1(1,2)", None),
+                (r"def m1(){0} m1(1,2)", None),
+            ),
         )
+
