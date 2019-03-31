@@ -1,4 +1,16 @@
-from llvmlite import ir
+from llvmlite import ir, binding
+
+import colorama
+
+colorama.init()
+CMD = colorama.Fore.YELLOW
+REP = colorama.Fore.WHITE
+
+RED = colorama.Fore.RED
+XX = colorama.Fore.RESET
+
+GRN = colorama.Fore.GREEN
+MAG = colorama.Fore.MAGENTA
 
 
 class Comment(ir.values.Value):
@@ -29,24 +41,77 @@ from core.compiler import AkiCompiler, ir
 from core.astree import Function, Call, Prototype, VarType, ExpressionBlock, TopLevel
 from core.error import AkiBaseErr
 from core.error import ReloadException, QuitException
+from core import constants
 
-class JIT():
+PROMPT = "A>"
+
+USAGE = f"""From the {PROMPT} prompt, type Aki code or enter special commands
+preceded by a dot sign:
+
+    {CMD}.about|ab{REP}     : About this program.
+    {CMD}.compile|cp{REP}   : Compile current module to executable.
+    {CMD}.dump|dp{REP}      : Dump current module to console.
+    {CMD}.exit|quit|stop|q{REP}
+                  : Stop and exit the program.
+    {CMD}.export|ex <filename>{REP}
+                  : Dump current module to file in LLVM assembler format.
+                  : Uses output.ll in current directory as default.
+    {CMD}.help|.?|.{REP}    : Show this message.
+    {CMD}.rerun|..{REP}     : Reload the Python code and restart the REPL. 
+    {CMD}.rl[c|r]{REP}      : Reset the interpreting engine and reload the last .aki
+                    file loaded in the REPL. Add c to run .cp afterwards.
+                    Add r to run main() afterwards.
+    {CMD}.reset|~{REP}      : Reset the interpreting engine.
+    {CMD}.run|r{REP}        : Run the main() function (if present) in the current
+                    module.
+    {CMD}.test|t{REP}       : Run unit tests.
+    {CMD}.version|ver|v{REP}
+                  : Print version information.
+    {CMD}.<file>.{REP}      : Load <file>.aki from the src directory.
+                    For instance, .l. will load the Conway's Life demo.
+
+These commands are also available directly from the command line, for example: 
+
+    {CMD}aki 2 + 3
+    aki test
+    aki .myfile.aki{REP}
+    
+On the command line, the initial dot sign can be replaced with a double dash: 
+    
+    {CMD}aki --test
+    aki --myfile.aki{REP}
+"""
+
+
+class JIT:
     lexer = AkiLexer()
     parser = AkiParser()
     compiler = AkiCompiler()
-    
+
     def __init__(self):
-        self.anon_counter = 0        
-        self.reset()        
-    
+        self.anon_counter = 0
+        self.reset()
+
     def reset(self):
         self.module = ir.Module()
-        self.codegen = AkiCodeGen(self.module)       
+        self.codegen = AkiCodeGen(self.module)
+
+
+def cp(string):
+    print(f"{REP}{string}")
+
 
 class Repl:
+
+    import sys
+
+    VERSION = f"""Python :{sys.version}
+LLVM   :{".".join((str(n) for n in binding.llvm_version_info))}
+pyaki  :{constants.VERSION}"""
+
     def __init__(self):
         self.main_cpl = JIT()
-        self.repl_cpl = JIT()        
+        self.repl_cpl = JIT()
 
     def run_tests(self, *a):
         import unittest
@@ -54,53 +119,74 @@ class Repl:
         tests = unittest.defaultTestLoader.discover("tests", "*.py")
         unittest.TextTestRunner().run(tests)
 
-    def load_file(self, *a):
+    def load_file(self, file_to_load):
         self.main_cpl.reset()
-        
-        with open("examples/in.aki") as file:
-            text = file.read()
-            file_size = os.fstat(file.fileno()).st_size
-        print(f"Read {file_size} bytes")
-        
+        filepath = f"examples/{file_to_load}.aki"
+
+        try:
+            with open(filepath) as file:
+                text = file.read()
+                file_size = os.fstat(file.fileno()).st_size
+                cp(f"Read {file_size} bytes from {CMD}{filepath}{REP}")
+        except FileNotFoundError:
+            cp(f"File not found: {CMD}{filepath}{REP}")
+            return
+
         tokens = self.main_cpl.lexer.tokenize(text)
         ast = self.main_cpl.parser.parse(tokens, text)
 
         self.main_cpl.codegen.text = text
         self.main_cpl.codegen.eval(ast)
-        self.main_cpl.compiler.compile_module(
-            self.main_cpl.module, 'main')
+        self.main_cpl.compiler.compile_module(self.main_cpl.module, "main")
 
     def quit(self, *a):
+        print(XX)
         raise QuitException
 
     def reload(self, *a):
         raise ReloadException
 
     def run(self):
+        cp(
+            f"{GRN}{constants.WELCOME}\n{REP}Type {CMD}.help{REP} or a command to be interpreted"
+        )
         while True:
             try:
-                text = input("A> ")
+                print(f"{REP}{PROMPT}{CMD}", end="")
+                text = input()
                 self.cmd(text)
             except AkiBaseErr as e:
                 print(e)
             except EOFError:
                 break
 
+    def help(self, *a):
+        cp(f"\n{USAGE}")
+
     def cmd(self, text):
         if not text:
             return
-
         if text[0] == ".":
+            if len(text) == 1:
+                self.help()
+                return
+            if text[-1] == ".":
+                if len(text) == 2:
+                    return self.reload()
+                text = text[1:-1]
+                self.load_file(text)
+                return
             command = text[1:]
         else:
+            print(f"{REP}", end="")
             for _ in self.interactive(text):
-                print (_)
+                print(_)
             return
 
         cmd_func = self.cmds.get(command, None)
 
         if cmd_func is None:
-            print(f'Unrecognized command "{command}"')
+            cp(f'Unrecognized command "{CMD}{command}{REP}"')
             return
 
         return cmd_func(self, text)
@@ -115,8 +201,8 @@ class Repl:
             repl_file = None
         else:
             main = self.main_cpl
-            main_file = 'main'
-            repl_file = 'repl'
+            main_file = "main"
+            repl_file = "repl"
 
         self.repl_cpl.reset()
 
@@ -128,6 +214,7 @@ class Repl:
         # Iterate through tokens
 
         self.repl_cpl.codegen.text = text
+        main.codegen.text = text
 
         for _ in ast:
 
@@ -158,10 +245,12 @@ class Repl:
 
             if not immediate_mode:
                 if self.main_cpl.compiler.mod_ref:
-                    self.repl_cpl.compiler.backing_mod.link_in(self.main_cpl.compiler.mod_ref, True)
-            
+                    self.repl_cpl.compiler.backing_mod.link_in(
+                        self.main_cpl.compiler.mod_ref, True
+                    )
+
             self.repl_cpl.compiler.compile_module(self.repl_cpl.module, repl_file)
-            
+
             # Retrieve a pointer to the function
             func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
@@ -184,6 +273,48 @@ class Repl:
             res = cfunc()
             yield res
 
+    def about(self, *a):
+        print(f"\n{GRN}{constants.ABOUT}\n\n{self.VERSION}\n")
 
+    def not_implemented(self, *a):
+        cp(f"{RED}Not implemented yet")
 
-    cmds = {"t": run_tests, "l": load_file, "q": quit, ".": reload}
+    def version(self, *a):
+        print(f"\n{GRN}{self.VERSION}\n")
+
+    def load_test(self, *a):
+        self.load_file("1")
+
+    cmds = {
+        "t": run_tests,
+        "l": load_test,
+        "q": quit,
+        ".": reload,
+        "ab": about,
+        "about": about,
+        "compile": not_implemented,
+        "cp": not_implemented,
+        "dump": not_implemented,
+        "dp": not_implemented,
+        "exit": quit,
+        "quit": quit,
+        "stop": quit,
+        "q": quit,
+        "export": not_implemented,
+        "ex": not_implemented,
+        "help": help,
+        "?": help,
+        "rerun": not_implemented,
+        "rl": not_implemented,
+        "rlc": not_implemented,
+        "rlr": not_implemented,
+        "reset": not_implemented,
+        "~": not_implemented,
+        "run": not_implemented,
+        "r": not_implemented,
+        "test": run_tests,
+        "version": version,
+        "ver": version,
+        "v": version,
+    }
+

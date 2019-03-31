@@ -24,7 +24,15 @@ from core.astree import (
     Assignment,
     WithExpr,
 )
-from core.error import AkiNameErr, AkiTypeErr, AkiOpError, AkiBaseErr, AkiSyntaxErr
+from core.error import (
+    AkiNameErr,
+    AkiTypeErr,
+    AkiOpError,
+    AkiBaseErr,
+    AkiSyntaxErr,
+    LocalException,
+)
+from core.repl import CMD, REP
 
 
 class FuncState:
@@ -131,7 +139,9 @@ class AkiCodeGen:
                 return name
 
         if name is None:
-            raise AkiNameErr(node, self.text, f'Name "{name_to_find}" not found')
+            raise AkiNameErr(
+                node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
+            )
 
     def _aki(self, node, llvm_obj):
         pass
@@ -163,7 +173,7 @@ class AkiCodeGen:
 
         if vartype is None:
             raise AkiTypeErr(
-                node, self.text, f'Unrecognized type definition "{vartype}"'
+                node, self.text, f'Unrecognized type definition "{CMD}{v}{REP}"'
             )
 
         node.aki_type = vartype
@@ -173,7 +183,7 @@ class AkiCodeGen:
         context = self.module.globals if is_global else self.fn.symtab
         if name in context:
             raise AkiNameErr(
-                node, self.text, f'Name "{name}" already used in this context'
+                node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
             )
 
     def _alloca(self, node, llvm_type, name, size=None, is_global=False):
@@ -338,7 +348,7 @@ class AkiCodeGen:
                 raise AkiTypeErr(
                     node,
                     self.text,
-                    f"Return value from function (type{result.aki.vartype.aki_type}) does not match function signature return type (type{self.fn.return_value.aki.vartype.aki_type}) ",
+                    f'Return value from function "{CMD}func.name{REP}" ({CMD}{result.aki.vartype.aki_type}{REP}) does not match function signature return type ({CMD}{self.fn.return_value.aki.vartype.aki_type}{REP})',
                 )
 
         # Add return value for function in exit block,
@@ -416,37 +426,57 @@ class AkiCodeGen:
         call_func = self._name(node, node.name)
         args = []
 
-        for _, f_arg in enumerate(call_func.args):
+        try:
 
-            # If we're out of supplied arguments,
-            # see if the function has default args.
+            # If we have too many arguments, give up
 
-            if _ + 1 > len(node.arguments):
-                default_arg_value = f_arg.aki.default_value
-                if default_arg_value is None:
-                    raise AkiBaseErr(
-                        node,
+            if len(node.arguments) > len(call_func.args):
+                raise LocalException
+
+            for _, f_arg in enumerate(call_func.args):
+
+                # If we're out of supplied arguments,
+                # see if the function has default args.
+
+                if _ + 1 > len(node.arguments):
+                    default_arg_value = f_arg.aki.default_value
+                    if default_arg_value is None:
+                        raise LocalException
+                    arg_val = self._codegen(default_arg_value)
+                    arg_val.aki = f_arg.aki
+                    args.append(arg_val)
+                    continue
+
+                # If we still have supplied arguments,
+                # use them instead.
+
+                arg = node.arguments[_]
+                arg_val = self._codegen(arg)
+                
+                # originally, here, we had
+                # arg_val.aki = arg
+                # but that clobbered the .aki value from the codegen
+                # I do not believe at this point we need it anymore
+
+                if arg_val.type != call_func.args[_].type:
+                    raise AkiTypeErr(
+                        arg,
                         self.text,
-                        f'Function call to "{node.name}" expected {len(call_func.args)} arguments but got {len(node.arguments)}',
+                        f'Value "{CMD}{arg.name}{REP}" of type "{CMD}{arg_val.aki.vartype.aki_type}{REP}" does not match function argument {CMD}{_+1}{REP} of type "{CMD}{call_func.args[_].aki.vartype.aki_type}{REP}"',
                     )
-                arg_val = self._codegen(default_arg_value)
-                arg_val.aki = f_arg.aki
+                
+                # again, I don't think we need it,
+                # but if it ever goes back in, put it here
+                # arg_val.aki = arg
+                
                 args.append(arg_val)
-                continue
 
-            # If we still have supplied arguments,
-            # use them instead.
-
-            arg = node.arguments[_]
-            arg_val = self._codegen(arg)
-            arg_val.aki = arg
-            if arg_val.type != call_func.args[_].type:
-                raise AkiTypeErr(
-                    arg,
-                    self.text,
-                    f'Value "{arg.name}" of type "{arg_val.aki.vartype.aki_type}" does not match function argument {_+1} of type "{call_func.args[_].aki.vartype.aki_type}"',
-                )
-            args.append(arg_val)
+        except LocalException:
+            raise AkiSyntaxErr(
+                node,
+                self.text,
+                f'Function call to "{CMD}{node.name}{REP}" expected {CMD}{len(call_func.args)}{REP} arguments but got {CMD}{len(node.arguments)}{REP}',
+            )
 
         call = self.builder.call(call_func, args, call_func.name + ".call")
         call.aki = LLVMOp(
@@ -572,7 +602,7 @@ class AkiCodeGen:
             raise AkiTypeErr(
                 node.then_expr,
                 self.text,
-                '"if/else" must yield same type; use "when/else" for results of different types',
+                f'"{CMD}if/else{REP}" must yield same type; use "{CMD}when/else{REP}" for results of different types',
             )
 
         self._add_node_props(node.then_expr.vartype)
@@ -647,11 +677,11 @@ class AkiCodeGen:
 
         if lhs_atype != rhs_atype:
 
-            error = f'"{lhs.aki.name}" (type{lhs_atype}) and "{rhs.aki.name}" (type{rhs_atype}) do not have compatible types for operation "{node.op}".'
+            error = f'"{CMD}{lhs.aki.name}{REP}" ({CMD}{lhs_atype}{REP}) and "{CMD}{rhs.aki.name}{REP}" ({CMD}{rhs_atype}{REP}) do not have compatible types for operation "{CMD}{node.op}{REP}".'
 
             if lhs_atype.signed != rhs_atype.signed:
                 is_signed = lambda x: "Signed" if x else "Unsigned"
-                error += f'\nSigned/unsigned disagreement:\n - "{lhs.aki.name}" (type{lhs_atype}): {is_signed(lhs_atype.signed)}\n - "{rhs.aki.name}" (type{rhs_atype}): {is_signed(rhs_atype.signed)}'
+                error += f'\nSigned/unsigned disagreement:\n - "{CMD}{lhs.aki.name}{REP}" ({CMD}{lhs_atype}{REP}): {is_signed(lhs_atype.signed)}\n - "{CMD}{rhs.aki.name}{REP}" ({CMD}{rhs_atype}{REP}): {is_signed(rhs_atype.signed)}'
 
             raise AkiTypeErr(node, self.text, error)
         return lhs_atype, rhs_atype
@@ -664,7 +694,9 @@ class AkiCodeGen:
         op = self._unops.get(node.op, None)
 
         if op is None:
-            raise AkiOpError(node, self.text, f'Operator "{node.op}" not yet supported')
+            raise AkiOpError(
+                node, self.text, f'Operator "{CMD}{node.op}{REP}" not yet supported'
+            )
 
         operand = self._codegen(node.lhs)
         instr = op(self, node, operand)
@@ -765,7 +797,7 @@ class AkiCodeGen:
             raise AkiOpError(
                 node,
                 self.text,
-                f'Comparison operator "{node.op}" not supported for type "{lhs_atype}"',
+                f'Comparison operator "{CMD}{node.op}{REP}" not supported for type "{CMD}{lhs_atype}{REP}"',
             )
 
         comp_op = self._comp_ops.get(node.op, None)
@@ -773,7 +805,7 @@ class AkiCodeGen:
             raise AkiOpError(
                 node,
                 self.text,
-                f'Binary operator "{node.op}" not found for type "{lhs_atype}"',
+                f'Binary operator "{CMD}{node.op}{REP}" not found for type "{CMD}{lhs_atype}{REP}"',
             )
 
         instr = op(node.op, lhs, rhs, comp_op)
