@@ -86,16 +86,15 @@ On the command line, the initial dot sign can be replaced with a double dash:
 class JIT:
     lexer = AkiLexer()
     parser = AkiParser()
-    compiler = AkiCompiler()
 
     def __init__(self):
-        self.anon_counter = 0
-        self.reset()
+        self.anon_counter = 0        
+        self.reset()        
 
     def reset(self):
+        self.compiler = AkiCompiler()
         self.module = ir.Module()
         self.codegen = AkiCodeGen(self.module)
-
 
 def cp(string):
     print(f"{REP}{string}")
@@ -120,7 +119,8 @@ pyaki  :{constants.VERSION}"""
         unittest.TextTestRunner().run(tests)
 
     def load_file(self, file_to_load):
-        self.main_cpl.reset()
+        self.main_cpl.reset()        
+
         filepath = f"examples/{file_to_load}.aki"
 
         try:
@@ -244,7 +244,7 @@ pyaki  :{constants.VERSION}"""
                 raise e
 
             if not immediate_mode:
-                if self.main_cpl.compiler.mod_ref:
+                if self.main_cpl.compiler.mod_ref:                    
                     self.repl_cpl.compiler.backing_mod.link_in(
                         self.main_cpl.compiler.mod_ref, True
                     )
@@ -272,6 +272,8 @@ pyaki  :{constants.VERSION}"""
             cfunc = ctypes.CFUNCTYPE(return_val, *[])(func_ptr)
             res = cfunc()
             yield res
+
+
 
     def about(self, *a):
         print(f"\n{GRN}{constants.ABOUT}\n\n{self.VERSION}\n")

@@ -136,6 +136,10 @@ class AkiCodeGen:
             if name is not None:
                 # emit function reference for this module
                 link = ir.Function(self.module, name.ftype, name.name)
+                # copy aki data for function                
+                link.aki = name.aki
+                for n_arg, l_arg in zip(name.args, link.args):
+                    l_arg.aki = n_arg.aki
                 return name
 
         if name is None:
@@ -244,6 +248,9 @@ class AkiCodeGen:
             name=node.name,
         )
 
+        for p_arg, n_arg in zip(proto.args, node.arguments):
+            p_arg.aki = n_arg
+
         proto.calling_convention = "fastcc"
 
         # Set variable types for function
@@ -254,6 +261,9 @@ class AkiCodeGen:
         proto.aki.vartype.aki_type = function_type
 
         # Add Aki type metadata
+
+        # TODO: when copying in another function reference,
+        # we need to copy its metadata as well, I think
 
         aki_type_metadata = self.module.add_metadata([str(proto.aki.vartype.aki_type)])
         proto.set_metadata("aki.type", aki_type_metadata)
