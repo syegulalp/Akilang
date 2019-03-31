@@ -28,6 +28,12 @@ class AkiParser(Parser):
     tokens = AkiLexer.tokens
     start = "toplevels"
 
+    class NullLogger:
+        warning = lambda *a: None
+        info = warning
+    
+    log = NullLogger
+
     precedence = (
         ("right", "ASSIGN"),
         ("left", "LOOP", "IF", "WHEN", "ELSE"),
