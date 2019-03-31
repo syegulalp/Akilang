@@ -4,3 +4,33 @@
 
 # This should also include module load and name cross-linking tests,
 # e.g. the `g1()+g1()` test
+
+import unittest
+from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr
+
+
+class TestLexer(unittest.TestCase):
+    from core.repl import Repl
+
+    r = Repl()
+    i = r.interactive
+
+    def _e(self, tests):
+        for text, result in tests:
+            for _ in self.i(text, False):
+                pass
+            self.assertEqual(_, result)
+
+    def _ex(self, err_type, tests):
+        with self.assertRaises(err_type):
+            for text, result in tests:
+                for _ in self.i(text, False):
+                    pass
+
+    def test_module_load(self):
+        self.r.load_file('1')
+        self._e(
+            (
+                ('g1()+g1()',38),
+            )
+        )
