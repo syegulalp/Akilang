@@ -14,7 +14,7 @@ class LocalException(Exception):
 
 
 class AkiBaseErr(Exception):
-    _errtype = "1 (General error)"
+    _errtype = "0 (General error)"
 
     def __init__(self, p, txt, msg):
         if p is None:
@@ -47,16 +47,16 @@ class AkiBaseErr(Exception):
 
 
 class AkiSyntaxErr(AkiBaseErr):
-    _errtype = "2 (Syntax error)"
+    _errtype = "1 (Syntax error)"
 
 
 class AkiNameErr(AkiBaseErr):
-    _errtype = "3 (Name error)"
+    _errtype = "2 (Name error)"
 
 
 class AkiTypeErr(AkiBaseErr):
-    _errtype = "4 (Type error)"
+    _errtype = "3 (Type error)"
 
 
 class AkiOpError(AkiBaseErr):
-    _errtype = "5 (Operator error)"
+    _errtype = "4 (Operator error)"
