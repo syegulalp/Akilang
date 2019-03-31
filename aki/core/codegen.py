@@ -397,7 +397,6 @@ class AkiCodeGen:
                 _.val = Constant(
                     _.p, _.vartype.aki_type.default(), VarType(_.p, _.vartype.vartype)
                 )
-                # value = self._codegen(_.val)
                 value = _.val
             else:
                 value = self._codegen(_.val)
