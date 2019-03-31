@@ -38,18 +38,21 @@
   * [x] Lexer
   * [x] Parser
   * [x] Compiler
+  * [ ] Compile external apps
 * [x] Default function argument values
+* [x] Color-coded output in REPL
+* [x] Store Aki-native type signatures as LLVM metadata
 
 ## In progress
 
-* [ ] Store Aki-native type signatures as LLVM metadata, if possible
 * [ ] `case` statement for matching against enums
 * [ ] External function references (`extern` context block with optional library identifier)
 * [ ] Comments
 * [ ] Inline typing for constants
 * [ ] `uni` for globals
 * [ ] `const` for constants
-* [ ] Complete CLI (as per earlier incarnation of project)
+* [ ] Complete REPL command set (as per earlier incarnation of project)
+* [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
 * [ ] Pointers and pointer types, mainly for compatibility with C right now
 * [ ] Function type (for function pointers)
@@ -59,6 +62,7 @@
 
 * [ ] N-dimensional arrays of scalars
 * [ ] Type declarations
+* [ ] Enums
 * [ ] Classes and object structures
 * [ ] Object methods and method calls
 * [ ] Iterables by way of object methods
@@ -87,3 +91,4 @@
 
 * [ ] Garbage collection
 * [ ] Use existing C headers as-is
+* [ ] Threading, actors, coroutines, etc.
