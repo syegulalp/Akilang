@@ -113,6 +113,7 @@ pyaki  :{constants.VERSION}"""
         self.repl_cpl = JIT()
 
     def run_tests(self, *a):
+        print (f'{REP}', end='')
         import unittest
 
         tests = unittest.defaultTestLoader.discover("tests", "*.py")
