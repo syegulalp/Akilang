@@ -17,6 +17,13 @@ class AkiBaseErr(Exception):
     _errtype = "1 (General error)"
 
     def __init__(self, p, txt, msg):
+        if p is None:
+            self.lineno = 1
+            self.col = 1
+            self.msg = msg
+            self.extract = txt
+            return
+        
         self.msg = msg
         self.p = p
         last_newline = txt.rfind(f"\n", 0, self.p.index)
@@ -33,8 +40,10 @@ class AkiBaseErr(Exception):
         else:
             self.extract = txt[last_newline:end]
 
+        self.lineno = self.p.lineno
+
     def __str__(self):
-        return f"{'-'*40}\n{RED}Error: {self._errtype}\n{REP}Line {self.p.lineno}:{self.col}\n{self.msg}\n{'-'*40}\n{CMD}{self.extract}\n{MAG}{'-'*(self.col-1)}^"
+        return f"{'-'*40}\n{RED}Error: {self._errtype}\n{REP}Line {self.lineno}:{self.col}\n{self.msg}\n{'-'*40}\n{CMD}{self.extract}\n{MAG}{'-'*(self.col-1)}^{REP}"
 
 
 class AkiSyntaxErr(AkiBaseErr):

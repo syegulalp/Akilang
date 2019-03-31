@@ -130,8 +130,8 @@ pyaki  :{constants.VERSION}"""
                 file_size = os.fstat(file.fileno()).st_size
                 cp(f"Read {file_size} bytes from {CMD}{filepath}{REP}")
         except FileNotFoundError:
-            cp(f"File not found: {CMD}{filepath}{REP}")
-            return
+            raise AkiBaseErr(
+                None, file_to_load, f"File not found: {CMD}{filepath}{REP}")
 
         tokens = self.main_cpl.lexer.tokenize(text)
         ast = self.main_cpl.parser.parse(tokens, text)
