@@ -114,7 +114,7 @@ class AkiLexer(Lexer):
 
     @_(r"\n+")
     def newline(self, t):
-        self.lineno += t.value.count(r"\n")
+        self.lineno += t.value.count("\n")
 
     def error(self, t):
         raise AkiSyntaxErr(Pos(self), self.text, f'Illegal character "{t.value[0]}"')
