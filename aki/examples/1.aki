@@ -1,0 +1,24 @@
+def g1 (z=0) {
+    var q=z
+    loop (var x=1, x<20, x+1) {
+        q+=1
+    }    
+    q
+    
+}
+
+def g2 (z,z1=0) {
+    loop (var x=1, x<20, x+1) {
+        z+=1
+    }    
+    z
+}
+
+def g3(z){
+    loop () {
+        when z>=20
+            break
+        z+=1        
+    }
+    z
+}
