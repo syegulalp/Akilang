@@ -398,11 +398,13 @@ class AkiCodeGen:
                     _.p, _.vartype.aki_type.default(), VarType(_.p, _.vartype.vartype)
                 )
                 # value = self._codegen(_.val)
+                value = _.val
             else:
-                # value = self._codegen(_.val)
+                value = self._codegen(_.val)
                 if _.vartype.vartype is None:
-                    _.vartype.vartype = _.val.vartype.vartype
+                    _.vartype.vartype = value.aki.vartype.vartype
                 self._add_node_props(_.vartype)
+                value = LLVMInstr(_, value)
 
             # Create an allocation for that type
             var_ptr = self._alloca(_, _.vartype.llvm_type, _.name)
@@ -414,7 +416,7 @@ class AkiCodeGen:
 
             # and store the value itself to the variable
             # by way of an Assignment op
-            self._codegen(Assignment(_.p, "=", Name(_.p, _.name), _.val))
+            self._codegen(Assignment(_.p, "=", Name(_.p, _.name), value))
 
     #### Control flow
 
@@ -452,7 +454,7 @@ class AkiCodeGen:
 
                 arg = node.arguments[_]
                 arg_val = self._codegen(arg)
-                
+
                 # originally, here, we had
                 # arg_val.aki = arg
                 # but that clobbered the .aki value from the codegen
@@ -464,11 +466,11 @@ class AkiCodeGen:
                         self.text,
                         f'Value "{CMD}{arg.name}{REP}" of type "{CMD}{arg_val.aki.vartype.aki_type}{REP}" does not match function argument {CMD}{_+1}{REP} of type "{CMD}{call_func.args[_].aki.vartype.aki_type}{REP}"',
                     )
-                
+
                 # again, I don't think we need it,
                 # but if it ever goes back in, put it here
                 # arg_val.aki = arg
-                
+
                 args.append(arg_val)
 
         except LocalException:
@@ -930,4 +932,3 @@ class AkiCodeGen:
         constant.aki = node
         node.name = node.val
         return constant
-
