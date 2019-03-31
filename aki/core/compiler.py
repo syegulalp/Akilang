@@ -10,9 +10,7 @@ llvm.initialize_native_asmprinter()
 class AkiCompiler:
     def __init__(self):
         """
-        Create an ExecutionEngine suitable for JIT code generation on
-        the host CPU.  The engine is reusable for an arbitrary number of
-        modules.
+        Create execution engine.
         """
 
         # Create a target machine representing the host
@@ -20,47 +18,30 @@ class AkiCompiler:
         self.target_machine = self.target.create_target_machine()
 
         # Prepare the engine with an empty module
-        self.reset()
-
-        # Not used yet
-        # engine.set_object_cache(export,None)
-
-    def reset(self):
-        """
-        Add an execution engine with an empty backing module
-        """
-
         self.backing_mod = llvm.parse_assembly("")
         self.engine = llvm.create_mcjit_compiler(self.backing_mod, self.target_machine)
         self.mod_ref = None
 
+        # Not used yet
+        # self.engine.set_object_cache(export,None)
+        
+
     def compile_ir(self, llvm_ir):
         """
-        Compile the LLVM IR string with the given engine.
-        The compiled module object is returned.
+        Compile a module from an LLVM IR string.
         """
-
-        # Create a LLVM module object from the IR
         mod = llvm.parse_assembly(llvm_ir)
-        mod.verify()
-
-        # Now add the module and make sure it is ready for execution
-        self.engine.add_module(mod)
-        self.engine.finalize_object()
-        self.engine.run_static_constructors()
-        self.mod_ref = mod
-        return mod
+        return self.finalize_compilation(mod)
 
     def compile_bc(self, bc):
         """
-        Compile the LLVM bitcode with the given engine.
-        The compiled module object is returned.
+        Compile a module from  LLVM bitcode.
         """
-
         mod = llvm.parse_bitcode(bc)
-        mod.verify()
+        return self.finalize_compilation(mod)
 
-        # Now add the module and make sure it is ready for execution
+    def finalize_compilation(self, mod):
+        mod.verify()
         self.engine.add_module(mod)
         self.engine.finalize_object()
         self.engine.run_static_constructors()
