@@ -52,6 +52,8 @@ class VarType(Expression):
     def __init__(self, p, vartype):
         super().__init__(p)
         self.vartype = vartype
+        self.aki_type = None
+        self.llvm_type = None
 
     def flatten(self):
         return [self.__class__.__name__, str(self.vartype)]
