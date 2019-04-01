@@ -530,6 +530,11 @@ class AkiCodeGen:
 
             # Create the loop initialization block
 
+            # TODO:
+            # If we only have one element, assume it's the start.
+            # If only two, start/stop.
+            # If three, start/stop/step.
+
             if len(node.conditions) != 3:
                 raise AkiSyntaxErr(
                     node,
