@@ -32,6 +32,7 @@
 * [x] Loop constructions
   * [x] Var inside and outside of loops
   * [x] `break` to exit from blocks
+  * [ ] Autoincrement/assume infinite loop
 * [x] Loaded programs and REPL use different JITs to allow efficient code reuse
 * [x] `with` context for variables
 * [x] Test suite
