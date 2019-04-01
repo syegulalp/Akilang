@@ -723,14 +723,21 @@ class AkiCodeGen:
         Generate a unary negation operation for a scalar value.
         """
 
-        lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
-
         if isinstance(operand.aki.vartype.aki_type, AkiInt):
+            lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
             instr = self.builder.sub(lhs, operand, "negop")
+        
         elif isinstance(operand.aki.vartype.aki_type, AkiFloat):
+            lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
             instr = self.builder.fsub(lhs, operand, "fnegop")
+        
         elif isinstance(operand.aki.vartype.aki_type, AkiDouble):
+            lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
             instr = self.builder.fsub(lhs, operand, "fnegop")
+        
+        elif isinstance(operand.aki.vartype.aki_type, AkiBool):
+            lhs = self._codegen(Constant(node, 1, operand.aki.vartype))
+            instr = self.builder.xor(lhs, operand, "bnegop")
 
         instr.aki = LLVMOp(
             node.lhs, operand.aki.vartype.aki_type, f"{node.op} operation"
@@ -778,7 +785,7 @@ class AkiCodeGen:
         rhs = node.rhs
 
         if not isinstance(lhs, Name):
-            raise AkiOpError(node, self.text, f"Assignment target must be a variable")
+            raise AkiOpError(node, self.text, f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable')
 
         ptr = self._name(node.lhs, lhs.name)
         val = self._codegen(rhs)
@@ -906,7 +913,7 @@ class AkiCodeGen:
             raise AkiOpError(
                 node,
                 self.text,
-                f'Binary operator "{node.op}" not found for type "{lhs_atype}"',
+                f'Binary operator "{CMD}{node.op}{REP}" not found for type "{CMD}{lhs_atype}{REP}"',
             )
 
         instr.aki = LLVMOp(node.lhs, instr_type, f"{node.op} operation")
