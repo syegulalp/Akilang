@@ -50,12 +50,14 @@ preceded by a dot sign:
 
     {CMD}.about|ab{REP}     : About this program.
     {CMD}.compile|cp{REP}   : Compile current module to executable.
-    {CMD}.dump|dp{REP}      : Dump current module to console.
+    {CMD}.dump|dp <funcname>{REP}
+                  : Dump current module IR to console.
+                  : Add <funcname> to dump IR for a function.
     {CMD}.exit|quit|stop|q{REP}
                   : Stop and exit the program.
     {CMD}.export|ex <filename>{REP}
                   : Dump current module to file in LLVM assembler format.
-                  : Uses output.ll in current directory as default.
+                  : Uses output.ll in current directory as default filename.
     {CMD}.help|.?|.{REP}    : Show this message.
     {CMD}.rerun|..{REP}     : Reload the Python code and restart the REPL. 
     {CMD}.rl[c|r]{REP}      : Reset the interpreting engine and reload the last .aki
@@ -109,8 +111,7 @@ LLVM   :{".".join((str(n) for n in binding.llvm_version_info))}
 pyaki  :{constants.VERSION}"""
 
     def __init__(self):
-        self.main_cpl = JIT()
-        self.repl_cpl = JIT()
+        self.reset(silent=True)
 
     def run_tests(self, *a):
         print (f'{REP}', end='')
@@ -145,6 +146,7 @@ pyaki  :{constants.VERSION}"""
         raise QuitException
 
     def reload(self, *a):
+        print(XX)
         raise ReloadException
 
     def run(self):
@@ -288,6 +290,12 @@ pyaki  :{constants.VERSION}"""
     def load_test(self, *a):
         self.load_file("1")
 
+    def reset(self, *a, **ka):        
+        self.main_cpl = JIT()
+        self.repl_cpl = JIT()
+        if not 'silent' in ka:
+            cp(f'{RED}Workspace reset')
+
     cmds = {
         "t": run_tests,
         "l": load_test,
@@ -311,8 +319,8 @@ pyaki  :{constants.VERSION}"""
         "rl": not_implemented,
         "rlc": not_implemented,
         "rlr": not_implemented,
-        "reset": not_implemented,
-        "~": not_implemented,
+        "reset": reset,
+        "~": reset,
         "run": not_implemented,
         "r": not_implemented,
         "test": run_tests,
