@@ -2,21 +2,6 @@ PRODUCT = "Aki"
 VERSION = '0.0.2019.03.30'
 COPYRIGHT = "2019"
 
-CONFIG_INI_DEFAULTS = '''[paths]
-source_dir=examples
-output_dir=output
-dump_dir=.
-editor=notepad.exe
-
-[aux]
-lib_dir=lib
-basiclib=basiclib.aki
-compiler_dir=compile
-
-[nt_compiler]
-path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
-'''
-
 ABOUT = f'''{PRODUCT} v.{VERSION}
 © {COPYRIGHT} Serdar Yegulalp
 
@@ -25,3 +10,18 @@ Based on code created by:
 - Eli Bendersky (https://github.com/eliben/pykaleidoscope)'''
 
 WELCOME = f"{PRODUCT} v.{VERSION}"
+
+def defaults():
+    return {
+        'paths': {
+            'source_dir':'examples',
+            'output_dir':'output',
+            'dump_dir':'.',
+            'nt_compiler': "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
+        },
+        'settings': {
+            'write_main_to_file': {'Dumps loaded moduyle LLVM IR to "{paths.output_dir}" on load.', True},
+            'write_repl_to_file': {'Dumps REPL LLVM IR to {paths.output_dir}" on load.', True},
+            'compile_on-load': {'Compile immediately when a file is loaded.', True},
+        }
+    }
