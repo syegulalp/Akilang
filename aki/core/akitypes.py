@@ -20,6 +20,16 @@ c_ref = {
 
 
 class AkiType:
+    comp_ops = {
+        "==": ".eqop",
+        "!=": ".neqop",
+        "<=": ".leqop",
+        ">=": ".geqop",
+        "<": ".ltop",
+        ">": ".gtop",
+    }
+    comp_ins = None
+
     def __str__(self):
         return f":{self.type_id}"
 
@@ -30,16 +40,24 @@ class AkiType:
         return c_ref[self.signed][self.bits]
 
     def as_pointer(self, llvm_var):
-        """
-        Takes in an LLVM variable reference,
-        and returns a pointer of that type,
-        decorated with an appropriate .aki subobject.
-        """
-        pass
+        return AkIPointer(self)
 
 
 class AkiPointer(AkiType):
-    pass
+    """
+    Takes in an LLVM variable reference,
+    and returns a pointer of that type,
+    decorated with an appropriate .aki subobject.
+    """
+
+    signed = False
+    bits = 64
+
+    def __init__(self, base_type):
+        self.base_type = base_type
+        self.llvm_type = base_type.llvm_type.as_pointer()
+        self.type_id = f"ptr " + base_type.type_id
+        
 
 
 class AkiObject(AkiType):
@@ -70,6 +88,17 @@ class AkiBaseInt(AkiType):
         return 0
 
 
+class AkiTypeRef(AkiType):
+    comp_ops = {"==": ".eqop", "!=": ".neqop"}
+    comp_ins = "icmp_unsigned"
+
+    def __init__(self):
+        self.bits = 64
+        self.llvm_type = types.IntType(self.bits)
+        self.signed = False
+        self.type_id = "type"
+
+
 class AkiBool(AkiType):
     def __init__(self):
         self.bits = 1
@@ -82,17 +111,22 @@ class AkiBool(AkiType):
 
 
 class AkiInt(AkiBaseInt):
+    comp_ins = "icmp_signed"
+
     def __init__(self, bits):
         super().__init__(bits, True)
 
 
 class AkiUnsignedInt(AkiBaseInt):
+    comp_ins = "icmp_unsigned"
+
     def __init__(self, bits):
         super().__init__(bits, False)
 
 
 class AkiBaseFloat(AkiType):
     signed = True
+    comp_ins = "fcmp_ordered"
 
     def default(self):
         return 0.0
@@ -123,26 +157,33 @@ class AkiTypes:
     # These are never modified so we can place them in the underlying class
 
     base_types = {
+        "type": AkiTypeRef(),
         "bool": AkiBool(),
         "i1": AkiInt(1),
         "i8": AkiInt(8),
         "i16": AkiInt(16),
         "i32": AkiInt(32),
+        "int": AkiInt(32),
         "i64": AkiInt(64),
         "u8": AkiUnsignedInt(8),
         "u16": AkiUnsignedInt(16),
         "u32": AkiUnsignedInt(32),
+        "uint": AkiUnsignedInt(32),
         "u64": AkiUnsignedInt(64),
         "f32": AkiFloat(),
         "f64": AkiDouble(),
-        "int": lambda x: AkiInt(x),
-        "uint": lambda x: AkiUnsignedInt(x),
+        # We originally had these here but they break the pattern
+        # we'll figure out later how to work stuff like this in
+        # "bigint": lambda x: AkiInt(x)
+        # (signed)
     }
 
     @classmethod
     def setup(cls):
-        for k, v in AkiTypes.base_types.items():
+        for index, k_v in enumerate(AkiTypes.base_types.items()):
+            k, v = k_v
             setattr(AkiTypes, k, v)
+            setattr(getattr(AkiTypes, k), "enum_id", index)
 
 
 AkiTypes.setup()
