@@ -38,7 +38,7 @@ from core.parse import AkiParser
 from core.codegen import AkiCodeGen
 from core.compiler import AkiCompiler, ir
 
-from core.astree import Function, Call, Prototype, VarType, ExpressionBlock, TopLevel
+from core.astree import Function, Call, Prototype, VarType, ExpressionBlock, TopLevel, Name, VarTypeName
 from core.error import AkiBaseErr
 from core.error import ReloadException, QuitException
 from core import constants
@@ -234,7 +234,7 @@ pyaki  :{constants.VERSION}"""
             self.repl_cpl.anon_counter += 1
 
             call_name = f".ANONYMOUS.{self.repl_cpl.anon_counter}"
-            proto = Prototype(_.p, call_name, (), VarType(_.p, None))
+            proto = Prototype(_.p, call_name, (), VarType(_.p, VarTypeName(_.p, None)))
             func = Function(_.p, proto, ExpressionBlock(_.p, [_]))
 
             if not immediate_mode:

@@ -11,9 +11,11 @@ from core.akitypes import (
     AkiTypes,
     AkiFunction,
     AkiObject,
+    AkiTypeRef,
 )
 from core.astree import (
     VarType,
+    VarTypeName,
     LLVMOp,
     BinOpComparison,
     Constant,
@@ -60,14 +62,14 @@ class AkiCodeGen:
     Code generation module for Akilang.
     """
 
-    _comp_ops = {
-        "==": ".eqop",
-        "!=": ".neqop",
-        "<=": ".leqop",
-        ">=": ".geqop",
-        "<": ".ltop",
-        ">": ".gtop",
-    }
+    # _comp_ops = {
+    #     "==": ".eqop",
+    #     "!=": ".neqop",
+    #     "<=": ".leqop",
+    #     ">=": ".geqop",
+    #     "<": ".ltop",
+    #     ">": ".gtop",
+    # }
 
     def __init__(self, module=None):
 
@@ -136,7 +138,7 @@ class AkiCodeGen:
             if name is not None:
                 # emit function reference for this module
                 link = ir.Function(self.module, name.ftype, name.name)
-                # copy aki data for function                
+                # copy aki data for function
                 link.aki = name.aki
                 for n_arg, l_arg in zip(name.args, link.args):
                     l_arg.aki = n_arg.aki
@@ -159,29 +161,47 @@ class AkiCodeGen:
 
         # should we do .aki.node, .aki.type?
 
+    
+    def _type_node_visit(self, node):
+        """
+        Walks the AST tree of a VarType's .vartype property
+        and generates the proper LLVM type and other Aki-specific
+        properties from it.
+        """
+        return getattr(self, f'_type_node_{node.__class__.__name__}')(node)
+        
+    def _type_node_VarType(self, node):
+        node.aki_type, node.llvm_type = self._type_node_visit(node.vartype)
+
+    def _type_node_Name(self, node):
+        raise Exception
+        return self._type_node_VarTypeName(node)
+
+    def _type_node_VarTypeName(self, node):
+        if node.name is None:
+            id_to_get = DefaultType.type_id
+        else:
+            id_to_get = node.name
+
+        var_lookup = getattr(AkiTypes, id_to_get, None)
+
+        if var_lookup is None:
+            raise AkiTypeErr(
+                node, self.text, f'Unrecognized type definition "{CMD}{id_to_get}{REP}"'
+            )
+        
+        return var_lookup, var_lookup.llvm_type
+
+
     def _add_node_props(self, node: VarType):
         """
         Takes in a single AST VarType node,
-        and adds Aki and LLVM type information to it,
-        based on its native `.vartype` string.        
+        unpacks it and generates Aki and LLVM type information,
+        and decorates each node with .aki_type and llvm_type data.
         """
 
-        # look up the string ID
+        return self._type_node_visit(node)
 
-        v = node.vartype
-
-        if v is None:
-            vartype = DefaultType
-        else:
-            vartype = getattr(AkiTypes, v, None)
-
-        if vartype is None:
-            raise AkiTypeErr(
-                node, self.text, f'Unrecognized type definition "{CMD}{v}{REP}"'
-            )
-
-        node.aki_type = vartype
-        node.llvm_type = vartype.llvm_type
 
     def _check_var_name(self, node, name, is_global=False):
         context = self.module.globals if is_global else self.fn.symtab
@@ -257,7 +277,7 @@ class AkiCodeGen:
 
         proto.aki = node
         function_type = AkiFunction(proto)
-        proto.aki.vartype = VarType(node, str(function_type))
+        proto.aki.vartype = VarType(node, Name(node, str(function_type)))
         proto.aki.vartype.aki_type = function_type
 
         # Add Aki type metadata
@@ -338,10 +358,10 @@ class AkiCodeGen:
         # If we don't explicitly assign a return type on the function prototype,
         # we infer it from the return value of the body.
         # Otherwise, if there's a mismatch, we error out.
-
+        
         if result.aki.vartype.aki_type != self.fn.return_value.aki.return_type.aki_type:
 
-            if node.prototype.return_type.vartype is None:
+            if node.prototype.return_type.vartype.name is None:
                 func.ftype.return_type = result.type
                 func.return_value.type = result.type
                 func.return_value.aki.return_type.aki_type = result.aki.vartype.aki_type
@@ -355,6 +375,7 @@ class AkiCodeGen:
                 )
 
             else:
+
                 raise AkiTypeErr(
                     node,
                     self.text,
@@ -401,17 +422,17 @@ class AkiCodeGen:
             # Create defaults if no value or vartype
 
             if _.val is None:
-                if _.vartype is None:
-                    _.vartype = VarType(_.p, DefaultType.type_id)
+                if _.vartype is None:                    
+                    _.vartype = VarType(_.p, Name(_.p, DefaultType.type_id))
                 self._add_node_props(_.vartype)
                 _.val = Constant(
-                    _.p, _.vartype.aki_type.default(), VarType(_.p, _.vartype.vartype)
+                    _.p, _.vartype.aki_type.default(), _.vartype
                 )
                 value = _.val
-            else:
+            else:                
                 value = self._codegen(_.val)
-                if _.vartype.vartype is None:
-                    _.vartype.vartype = value.aki.vartype.vartype
+                if _.vartype.vartype.name is None:
+                    _.vartype.vartype = value.aki.vartype.vartype               
                 self._add_node_props(_.vartype)
                 value = LLVMInstr(_, value)
 
@@ -434,10 +455,53 @@ class AkiCodeGen:
         Generate a function call from a Call node.
         """
 
-        call_func = self._name(node, node.name)
-        args = []
+        # first, check if this is a request for a type
 
         try:
+
+            named_type = AkiTypes.base_types.get(node.name, None)
+            if named_type is not None:
+
+                if len(node.arguments) != 1:
+                    call_func = lambda: None
+                    call_func.args = [None]
+                    raise LocalException
+
+                arg = node.arguments[0]
+
+                if node.name == "type":
+                    type_from = self._codegen(arg)
+                    const = self._codegen(
+                        Constant(
+                            arg,
+                            type_from.aki.vartype.aki_type.enum_id,
+                            VarType(arg, VarTypeName(arg, AkiTypes.type.type_id)),
+                        )
+                    )
+                    return const
+
+                if isinstance(arg, Constant):
+                    # this check is in place until we have
+                    # methods for making ints from floats, etc.
+                    if arg.vartype.vartype.name != named_type.type_id:
+                        raise AkiTypeErr(
+                            arg,
+                            self.text,
+                            f'Constant "{CMD}{arg.val}{REP}" is not type "{CMD}{named_type.type_id}{REP}" (type conversions not yet performed this way)',
+                        )
+
+                    const = self._codegen(
+                        Constant(arg, arg.val, VarType(arg, VarTypeName(arg, named_type.type_id)))
+                    )
+                    return const
+
+                else:
+                    raise AkiOpError(
+                        node.arguments[0], self.text, f"Only constants allowed for now"
+                    )
+
+            call_func = self._name(node, node.name)
+            args = []
 
             # If we have too many arguments, give up
 
@@ -726,15 +790,15 @@ class AkiCodeGen:
         if isinstance(operand.aki.vartype.aki_type, AkiInt):
             lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
             instr = self.builder.sub(lhs, operand, "negop")
-        
+
         elif isinstance(operand.aki.vartype.aki_type, AkiFloat):
             lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
             instr = self.builder.fsub(lhs, operand, "fnegop")
-        
+
         elif isinstance(operand.aki.vartype.aki_type, AkiDouble):
             lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
             instr = self.builder.fsub(lhs, operand, "fnegop")
-        
+
         elif isinstance(operand.aki.vartype.aki_type, AkiBool):
             lhs = self._codegen(Constant(node, 1, operand.aki.vartype))
             instr = self.builder.xor(lhs, operand, "bnegop")
@@ -785,7 +849,11 @@ class AkiCodeGen:
         rhs = node.rhs
 
         if not isinstance(lhs, Name):
-            raise AkiOpError(node, self.text, f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable')
+            raise AkiOpError(
+                node,
+                self.text,
+                f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable',
+            )
 
         ptr = self._name(node.lhs, lhs.name)
         val = self._codegen(rhs)
@@ -807,31 +875,25 @@ class AkiCodeGen:
         lhs_atype, rhs_atype = self._type_check_op(node, lhs, rhs)
         signed_op = lhs_atype.signed
 
-        # Add appropriate instruction
+        # Find and add appropriate instruction
 
-        if isinstance(lhs_atype, AkiBaseFloat):
-            op = self.builder.fcmp_ordered
-        elif isinstance(lhs_atype, (AkiBaseInt, AkiBool)):
-            if lhs_atype.signed:
-                op = self.builder.icmp_signed
-            else:
-                op = self.builder.icmp_unsigned
-        else:
+        try:
+            instr_name = lhs_atype.comp_ins
+            if instr_name is None:
+                raise LocalException
+            instr_type = getattr(self.builder, instr_name)
+            op_name = lhs_atype.comp_ops.get(node.op, None)
+            if op_name is None:
+                raise LocalException
+
+        except LocalException:
             raise AkiOpError(
                 node,
                 self.text,
                 f'Comparison operator "{CMD}{node.op}{REP}" not supported for type "{CMD}{lhs_atype}{REP}"',
             )
 
-        comp_op = self._comp_ops.get(node.op, None)
-        if comp_op is None:
-            raise AkiOpError(
-                node,
-                self.text,
-                f'Binary operator "{CMD}{node.op}{REP}" not found for type "{CMD}{lhs_atype}{REP}"',
-            )
-
-        instr = op(node.op, lhs, rhs, comp_op)
+        instr = instr_type(node.op, lhs, rhs, op_name)
         instr.aki = LLVMOp(node.lhs, AkiBool(), f"{node.op} operation")
         return instr
 
@@ -930,6 +992,15 @@ class AkiCodeGen:
         This always assumes we want the variable value associated with the name,
         not the variable's pointer.        
         """
+
+        # Types are returned, for now, as their enum
+
+        named_type = AkiTypes.base_types.get(node.name, None)
+        if named_type is not None:
+            return self._codegen(
+                Constant(node, named_type.enum_id, VarType(node, VarTypeName(node, "type")))
+            )
+
         name = self._name(node, node.name)
 
         # Return object types as a pointer

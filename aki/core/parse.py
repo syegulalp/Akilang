@@ -19,6 +19,7 @@ from core.astree import (
     LoopExpr,
     Break,
     WithExpr,
+    VarTypeName,
 )
 from core.error import AkiSyntaxErr
 
@@ -31,7 +32,7 @@ class AkiParser(Parser):
     class NullLogger:
         warning = lambda *a: None
         info = warning
-    
+
     log = NullLogger
 
     precedence = (
@@ -63,11 +64,11 @@ class AkiParser(Parser):
 
     @_("INTEGER")
     def expr(self, p):
-        return Constant(Pos(p), p.INTEGER, VarType(Pos(p), "i32"))
+        return Constant(Pos(p), p.INTEGER, VarType(Pos(p), VarTypeName(Pos(p), "i32")))
 
     @_("FLOAT")
     def expr(self, p):
-        return Constant(Pos(p), p.FLOAT, VarType(Pos(p), "f32"))
+        return Constant(Pos(p), p.FLOAT, VarType(Pos(p), VarTypeName(Pos(p), "f32")))
 
     @_("NAME")
     def expr(self, p):
@@ -179,14 +180,6 @@ class AkiParser(Parser):
     @_("vartype argassign")
     def varassign(self, p):
         return p.vartype, p.argassign
-    
-    @_("COLON NAME")
-    def vartype(self, p):
-        return VarType(Pos(p), p.NAME)
-
-    @_("empty")
-    def vartype(self, p):
-        return VarType(Pos(p), None)
 
     @_("ASSIGN expr")
     def argassign(self, p):
@@ -195,6 +188,20 @@ class AkiParser(Parser):
     @_("empty")
     def argassign(self, p):
         return None
+
+    # vartypes
+
+    @_("COLON vartypedef")
+    def vartype(self, p):
+        return VarType(Pos(p), p.vartypedef)
+
+    @_("NAME")
+    def vartypedef(self, p):
+        return VarTypeName(Pos(p), p.NAME)
+
+    @_("empty")
+    def vartype(self, p):
+        return VarType(Pos(p), VarTypeName(Pos(p), None))
 
     # Function call
 
@@ -312,7 +319,7 @@ class AkiParser(Parser):
     def loop_expr_var(self, p):
         if isinstance(p[0], Assignment):
             return p.assignment_expr
-        return VarList(Pos(p), [p.varlistelement])    
+        return VarList(Pos(p), [p.varlistelement])
 
     @_("LOOP LPAREN loop_expr_var COMMA expr COMMA expr RPAREN expr_block")
     def loop_expr(self, p):
@@ -340,7 +347,6 @@ class AkiParser(Parser):
     @_("with_expr")
     def expr(self, p):
         return p.with_expr
-
 
     @_("")
     def empty(self, p):

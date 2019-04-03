@@ -1,8 +1,8 @@
 # Test all code generation functions.
 
 import unittest
-from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr
-
+from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr, AkiOpError
+from core.akitypes import AkiTypes
 
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
@@ -133,3 +133,34 @@ class TestLexer(unittest.TestCase):
             ),
         )
 
+    def test_inline_type_declarations(self):
+        self._e(
+            (
+                (r"{var x:i32=1 x==i32(1)}", True),
+            )
+        )
+        
+        self._ex(
+            AkiTypeErr,
+            (
+                (r"{var x:i32=1 x==i64(1)}", None),
+            )
+        )
+
+    def test_type_comparison(self):
+        self._e(
+            (
+                (r"{var x=1,y=2 type(x)==type(y)}", True),
+                (r"i32==i32", True),
+                (r"i32==i64", False),
+                (r"{var x=1,y=2 type(x)!=type(y)}", False),
+                (r'type(i32)', AkiTypes.type.enum_id),
+                (r'i32', AkiTypes.i32.enum_id),
+            )
+        )
+        self._ex(
+            AkiOpError,
+            (
+                (r"{var x=1,y=2 type(x)<type(y)}", None),
+            )
+        )
