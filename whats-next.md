@@ -49,7 +49,7 @@
 * [ ] `case` statement for matching against enums
 * [ ] External function references (`extern` context block with optional library identifier)
 * [ ] Comments
-* [ ] Inline typing for constants. including `True/False` for `bool` values
+* [ ] Inline typing for constants, including `True/False` for `bool` values
 * [ ] `uni` for globals
 * [ ] `const` for constants
 * [ ] Complete REPL command set (as per earlier incarnation of project)
@@ -58,6 +58,8 @@
 * [ ] Pointers and pointer types, mainly for compatibility with C right now
 * [ ] Function type (for function pointers)
 * [ ] Positional and named/optional arguments
+* [ ] Type conversions
+* [ ] Function name mangling
 
 # Stage 1: Advanced variables and structures
 
