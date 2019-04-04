@@ -53,6 +53,8 @@ class AkiLexer(Lexer):
         LOOP,
         BREAK,
         WITH,
+        PTR,
+        FUNC,
     }
 
     ignore = " \t"
@@ -70,6 +72,8 @@ class AkiLexer(Lexer):
     NAME["loop"] = LOOP
     NAME["break"] = BREAK
     NAME["with"] = WITH
+    NAME["ptr"] = PTR
+    NAME["func"] = FUNC
 
     INT_DIV = r"//"
 

@@ -43,20 +43,21 @@
 * [x] Default function argument values
 * [x] Color-coded output in REPL
 * [x] Store Aki-native type signatures as LLVM metadata
+* [x] Pointers and pointer types, mainly for compatibility with C right now
+* [x] Function type (for function pointers)
+  * [x] Function pointer type
 
 ## In progress
 
-* [ ] `case` statement for matching against enums
-* [ ] External function references (`extern` context block with optional library identifier)
-* [ ] Comments
 * [ ] Inline typing for constants, including `True/False` for `bool` values
+* [ ] External function references (`extern` context block with optional library identifier)
+* [ ] `case` statement for matching against enums
+* [ ] Comments
 * [ ] `uni` for globals
 * [ ] `const` for constants
 * [ ] Complete REPL command set (as per earlier incarnation of project)
 * [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
-* [ ] Pointers and pointer types, mainly for compatibility with C right now
-* [ ] Function type (for function pointers)
 * [ ] Positional and named/optional arguments
 * [ ] Type conversions
 * [ ] Function name mangling

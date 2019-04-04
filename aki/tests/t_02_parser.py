@@ -592,3 +592,47 @@ class TestLexer(unittest.TestCase):
             )
         )
 
+    def test_advanced_type_names(self):
+        self._e(
+            (
+                (
+                    "var x:ptr i32",
+                    [
+                        [
+                            "VarList",
+                            [
+                                [
+                                    "Name",
+                                    "x",
+                                    None,
+                                    ["VarType", ["VarTypePtr", ["VarTypeName", "i32"]]],
+                                ]
+                            ],
+                        ]
+                    ],
+                ),
+                (
+                    "var x:ptr ptr i32",
+                    [
+                        [
+                            "VarList",
+                            [
+                                [
+                                    "Name",
+                                    "x",
+                                    None,
+                                    [
+                                        "VarType",
+                                        [
+                                            "VarTypePtr",
+                                            ["VarTypePtr", ["VarTypeName", "i32"]],
+                                        ],
+                                    ],
+                                ]
+                            ],
+                        ]
+                    ],
+                ),
+            )
+        )
+

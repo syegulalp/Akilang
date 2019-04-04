@@ -21,7 +21,7 @@ class TestLexer(unittest.TestCase):
 
     def _generate_tokens(self):
         t = self.l(
-            "1+2.0 hello:i32 (_f16) {-32,64} s=t r==1 def x(a:i32) var s=1 2+1 3-2 4*3 5/4 var x=8.0//2 if not x y else z"
+            "1+2.0 hello:i32 (_f16) {-32,64} s=t r==1 def x(a:i32) var s=1 2+1 3-2 4*3 5/4 var x=8.0//2 if not x y else z a:ptr i32"
         )
 
         t = [_ for _ in t]
@@ -29,6 +29,7 @@ class TestLexer(unittest.TestCase):
 
     def test_tokens_and_values(self):
         t = self._generate_tokens()
+        # self._render()
 
         slots = Token.__slots__
 
@@ -89,6 +90,10 @@ class TestLexer(unittest.TestCase):
             ["NAME", "y", 1, 100],
             ["ELSE", "else", 1, 102],
             ["NAME", "z", 1, 107],
+            ["NAME", "a", 1, 109],
+            ["COLON", ":", 1, 110],
+            ["PTR", "ptr", 1, 111],
+            ["NAME", "i32", 1, 115],
         ]
 
         for tok, test in zip(t, tests):

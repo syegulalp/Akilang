@@ -164,3 +164,19 @@ class TestLexer(unittest.TestCase):
                 (r"{var x=1,y=2 type(x)<type(y)}", None),
             )
         )
+
+    def test_pointer(self):
+        self._e(
+            (
+                (r'{var x:ptr i32 x}', 0),
+            )
+        )
+   
+   
+    def test_function_pointer(self):
+        self._e(
+            (
+                (r'{var x:func():i32 x}', 0),
+                (r'{var x:func(:i32):i32 x}', 0),
+            )
+        )

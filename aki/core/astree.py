@@ -50,7 +50,7 @@ class VarTypeNode(Expression):
 
 class VarType(Expression):
     """
-    Variable type, stored as a string.
+    Variable type mini-AST header node.
     """
 
     def __init__(self, p, vartype: VarTypeNode):
@@ -79,6 +79,38 @@ class VarTypeName(VarTypeNode):
 
     def flatten(self):
         return [self.__class__.__name__, self.name]
+
+
+class VarTypePtr(VarTypeNode):
+    def __init__(self, p, pointee: VarTypeNode):
+        super().__init__(p)
+        self.pointee = pointee
+        self.name = f"ptr {pointee.name}"
+
+    def __eq__(self, other):
+        return self.pointee == other.pointee
+
+    def flatten(self):
+        return [self.__class__.__name__, self.pointee.flatten()]
+
+
+class VarTypeFunc(VarTypeNode):
+    def __init__(self, p, arguments, return_type: VarTypeNode):
+        super().__init__(p)
+        self.arguments = arguments
+        self.return_type = return_type
+
+    def __eq__(self, other):
+        return (
+            self.arguments == other.arguments and self.return_type == other.return_type
+        )
+
+    def flatten(self):
+        return [
+            self.__class__.__name__,
+            self.arguments.flatten() if self.arguments else [],
+            self.return_type.flatten() if self.return_type else None,
+        ]
 
 
 # to come: VarTypePointer, VarTypeCall, etc.

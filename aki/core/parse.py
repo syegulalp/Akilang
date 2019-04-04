@@ -20,6 +20,8 @@ from core.astree import (
     Break,
     WithExpr,
     VarTypeName,
+    VarTypePtr,
+    VarTypeFunc
 )
 from core.error import AkiSyntaxErr
 
@@ -189,15 +191,59 @@ class AkiParser(Parser):
     def argassign(self, p):
         return None
 
-    # vartypes
+    # vartypes mini-AST
 
     @_("COLON vartypedef")
     def vartype(self, p):
         return VarType(Pos(p), p.vartypedef)
 
-    @_("NAME")
+    # pointer prefix
+    
+    @_("ptrlist vartypekind")
     def vartypedef(self, p):
+        name = p.vartypekind
+        for _ in p.ptrlist:
+            name = VarTypePtr(Pos(p), name)
+        return name
+
+    # function vartype (function pointer)
+
+    @_("NAME")
+    def vartypekind(self, p):
         return VarTypeName(Pos(p), p.NAME)
+
+    @_("FUNC LPAREN vartypelist RPAREN vartype")
+    def vartypekind(self, p):
+        func = VarTypeFunc(
+            Pos(p),
+            p.vartypelist,
+            p.vartype
+        )
+        return func
+    
+    @_("vartype COMMA vartypelist")
+    def vartypelist(self, p):
+        return p.vartypelist + [p.vartype]
+
+    @_("vartype")
+    def vartypelist(self, p):
+        return [p.vartype]
+
+    @_("empty")
+    def vartypelist(self, p):
+        return []
+
+    @_("PTR ptrlist")
+    def ptrlist(self, p):
+        return [p.PTR] + p.ptrlist
+
+    @_("PTR")
+    def ptrlist(self, p):
+        return [p.PTR]
+
+    @_("empty")
+    def ptrlist(self, p):
+        return []
 
     @_("empty")
     def vartype(self, p):

@@ -39,15 +39,14 @@ class AkiType:
     def c(self):
         return c_ref[self.signed][self.bits]
 
-    def as_pointer(self, llvm_var):
-        return AkIPointer(self)
+    def as_pointer(self):
+        return AkiPointer(self)
 
 
 class AkiPointer(AkiType):
     """
-    Takes in an LLVM variable reference,
+    Takes in an Aki type reference,
     and returns a pointer of that type,
-    decorated with an appropriate .aki subobject.
     """
 
     signed = False
@@ -56,8 +55,11 @@ class AkiPointer(AkiType):
     def __init__(self, base_type):
         self.base_type = base_type
         self.llvm_type = base_type.llvm_type.as_pointer()
-        self.type_id = f"ptr " + base_type.type_id
-        
+        self.type_id = f"ptr {base_type.type_id}"
+
+    def default(self):
+        # Null value for pointer
+        return None
 
 
 class AkiObject(AkiType):
@@ -67,14 +69,23 @@ class AkiObject(AkiType):
 class AkiFunction(AkiObject):
     signed = False
 
-    def __init__(self, llvm_func):
-        self.llvm_func = llvm_func
-        self.llvm_type = llvm_func.type
+    def __init__(self, arguments, return_type):
+        self.arguments = arguments
+        # list of decorated AkiType nodes
+        self.return_type = return_type 
+        # single decorated AkiType node
 
-        self.type_id = f'func({",".join([str(_.vartype.aki_type) for _ in llvm_func.aki.arguments])}){llvm_func.aki.return_type.aki_type}'
+        self.llvm_type = ir.FunctionType(
+            self.return_type.llvm_type,
+            [_.llvm_type for _ in self.arguments]
+        )
+        self.type_id = f'func({",".join([str(_.aki_type) for _ in self.arguments])}){self.return_type.aki_type}'
 
     def c(self):
         return ctypes.c_void_p
+    
+    def default(self):
+        return None
 
 
 class AkiBaseInt(AkiType):
