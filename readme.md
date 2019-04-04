@@ -27,7 +27,7 @@ The language's syntax and goals are in heavy flux, but this is the basic idea I 
 * Use LLVM as our code generation system, so we can theoretically compile to any target LLVM supports, like WebAssembly.
 * Strong typing, eventually to be made dynamic by way of an object system a la Python.
 * Keep the core of the language small, but provide useful native constructs a la Python (Unicode strings, lists, dictionaries, tuples, sets, etc.).
-* Your choice of memory management methods as need dictates. Use garbage collected memory management when you need to throw together a quick script; use static memory management (by way of syntactical contrusctions) when you want speed and performance.
+* Your choice of memory management methods as need dictates. Use garbage collected memory management when you need to throw together a quick script; use static memory management (by way of syntactical constructions) when you want speed and performance.
 * A batteries-included standard library, yet again like Python.
 * Good tooling for package and project management, including out-of-the-box code formatting tools, akin to Rust/Go/C#.
 * Integrated support for C libraries; the ability to import a C header file for a (compiled) library and use it as-is.
