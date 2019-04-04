@@ -81,8 +81,11 @@ class AkiCodeGen:
         self.other_modules = []
 
     def init_func_handlers(self):
-
-        # Initialize function state handlers.
+        """
+        Called when we create a new function.
+        This sets up the state of the function,
+        as used elsewhere throughout the module.
+        """
 
         self.builder = None
         self.fn = FuncState()
@@ -105,6 +108,9 @@ class AkiCodeGen:
         return result
 
     def _codegen_LLVMInstr(self, node):
+        """
+        Pass a wrapped LLVM instruction up the node visitor.
+        """
         return node.llvm_instr
 
     def _name(self, node, name_to_find, other_module=None):
@@ -142,17 +148,18 @@ class AkiCodeGen:
                 node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
             )
 
-    def _aki(self, node, llvm_obj):
-        pass
+    #################################################################
+    # Type AST node walker
+    #################################################################
 
-        # Take in an LLVM object
-        # and an Aki node
-        # to LLVM, add .aki_node and .aki_type
-        # .aki_node = the node from the AST
-        # if none exists, generate one
-        # .aki_type = vartype from lookup
+    def _add_node_props(self, node: VarType):
+        """
+        Takes in a single AST VarType node,
+        unpacks it and generates Aki and LLVM type information,
+        and decorates each node with .aki_type and llvm_type data.
+        """
 
-        # should we do .aki.node, .aki.type?
+        return self._type_node_visit(node)
 
     def _type_node_visit(self, node):
         """
@@ -163,13 +170,22 @@ class AkiCodeGen:
         return getattr(self, f"_type_node_{node.__class__.__name__}")(node)
 
     def _type_node_VarType(self, node):
+        """
+        Node visitor for VarType nodes.
+        """
         node.aki_type, node.llvm_type = self._type_node_visit(node.vartype)
 
     def _type_node_Name(self, node):
+        """
+        Node visitor for Name vartype nodes.
+        """
         raise Exception
         return self._type_node_VarTypeName(node)
 
     def _type_node_VarTypePtr(self, node):
+        """
+        Node visitor for VarTypePtr nodes.
+        """
         aki_type, llvm_type = self._type_node_visit(node.pointee)
         aki_type = aki_type.as_pointer()
 
@@ -177,6 +193,10 @@ class AkiCodeGen:
         return aki_type, llvm_type
 
     def _type_node_VarTypeName(self, node):
+        """
+        Node visitor for VarTypeName nodes.
+        """
+
         if node.name is None:
             id_to_get = DefaultType.type_id
         else:
@@ -192,6 +212,9 @@ class AkiCodeGen:
         return var_lookup, var_lookup.llvm_type
 
     def _type_node_VarTypeFunc(self, node):
+        """
+        Node visitor for VarTypeFunc nodes.
+        """
         for _ in node.arguments:
             _.aki_type, _.llvm_type = self._type_node_visit(_.vartype)
 
@@ -204,16 +227,11 @@ class AkiCodeGen:
 
         return aki_node, aki_node.llvm_type
 
-    def _add_node_props(self, node: VarType):
-        """
-        Takes in a single AST VarType node,
-        unpacks it and generates Aki and LLVM type information,
-        and decorates each node with .aki_type and llvm_type data.
-        """
-
-        return self._type_node_visit(node)
-
     def _check_var_name(self, node, name, is_global=False):
+        """
+        Check routine to determine if a given name is already in use
+        in a given context.
+        """
         context = self.module.globals if is_global else self.fn.symtab
         if name in context:
             raise AkiNameErr(
@@ -221,6 +239,12 @@ class AkiCodeGen:
             )
 
     def _alloca(self, node, llvm_type, name, size=None, is_global=False):
+        """
+        Allocate space for a variable.
+        Right now this is stack-only; eventually it'll include
+        heap allocations, too.
+        """
+
         if isinstance(llvm_type, ir.FunctionType):
             llvm_type = llvm_type.as_pointer()
         return self.builder.alloca(llvm_type, size, name)
@@ -235,7 +259,9 @@ class AkiCodeGen:
 
         del self.fn.symtab[name]
 
-    #### Top-level statements
+    #################################################################
+    # Top-level statements
+    #################################################################
 
     def _codegen_Prototype(self, node):
         """
@@ -416,17 +442,27 @@ class AkiCodeGen:
 
         return func
 
-    ### Blocks
+    #################################################################
+    # Blocks
+    #################################################################
 
     def _codegen_ExpressionBlock(self, node):
+        """
+        Codegen each expression in an Expression Block.
+        """
         result = None
         for _ in node.body:
             result = self._codegen(_)
         return result
 
-    ### Declarations
+    #################################################################
+    # Declarations
+    #################################################################
 
     def _codegen_VarList(self, node):
+        """
+        Codegen the variables in a VarList node.
+        """
         for _ in node.vars:
 
             self._check_var_name(_, _.name)
@@ -483,7 +519,9 @@ class AkiCodeGen:
 
             self._codegen(Assignment(_.p, "=", Name(_.p, _.name), value))
 
-    #### Control flow
+    #################################################################
+    # Control flow
+    #################################################################
 
     def _codegen_Call(self, node):
         """
@@ -600,6 +638,9 @@ class AkiCodeGen:
         return call
 
     def _codegen_Break(self, node):
+        """
+        Codegen a break action.
+        """
 
         if len(self.fn.breakpoints) == 0:
             raise AkiSyntaxErr(
@@ -609,6 +650,9 @@ class AkiCodeGen:
         self.builder.branch(self.fn.breakpoints[-1])
 
     def _codegen_WithExpr(self, node):
+        """
+        Codegen a with block.
+        """
 
         self._codegen(node.varlist)
         body = self._codegen(node.body)
@@ -617,6 +661,9 @@ class AkiCodeGen:
         return body
 
     def _codegen_LoopExpr(self, node):
+        """
+        Codegen a loop expression.
+        """
 
         local_symtab = {}
 
@@ -648,7 +695,7 @@ class AkiCodeGen:
             start = node.conditions[0]
             stop = node.conditions[1]
             step = node.conditions[2]
-            
+
             loop_init = self.builder.append_basic_block("loop_init")
             self.builder.branch(loop_init)
             self.builder.position_at_start(loop_init)
@@ -716,6 +763,10 @@ class AkiCodeGen:
         return loop_body
 
     def _codegen_IfExpr(self, node):
+        """
+        Codegen an if expression, where then and else return values,
+        each of the same type.
+        """
 
         if node.then_expr.vartype != node.else_expr.vartype:
             raise AkiTypeErr(
@@ -762,6 +813,9 @@ class AkiCodeGen:
         return result
 
     def _codegen_WhenExpr(self, node):
+        """
+        Codegen a when expression, which returns the value of the when itself.
+        """
         if_expr = self._codegen(node.if_expr)
 
         if not isinstance(if_expr.aki.vartype.aki_type, AkiBool):
@@ -788,9 +842,14 @@ class AkiCodeGen:
 
         return if_expr
 
-    #### Operations
+    #################################################################
+    # Operations
+    #################################################################
 
     def _type_check_op(self, node, lhs, rhs):
+        """
+        Perform a type compatibility check for a binary op.
+        """
         lhs_atype = lhs.aki.vartype.aki_type
         rhs_atype = rhs.aki.vartype.aki_type
 
@@ -937,6 +996,9 @@ class AkiCodeGen:
         return instr
 
     def _codegen_BinOp(self, node):
+        """
+        Codegen a generic binary operation, typically math.
+        """
         lhs = self._codegen(node.lhs)
         rhs = self._codegen(node.rhs)
 
@@ -1023,7 +1085,9 @@ class AkiCodeGen:
         # TODO: This assumes the left-hand side will always have the correct
         # type information to be propagated. Need to confirm this.
 
-    #### Values
+    #################################################################
+    # Values
+    #################################################################
 
     def _codegen_Name(self, node):
         """
