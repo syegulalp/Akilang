@@ -1,6 +1,7 @@
 from llvmlite.ir import types
 from llvmlite import ir
 import ctypes
+from core.astree import BinOpComparison, LLVMInstr, Constant, IfExpr
 
 c_ref = {
     True: {
@@ -87,7 +88,71 @@ class AkiFunction(AkiObject):
         return None
 
 
-class AkiBaseInt(AkiType):
+class AkiIntBoolMathOps:
+    """
+    Math operations shared between integer and boolean types.
+    """
+
+    math_ops = {
+        "+": "add",
+        "-": "sub",
+        "*": "mul",
+        "/": "div",
+        "&": "bin_and",
+        "|": "bin_or",
+        "and": "andor",
+        "or": "andor",
+    }
+
+    def math_op_addop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.add(lhs, rhs, f".{op_name}")
+
+    def math_op_subop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.sub(lhs, rhs, f".{op_name}")
+
+    def math_op_mulop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.mul(lhs, rhs, f".{op_name}")
+
+    def math_op_divop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.sdiv(lhs, rhs, f".{op_name}")
+
+    def math_op_bin_andop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.and_(lhs, rhs, f".{op_name}")
+
+    def math_op_bin_orop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.or_(lhs, rhs, f".{op_name}")
+
+    def math_op_andorop(self, codegen, node, lhs, rhs, op_name):
+        # Handles both and and or operations
+
+        if not isinstance(lhs.aki.vartype.aki_type, AkiBool):
+            operand = codegen._codegen(
+                BinOpComparison(
+                    node.lhs,
+                    "!=",
+                    LLVMInstr(node.lhs, lhs),
+                    Constant(
+                        node.lhs, lhs.aki.vartype.aki_type.default(), lhs.aki.vartype
+                    ),
+                )
+            )
+
+        else:
+            operand = lhs
+
+        if node.op == "and":
+            true_op = LLVMInstr(node.rhs, rhs)
+            false_op = LLVMInstr(node.lhs, lhs)
+        else:
+            true_op = LLVMInstr(node.lhs, lhs)
+            false_op = LLVMInstr(node.rhs, rhs)
+        result_test = codegen._codegen(
+            IfExpr(operand.aki, LLVMInstr(operand.aki, operand), true_op, false_op)
+        )
+        return result_test
+
+
+class AkiBaseInt(AkiType, AkiIntBoolMathOps):
     def __init__(self, bits, signed):
         self.bits = bits
         self.llvm_type = types.IntType(bits)
@@ -109,7 +174,7 @@ class AkiTypeRef(AkiType):
         self.type_id = "type"
 
 
-class AkiBool(AkiType):
+class AkiBool(AkiType, AkiIntBoolMathOps):
     def __init__(self):
         self.bits = 1
         self.llvm_type = types.IntType(1)
@@ -119,12 +184,20 @@ class AkiBool(AkiType):
     def default(self):
         return False
 
+    def math_op_negop(self, codegen, node, operand):
+        lhs = codegen._codegen(Constant(node, 1, operand.aki.vartype))
+        return codegen.builder.xor(lhs, operand, "bnegop")
+
 
 class AkiInt(AkiBaseInt):
     comp_ins = "icmp_signed"
 
     def __init__(self, bits):
         super().__init__(bits, True)
+
+    def math_op_negop(self, codegen, node, operand):
+        lhs = codegen._codegen(Constant(node, 0, operand.aki.vartype))
+        return codegen.builder.sub(lhs, operand, "negop")
 
 
 class AkiUnsignedInt(AkiBaseInt):
@@ -134,7 +207,27 @@ class AkiUnsignedInt(AkiBaseInt):
         super().__init__(bits, False)
 
 
-class AkiBaseFloat(AkiType):
+class AkiFloatMathOps:
+    math_ops = {"+": "add", "-": "sub", "*": "mul", "/": "div"}
+
+    def math_op_addop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.fadd(lhs, rhs, f".f{op_name}")
+
+    def math_op_subop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.fsub(lhs, rhs, f".f{op_name}")
+
+    def math_op_mulop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.fmul(lhs, rhs, f".f{op_name}")
+
+    def math_op_divop(self, codegen, node, lhs, rhs, op_name):
+        return codegen.builder.fdiv(lhs, rhs, f".f{op_name}")
+
+    def math_op_negop(self, codegen, node, operand):
+        lhs = codegen._codegen(Constant(node, 0, operand.aki.vartype))
+        return codegen.builder.fsub(lhs, operand, "fnegop")
+
+
+class AkiBaseFloat(AkiType, AkiFloatMathOps):
     signed = True
     comp_ins = "fcmp_ordered"
 
@@ -160,6 +253,18 @@ class AkiDouble(AkiBaseFloat):
 
     def c(self):
         return ctypes.c_double
+
+
+class AkiArray(AkiType):
+    def __init__(self, vartype, dimensions):
+        super().__init__()
+        # With each one we create a nested type structure.
+        # Signature: `:array[20,32]:i32`
+        # `:array[20]:ptr u64` also OK
+        # For a dimensionless array, as in a function signature:
+        # `:array[]:i32` (not permitted in a declaration)
+        # Each newly created array type signature must be added to the
+        # module's enum list
 
 
 class AkiTypes:
@@ -188,12 +293,15 @@ class AkiTypes:
         # (signed)
     }
 
+    enum_ids = {}
+
     @classmethod
     def setup(cls):
         for index, k_v in enumerate(AkiTypes.base_types.items()):
             k, v = k_v
             setattr(AkiTypes, k, v)
             setattr(getattr(AkiTypes, k), "enum_id", index)
+            cls.enum_ids[index] = v
 
 
 AkiTypes.setup()

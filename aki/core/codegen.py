@@ -81,6 +81,8 @@ class AkiCodeGen:
         # Resolved top to bottom.
         self.other_modules = []
 
+        self.enum_ids = {}
+
     def init_func_handlers(self):
         """
         Called when we create a new function.
@@ -113,6 +115,12 @@ class AkiCodeGen:
         Pass a wrapped LLVM instruction up the node visitor.
         """
         return node.llvm_instr
+
+    def _add_vartype_enum(self, vartype):
+        pass
+
+    def _get_vartype_enum(self, vartype):
+        pass
 
     def _name(self, node, name_to_find, other_module=None):
         """
@@ -148,6 +156,39 @@ class AkiCodeGen:
             raise AkiNameErr(
                 node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
             )
+
+
+    def _check_var_name(self, node, name, is_global=False):
+        """
+        Check routine to determine if a given name is already in use
+        in a given context.
+        """
+        context = self.module.globals if is_global else self.fn.symtab
+        if name in context:
+            raise AkiNameErr(
+                node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
+            )
+
+    def _alloca(self, node, llvm_type, name, size=None, is_global=False):
+        """
+        Allocate space for a variable.
+        Right now this is stack-only; eventually it'll include
+        heap allocations, too.
+        """
+
+        if isinstance(llvm_type, ir.FunctionType):
+            llvm_type = llvm_type.as_pointer()
+        return self.builder.alloca(llvm_type, size, name)
+
+    def _delete_var(self, name):
+        """
+        Deletes a variable from the local scope.
+        Eventually this will be where we make decisions about
+        deallocating heap-allocated objects when they
+        pass out of scope, etc.
+        """
+
+        del self.fn.symtab[name]
 
     #################################################################
     # Type AST node walker
@@ -228,39 +269,7 @@ class AkiCodeGen:
         aki_node = AkiFunction(node.arguments, node.return_type)
         node.name = aki_node.type_id
 
-        return aki_node, aki_node.llvm_type
-
-    def _check_var_name(self, node, name, is_global=False):
-        """
-        Check routine to determine if a given name is already in use
-        in a given context.
-        """
-        context = self.module.globals if is_global else self.fn.symtab
-        if name in context:
-            raise AkiNameErr(
-                node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
-            )
-
-    def _alloca(self, node, llvm_type, name, size=None, is_global=False):
-        """
-        Allocate space for a variable.
-        Right now this is stack-only; eventually it'll include
-        heap allocations, too.
-        """
-
-        if isinstance(llvm_type, ir.FunctionType):
-            llvm_type = llvm_type.as_pointer()
-        return self.builder.alloca(llvm_type, size, name)
-
-    def _delete_var(self, name):
-        """
-        Deletes a variable from the local scope.
-        Eventually this will be where we make decisions about
-        deallocating heap-allocated objects when they
-        pass out of scope, etc.
-        """
-
-        del self.fn.symtab[name]
+        return aki_node, aki_node.llvm_type        
 
     #################################################################
     # Top-level statements
@@ -271,12 +280,6 @@ class AkiCodeGen:
         Generate a function prototype for the LLVM module
         from the Prototype AST node.
         """
-
-        # TODO:
-        # The function signature should be stored as an alias
-        # in globals, with .aki node information in it.
-        # Store that separately from the function.
-
         # Name collision check
 
         self._check_var_name(node, node.name, True)
@@ -552,6 +555,7 @@ class AkiCodeGen:
 
                 arg = node.arguments[0]
 
+                # this will eventually become a builtin
                 if node.name == "type":
                     type_from = self._codegen(arg)
                     const = self._codegen(
@@ -562,6 +566,8 @@ class AkiCodeGen:
                         )
                     )
                     return const
+
+                # this will also eventually become a builtin
 
                 if isinstance(arg, Constant):
                     # this check is in place until we have
@@ -743,18 +749,12 @@ class AkiCodeGen:
             loop_test = self.builder.append_basic_block("loop_test")
             self.builder.branch(loop_test)
             self.builder.position_at_start(loop_test)
-
             loop_condition = self._codegen(stop)
-
             with self.builder.if_else(loop_condition) as (then_clause, else_clause):
                 with then_clause:
-
                     loop_body = self._codegen(node.body)
-
                     n = self._codegen(Assignment(step, "+", step.lhs, step))
-
                     self.builder.branch(loop_test)
-
                 with else_clause:
                     pass
 
@@ -888,7 +888,7 @@ class AkiCodeGen:
 
         if op is None:
             raise AkiOpError(
-                node, self.text, f'Operator "{CMD}{node.op}{REP}" not yet supported'
+                node, self.text, f'Operator "{CMD}{node.op}{REP}" not supported'
             )
 
         operand = self._codegen(node.lhs)
@@ -900,21 +900,15 @@ class AkiCodeGen:
         Generate a unary negation operation for a scalar value.
         """
 
-        if isinstance(operand.aki.vartype.aki_type, AkiInt):
-            lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
-            instr = self.builder.sub(lhs, operand, "negop")
+        op = getattr(operand.aki.vartype.aki_type, "math_op_negop", None)
+        if op is None:
+            raise AkiOpError(
+                node,
+                self.text,
+                f'Operator "{CMD}{node.op}{REP}" not supported for type "{CMD}{operand.aki.vartype.aki_type}{REP}"',
+            )
 
-        elif isinstance(operand.aki.vartype.aki_type, AkiFloat):
-            lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
-            instr = self.builder.fsub(lhs, operand, "fnegop")
-
-        elif isinstance(operand.aki.vartype.aki_type, AkiDouble):
-            lhs = self._codegen(Constant(node, 0, operand.aki.vartype))
-            instr = self.builder.fsub(lhs, operand, "fnegop")
-
-        elif isinstance(operand.aki.vartype.aki_type, AkiBool):
-            lhs = self._codegen(Constant(node, 1, operand.aki.vartype))
-            instr = self.builder.xor(lhs, operand, "bnegop")
+        instr = op(self, node, operand)
 
         instr.aki = LLVMOp(
             node.lhs, operand.aki.vartype.aki_type, f"{node.op} operation"
@@ -926,6 +920,8 @@ class AkiCodeGen:
         """
         Generate a NOT operation for a scalar value.
         """
+
+        ## TODO: move to akitypes
 
         if not isinstance(operand.aki.vartype.aki_type, AkiBool):
 
@@ -1023,71 +1019,23 @@ class AkiCodeGen:
 
         # Generate instructions for a binop that yields
         # a value of the same type as the inputs.
+        # Use math_ops property of the Aki type class.
 
-        instr = None
-        instr_type = lhs_atype
-
-        if isinstance(lhs_atype, (AkiBaseInt, AkiBool)):
-            if node.op == "+":
-                instr = self.builder.add(lhs, rhs, ".addop")
-            elif node.op == "-":
-                instr = self.builder.sub(lhs, rhs, ".subop")
-            elif node.op == "*":
-                instr = self.builder.mul(lhs, rhs, ".mulop")
-            elif node.op == "/":
-                instr = self.builder.sdiv(lhs, rhs, ".divop")
-            elif node.op == "&":
-                instr = self.builder.and_(lhs, rhs, ".bin_andop")
-            elif node.op == "|":
-                instr = self.builder.or_(lhs, rhs, ".bin_orop")
-
-            elif node.op in ("and", "or"):
-
-                if not isinstance(lhs.aki.vartype.aki_type, AkiBool):
-
-                    operand = self._codegen(
-                        BinOpComparison(
-                            node.lhs,
-                            "!=",
-                            LLVMInstr(node.lhs, lhs),
-                            Constant(
-                                node.lhs,
-                                lhs.aki.vartype.aki_type.default(),
-                                lhs.aki.vartype,
-                            ),
-                        )
-                    )
-
-                else:
-                    operand = lhs
-
-                if node.op == "and":
-                    true_op = LLVMInstr(node.rhs, rhs)
-                    false_op = LLVMInstr(node.lhs, lhs)
-
-                else:
-                    true_op = LLVMInstr(node.lhs, lhs)
-                    false_op = LLVMInstr(node.rhs, rhs)
-
-                result_test = self._codegen(
-                    IfExpr(
-                        operand.aki, LLVMInstr(operand.aki, operand), true_op, false_op
-                    )
-                )
-
-                instr = result_test
-
-        elif isinstance(lhs_atype, AkiBaseFloat):
-            if node.op == "+":
-                instr = self.builder.fadd(lhs, rhs, ".faddop")
-            elif node.op == "-":
-                instr = self.builder.fsub(lhs, rhs, ".fsubop")
-            elif node.op == "*":
-                instr = self.builder.fmul(lhs, rhs, ".fmulop")
-            elif node.op == "/":
-                instr = self.builder.fdiv(lhs, rhs, ".fdivop")
-
-        if instr is None:
+        #instr = None
+        
+        try:
+            instr_type = lhs_atype
+            op_types = getattr(lhs_atype, "math_ops", None)
+            if op_types is None:
+                raise LocalException
+            math_op = op_types.get(node.op, None)
+            if math_op is None:
+                raise LocalExceoption
+            instr_call = getattr(lhs_atype.__class__, f"math_op_{math_op}op")
+            instr = instr_call(lhs_atype, self, node, lhs, rhs, node.op)
+            # (Later for custom types we'll try to generate a call)
+        
+        except LocalException:
             raise AkiOpError(
                 node,
                 self.text,
