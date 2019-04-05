@@ -1,5 +1,5 @@
 PRODUCT = "Aki"
-VERSION = '0.0.2019.03.30'
+VERSION = '0.0.2019.04.05'
 COPYRIGHT = "2019"
 
 ABOUT = f'''{PRODUCT} v.{VERSION}
@@ -20,7 +20,7 @@ def defaults():
             'nt_compiler': "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
         },
         'settings': {
-            'write_main_to_file': {'Dumps loaded moduyle LLVM IR to "{paths.output_dir}" on load.', True},
+            'write_main_to_file': {'Dumps loaded module LLVM IR to "{paths.output_dir}" on load.', True},
             'write_repl_to_file': {'Dumps REPL LLVM IR to {paths.output_dir}" on load.', True},
             'compile_on-load': {'Compile immediately when a file is loaded.', True},
         }
