@@ -9,7 +9,6 @@ class ASTNode:
     def __init__(self, p):
         self.p = p
         self.child = None
-
         self.lineno = p.lineno
         self.index = p.index
 

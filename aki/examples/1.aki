@@ -1,5 +1,5 @@
-def g1 (z=0) {
-    var q=z
+def g1 (z1=0) {
+    var q=z1
     loop (var x=1, x<20, x+1) {
         q+=1
     }    
@@ -7,18 +7,18 @@ def g1 (z=0) {
     
 }
 
-def g2 (z,z1=0) {
+def g2 (z2,z3=0) {
     loop (var x=1, x<20, x+1) {
-        z+=1
+        z2+=1
     }    
-    z
+    z2
 }
 
-def g3(z){
+def g3(z4){
     loop () {
-        when z>=20
+        when z4>=20
             break
-        z+=1        
+        z4+=1        
     }
-    z
+    z4
 }

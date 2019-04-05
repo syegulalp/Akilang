@@ -72,18 +72,17 @@ class AkiFunction(AkiObject):
     def __init__(self, arguments, return_type):
         self.arguments = arguments
         # list of decorated AkiType nodes
-        self.return_type = return_type 
+        self.return_type = return_type
         # single decorated AkiType node
 
         self.llvm_type = ir.FunctionType(
-            self.return_type.llvm_type,
-            [_.llvm_type for _ in self.arguments]
+            self.return_type.llvm_type, [_.llvm_type for _ in self.arguments]
         )
         self.type_id = f'func({",".join([str(_.aki_type) for _ in self.arguments])}){self.return_type.aki_type}'
 
     def c(self):
         return ctypes.c_void_p
-    
+
     def default(self):
         return None
 

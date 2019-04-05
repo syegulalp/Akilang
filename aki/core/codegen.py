@@ -27,6 +27,7 @@ from core.astree import (
     VarList,
     Assignment,
     WithExpr,
+    Prototype,
 )
 from core.error import (
     AkiNameErr,
@@ -178,9 +179,11 @@ class AkiCodeGen:
     def _type_node_Name(self, node):
         """
         Node visitor for Name vartype nodes.
+        Typically for function pointer references.
         """
-        raise Exception
-        return self._type_node_VarTypeName(node)
+        item_id = self._name(node, node.p.name)
+        return item_id.aki.vartype.aki_type, item_id.type
+        # return self._type_node_VarTypeName(node)
 
     def _type_node_VarTypePtr(self, node):
         """
@@ -269,6 +272,11 @@ class AkiCodeGen:
         from the Prototype AST node.
         """
 
+        # TODO:
+        # The function signature should be stored as an alias
+        # in globals, with .aki node information in it.
+        # Store that separately from the function.
+
         # Name collision check
 
         self._check_var_name(node, node.name, True)
@@ -300,13 +308,18 @@ class AkiCodeGen:
 
         # Generate function prototype.
 
-        proto = ir.Function(
-            self.module,
-            ir.FunctionType(return_type.llvm_type, func_args),
-            name=node.name,
-        )
+        f_type = ir.FunctionType(return_type.llvm_type, func_args)
+        proto = ir.Function(self.module, f_type, name=node.name)
 
-        for p_arg, n_arg in zip(proto.args, node.arguments):
+        # ftype = return_type / args
+        # proto.ftype.args - arguments, each with aki node
+        # proto.ftype.return_type
+        #   .aki.vartype = VarType (as below)
+        #   .aki.vartype.aki_type -- is this even needed?
+        # in short, let's just decorate the ir.FunctionType stuff,
+        # not ir.Function itself, and see where that gets us
+
+        for p_arg, n_arg in zip(proto.ftype.args, node.arguments):
             p_arg.aki = n_arg
 
         proto.calling_convention = "fastcc"
@@ -336,8 +349,13 @@ class AkiCodeGen:
         self.init_func_handlers()
 
         # Generate function prototype.
-
         func = self._codegen(node.prototype)
+
+        # Store an original function reference in the prototype.
+        # This is so we can refer to it later if we use
+        # a function pointer.
+        func.ftype.original_function = func
+
         self.fn.fn = func
 
         # Generate entry block and function body.
@@ -404,9 +422,6 @@ class AkiCodeGen:
                 func.return_value.type = result.type
                 func.return_value.aki.return_type.aki_type = result.aki.vartype.aki_type
 
-                # this needs to be a synthetic node?
-                # or set wholly manually?
-
                 self.fn.return_value.type = result.type.as_pointer()
                 self.fn.return_value.aki.return_type.aki_type = (
                     result.aki.vartype.aki_type
@@ -423,10 +438,11 @@ class AkiCodeGen:
         # Add return value for function in exit block,
         # branch to exit, return the return value.
 
-        # If this is an allocation, we need to unload it first.
+        # If this is an allocation for an object, we need to unload it first.
 
         if isinstance(result, ir.AllocaInstr):
-            result = self.builder.load(result)
+            if not isinstance(result.aki.vartype.aki_type, AkiObject):
+                result = self.builder.load(result)
 
         self.builder.store(result, self.fn.return_value)
 
@@ -492,17 +508,18 @@ class AkiCodeGen:
             else:
 
                 value = self._codegen(_.val)
+                self._add_node_props(_.vartype)
 
                 if _.vartype.vartype.name is None:
-                    _.vartype.vartype = value.aki.vartype.vartype
+                    _.vartype = value.aki.vartype
+                    self._add_node_props(_.vartype)
 
-                self._add_node_props(_.vartype)
                 value = LLVMInstr(_, value)
 
             # Create an allocation for that type
-
             var_ptr = self._alloca(_, _.vartype.llvm_type, _.name)
-            # and store its node attributes
+
+            # Store its node attributes
             var_ptr.aki = _
 
             # Store the variable in the function symbol table
@@ -510,13 +527,6 @@ class AkiCodeGen:
 
             # and store the value itself to the variable
             # by way of an Assignment op
-
-            # if isinstance(_.vartype.vartype, VarTypeFunc):
-            #     self.builder.store(
-            #         ir.Constant(_.vartype.aki_type.as_pointer().llvm_type,None), var_ptr
-            #     )
-            #     return
-
             self._codegen(Assignment(_.p, "=", Name(_.p, _.name), value))
 
     #################################################################
@@ -579,6 +589,11 @@ class AkiCodeGen:
 
             call_func = self._name(node, node.name)
             args = []
+
+            # If this is a function pointer, get the original function
+
+            if isinstance(call_func, ir.AllocaInstr):
+                call_func = call_func.type.pointee.pointee.original_function
 
             # If we have too many arguments, give up
 
@@ -1110,13 +1125,21 @@ class AkiCodeGen:
 
         # Return object types as a pointer
 
+        # If this is an object... (ir.Function)
         if isinstance(name.aki.vartype.aki_type, AkiObject):
+            # ... by way of a variable (ir.AllocaInstr)
+            if isinstance(name, ir.AllocaInstr):
+                # then load that from the pointer
+                load = self.builder.load(name)
+                load.aki = name.aki
+                return load
+            # otherwise just return the object
             return name
 
         # Otherwise, load and decorate the value
-
         load = self.builder.load(name)
         load.aki = name.aki
+
         return load
 
     def _codegen_Constant(self, node):

@@ -178,5 +178,8 @@ class TestLexer(unittest.TestCase):
             (
                 (r'{var x:func():i32 x}', 0),
                 (r'{var x:func(:i32):i32 x}', 0),
+                (r'def g1(){32} {var x=g1 x()}',32),
+                (r'def g1(){32} def g2(x){32+x} {var x=g1,y=g2 x()+y(1)}',65),
+                (r'def g1(){32} def g2(x){32+x} {var x=g1 var y=x var z=g2 x()+y()+z(1)}',97)
             )
         )

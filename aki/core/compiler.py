@@ -24,7 +24,6 @@ class AkiCompiler:
 
         # Not used yet
         # self.engine.set_object_cache(export,None)
-        
 
     def compile_ir(self, llvm_ir):
         """
