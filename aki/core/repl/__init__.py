@@ -38,9 +38,17 @@ from core.parse import AkiParser
 from core.codegen import AkiCodeGen
 from core.compiler import AkiCompiler, ir
 
-from core.astree import Function, Call, Prototype, VarType, ExpressionBlock, TopLevel, Name, VarTypeName
-from core.error import AkiBaseErr
-from core.error import ReloadException, QuitException
+from core.astree import (
+    Function,
+    Call,
+    Prototype,
+    VarType,
+    ExpressionBlock,
+    TopLevel,
+    Name,
+    VarTypeName,
+)
+from core.error import AkiBaseErr, ReloadException, QuitException
 from core import constants
 
 PROMPT = "A>"
@@ -90,13 +98,14 @@ class JIT:
     parser = AkiParser()
 
     def __init__(self):
-        self.anon_counter = 0        
-        self.reset()        
+        self.anon_counter = 0
+        self.reset()
 
     def reset(self):
         self.compiler = AkiCompiler()
         self.module = ir.Module()
         self.codegen = AkiCodeGen(self.module)
+
 
 def cp(string):
     print(f"{REP}{string}")
@@ -114,32 +123,71 @@ pyaki  :{constants.VERSION}"""
         self.reset(silent=True)
 
     def run_tests(self, *a):
-        print (f'{REP}', end='')
+        print(f"{REP}", end="")
         import unittest
 
         tests = unittest.defaultTestLoader.discover("tests", "*.py")
         unittest.TextTestRunner().run(tests)
 
-    def load_file(self, file_to_load):
-        self.main_cpl.reset()        
+    def load_file(self, file_to_load, force_recompilation=False):
+        import time
+
+        self.main_cpl.reset()
+
+        # Attempt to load precomputed module from cache
+
+        cache_path = f"output/{file_to_load}.akic"
+
+        if not force_recompilation and os.path.exists(cache_path):
+            begin = time.clock()
+            with open(cache_path, "rb") as file:
+                import pickle
+
+                mod_in = pickle.load(file)
+                self.main_cpl.codegen = mod_in["codegen"]
+                self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
+                file_size = os.fstat(file.fileno()).st_size
+
+            end = time.clock()
+            cp(
+                f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({end-begin:.3f} sec)"
+            )
+            return
 
         filepath = f"examples/{file_to_load}.aki"
+
+        begin = time.clock()
 
         try:
             with open(filepath) as file:
                 text = file.read()
                 file_size = os.fstat(file.fileno()).st_size
-                cp(f"Read {file_size} bytes from {CMD}{filepath}{REP}")
         except FileNotFoundError:
             raise AkiBaseErr(
-                None, file_to_load, f"File not found: {CMD}{filepath}{REP}")
+                None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
+            )
 
         tokens = self.main_cpl.lexer.tokenize(text)
         ast = self.main_cpl.parser.parse(tokens, text)
 
         self.main_cpl.codegen.text = text
         self.main_cpl.codegen.eval(ast)
-        self.main_cpl.compiler.compile_module(self.main_cpl.module, "main")
+        self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
+
+        end = time.clock()
+
+        # Write cached compilation to file
+
+        with open(cache_path, "wb") as file:
+            output = {
+                "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
+                "codegen": self.main_cpl.codegen,
+            }
+            import pickle
+
+            pickle.dump(output, file)
+
+        cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({end-begin:.3f} sec)")
 
     def quit(self, *a):
         print(XX)
@@ -150,8 +198,16 @@ pyaki  :{constants.VERSION}"""
         raise ReloadException
 
     def run(self):
+        import shutil
+
+        cols = shutil.get_terminal_size()[0]
+        if cols < 80:
+            warn = f"\n{RED}Terminal is less than 80 colums wide.\nOutput may not be correctly formatted."
+        else:
+            warn = ""
+
         cp(
-            f"{GRN}{constants.WELCOME}\n{REP}Type {CMD}.help{REP} or a command to be interpreted"
+            f"{GRN}{constants.WELCOME}{warn}\n{REP}Type {CMD}.help{REP} or a command to be interpreted"
         )
         while True:
             try:
@@ -247,7 +303,7 @@ pyaki  :{constants.VERSION}"""
                 raise e
 
             if not immediate_mode:
-                if self.main_cpl.compiler.mod_ref:                    
+                if self.main_cpl.compiler.mod_ref:
                     self.repl_cpl.compiler.backing_mod.link_in(
                         self.main_cpl.compiler.mod_ref, True
                     )
@@ -276,8 +332,6 @@ pyaki  :{constants.VERSION}"""
             res = cfunc()
             yield res
 
-
-
     def about(self, *a):
         print(f"\n{GRN}{constants.ABOUT}\n\n{self.VERSION}\n")
 
@@ -290,11 +344,11 @@ pyaki  :{constants.VERSION}"""
     def load_test(self, *a):
         self.load_file("1")
 
-    def reset(self, *a, **ka):        
+    def reset(self, *a, **ka):
         self.main_cpl = JIT()
         self.repl_cpl = JIT()
-        if not 'silent' in ka:
-            cp(f'{RED}Workspace reset')
+        if not "silent" in ka:
+            cp(f"{RED}Workspace reset")
 
     cmds = {
         "t": run_tests,
