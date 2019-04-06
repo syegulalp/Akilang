@@ -45,6 +45,7 @@ class FuncState:
     Object for storing function state, such as its symbol table,
     and context information such as the decorator stack and 
     `unsafe` states.
+    TODO: let's make this into a context manager, maybe
     """
 
     def __init__(self):
@@ -157,7 +158,6 @@ class AkiCodeGen:
                 node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
             )
 
-
     def _check_var_name(self, node, name, is_global=False):
         """
         Check routine to determine if a given name is already in use
@@ -224,7 +224,6 @@ class AkiCodeGen:
         """
         item_id = self._name(node, node.p.name)
         return item_id.aki.vartype.aki_type, item_id.type
-        # return self._type_node_VarTypeName(node)
 
     def _type_node_VarTypePtr(self, node):
         """
@@ -269,7 +268,7 @@ class AkiCodeGen:
         aki_node = AkiFunction(node.arguments, node.return_type)
         node.name = aki_node.type_id
 
-        return aki_node, aki_node.llvm_type        
+        return aki_node, aki_node.llvm_type
 
     #################################################################
     # Top-level statements
@@ -387,8 +386,6 @@ class AkiCodeGen:
 
         # Set Akitype values for the return value holder
         # and for the function's actual return value.
-
-        # return_value should be a synthetic node
 
         self.fn.return_value.aki = func.aki
         func.return_value.aki = self.fn.return_value.aki
@@ -1021,8 +1018,8 @@ class AkiCodeGen:
         # a value of the same type as the inputs.
         # Use math_ops property of the Aki type class.
 
-        #instr = None
-        
+        # instr = None
+
         try:
             instr_type = lhs_atype
             op_types = getattr(lhs_atype, "math_ops", None)
@@ -1034,7 +1031,7 @@ class AkiCodeGen:
             instr_call = getattr(lhs_atype.__class__, f"math_op_{math_op}op")
             instr = instr_call(lhs_atype, self, node, lhs, rhs, node.op)
             # (Later for custom types we'll try to generate a call)
-        
+
         except LocalException:
             raise AkiOpError(
                 node,

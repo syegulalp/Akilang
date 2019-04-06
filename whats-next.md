@@ -51,6 +51,7 @@
 
 * [ ] Inline typing for constants, including `True/False` for `bool` values
 * [ ] External function references (`extern` context block with optional library identifier)
+* [ ] String constants
 * [ ] `case` statement for matching against enums
 * [ ] Comments
 * [ ] `uni` for globals
