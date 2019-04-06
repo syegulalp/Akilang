@@ -406,7 +406,7 @@ class AkiCodeGen:
         # and return that.
 
         if result is None:
-            result = self._codegen_Constant(
+            result = self._codegen(
                 Constant(
                     node.body.p,
                     node.prototype.return_type.aki_type.default(),
