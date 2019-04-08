@@ -46,13 +46,14 @@
 * [x] Pointers and pointer types, mainly for compatibility with C right now
 * [x] Function type (for function pointers)
   * [x] Function pointer type
+  * [x] String constants
 
 ## In progress
 
 * [ ] Inline typing for constants, including `True/False` for `bool` values
 * [ ] External function references (`extern` context block with optional library identifier)
-* [ ] String constants
 * [ ] `case` statement for matching against enums
+* [ ] `while` constructions
 * [ ] Comments
 * [ ] `uni` for globals
 * [ ] `const` for constants
