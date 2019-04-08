@@ -37,7 +37,6 @@ from core.lex import AkiLexer
 from core.parse import AkiParser
 from core.codegen import AkiCodeGen
 from core.compiler import AkiCompiler, ir
-
 from core.astree import (
     Function,
     Call,
@@ -97,14 +96,15 @@ class JIT:
     lexer = AkiLexer()
     parser = AkiParser()
 
-    def __init__(self):
+    def __init__(self, types=None):
         self.anon_counter = 0
-        self.reset()
+        self.types = types
+        self.reset()        
 
     def reset(self):
         self.compiler = AkiCompiler()
         self.module = ir.Module()
-        self.codegen = AkiCodeGen(self.module)
+        self.codegen = AkiCodeGen(self.module, self.types)
 
 
 def cp(string):
@@ -119,8 +119,9 @@ class Repl:
 LLVM   :{".".join((str(n) for n in binding.llvm_version_info))}
 pyaki  :{constants.VERSION}"""
 
-    def __init__(self):
-        self.reset(silent=True)
+    def __init__(self, types = None):
+        self.types = types
+        self.reset(silent=True)        
 
     def run_tests(self, *a):
         print(f"{REP}", end="")
@@ -313,9 +314,11 @@ pyaki  :{constants.VERSION}"""
             # Retrieve a pointer to the function
             func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
-            return_val = self.repl_cpl.module.globals[
+            return_type =self.repl_cpl.module.globals[
                 call_name
-            ].return_value.aki.return_type.aki_type.c()
+            ].return_value.aki.return_type.aki_type
+
+            return_type_ctype = return_type.c()
 
             # Get the function signature
             # We're not using this right now but it might
@@ -328,9 +331,10 @@ pyaki  :{constants.VERSION}"""
 
             # Generate a result
 
-            cfunc = ctypes.CFUNCTYPE(return_val, *[])(func_ptr)
+            cfunc = ctypes.CFUNCTYPE(return_type_ctype, *[])(func_ptr)
             res = cfunc()
-            yield res
+            #print (return_type)
+            yield return_type.format_result(res)
 
     def about(self, *a):
         print(f"\n{GRN}{constants.ABOUT}\n\n{self.VERSION}\n")
@@ -345,8 +349,8 @@ pyaki  :{constants.VERSION}"""
         self.load_file("1")
 
     def reset(self, *a, **ka):
-        self.main_cpl = JIT()
-        self.repl_cpl = JIT()
+        self.main_cpl = JIT(self.types)
+        self.repl_cpl = JIT(self.types)
         if not "silent" in ka:
             cp(f"{RED}Workspace reset")
 

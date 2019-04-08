@@ -1,17 +1,10 @@
 from llvmlite import ir
 from core.akitypes import (
+    AkiType,
     AkiBool,
-    AkiInt,
-    AkiUnsignedInt,
-    AkiFloat,
-    AkiDouble,
-    AkiBaseInt,
-    AkiBaseFloat,
-    DefaultType,
-    AkiTypes,
     AkiFunction,
     AkiObject,
-    AkiTypeRef,
+    _AkiTypes
 )
 from core.astree import (
     VarType,
@@ -38,7 +31,7 @@ from core.error import (
     LocalException,
 )
 from core.repl import CMD, REP
-
+from typing import Optional
 
 class FuncState:
     """
@@ -66,23 +59,33 @@ class AkiCodeGen:
     Code generation module for Akilang.
     """
 
-    def __init__(self, module=None):
+    def __init__(self, module: Optional[ir.Module]=None, types: Optional[_AkiTypes]=None):
 
         # Create an LLVM module if we aren't passed one.
 
-        if not module:
+        if module is None:
             self.module = ir.Module()
         else:
             self.module = module
 
-        self.fn = None
-        self.text = None
+        self.fn: Optional[FuncState] = None
+        self.text:Optional[str] = None
+
+        if types is None:
+            self.types = _AkiTypes(module=self.module)
+        else:
+            self.types = types
 
         # Other codegen modules to check for namespaces.
         # Resolved top to bottom.
-        self.other_modules = []
+        self.other_modules: list = []
 
-        self.enum_ids = {}
+        self.const_enum=0
+    
+    def _const_counter(self):
+        self.const_enum+=1
+        return self.const_enum
+
 
     def init_func_handlers(self):
         """
@@ -176,8 +179,6 @@ class AkiCodeGen:
         heap allocations, too.
         """
 
-        if isinstance(llvm_type, ir.FunctionType):
-            llvm_type = llvm_type.as_pointer()
         return self.builder.alloca(llvm_type, size, name)
 
     def _delete_var(self, name):
@@ -230,7 +231,8 @@ class AkiCodeGen:
         Node visitor for VarTypePtr nodes.
         """
         aki_type, llvm_type = self._type_node_visit(node.pointee)
-        aki_type = aki_type.as_pointer()
+        #aki_type = aki_type.as_pointer()
+        aki_type = self.types._ptr.new(aki_type)
 
         llvm_type = llvm_type.as_pointer()
         return aki_type, llvm_type
@@ -239,14 +241,12 @@ class AkiCodeGen:
         """
         Node visitor for VarTypeName nodes.
         """
-
         if node.name is None:
-            id_to_get = DefaultType.type_id
+            id_to_get = self.types._default.type_id
         else:
             id_to_get = node.name
 
-        var_lookup = getattr(AkiTypes, id_to_get, None)
-
+        var_lookup = self._get_type(id_to_get)
         if var_lookup is None:
             raise AkiTypeErr(
                 node, self.text, f'Unrecognized type definition "{CMD}{id_to_get}{REP}"'
@@ -269,6 +269,14 @@ class AkiCodeGen:
         node.name = aki_node.type_id
 
         return aki_node, aki_node.llvm_type
+
+    def _get_type(self, type_name):
+        type_to_find = getattr(self.types, type_name, None)
+        if type_to_find is None:
+            return None
+        if isinstance(type_to_find, AkiType):
+            return type_to_find
+        return None
 
     #################################################################
     # Top-level statements
@@ -438,12 +446,6 @@ class AkiCodeGen:
         # Add return value for function in exit block,
         # branch to exit, return the return value.
 
-        # If this is an allocation for an object, we need to unload it first.
-
-        if isinstance(result, ir.AllocaInstr):
-            if not isinstance(result.aki.vartype.aki_type, AkiObject):
-                result = self.builder.load(result)
-
         self.builder.store(result, self.fn.return_value)
 
         exit_block = func.append_basic_block("exit")
@@ -487,21 +489,16 @@ class AkiCodeGen:
 
             # If no value ...
 
+            value = None
+
             if _.val is None:
 
                 # and no default vartype, then create the default
 
                 if _.vartype is None:
                     _.vartype = VarType(_.p, Name(_.p, DefaultType.type_id))
-
                 self._add_node_props(_.vartype)
-
-                # if our default is an object, make it a pointer
-
-                if isinstance(_.vartype.aki_type, AkiObject):
-                    _.vartype.vartype = VarTypePtr(_.p, _.vartype.vartype)
-                    self._add_node_props(_.vartype)
-
+                
                 _.val = Constant(_.p, _.vartype.aki_type.default(), _.vartype)
                 value = _.val
 
@@ -542,7 +539,7 @@ class AkiCodeGen:
 
         try:
 
-            named_type = AkiTypes.base_types.get(node.name, None)
+            named_type = self._get_type(node.name)
             if named_type is not None:
 
                 if len(node.arguments) != 1:
@@ -559,7 +556,7 @@ class AkiCodeGen:
                         Constant(
                             arg,
                             type_from.aki.vartype.aki_type.enum_id,
-                            VarType(arg, VarTypeName(arg, AkiTypes.type.type_id)),
+                            VarType(arg, VarTypeName(arg, self.types.type.type_id)),
                         )
                     )
                     return const
@@ -920,7 +917,7 @@ class AkiCodeGen:
 
         ## TODO: move to akitypes
 
-        if not isinstance(operand.aki.vartype.aki_type, AkiBool):
+        if not isinstance(operand.aki.vartype.aki_type, self.types.bool):
 
             operand = self._codegen(
                 BinOpComparison(
@@ -962,7 +959,7 @@ class AkiCodeGen:
             )
 
         ptr = self._name(node.lhs, lhs.name)
-        val = self._codegen(rhs)
+        val = self._codegen(rhs)      
 
         self._type_check_op(node, ptr, val)
 
@@ -1000,7 +997,7 @@ class AkiCodeGen:
             )
 
         instr = instr_type(node.op, lhs, rhs, op_name)
-        instr.aki = LLVMOp(node.lhs, AkiBool(), f"{node.op} operation")
+        instr.aki = LLVMOp(node.lhs, self.types.bool, f"{node.op} operation")
         return instr
 
     def _codegen_BinOp(self, node):
@@ -1058,7 +1055,7 @@ class AkiCodeGen:
 
         # Types are returned, for now, as their enum
 
-        named_type = AkiTypes.base_types.get(node.name, None)
+        named_type = self._get_type(node.name)
         if named_type is not None:
             return self._codegen(
                 Constant(
@@ -1097,3 +1094,48 @@ class AkiCodeGen:
         constant.aki = node
         node.name = node.val
         return constant
+
+    def _codegen_String(self, node):
+        """
+        Generates a *compile-time* string constant.
+        """
+
+        const_counter = self._const_counter()
+
+        self._add_node_props(node.vartype)
+        data, data_array = self.types.str.data(node.val)
+
+        # TODO: I'm considering moving this into .data
+        # to keep this module leaner
+        # we may also need access to it there so that we can
+        # generate empty strings
+
+        string = ir.GlobalVariable(
+            self.module,
+            data_array,
+            f'.str.data.{const_counter}'
+        )
+        string.initializer = ir.Constant(
+            data_array,
+            data
+        )
+        
+        string.global_constant = True
+        string.unnamed_addr = True
+
+        data_object = ir.GlobalVariable(
+            self.module,
+            self.types.obj.llvm_type,
+            f'.str.{const_counter}'
+        )
+        data_object.initializer = ir.Constant(
+            self.types.obj.llvm_type,
+            (
+                self.types.str.enum_id,
+                len(data_array),
+                string.bitcast(self.types.as_ptr(self.types.u_mem).llvm_type)
+            )
+        )
+
+        data_object.aki = node
+        return data_object

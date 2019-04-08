@@ -2,6 +2,7 @@ from sly import Parser
 from core.lex import AkiLexer, Pos
 from core.astree import (
     Constant,
+    String,
     UnOp,
     BinOp,
     BinOpComparison,
@@ -397,3 +398,40 @@ class AkiParser(Parser):
     @_("")
     def empty(self, p):
         pass
+
+    # constants
+
+    @_("TRUE")
+    def expr(self, p):
+        return Constant(Pos(p), 1, VarType(Pos(p), VarTypeName(Pos(p), 'bool')))
+
+    @_("FALSE")
+    def expr(self, p):
+        return Constant(Pos(p), 0, VarType(Pos(p), VarTypeName(Pos(p), 'bool')))
+
+    # string constants
+
+    @_("TEXT1", "TEXT2")
+    def expr(self, p):
+        return String(Pos(p), p[0][1:-1], VarType(Pos(p), VarTypeName(Pos(p), 'str')))
+
+    # hex value constant
+    @_("HEX")
+    def expr(self, p):
+        if p.HEX[1]=='x':
+            sign='u'
+        else:
+            sign='i'
+        bytelength = (len(p.HEX[2:]))*4
+        value = int(p.HEX[2:],16)
+        if bytelength<8:
+            if value>1:
+                bytelength=8
+                typestr=f'{sign}{bytelength}'
+            else:
+                typestr='bool'
+        else:
+            typestr=f'{sign}{bytelength}'
+
+        return Constant(Pos(p), value, VarType(Pos(p), VarTypeName(Pos(p), typestr)))
+        

@@ -17,6 +17,17 @@ class Pos:
 
 class AkiLexer(Lexer):
     tokens = {
+        LPAREN,
+        RPAREN,
+        COMMA,
+        TEXT1,
+        TEXT2,
+        HEX,
+        COLON,
+        LBRACE,
+        RBRACE,
+        QUOTE,
+        APOST,
         NAME,
         INTEGER,
         FLOAT,
@@ -39,12 +50,6 @@ class AkiLexer(Lexer):
         BIN_AND,
         BIN_OR,
         ASSIGN,
-        LPAREN,
-        RPAREN,
-        COMMA,
-        COLON,
-        LBRACE,
-        RBRACE,
         DEF,
         VAR,
         IF,
@@ -55,11 +60,17 @@ class AkiLexer(Lexer):
         WITH,
         PTR,
         FUNC,
+        TRUE,
+        FALSE,
+        NONE
     }
 
     ignore = " \t"
 
     # Tokens
+    TEXT1 = r"'[^']*'"
+    TEXT2 = r'"[^"]*"'
+    HEX = r'0[hx][a-fA-F0-9]*'
     NAME = r"[a-zA-Z_][a-zA-Z0-9_]*"
     NAME["def"] = DEF
     NAME["var"] = VAR
@@ -74,6 +85,9 @@ class AkiLexer(Lexer):
     NAME["with"] = WITH
     NAME["ptr"] = PTR
     NAME["func"] = FUNC
+    NAME["True"] = TRUE
+    NAME["False"] = FALSE
+    NAME["None"] = NONE
 
     INT_DIV = r"//"
 
@@ -100,6 +114,9 @@ class AkiLexer(Lexer):
     ASSIGN = r"\="
     BIN_AND = r"\&"
     BIN_OR = r"\|"
+    QUOTE = r'"'
+    APOST = r"'"
+    
 
     def tokenize(self, text):
         self.text = text

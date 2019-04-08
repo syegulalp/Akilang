@@ -2,12 +2,13 @@
 
 import unittest
 from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr, AkiOpError
-from core.akitypes import AkiTypes
 
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
+    from core.akitypes import _AkiTypes
 
-    r = Repl()
+    types = _AkiTypes()
+    r = Repl(types=types)
     i = r.interactive
 
     def _e(self, tests):
@@ -17,11 +18,22 @@ class TestLexer(unittest.TestCase):
             self.assertEqual(_, result)
 
     def _ex(self, err_type, tests):
-        with self.assertRaises(err_type):
-            for text, result in tests:
+        for text, _ in tests:
+            with self.assertRaises(err_type):
                 for _ in self.i(text, True):
                     pass
 
+    def test_constant(self):
+        self._e(
+            (
+                (r"2",2),
+                (r"2.0",2.0),
+                (r"0hff", -1),
+                (r"0xff", 255),
+            )
+
+        )
+    
     def test_basic_ops(self):
         self._e(
             (
@@ -66,7 +78,18 @@ class TestLexer(unittest.TestCase):
                 (r"2!=1", 1),
                 (r"2==1", 0),
                 (r"2==2", 1),
+                (r"True == True", 1),
+                (r"True == False", 0),
+                (r"True != False", 1),
+                (r"False == False", 1),
+                (r"False != False", 0)
+            )
+        )
 
+        self._ex(AkiTypeErr,
+            (
+                (r"False == 0", 0),
+                (r"True == 1", 0),
             )
         )
 
@@ -111,9 +134,12 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_type_trapping(self):
-        self._ex(
-            AkiTypeErr,
-            ((r"var x:f32=1", None), (r"var x:i32=1.0", None), (r"3+32.0", None)),
+        self._ex(AkiTypeErr,
+            (
+                (r"var x:f32=1", None),
+                (r"var x:i32=1.0", None),
+                (r"3+32.0", None)
+            )
         )
 
     def test_function_defs(self):
@@ -174,8 +200,8 @@ class TestLexer(unittest.TestCase):
                 (r"i32==i32", True),
                 (r"i32==i64", False),
                 (r"{var x=1,y=2 type(x)!=type(y)}", False),
-                (r'type(i32)', AkiTypes.type.enum_id),
-                (r'i32', AkiTypes.i32.enum_id),
+                (r'type(i32)', self.types.type.enum_id),
+                (r'i32', self.types.i32.enum_id),
             )
         )
         self._ex(
@@ -196,10 +222,20 @@ class TestLexer(unittest.TestCase):
     def test_function_pointer(self):
         self._e(
             (
-                (r'{var x:func():i32 x}', 0),
-                (r'{var x:func(:i32):i32 x}', 0),
+                (r'{var x:func():i32 x}', '<function ":func():i32" @ 0x0>'),
+                (r'{var x:func(:i32):i32 x}', '<function ":func(:i32):i32" @ 0x0>'),
                 (r'def g1(){32} {var x=g1 x()}',32),
                 (r'def g1(){32} def g2(x){32+x} {var x=g1,y=g2 x()+y(1)}',65),
                 (r'def g1(){32} def g2(x){32+x} {var x=g1 var y=x var z=g2 x()+y()+z(1)}',97)
+            )
+        )
+
+    def test_string_constant(self):
+        self._e (
+            (
+                (r'"hi"','"hi"'),
+                (r'{var x="hi" x}', '"hi"'),
+                (r'{var x:str x="hi" x}', '"hi"'),
+                (r'{var x:str x}','""')
             )
         )

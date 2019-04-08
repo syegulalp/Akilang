@@ -1,26 +1,20 @@
 from llvmlite.ir import types
-from llvmlite import ir
+from llvmlite import ir, binding
 import ctypes
 from core.astree import BinOpComparison, LLVMInstr, Constant, IfExpr
-
-c_ref = {
-    True: {
-        8: ctypes.c_byte,
-        16: ctypes.c_int16,
-        32: ctypes.c_int32,
-        64: ctypes.c_int64,
-    },
-    False: {
-        1: ctypes.c_bool,
-        8: ctypes.c_ubyte,
-        16: ctypes.c_uint16,
-        32: ctypes.c_uint32,
-        64: ctypes.c_uint64,
-    },
-}
+from typing import Optional
 
 
 class AkiType:
+    """
+    Base type for all Aki types.
+    """
+
+    llvm_type: ir.Type
+    base_type: Optional["AkiType"]
+    type_id: Optional[str] = None
+    enum_id: Optional[int] = None
+
     comp_ops = {
         "==": ".eqop",
         "!=": ".neqop",
@@ -29,7 +23,23 @@ class AkiType:
         "<": ".ltop",
         ">": ".gtop",
     }
-    comp_ins = None
+    comp_ins: Optional[str] = None
+
+    c_ref = {
+        True: {
+            8: ctypes.c_byte,
+            16: ctypes.c_int16,
+            32: ctypes.c_int32,
+            64: ctypes.c_int64,
+        },
+        False: {
+            1: ctypes.c_bool,
+            8: ctypes.c_ubyte,
+            16: ctypes.c_uint16,
+            32: ctypes.c_uint32,
+            64: ctypes.c_uint64,
+        },
+    }
 
     def __str__(self):
         return f":{self.type_id}"
@@ -38,10 +48,17 @@ class AkiType:
         return self.type_id == other.type_id
 
     def c(self):
-        return c_ref[self.signed][self.bits]
+        """
+        Return the ctypes representation of this type.
+        """
+        return self.c_ref[self.signed][self.bits]
 
-    def as_pointer(self):
-        return AkiPointer(self)
+    def format_result(self, result):
+        """
+        Return a __str__-compatible representation for this result,
+        as used in the REPL.
+        """
+        return result
 
 
 class AkiPointer(AkiType):
@@ -51,23 +68,63 @@ class AkiPointer(AkiType):
     """
 
     signed = False
-    bits = 64
+    llvm_type: Optional[ir.Type] = None
 
-    def __init__(self, base_type):
-        self.base_type = base_type
-        self.llvm_type = base_type.llvm_type.as_pointer()
-        self.type_id = f"ptr {base_type.type_id}"
+    def __init__(self, module):
+        self.module = module
+        self.bits = module.types._pointer_width
 
     def default(self):
         # Null value for pointer
         return None
 
+    def new(self, base_type: AkiType):
+        """
+        Create a new pointer type from an existing type.
+        """
+
+        new = AkiPointer(self.module)
+        new.base_type = base_type
+        new.llvm_type = base_type.llvm_type.as_pointer()
+        new.type_id = f"ptr {base_type.type_id}"
+        return new
+
+    # def format_result(self, result):
+    #     return f'<object {hex(result)}>'
+
 
 class AkiObject(AkiType):
-    pass
+    """
+    Type for objects in Aki. This is essentially a header,
+    with the actual object referred to by a pointer.
+    """
+
+    OBJECT_TYPE = 0
+    LENGTH = 1
+    OBJECT_POINTER = 2
+
+    def __init__(self, module):
+        self.module = module
+        self.llvm_type = ir.LiteralStructType(
+            (
+                # Type of object (enum)
+                module.types.u_size.llvm_type,
+                # Length of object
+                module.types.u_size.llvm_type,
+                # Void pointer to object, whatever it may be
+                module.types.as_ptr(module.types.u_mem).llvm_type,
+            )
+        )
+
+    def new(self):
+        pass
 
 
 class AkiFunction(AkiObject):
+    """
+    Type for function pointers in Aki.
+    """
+
     signed = False
 
     def __init__(self, arguments, return_type):
@@ -76,16 +133,24 @@ class AkiFunction(AkiObject):
         self.return_type = return_type
         # single decorated AkiType node
 
-        self.llvm_type = ir.FunctionType(
-            self.return_type.llvm_type, [_.llvm_type for _ in self.arguments]
+        self.llvm_type = ir.PointerType(
+            ir.FunctionType(
+                self.return_type.llvm_type, [_.llvm_type for _ in self.arguments]
+            )
         )
         self.type_id = f'func({",".join([str(_.aki_type) for _ in self.arguments])}){self.return_type.aki_type}'
+        self.name = self.type_id
 
     def c(self):
         return ctypes.c_void_p
 
     def default(self):
         return None
+
+    def format_result(self, result):
+        if result is None:
+            result = 0
+        return f'<function "{str(self)}" @ {hex(result)}>'
 
 
 class AkiIntBoolMathOps:
@@ -153,6 +218,10 @@ class AkiIntBoolMathOps:
 
 
 class AkiBaseInt(AkiType, AkiIntBoolMathOps):
+    """
+    Base type for integers.
+    """
+
     def __init__(self, bits, signed):
         self.bits = bits
         self.llvm_type = types.IntType(bits)
@@ -164,6 +233,10 @@ class AkiBaseInt(AkiType, AkiIntBoolMathOps):
 
 
 class AkiTypeRef(AkiType):
+    """
+    Type reference type (essentially, an enum).
+    """
+
     comp_ops = {"==": ".eqop", "!=": ".neqop"}
     comp_ins = "icmp_unsigned"
 
@@ -175,6 +248,14 @@ class AkiTypeRef(AkiType):
 
 
 class AkiBool(AkiType, AkiIntBoolMathOps):
+    """
+    Aki Boolean type. Bit-compatible, but not type-compatible,
+    with an i1.
+    """
+
+    comp_ops = {"==": ".eqop", "!=": ".neqop"}
+    comp_ins = "icmp_unsigned"
+
     def __init__(self):
         self.bits = 1
         self.llvm_type = types.IntType(1)
@@ -188,8 +269,15 @@ class AkiBool(AkiType, AkiIntBoolMathOps):
         lhs = codegen._codegen(Constant(node, 1, operand.aki.vartype))
         return codegen.builder.xor(lhs, operand, "bnegop")
 
+    def format_result(self, result):
+        return True if result else False
+
 
 class AkiInt(AkiBaseInt):
+    """
+    Signed Aki integer type.
+    """
+
     comp_ins = "icmp_signed"
 
     def __init__(self, bits):
@@ -201,13 +289,21 @@ class AkiInt(AkiBaseInt):
 
 
 class AkiUnsignedInt(AkiBaseInt):
+    """
+    Unsigned Aki integer type.
+    """
+
     comp_ins = "icmp_unsigned"
 
     def __init__(self, bits):
         super().__init__(bits, False)
 
 
-class AkiFloatMathOps:
+class AkiBaseFloat(AkiType):
+    """
+    Base type for floating-point Aki types.
+    """
+
     math_ops = {"+": "add", "-": "sub", "*": "mul", "/": "div"}
 
     def math_op_addop(self, codegen, node, lhs, rhs, op_name):
@@ -226,8 +322,6 @@ class AkiFloatMathOps:
         lhs = codegen._codegen(Constant(node, 0, operand.aki.vartype))
         return codegen.builder.fsub(lhs, operand, "fnegop")
 
-
-class AkiBaseFloat(AkiType, AkiFloatMathOps):
     signed = True
     comp_ins = "fcmp_ordered"
 
@@ -236,6 +330,10 @@ class AkiBaseFloat(AkiType, AkiFloatMathOps):
 
 
 class AkiFloat(AkiBaseFloat):
+    """
+    32-bit floating point Aki type.
+    """
+
     def __init__(self):
         super().__init__()
         self.llvm_type = types.FloatType()
@@ -246,6 +344,10 @@ class AkiFloat(AkiBaseFloat):
 
 
 class AkiDouble(AkiBaseFloat):
+    """
+    64-bit floating point Aki type.
+    """
+
     def __init__(self):
         super().__init__()
         self.llvm_type = types.DoubleType()
@@ -256,6 +358,10 @@ class AkiDouble(AkiBaseFloat):
 
 
 class AkiArray(AkiType):
+    """
+    Aki array type.
+    """
+
     def __init__(self, vartype, dimensions):
         super().__init__()
         # With each one we create a nested type structure.
@@ -267,42 +373,107 @@ class AkiArray(AkiType):
         # module's enum list
 
 
-class AkiTypes:
+class AkiString(AkiObject, AkiType):
+    """
+    Type for Aki string constants.
+    """
 
-    # These are never modified so we can place them in the underlying class
+    signed = False
+    type_id = "str"
 
-    base_types = {
-        "type": AkiTypeRef(),
-        "bool": AkiBool(),
-        "i1": AkiInt(1),
-        "i8": AkiInt(8),
-        "i16": AkiInt(16),
-        "i32": AkiInt(32),
-        "int": AkiInt(32),
-        "i64": AkiInt(64),
-        "u8": AkiUnsignedInt(8),
-        "u16": AkiUnsignedInt(16),
-        "u32": AkiUnsignedInt(32),
-        "uint": AkiUnsignedInt(32),
-        "u64": AkiUnsignedInt(64),
-        "f32": AkiFloat(),
-        "f64": AkiDouble(),
-        # We originally had these here but they break the pattern
-        # we'll figure out later how to work stuff like this in
-        # "bigint": lambda x: AkiInt(x)
-        # (signed)
-    }
+    def __init__(self, module):
+        self.module = module
+        self.llvm_type = ir.PointerType(module.types.obj.llvm_type)
 
-    enum_ids = {}
+    def c(self):
+        return ctypes.c_void_p
 
-    @classmethod
-    def setup(cls):
-        for index, k_v in enumerate(AkiTypes.base_types.items()):
-            k, v = k_v
-            setattr(AkiTypes, k, v)
-            setattr(getattr(AkiTypes, k), "enum_id", index)
-            cls.enum_ids[index] = v
+    def default(self):
+        return None
+
+    def format_result(self, result):
+        if result is None:
+            return '""'
+
+        char_p = ctypes.POINTER(ctypes.c_char_p)
+        result = ctypes.cast(
+            result
+            + (self.module.types.obj.OBJECT_POINTER * self.module.types.byte.bits),
+            char_p,
+        )
+        result = ctypes.cast(result.contents, char_p)
+        result = f'"{str(ctypes.string_at(result),"utf8")}"'
+        return result
+
+    def data(self, text):
+        text = text + "\x00"
+        data = bytearray(text.encode("utf8"))
+        data_array = ir.ArrayType(self.module.types.byte.llvm_type, len(data))
+        return data, data_array
 
 
-AkiTypes.setup()
-DefaultType = AkiTypes.i32
+class _AkiTypes:
+    """
+    Holds all Aki type definitions for a given module.
+    """
+
+    # These types are universal and so do not need to be instantiated
+    # with the module.
+
+    type = AkiTypeRef()
+    bool = AkiBool()
+    i1 = AkiInt(1)
+    i8 = AkiInt(8)
+    i16 = AkiInt(16)
+    i32 = AkiInt(32)
+    int = AkiInt(32)
+    i64 = AkiInt(64)
+    u8 = AkiUnsignedInt(8)
+    u16 = AkiUnsignedInt(16)
+    u32 = AkiUnsignedInt(32)
+    uint = AkiUnsignedInt(32)
+    u64 = AkiUnsignedInt(64)
+    f32 = AkiFloat()
+    f64 = AkiDouble()
+
+    def __init__(self, module: Optional[ir.Module] = None, bytesize=8):
+
+        if module is None:
+            module = ir.Module()
+
+        # Set internal module reference so types can access each other
+        module.types = self
+
+        # Obtain pointer size from LLVM target
+        target_data = binding.create_target_data(module.data_layout)
+        self._byte_width = ir.PointerType(ir.IntType(bytesize)).get_abi_size(
+            target_data
+        )
+        self._pointer_width = self._byte_width * bytesize
+
+        # Set byte and pointer sizes
+        self.byte = AkiUnsignedInt(self._byte_width)
+        self.u_mem = self.byte
+        self.u_size = AkiUnsignedInt(self._pointer_width)
+
+        # Set types that depend on pointer sizes
+        self._ptr = AkiPointer(module)
+        self.obj = AkiObject(module)
+        self.str = AkiString(module)
+
+        # Default type is a 32-bit signed integer
+        self._default = self.i32
+
+        # Create type enums
+        index = 0
+        self.enum_ids: dict = {}
+        for _ in (self.__class__.__dict__.items(), self.__dict__.items()):
+            for k, v in _:
+                if isinstance(v, AkiType):
+                    self.enum_ids[index] = v
+                    v.enum_id = index
+                    index += 1
+
+    def as_ptr(self, other):
+        return self._ptr.new(other)
+

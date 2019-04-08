@@ -32,17 +32,23 @@ class TestLexer(unittest.TestCase):
         for text, result in tests:
             self.assertEqual(self.__parse(text), result)
 
+    def _ex(self, err_type, tests):
+        for text in tests:
+            with self.assertRaises(err_type):
+                self._parse(text)
+
     def test_constant(self):
         self._e(
             (
                 (r"32", [["Constant", 32, ["VarType", ["VarTypeName", "i32"]]]]),
                 (r"32.0", [["Constant", 32, ["VarType", ["VarTypeName", "f32"]]]]),
+                (r"0hff", [["Constant", 255, ["VarType", ["VarTypeName", "i8"]]]]),
+                (r"0xff", [["Constant", 255, ["VarType", ["VarTypeName", "u8"]]]]),
+                (r"True", [["Constant", True, ["VarType", ["VarTypeName", "bool"]]]]),
+                (r"False", [["Constant", False, ["VarType", ["VarTypeName", "bool"]]]]),
             )
         )
-
-        with self.assertRaises(AkiSyntaxErr):
-            self.assertEqual(self._parse(r"32.x"), [])
-            self.assertEqual(self._parse(r"x.32"), [])
+        self._ex(AkiSyntaxErr, ((r"32.x"), (r"x.32")))
 
     def test_expr_names(self):
         self._e(

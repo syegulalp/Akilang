@@ -112,9 +112,6 @@ class VarTypeFunc(VarTypeNode):
         ]
 
 
-# to come: VarTypePointer, VarTypeCall, etc.
-
-
 class Name(Expression):
     """
     Variable reference.
@@ -196,6 +193,22 @@ class Constant(Expression):
 
     def flatten(self):
         return [self.__class__.__name__, self.val, self.vartype.flatten()]
+
+class String(Expression):
+    """
+    String constant.
+    """
+    def __init__(self, p, val, vartype):
+        super().__init__(p)
+        self.val = val
+        self.vartype = vartype
+        self.name = val
+
+    def __eq__(self, other):
+        return self.val == other.val
+
+    def flatten(self):
+        return [self.__class__.__name__, self.val]
 
 
 class UnOp(Expression):
