@@ -283,6 +283,9 @@ class AkiTypeRef(AkiType):
     def format_result(self, result):
         return f"<type{self.module.types.enum_ids[result]}>"
 
+    def default(self):
+        return 0
+
 
 class AkiBool(AkiType, AkiIntBoolMathOps):
     """
@@ -303,7 +306,7 @@ class AkiBool(AkiType, AkiIntBoolMathOps):
         return False
 
     def math_op_negop(self, codegen, node, operand):
-        lhs = codegen._codegen(Constant(node, 1, operand.aki.vartype))
+        lhs = codegen._codegen(Constant(node, 1, operand.akitype))
         return codegen.builder.xor(lhs, operand, "bnegop")
 
     def format_result(self, result):
@@ -321,7 +324,7 @@ class AkiInt(AkiBaseInt):
         super().__init__(bits, True)
 
     def math_op_negop(self, codegen, node, operand):
-        lhs = codegen._codegen(Constant(node, 0, operand.akinode.vartype))
+        lhs = codegen._codegen(Constant(node, 0, operand.akitype))
         return codegen.builder.sub(lhs, operand, "negop")
 
 
@@ -356,7 +359,7 @@ class AkiBaseFloat(AkiType):
         return codegen.builder.fdiv(lhs, rhs, f".f{op_name}")
 
     def math_op_negop(self, codegen, node, operand):
-        lhs = codegen._codegen(Constant(node, 0, operand.aki.vartype))
+        lhs = codegen._codegen(Constant(node, 0.0, VarTypeName(node, operand.akitype.type_id)))
         return codegen.builder.fsub(lhs, operand, "fnegop")
 
     signed = True

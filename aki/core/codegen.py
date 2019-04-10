@@ -14,6 +14,9 @@ from core.astree import (
     WithExpr,
     Prototype,
     LLVMNode,
+    Argument,
+    Function,
+    ExpressionBlock,
 )
 from core.error import (
     AkiNameErr,
@@ -108,6 +111,9 @@ class AkiCodeGen:
         result = getattr(self, method)(node)
         return result
 
+    def _codegen_NoneType(self, node):
+        pass
+
     def _codegen_LLVMNode(self, node):
         return node.llvm_node
 
@@ -182,6 +188,8 @@ class AkiCodeGen:
     #################################################################
 
     def _get_vartype(self, node: VarType):
+        if isinstance(node, AkiType):
+            return node
         return getattr(self, f"_get_vartype_{node.__class__.__name__}")(node)
 
     def _get_vartype_VarTypeName(self, node):
@@ -238,13 +246,13 @@ class AkiCodeGen:
         Takes an LLVM instruction result of a scalar type
         and converts it to a boolean type.
         """
-        vartype = VarTypeName(node, expr.akitype.type_id)
+        # vartype = VarTypeName(node, expr.akitype.type_id)
         result = self._codegen(
             BinOpComparison(
                 node,
                 "!=",
-                LLVMNode(node, vartype, expr),
-                Constant(node, expr.akitype.default(), vartype),
+                LLVMNode(node, expr.akitype, expr),
+                Constant(node, expr.akitype.default(), expr.akitype),
             )
         )
         return result
@@ -531,8 +539,28 @@ class AkiCodeGen:
             if named_type is not None:
 
                 if len(node.arguments) != 1:
-                    call_func = lambda: None
-                    call_func.args = [None]
+
+                    # Create a fake function definition to handle the error
+
+                    call_func = self._codegen(
+                        Function(
+                            node,
+                            Prototype(
+                                node,
+                                node.name,
+                                [
+                                    Argument(
+                                        node,
+                                        "vartype",
+                                        VarTypeName(node, self.types.type.type_id),
+                                    )
+                                ],
+                                VarTypeName(node, self.types.type.type_id),
+                            ),
+                            ExpressionBlock(node, []),
+                        )
+                    )
+
                     raise LocalException
 
                 arg = node.arguments[0]
@@ -541,11 +569,7 @@ class AkiCodeGen:
                 if node.name == "type":
                     type_from = self._codegen(arg)
                     const = self._codegen(
-                        Constant(
-                            arg,
-                            type_from.akitype.enum_id,
-                            VarTypeName(arg, self.types.type.type_id),
-                        )
+                        Constant(arg, type_from.akitype.enum_id, self.types.type)
                     )
                     return const
 
@@ -876,34 +900,18 @@ class AkiCodeGen:
 
     def _codegen_UnOp_Not(self, node, operand):
         """
-        Generate a NOT operation for a scalar value.
+        Generate a NOT operation for a true/false value.
         """
+        if not isinstance(operand.akitype, AkiBool):
+            operand = self._codegen_tf(node, operand)
 
-        raise
+        xor = self.builder.xor(
+            operand, self._codegen(Constant(node, 1, operand.akitype))
+        )
 
-        # ## TODO: move to akitypes
-
-        # if not isinstance(operand.aki.vartype.aki_type, self.types.bool):
-
-        #     operand = self._codegen(
-        #         BinOpComparison(
-        #             node,
-        #             "!=",
-        #             LLVMInstr(node, operand),
-        #             Constant(
-        #                 node,
-        #                 operand.aki.vartype.aki_type.default(),
-        #                 operand.aki.vartype,
-        #             ),
-        #         )
-        #     )
-
-        # xor = self.builder.xor(
-        #     operand, self._codegen(Constant(node, 1, operand.aki.vartype))
-        # )
-        # xor.aki = LLVMOp(node, operand.aki.vartype.aki_type, f"{node.op} operation")
-
-        # return xor
+        xor.akitype = self.types.bool
+        xor.akinode = node
+        return xor
 
     _unops = {"-": _codegen_UnOp_Neg, "not": _codegen_UnOp_Not}
 
@@ -1025,9 +1033,7 @@ class AkiCodeGen:
 
         named_type = self._get_type(node.name)
         if named_type is not None:
-            return self._codegen(
-                Constant(node, named_type.enum_id, VarTypeName(node, "type"))
-            )
+            return self._codegen(Constant(node, named_type.enum_id, self.types.type))
 
         name = self._name(node, node.name)
 
