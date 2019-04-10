@@ -27,6 +27,17 @@ ir.instructions.Comment = Comment
 def comment(self, txt):
     self._insert(ir.instructions.Comment(self.block, txt))
 
+class Timer:
+    def __init__(self):
+        import time
+        self.clock = time.clock
+    def __enter__(self):        
+        self.begin = self.clock()
+        return self
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.end = self.clock()
+        self.time = self.end-self.begin
+
 
 ir.builder.IRBuilder.comment = comment
 
@@ -99,7 +110,7 @@ class JIT:
     def __init__(self, types=None):
         self.anon_counter = 0
         self.types = types
-        self.reset()        
+        self.reset()
 
     def reset(self):
         self.compiler = AkiCompiler()
@@ -119,9 +130,9 @@ class Repl:
 LLVM   :{".".join((str(n) for n in binding.llvm_version_info))}
 pyaki  :{constants.VERSION}"""
 
-    def __init__(self, types = None):
+    def __init__(self, types=None):
         self.types = types
-        self.reset(silent=True)        
+        self.reset(silent=True)
 
     def run_tests(self, *a):
         print(f"{REP}", end="")
@@ -131,51 +142,53 @@ pyaki  :{constants.VERSION}"""
         unittest.TextTestRunner().run(tests)
 
     def load_file(self, file_to_load, force_recompilation=False):
-        import time
+        
 
         self.main_cpl.reset()
 
         # Attempt to load precomputed module from cache
 
         cache_path = f"output/{file_to_load}.akic"
+        filepath = f"examples/{file_to_load}.aki"
+        
+        if not os.path.exists(cache_path):
+            force_recompilation=True
+        elif os.path.getmtime(filepath)>os.path.getmtime(cache_path):
+            force_recompilation=True            
 
-        if not force_recompilation and os.path.exists(cache_path):
-            begin = time.clock()
-            with open(cache_path, "rb") as file:
-                import pickle
 
-                mod_in = pickle.load(file)
-                self.main_cpl.codegen = mod_in["codegen"]
-                self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
-                file_size = os.fstat(file.fileno()).st_size
+        if not force_recompilation:
+            with Timer() as t:
+                with open(cache_path, "rb") as file:        
+                    import pickle
 
-            end = time.clock()
+                    mod_in = pickle.load(file)
+                    self.main_cpl.codegen = mod_in["codegen"]
+                    self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
+                    file_size = os.fstat(file.fileno()).st_size
+
             cp(
-                f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({end-begin:.3f} sec)"
+                f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)"
             )
             return
 
-        filepath = f"examples/{file_to_load}.aki"
+        with Timer() as t:
 
-        begin = time.clock()
+            try:
+                with open(filepath) as file:
+                    text = file.read()
+                    file_size = os.fstat(file.fileno()).st_size
+            except FileNotFoundError:
+                raise AkiBaseErr(
+                    None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
+                )
 
-        try:
-            with open(filepath) as file:
-                text = file.read()
-                file_size = os.fstat(file.fileno()).st_size
-        except FileNotFoundError:
-            raise AkiBaseErr(
-                None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
-            )
+            tokens = self.main_cpl.lexer.tokenize(text)
+            ast = self.main_cpl.parser.parse(tokens, text)
 
-        tokens = self.main_cpl.lexer.tokenize(text)
-        ast = self.main_cpl.parser.parse(tokens, text)
-
-        self.main_cpl.codegen.text = text
-        self.main_cpl.codegen.eval(ast)
-        self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
-
-        end = time.clock()
+            self.main_cpl.codegen.text = text
+            self.main_cpl.codegen.eval(ast)
+            self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
 
         # Write cached compilation to file
 
@@ -188,7 +201,7 @@ pyaki  :{constants.VERSION}"""
 
             pickle.dump(output, file)
 
-        cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({end-begin:.3f} sec)")
+        cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({t.time:.3f} sec)")
 
     def quit(self, *a):
         print(XX)
@@ -291,7 +304,7 @@ pyaki  :{constants.VERSION}"""
             self.repl_cpl.anon_counter += 1
 
             call_name = f".ANONYMOUS.{self.repl_cpl.anon_counter}"
-            proto = Prototype(_.p, call_name, (), VarType(_.p, VarTypeName(_.p, None)))
+            proto = Prototype(_.p, call_name, (), VarTypeName(_.p, None))
             func = Function(_.p, proto, ExpressionBlock(_.p, [_]))
 
             if not immediate_mode:
@@ -314,9 +327,9 @@ pyaki  :{constants.VERSION}"""
             # Retrieve a pointer to the function
             func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
-            return_type =self.repl_cpl.module.globals[
+            return_type = self.repl_cpl.module.globals[
                 call_name
-            ].return_value.aki.return_type.aki_type
+            ].return_value.akitype
 
             return_type_ctype = return_type.c()
 
@@ -333,7 +346,7 @@ pyaki  :{constants.VERSION}"""
 
             cfunc = ctypes.CFUNCTYPE(return_type_ctype, *[])(func_ptr)
             res = cfunc()
-            #print (return_type)
+            # print (return_type, res)
             yield return_type.format_result(res)
 
     def about(self, *a):

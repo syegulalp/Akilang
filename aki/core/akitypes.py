@@ -1,7 +1,7 @@
 from llvmlite.ir import types
 from llvmlite import ir, binding
 import ctypes
-from core.astree import BinOpComparison, LLVMInstr, Constant, IfExpr
+from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
 from typing import Optional
 
 
@@ -128,17 +128,17 @@ class AkiFunction(AkiObject):
     signed = False
 
     def __init__(self, arguments, return_type):
-        self.arguments = arguments
         # list of decorated AkiType nodes
-        self.return_type = return_type
+        self.arguments = arguments
         # single decorated AkiType node
+        self.return_type = return_type
 
         self.llvm_type = ir.PointerType(
             ir.FunctionType(
                 self.return_type.llvm_type, [_.llvm_type for _ in self.arguments]
             )
         )
-        self.type_id = f'func({",".join([str(_.aki_type) for _ in self.arguments])}){self.return_type.aki_type}'
+        self.type_id = f'func({",".join([str(_.akitype) for _ in self.arguments])}){self.return_type}'
         self.name = self.type_id
 
     def c(self):
@@ -150,7 +150,7 @@ class AkiFunction(AkiObject):
     def format_result(self, result):
         if result is None:
             result = 0
-        return f'<function "{str(self)}" @ {hex(result)}>'
+        return f"<function{str(self)} @ {hex(result)}>"
 
 
 class AkiIntBoolMathOps:
@@ -190,31 +190,64 @@ class AkiIntBoolMathOps:
     def math_op_andorop(self, codegen, node, lhs, rhs, op_name):
         # Handles both and and or operations
 
-        if not isinstance(lhs.aki.vartype.aki_type, AkiBool):
-            operand = codegen._codegen(
-                BinOpComparison(
-                    node.lhs,
-                    "!=",
-                    LLVMInstr(node.lhs, lhs),
-                    Constant(
-                        node.lhs, lhs.aki.vartype.aki_type.default(), lhs.aki.vartype
-                    ),
-                )
-            )
-
+        if not isinstance(lhs.akitype, AkiBool):
+            lhs_x = codegen._codegen_tf(node.lhs, lhs)
         else:
-            operand = lhs
+            lhs_x = lhs
+
+        if not isinstance(rhs.akitype, AkiBool):
+            rhs_x = codegen._codegen_tf(node.rhs, rhs)
+        else:
+            rhs_x = rhs
+
+        lhs_x = LLVMNode(node.lhs, VarTypeName(node.lhs, lhs.akitype.type_id), lhs_x)
+        rhs_x = LLVMNode(node.rhs, VarTypeName(node.rhs, rhs.akitype.type_id), rhs_x)
 
         if node.op == "and":
-            true_op = LLVMInstr(node.rhs, rhs)
-            false_op = LLVMInstr(node.lhs, lhs)
+            result_test = BinOp(node, "&", lhs_x, rhs_x)
+            true_result = LLVMNode(
+                node.rhs, VarTypeName(node.rhs, rhs.akitype.type_id), rhs
+            )
+            false_result = Constant(
+                node, rhs.akitype.default(), VarTypeName(node, rhs.akitype.type_id)
+            )
+
+            result = IfExpr(node, result_test, true_result, false_result)
+
         else:
-            true_op = LLVMInstr(node.lhs, lhs)
-            false_op = LLVMInstr(node.rhs, rhs)
-        result_test = codegen._codegen(
-            IfExpr(operand.aki, LLVMInstr(operand.aki, operand), true_op, false_op)
-        )
-        return result_test
+
+            # first, test if both values are false
+            first_result_test = BinOp(node, "|", lhs_x, rhs_x)
+            # if so, return 0
+            first_false_result = Constant(
+                node, lhs.akitype.default(), VarTypeName(node, lhs.akitype.type_id)
+            )
+            # if not, return the value
+            first_true_result = LLVMNode(
+                node.lhs, VarTypeName(node.lhs, lhs.akitype.type_id), lhs
+            )
+
+            first_result = IfExpr(
+                node, first_result_test, first_true_result, first_false_result
+            )
+
+            # next, test if the lhs result is nonzero
+            second_result_test = BinOp(node, "|", first_result, first_false_result)
+
+            # if so, return that value
+            second_true_result = first_true_result
+            # if not, return the rhs
+            second_false_result = LLVMNode(
+                node.rhs, VarTypeName(node.rhs, rhs.akitype.type_id), rhs
+            )
+
+            result = IfExpr(
+                node, second_result_test, second_true_result, second_false_result
+            )
+
+        result = codegen._codegen(result)
+
+        return result
 
 
 class AkiBaseInt(AkiType, AkiIntBoolMathOps):
@@ -240,11 +273,15 @@ class AkiTypeRef(AkiType):
     comp_ops = {"==": ".eqop", "!=": ".neqop"}
     comp_ins = "icmp_unsigned"
 
-    def __init__(self):
+    def __init__(self, module):
+        self.module = module
         self.bits = 64
         self.llvm_type = types.IntType(self.bits)
         self.signed = False
         self.type_id = "type"
+
+    def format_result(self, result):
+        return f"<type{self.module.types.enum_ids[result]}>"
 
 
 class AkiBool(AkiType, AkiIntBoolMathOps):
@@ -284,7 +321,7 @@ class AkiInt(AkiBaseInt):
         super().__init__(bits, True)
 
     def math_op_negop(self, codegen, node, operand):
-        lhs = codegen._codegen(Constant(node, 0, operand.aki.vartype))
+        lhs = codegen._codegen(Constant(node, 0, operand.akinode.vartype))
         return codegen.builder.sub(lhs, operand, "negop")
 
 
@@ -420,21 +457,22 @@ class _AkiTypes:
     # These types are universal and so do not need to be instantiated
     # with the module.
 
-    type = AkiTypeRef()
     bool = AkiBool()
     i1 = AkiInt(1)
     i8 = AkiInt(8)
     i16 = AkiInt(16)
     i32 = AkiInt(32)
-    int = AkiInt(32)
+    int = i32
     i64 = AkiInt(64)
     u8 = AkiUnsignedInt(8)
     u16 = AkiUnsignedInt(16)
     u32 = AkiUnsignedInt(32)
-    uint = AkiUnsignedInt(32)
+    uint = u32
     u64 = AkiUnsignedInt(64)
     f32 = AkiFloat()
     f64 = AkiDouble()
+    float = f64
+    func = AkiFunction
 
     def __init__(self, module: Optional[ir.Module] = None, bytesize=8):
 
@@ -460,9 +498,14 @@ class _AkiTypes:
         self._ptr = AkiPointer(module)
         self.obj = AkiObject(module)
         self.str = AkiString(module)
+        self.type = AkiTypeRef(module)
 
         # Default type is a 32-bit signed integer
         self._default = self.i32
+
+        # Holds type signatures and type references for custom types.
+        # Function signatures and arrays are two common examples.
+        self.custom_types: dict = {}
 
         # Create type enums
         index = 0
@@ -476,4 +519,7 @@ class _AkiTypes:
 
     def as_ptr(self, other):
         return self._ptr.new(other)
+
+    def add_type(self, type_name):
+        pass
 

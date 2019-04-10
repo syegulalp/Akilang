@@ -22,7 +22,7 @@ from core.astree import (
     WithExpr,
     VarTypeName,
     VarTypePtr,
-    VarTypeFunc
+    VarTypeFunc,
 )
 from core.error import AkiSyntaxErr
 
@@ -42,9 +42,9 @@ class AkiParser(Parser):
         ("right", "ASSIGN"),
         ("left", "LOOP", "IF", "WHEN", "ELSE"),
         ("right", "UMINUS", "NOT"),
-        ("left", "EQ", "NEQ", "GEQ", "LEQ", "GT", "LT"),
         ("left", "AND", "BIN_AND"),
-        ("left", "OR", "BIN_OR"),
+        ("left", "OR", "BIN_OR"),        
+        ("left", "EQ", "NEQ", "GEQ", "LEQ", "GT", "LT"),
         ("left", "INCR", "DECR"),
         ("left", "PLUS", "MINUS"),
         ("left", "TIMES", "DIV", "INT_DIV"),
@@ -67,11 +67,12 @@ class AkiParser(Parser):
 
     @_("INTEGER")
     def expr(self, p):
-        return Constant(Pos(p), p.INTEGER, VarType(Pos(p), VarTypeName(Pos(p), "i32")))
+        #return Constant(Pos(p), p.INTEGER, VarType(Pos(p), VarTypeName(Pos(p), "i32")))
+        return Constant(Pos(p), p.INTEGER, VarTypeName(Pos(p), "i32"))
 
     @_("FLOAT")
     def expr(self, p):
-        return Constant(Pos(p), p.FLOAT, VarType(Pos(p), VarTypeName(Pos(p), "f32")))
+        return Constant(Pos(p), p.FLOAT, VarTypeName(Pos(p), "f64"))
 
     @_("NAME")
     def expr(self, p):
@@ -196,10 +197,11 @@ class AkiParser(Parser):
 
     @_("COLON vartypedef")
     def vartype(self, p):
-        return VarType(Pos(p), p.vartypedef)
+        #return VarType(Pos(p), p.vartypedef)
+        return p.vartypedef
 
     # pointer prefix
-    
+
     @_("ptrlist vartypekind")
     def vartypedef(self, p):
         name = p.vartypekind
@@ -215,13 +217,9 @@ class AkiParser(Parser):
 
     @_("FUNC LPAREN vartypelist RPAREN vartype")
     def vartypekind(self, p):
-        func = VarTypeFunc(
-            Pos(p),
-            p.vartypelist,
-            p.vartype
-        )
+        func = VarTypeFunc(Pos(p), p.vartypelist, p.vartype)
         return func
-    
+
     @_("vartype COMMA vartypelist")
     def vartypelist(self, p):
         return p.vartypelist + [p.vartype]
@@ -248,7 +246,7 @@ class AkiParser(Parser):
 
     @_("empty")
     def vartype(self, p):
-        return VarType(Pos(p), VarTypeName(Pos(p), None))
+        return VarTypeName(Pos(p), None)
 
     # Function call
 
@@ -403,35 +401,37 @@ class AkiParser(Parser):
 
     @_("TRUE")
     def expr(self, p):
-        return Constant(Pos(p), 1, VarType(Pos(p), VarTypeName(Pos(p), 'bool')))
+        return Constant(Pos(p), 1, VarTypeName(Pos(p), "bool"))
 
     @_("FALSE")
     def expr(self, p):
-        return Constant(Pos(p), 0, VarType(Pos(p), VarTypeName(Pos(p), 'bool')))
+        return Constant(Pos(p), 0, VarTypeName(Pos(p), "bool"))
 
     # string constants
 
     @_("TEXT1", "TEXT2")
     def expr(self, p):
-        return String(Pos(p), p[0][1:-1], VarType(Pos(p), VarTypeName(Pos(p), 'str')))
+        return String(Pos(p), p[0][1:-1], VarTypeName(Pos(p), "str"))
 
     # hex value constant
     @_("HEX")
     def expr(self, p):
-        if p.HEX[1]=='x':
-            sign='u'
+        if p.HEX[1] == "x":
+            # 0x00 = unsigned
+            sign = "u"
         else:
-            sign='i'
-        bytelength = (len(p.HEX[2:]))*4
-        value = int(p.HEX[2:],16)
-        if bytelength<8:
-            if value>1:
-                bytelength=8
-                typestr=f'{sign}{bytelength}'
+            # 0h00 = signed
+            sign = "i"
+        bytelength = (len(p.HEX[2:])) * 4
+        value = int(p.HEX[2:], 16)
+        if bytelength < 8:
+            if value > 1:
+                bytelength = 8
+                typestr = f"{sign}{bytelength}"
             else:
-                typestr='bool'
+                typestr = "bool"
         else:
-            typestr=f'{sign}{bytelength}'
+            typestr = f"{sign}{bytelength}"
 
-        return Constant(Pos(p), value, VarType(Pos(p), VarTypeName(Pos(p), typestr)))
-        
+        return Constant(Pos(p), value, VarTypeName(Pos(p), typestr))
+

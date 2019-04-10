@@ -37,15 +37,18 @@ class TestLexer(unittest.TestCase):
             with self.assertRaises(err_type):
                 self._parse(text)
 
+    # def test_t1(self):
+    #     self.__parse("if x==1 or y==2 3 else 4")
+
     def test_constant(self):
         self._e(
             (
-                (r"32", [["Constant", 32, ["VarType", ["VarTypeName", "i32"]]]]),
-                (r"32.0", [["Constant", 32, ["VarType", ["VarTypeName", "f32"]]]]),
-                (r"0hff", [["Constant", 255, ["VarType", ["VarTypeName", "i8"]]]]),
-                (r"0xff", [["Constant", 255, ["VarType", ["VarTypeName", "u8"]]]]),
-                (r"True", [["Constant", True, ["VarType", ["VarTypeName", "bool"]]]]),
-                (r"False", [["Constant", False, ["VarType", ["VarTypeName", "bool"]]]]),
+                (r"32", [["Constant", 32, ["VarTypeName", "i32"]]]),
+                (r"32.0", [["Constant", 32.0, ["VarTypeName", "f64"]]]),
+                (r"0hff", [["Constant", 255, ["VarTypeName", "i8"]]]),
+                (r"0xff", [["Constant", 255, ["VarTypeName", "u8"]]]),
+                (r"True", [["Constant", True, ["VarTypeName", "bool"]]]),
+                (r"False", [["Constant", False, ["VarTypeName", "bool"]]]),
             )
         )
         self._ex(AkiSyntaxErr, ((r"32.x"), (r"x.32")))
@@ -57,12 +60,7 @@ class TestLexer(unittest.TestCase):
                 (r"_x", [["Name", "_x", None, None]]),
                 (
                     r"var x:i32",
-                    [
-                        [
-                            "VarList",
-                            [["Name", "x", None, ["VarType", ["VarTypeName", "i32"]]]],
-                        ]
-                    ],
+                    [["VarList", [["Name", "x", None, ["VarTypeName", "i32"]]]]],
                 ),
                 (
                     r"var x:i32=1,y=2,z:i32",
@@ -73,29 +71,16 @@ class TestLexer(unittest.TestCase):
                                 [
                                     "Name",
                                     "x",
-                                    [
-                                        "Constant",
-                                        1,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
-                                    ["VarType", ["VarTypeName", "i32"]],
+                                    ["Constant", 1, ["VarTypeName", "i32"]],
+                                    ["VarTypeName", "i32"],
                                 ],
                                 [
                                     "Name",
                                     "y",
-                                    [
-                                        "Constant",
-                                        2,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
-                                    ["VarType", ["VarTypeName", None]],
+                                    ["Constant", 2, ["VarTypeName", "i32"]],
+                                    ["VarTypeName", None],
                                 ],
-                                [
-                                    "Name",
-                                    "z",
-                                    None,
-                                    ["VarType", ["VarTypeName", "i32"]],
-                                ],
+                                ["Name", "z", None, ["VarTypeName", "i32"]],
                             ],
                         ]
                     ],
@@ -113,7 +98,7 @@ class TestLexer(unittest.TestCase):
                             "BinOp",
                             "+",
                             ["Name", "x", None, None],
-                            ["Constant", 1, ["VarType", ["VarTypeName", "i32"]]],
+                            ["Constant", 1, ["VarTypeName", "i32"]],
                         ]
                     ],
                 ),
@@ -127,8 +112,8 @@ class TestLexer(unittest.TestCase):
                             [
                                 "BinOp",
                                 "*",
-                                ["Constant", 1, ["VarType", ["VarTypeName", "i32"]]],
-                                ["Constant", 5, ["VarType", ["VarTypeName", "i32"]]],
+                                ["Constant", 1, ["VarTypeName", "i32"]],
+                                ["Constant", 5, ["VarTypeName", "i32"]],
                             ],
                         ]
                     ],
@@ -139,16 +124,7 @@ class TestLexer(unittest.TestCase):
     def test_unop(self):
         self._e(
             (
-                (
-                    r"-5",
-                    [
-                        [
-                            "UnOp",
-                            "-",
-                            ["Constant", 5, ["VarType", ["VarTypeName", "i32"]]],
-                        ]
-                    ],
-                ),
+                (r"-5", [["UnOp", "-", ["Constant", 5, ["VarTypeName", "i32"]]]]),
                 (
                     r"-{x*y}",
                     [
@@ -182,7 +158,7 @@ class TestLexer(unittest.TestCase):
                             "Assignment",
                             "=",
                             ["Name", "x", None, None],
-                            ["Constant", 5, ["VarType", ["VarTypeName", "i32"]]],
+                            ["Constant", 5, ["VarTypeName", "i32"]],
                         ]
                     ],
                 ),
@@ -199,7 +175,7 @@ class TestLexer(unittest.TestCase):
                             "BinOpComparison",
                             "==",
                             ["Name", "x", None, None],
-                            ["Constant", 1, ["VarType", ["VarTypeName", "i32"]]],
+                            ["Constant", 1, ["VarTypeName", "i32"]],
                         ]
                     ],
                 ),
@@ -210,7 +186,7 @@ class TestLexer(unittest.TestCase):
                             "Assignment",
                             "=",
                             ["Name", "x", None, None],
-                            ["Constant", 1, ["VarType", ["VarTypeName", "i32"]]],
+                            ["Constant", 1, ["VarTypeName", "i32"]],
                         ]
                     ],
                 ),
@@ -233,21 +209,13 @@ class TestLexer(unittest.TestCase):
                                     "Assignment",
                                     "=",
                                     ["Name", "x", None, None],
-                                    [
-                                        "Constant",
-                                        1,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
+                                    ["Constant", 1, ["VarTypeName", "i32"]],
                                 ],
                                 [
                                     "BinOpComparison",
                                     "==",
                                     ["Name", "x", None, None],
-                                    [
-                                        "Constant",
-                                        1,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
+                                    ["Constant", 1, ["VarTypeName", "i32"]],
                                 ],
                             ],
                         ]
@@ -264,8 +232,8 @@ class TestLexer(unittest.TestCase):
                     [
                         [
                             "Function",
-                            ["Prototype", [], ["VarType", ["VarTypeName", None]]],
-                            [["Constant", 0, ["VarType", ["VarTypeName", "i32"]]]],
+                            ["Prototype", [], ["VarTypeName", None]],
+                            [["Constant", 0, ["VarTypeName", "i32"]]],
                         ]
                     ],
                 ),
@@ -282,15 +250,8 @@ class TestLexer(unittest.TestCase):
                             "Function",
                             [
                                 "Prototype",
-                                [
-                                    [
-                                        "Argument",
-                                        "x",
-                                        ["VarType", ["VarTypeName", None]],
-                                        None,
-                                    ]
-                                ],
-                                ["VarType", ["VarTypeName", None]],
+                                [["Argument", "x", ["VarTypeName", None], None]],
+                                ["VarTypeName", None],
                             ],
                             [
                                 [
@@ -301,11 +262,7 @@ class TestLexer(unittest.TestCase):
                                         "BinOp",
                                         "+",
                                         ["Name", "x", None, None],
-                                        [
-                                            "Constant",
-                                            1,
-                                            ["VarType", ["VarTypeName", "i32"]],
-                                        ],
+                                        ["Constant", 1, ["VarTypeName", "i32"]],
                                     ],
                                 ],
                                 ["Name", "x", None, None],
@@ -329,31 +286,19 @@ class TestLexer(unittest.TestCase):
                                     "Assignment",
                                     "=",
                                     ["Name", "x", None, None],
-                                    [
-                                        "Constant",
-                                        0,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
+                                    ["Constant", 0, ["VarTypeName", "i32"]],
                                 ],
                                 [
                                     "BinOpComparison",
                                     "<",
                                     ["Name", "x", None, None],
-                                    [
-                                        "Constant",
-                                        20,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
+                                    ["Constant", 20, ["VarTypeName", "i32"]],
                                 ],
                                 [
                                     "BinOp",
                                     "+",
                                     ["Name", "x", None, None],
-                                    [
-                                        "Constant",
-                                        1,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
+                                    ["Constant", 1, ["VarTypeName", "i32"]],
                                 ],
                             ],
                             ["ExpressionBlock", [["Name", "x", None, None]]],
@@ -372,12 +317,8 @@ class TestLexer(unittest.TestCase):
                                         [
                                             "Name",
                                             "x",
-                                            [
-                                                "Constant",
-                                                0,
-                                                ["VarType", ["VarTypeName", "i32"]],
-                                            ],
-                                            ["VarType", ["VarTypeName", None]],
+                                            ["Constant", 0, ["VarTypeName", "i32"]],
+                                            ["VarTypeName", None],
                                         ]
                                     ],
                                 ],
@@ -385,21 +326,13 @@ class TestLexer(unittest.TestCase):
                                     "BinOpComparison",
                                     "<",
                                     ["Name", "x", None, None],
-                                    [
-                                        "Constant",
-                                        20,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
+                                    ["Constant", 20, ["VarTypeName", "i32"]],
                                 ],
                                 [
                                     "BinOp",
                                     "+",
                                     ["Name", "x", None, None],
-                                    [
-                                        "Constant",
-                                        1,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
+                                    ["Constant", 1, ["VarTypeName", "i32"]],
                                 ],
                             ],
                             ["ExpressionBlock", [["Name", "x", None, None]]],
@@ -421,7 +354,7 @@ class TestLexer(unittest.TestCase):
                                 "BinOpComparison",
                                 ">",
                                 ["Name", "x", None, None],
-                                ["Constant", 1, ["VarType", ["VarTypeName", "i32"]]],
+                                ["Constant", 1, ["VarTypeName", "i32"]],
                             ],
                             ["Name", "y", None, None],
                             ["Name", "z", None, None],
@@ -437,7 +370,7 @@ class TestLexer(unittest.TestCase):
                                 "BinOpComparison",
                                 ">",
                                 ["Name", "x", None, None],
-                                ["Constant", 1, ["VarType", ["VarTypeName", "i32"]]],
+                                ["Constant", 1, ["VarTypeName", "i32"]],
                             ],
                             ["Name", "y", None, None],
                             ["Name", "z", None, None],
@@ -456,11 +389,7 @@ class TestLexer(unittest.TestCase):
                                         "BinOpComparison",
                                         ">",
                                         ["Name", "x", None, None],
-                                        [
-                                            "Constant",
-                                            1,
-                                            ["VarType", ["VarTypeName", "i32"]],
-                                        ],
+                                        ["Constant", 1, ["VarTypeName", "i32"]],
                                     ]
                                 ],
                             ],
@@ -484,7 +413,7 @@ class TestLexer(unittest.TestCase):
                                 "BinOpComparison",
                                 ">",
                                 ["Name", "x", None, None],
-                                ["Constant", 1, ["VarType", ["VarTypeName", "i32"]]],
+                                ["Constant", 1, ["VarTypeName", "i32"]],
                             ],
                             ["Name", "y", None, None],
                             ["Name", "z", None, None],
@@ -503,11 +432,7 @@ class TestLexer(unittest.TestCase):
                                         "BinOpComparison",
                                         ">",
                                         ["Name", "x", None, None],
-                                        [
-                                            "Constant",
-                                            1,
-                                            ["VarType", ["VarTypeName", "i32"]],
-                                        ],
+                                        ["Constant", 1, ["VarTypeName", "i32"]],
                                     ]
                                 ],
                             ],
@@ -531,12 +456,8 @@ class TestLexer(unittest.TestCase):
                                 [
                                     "Name",
                                     "x",
-                                    [
-                                        "Constant",
-                                        1,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
-                                    ["VarType", ["VarTypeName", None]],
+                                    ["Constant", 1, ["VarTypeName", "i32"]],
+                                    ["VarTypeName", None],
                                 ]
                             ],
                             ["ExpressionBlock", [["Name", "x", None, None]]],
@@ -552,22 +473,14 @@ class TestLexer(unittest.TestCase):
                                 [
                                     "Name",
                                     "x",
-                                    [
-                                        "Constant",
-                                        1,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
-                                    ["VarType", ["VarTypeName", None]],
+                                    ["Constant", 1, ["VarTypeName", "i32"]],
+                                    ["VarTypeName", None],
                                 ],
                                 [
                                     "Name",
                                     "y",
-                                    [
-                                        "Constant",
-                                        2,
-                                        ["VarType", ["VarTypeName", "i32"]],
-                                    ],
-                                    ["VarType", ["VarTypeName", None]],
+                                    ["Constant", 2, ["VarTypeName", "i32"]],
+                                    ["VarTypeName", None],
                                 ],
                             ],
                             ["ExpressionBlock", [["Name", "x", None, None]]],
@@ -584,18 +497,7 @@ class TestLexer(unittest.TestCase):
 
     def test_call(self):
         self._e(
-            (
-                (
-                    r"x(1)",
-                    [
-                        [
-                            "Call",
-                            [["Constant", 1, ["VarType", ["VarTypeName", "i32"]]]],
-                            None,
-                        ]
-                    ],
-                ),
-            )
+            ((r"x(1)", [["Call", [["Constant", 1, ["VarTypeName", "i32"]]], None]]),)
         )
 
     def test_advanced_type_names(self):
@@ -611,7 +513,7 @@ class TestLexer(unittest.TestCase):
                                     "Name",
                                     "x",
                                     None,
-                                    ["VarType", ["VarTypePtr", ["VarTypeName", "i32"]]],
+                                    ["VarTypePtr", ["VarTypeName", "i32"]],
                                 ]
                             ],
                         ]
@@ -628,11 +530,8 @@ class TestLexer(unittest.TestCase):
                                     "x",
                                     None,
                                     [
-                                        "VarType",
-                                        [
-                                            "VarTypePtr",
-                                            ["VarTypePtr", ["VarTypeName", "i32"]],
-                                        ],
+                                        "VarTypePtr",
+                                        ["VarTypePtr", ["VarTypeName", "i32"]],
                                     ],
                                 ]
                             ],

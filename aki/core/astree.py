@@ -1,4 +1,5 @@
 from core.error import AkiSyntaxErr
+from llvmlite import ir
 
 
 class ASTNode:
@@ -194,10 +195,12 @@ class Constant(Expression):
     def flatten(self):
         return [self.__class__.__name__, self.val, self.vartype.flatten()]
 
+
 class String(Expression):
     """
     String constant.
     """
+
     def __init__(self, p, val, vartype):
         super().__init__(p)
         self.val = val
@@ -287,7 +290,9 @@ class Prototype(ASTNode):
     Function prototype.
     """
 
-    def __init__(self, p, name: str, arguments, return_type, is_declaration=False):
+    def __init__(
+        self, p, name: str, arguments: list, return_type: VarType, is_declaration=False
+    ):
         super().__init__(p)
         self.name = name
         self.arguments = arguments
@@ -348,39 +353,34 @@ class ExpressionBlock(Expression):
         return [self.__class__.__name__, [_.flatten() for _ in self.body]]
 
 
-class LLVMOp(Expression):
+class LLVMNode(Expression):
     """
-    Synthetic AST node generated during a binop.
+    Repackages an LLVM op as if it were an unprocessed AST node.
     """
 
-    def __init__(self, node, aki_type, name=None):
-        """
-        Generates a new synthetic node by using
-        an existing AST node (for its position info),
-        and an existing Aki type for the type data.
-        """
-
+    def __init__(self, node, vartype, llvm_node):
         super().__init__(node.p)
-        v_node = VarType(node, Name(node, str(aki_type)[1:]))
-        v_node.aki_type = aki_type
-        v_node.llvm_type = aki_type.llvm_type
-        self.vartype = v_node
-        self.name = name
 
-
-class LLVMInstr(Expression):
-    def __init__(self, node, llvm_instr):
-        """
-        Synthetic AST node that contains a precomputed value, 
-        derived from `node`.
-        This is used to encapsulate an instruction if we need
-        to pass the results of a codegen operation as an argument
-        for something that is codegenned.
-        """
-        super().__init__(node.p)
+        # Aki node, for position information
         self.node = node
-        self.llvm_instr = llvm_instr
-        self.vartype = llvm_instr.aki.vartype
+
+        # Vartype (an AST vartype node provided by the caller)
+        # This can also also be an .akitype node
+        # so it can just be copied from the last instruction
+
+        self.vartype = vartype
+
+        # LLVM node
+        # This MUST have .akitype and .akinode data
+
+        assert isinstance(self.llvm_node, ir.Instruction)
+
+        self.llvm_node = llvm_node
+        assert self.llvm_node.akinode
+        assert self.llvm_node.akitype
+
+        # Name (optional)
+        self.name = None
 
 
 class LoopExpr(Expression):

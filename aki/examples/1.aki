@@ -3,8 +3,7 @@ def g1 (z1=0) {
     loop (var x=1, x<20, x+1) {
         q+=1
     }    
-    q
-    
+    q    
 }
 
 def g2 (z2,z3=0) {

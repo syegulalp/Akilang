@@ -3,6 +3,7 @@
 import unittest
 from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr, AkiOpError
 
+
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
     from core.akitypes import _AkiTypes
@@ -24,16 +25,8 @@ class TestLexer(unittest.TestCase):
                     pass
 
     def test_constant(self):
-        self._e(
-            (
-                (r"2",2),
-                (r"2.0",2.0),
-                (r"0hff", -1),
-                (r"0xff", 255),
-            )
+        self._e(((r"2", 2), (r"2.0", 2.0), (r"0hff", -1), (r"0xff", 255)))
 
-        )
-    
     def test_basic_ops(self):
         self._e(
             (
@@ -82,16 +75,11 @@ class TestLexer(unittest.TestCase):
                 (r"True == False", 0),
                 (r"True != False", 1),
                 (r"False == False", 1),
-                (r"False != False", 0)
+                (r"False != False", 0),
             )
         )
 
-        self._ex(AkiTypeErr,
-            (
-                (r"False == 0", 0),
-                (r"True == 1", 0),
-            )
-        )
+        self._ex(AkiTypeErr, ((r"False == 0", 0), (r"True == 1", 0)))
 
     def test_comparisons_float(self):
         self._e(
@@ -113,6 +101,10 @@ class TestLexer(unittest.TestCase):
                 (r"if 0 2 else 3", 3),
                 (r"when 1 2 else 3", 1),
                 (r"when 0 2 else 3", 0),
+                (r"{var x=1, y=2 if x==2 or y==1 3 else 4}", 4),
+                (r"{var x=1, y=2 if x==1 or y==2 3 else 4}", 3),
+                (r"{var x=1, y=2 if x==1 and y==2 3 else 4}", 3),
+                (r"{var x=1, y=2 if x==2 and y==1 3 else 4}", 4),
             )
         )
 
@@ -125,21 +117,18 @@ class TestLexer(unittest.TestCase):
                 # Default type
                 (r"{var x=1 x}", 1),
                 # Explicit type
-                (r"{var x:f32=2.2 x}", 2.200000047683716),
+                (r"{var x:f64=2.2 x}", 2.2),
                 # Implicit type
-                (r"{var x=3.3 x}", 3.299999952316284)
+                (r"{var x=3.3 x}", 3.3)
                 # Note that we will deal with floating point
                 # issues later
             )
         )
 
     def test_type_trapping(self):
-        self._ex(AkiTypeErr,
-            (
-                (r"var x:f32=1", None),
-                (r"var x:i32=1.0", None),
-                (r"3+32.0", None)
-            )
+        self._ex(
+            AkiTypeErr,
+            ((r"var x:f32=1", None), (r"var x:i32=1.0", None), (r"3+32.0", None)),
         )
 
     def test_function_defs(self):
@@ -180,18 +169,9 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_inline_type_declarations(self):
-        self._e(
-            (
-                (r"{var x:i32=1 x==i32(1)}", True),
-            )
-        )
-        
-        self._ex(
-            AkiTypeErr,
-            (
-                (r"{var x:i32=1 x==i64(1)}", None),
-            )
-        )
+        self._e(((r"{var x:i32=1 x==i32(1)}", True),))
+
+        self._ex(AkiTypeErr, ((r"{var x:i32=1 x==i64(1)}", None),))
 
     def test_type_comparison(self):
         self._e(
@@ -200,42 +180,36 @@ class TestLexer(unittest.TestCase):
                 (r"i32==i32", True),
                 (r"i32==i64", False),
                 (r"{var x=1,y=2 type(x)!=type(y)}", False),
-                (r'type(i32)', self.types.type.enum_id),
-                (r'i32', self.types.i32.enum_id),
+                (r"type(i32)", "<type:type>"),
+                (r"i32", "<type:i32>"),
             )
         )
-        self._ex(
-            AkiOpError,
-            (
-                (r"{var x=1,y=2 type(x)<type(y)}", None),
-            )
-        )
+        self._ex(AkiOpError, ((r"{var x=1,y=2 type(x)<type(y)}", None),))
 
     def test_pointer(self):
-        self._e(
-            (
-                (r'{var x:ptr i32 x}', 0),
-            )
-        )
-   
-   
+        self._e(((r"{var x:ptr i32 x}", 0),))
+
     def test_function_pointer(self):
         self._e(
             (
-                (r'{var x:func():i32 x}', '<function ":func():i32" @ 0x0>'),
-                (r'{var x:func(:i32):i32 x}', '<function ":func(:i32):i32" @ 0x0>'),
-                (r'def g1(){32} {var x=g1 x()}',32),
-                (r'def g1(){32} def g2(x){32+x} {var x=g1,y=g2 x()+y(1)}',65),
-                (r'def g1(){32} def g2(x){32+x} {var x=g1 var y=x var z=g2 x()+y()+z(1)}',97)
+                (r"{var x:func():i32 x}", "<function:func():i32 @ 0x0>"),
+                (r"{var x:func(:i32):i32 x}", "<function:func(:i32):i32 @ 0x0>"),
+                (r"def g1(){32} {var x=g1 x()}", 32),
+                (r"def g1(){32} def g2(x){32+x} {var x=g1,y=g2 x()+y(1)}", 65),
+                (
+                    r"def g1(){32} def g2(x){32+x} {var x=g1 var y=x var z=g2 x()+y()+z(1)}",
+                    97,
+                ),
             )
         )
 
     def test_string_constant(self):
-        self._e (
+        self._e(
             (
-                (r'"hi"','"hi"'),
+                (r'"hi"', '"hi"'),
                 (r'{var x="hi" x}', '"hi"'),
                 (r'{var x:str x="hi" x}', '"hi"'),
-                (r'{var x:str x}','""')
+                (r"{var x:str x}", '""'),
             )
         )
+

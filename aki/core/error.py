@@ -55,7 +55,7 @@ class AkiBaseErr(Exception):
         self.lineno = self.p.lineno
 
     def __str__(self):
-        return f"{'-'*40}\n{RED}Error: {self._errtype}\n{REP}Line {self.lineno}:{self.col}\n{self.msg}\n{'-'*40}\n{CMD}{self.extract}\n{MAG}{'-'*(self.col-1)}^{REP}"
+        return f"{'-'*72}\n{RED}Error: {self._errtype}\n{REP}Line {self.lineno}:{self.col}\n{self.msg}\n{'-'*72}\n{CMD}{self.extract}\n{MAG}{'-'*(self.col-1)}^{REP}"
 
 
 class AkiSyntaxErr(AkiBaseErr):
