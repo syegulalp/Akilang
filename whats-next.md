@@ -39,7 +39,7 @@
   * [x] Lexer
   * [x] Parser
   * [x] Compiler
-  * [ ] Compile external apps
+  * [ ] Compile to standalone binary
 * [x] Default function argument values
 * [x] Color-coded output in REPL
 * [x] Store Aki-native type signatures as LLVM metadata
@@ -50,7 +50,10 @@
 
 ## In progress
 
-* [ ] Inline typing for constants, including `True/False` for `bool` values
+* [ ] Inline typing for constants
+  * [x] `True/False` for `bool` values
+  * [x] `0x00` and `0h00` for unsigned and signed values, respectively
+  * [ ] Cast from constant, e.g. `i32(100)` or `f64(1.0)`
 * [ ] External function references (`extern` context block with optional library identifier)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
