@@ -61,6 +61,17 @@ class TestLexer(unittest.TestCase):
             )
         )
 
+    def test_not_ops(self):
+        self._e(
+            (
+                (r"not 1", False),
+                (r"not 0", True),
+                (r"not 32", False),
+                (r"not 0.0", True),
+                (r"not 32.1", False),
+            )
+        )
+
     def test_comparisons_int(self):
         self._e(
             (
