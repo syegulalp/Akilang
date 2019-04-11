@@ -60,6 +60,17 @@ class TestLexer(unittest.TestCase):
                 (r"0 or 0", 0),
             )
         )
+    
+    def test_neg_ops(self):
+        self._e(
+            (
+                (r"-1", -1),
+                (r"-1.0", -1.0),
+                (r"-0", 0),
+                (r"--1", 1),
+                (r"--1.0", 1.0),
+            )
+        )
 
     def test_not_ops(self):
         self._e(
@@ -131,8 +142,6 @@ class TestLexer(unittest.TestCase):
                 (r"{var x:f64=2.2 x}", 2.2),
                 # Implicit type
                 (r"{var x=3.3 x}", 3.3)
-                # Note that we will deal with floating point
-                # issues later
             )
         )
 
