@@ -111,9 +111,6 @@ class AkiCodeGen:
         result = getattr(self, method)(node)
         return result
 
-    def _codegen_NoneType(self, node):
-        pass
-
     def _codegen_LLVMNode(self, node):
         return node.llvm_node
 
@@ -238,7 +235,7 @@ class AkiCodeGen:
         return None
 
     #################################################################
-    # Transformers
+    # Utilities
     #################################################################
 
     def _codegen_tf(self, node, expr):
@@ -246,7 +243,6 @@ class AkiCodeGen:
         Takes an LLVM instruction result of a scalar type
         and converts it to a boolean type.
         """
-        # vartype = VarTypeName(node, expr.akitype.type_id)
         result = self._codegen(
             BinOpComparison(
                 node,
@@ -256,6 +252,25 @@ class AkiCodeGen:
             )
         )
         return result
+
+    def _type_check_op(self, node, lhs, rhs):
+        """
+        Perform a type compatibility check for a binary op.
+        This takes in two LLVM nodes decorated with Aki data.
+        """
+        lhs_atype = lhs.akitype
+        rhs_atype = rhs.akitype
+
+        if lhs_atype != rhs_atype:
+
+            error = f'"{CMD}{lhs.akinode.name}{REP}" ({CMD}{lhs_atype}{REP}) and "{CMD}{rhs.akinode.name}{REP}" ({CMD}{rhs_atype}{REP}) do not have compatible types for operation "{CMD}{node.op}{REP}"'
+
+            if lhs_atype.signed != rhs_atype.signed:
+                is_signed = lambda x: "Signed" if x else "Unsigned"
+                error += f'\nSigned/unsigned disagreement:\n - "{CMD}{lhs.akinode.name}{REP}" ({CMD}{lhs_atype}{REP}): {is_signed(lhs_atype.signed)}\n - "{CMD}{rhs.akinode.name}{REP}" ({CMD}{rhs_atype}{REP}): {is_signed(rhs_atype.signed)}'
+
+            raise AkiTypeErr(node, self.text, error)
+        return lhs_atype, rhs_atype
 
     #################################################################
     # Top-level statements
@@ -413,7 +428,6 @@ class AkiCodeGen:
             # Set the result holder
             self.fn.return_value.type = result.akitype.llvm_type.as_pointer()
             self.fn.return_value.akitype = result.akitype
-            # self.types._ptr.new(result.akitype)
 
             # Set the actual type for the function
             func.return_value = result.akitype.llvm_type
@@ -652,6 +666,7 @@ class AkiCodeGen:
 
         call = self.builder.call(call_func, args, call_func.name + ".call")
         call.akitype = call_func.akitype.return_type
+        call.akinode = node
         return call
 
     def _codegen_Break(self, node):
@@ -843,25 +858,6 @@ class AkiCodeGen:
     #################################################################
     # Operations
     #################################################################
-
-    def _type_check_op(self, node, lhs, rhs):
-        """
-        Perform a type compatibility check for a binary op.
-        This takes in two LLVM nodes decorated with Aki data.
-        """
-        lhs_atype = lhs.akitype
-        rhs_atype = rhs.akitype
-
-        if lhs_atype != rhs_atype:
-
-            error = f'"{CMD}{lhs.akinode.name}{REP}" ({CMD}{lhs_atype}{REP}) and "{CMD}{rhs.akinode.name}{REP}" ({CMD}{rhs_atype}{REP}) do not have compatible types for operation "{CMD}{node.op}{REP}"'
-
-            if lhs_atype.signed != rhs_atype.signed:
-                is_signed = lambda x: "Signed" if x else "Unsigned"
-                error += f'\nSigned/unsigned disagreement:\n - "{CMD}{lhs.akinode.name}{REP}" ({CMD}{lhs_atype}{REP}): {is_signed(lhs_atype.signed)}\n - "{CMD}{rhs.akinode.name}{REP}" ({CMD}{rhs_atype}{REP}): {is_signed(rhs_atype.signed)}'
-
-            raise AkiTypeErr(node, self.text, error)
-        return lhs_atype, rhs_atype
 
     def _codegen_UnOp(self, node):
         """
