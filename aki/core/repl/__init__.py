@@ -312,7 +312,7 @@ pyaki  :{constants.VERSION}"""
 
         if ast_stack:
 
-            _ = ast_stack[0]
+            _ = ast_stack[-1]
 
             self.repl_cpl.anon_counter += 1
 
