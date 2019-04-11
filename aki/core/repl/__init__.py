@@ -27,16 +27,20 @@ ir.instructions.Comment = Comment
 def comment(self, txt):
     self._insert(ir.instructions.Comment(self.block, txt))
 
+
 class Timer:
     def __init__(self):
         import time
+
         self.clock = time.clock
-    def __enter__(self):        
+
+    def __enter__(self):
         self.begin = self.clock()
         return self
+
     def __exit__(self, exception_type, exception_value, traceback):
         self.end = self.clock()
-        self.time = self.end-self.begin
+        self.time = self.end - self.begin
 
 
 ir.builder.IRBuilder.comment = comment
@@ -142,7 +146,6 @@ pyaki  :{constants.VERSION}"""
         unittest.TextTestRunner().run(tests)
 
     def load_file(self, file_to_load, force_recompilation=False):
-        
 
         self.main_cpl.reset()
 
@@ -150,16 +153,15 @@ pyaki  :{constants.VERSION}"""
 
         cache_path = f"output/{file_to_load}.akic"
         filepath = f"examples/{file_to_load}.aki"
-        
-        if not os.path.exists(cache_path):
-            force_recompilation=True
-        elif os.path.getmtime(filepath)>os.path.getmtime(cache_path):
-            force_recompilation=True            
 
+        if not os.path.exists(cache_path):
+            force_recompilation = True
+        elif os.path.getmtime(filepath) > os.path.getmtime(cache_path):
+            force_recompilation = True
 
         if not force_recompilation:
             with Timer() as t:
-                with open(cache_path, "rb") as file:        
+                with open(cache_path, "rb") as file:
                     import pickle
 
                     mod_in = pickle.load(file)
@@ -167,9 +169,7 @@ pyaki  :{constants.VERSION}"""
                     self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
                     file_size = os.fstat(file.fileno()).st_size
 
-            cp(
-                f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)"
-            )
+            cp(f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)")
             return
 
         with Timer() as t:
@@ -289,23 +289,36 @@ pyaki  :{constants.VERSION}"""
         self.repl_cpl.codegen.text = text
         main.codegen.text = text
 
-        for _ in ast:
+        # Iterate through the AST nodes.
+        # When we encounter an expression node,
+        # we add it to a stack of expression nodes.
+        # When we encounter a top-level command,
+        # we compile it immediately, and don't add it
+        # to the stack.
+        # When we come to the end of the node list,
+        # we take the expression node stack, turn it into
+        # an anonymous function, and execute it.
 
-            # Toplevel commands are compiled in directly
+        ast_stack = []
+
+        for _ in ast:
 
             if isinstance(_, TopLevel):
                 main.codegen.eval([_])
                 main.compiler.compile_module(main.module, main_file)
                 continue
 
-            # Other commands are wrapped in an anonymous
-            # function and executed
+            ast_stack.append(_)
+
+        if ast_stack:
+
+            _ = ast_stack[0]
 
             self.repl_cpl.anon_counter += 1
 
             call_name = f".ANONYMOUS.{self.repl_cpl.anon_counter}"
             proto = Prototype(_.p, call_name, (), VarTypeName(_.p, None))
-            func = Function(_.p, proto, ExpressionBlock(_.p, [_]))
+            func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
 
             if not immediate_mode:
                 self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
@@ -327,9 +340,7 @@ pyaki  :{constants.VERSION}"""
             # Retrieve a pointer to the function
             func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
-            return_type = self.repl_cpl.module.globals[
-                call_name
-            ].return_value.akitype
+            return_type = self.repl_cpl.module.globals[call_name].return_value.akitype
 
             return_type_ctype = return_type.c()
 
