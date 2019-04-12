@@ -48,27 +48,6 @@ class VarTypeNode(Expression):
     pass
 
 
-class VarType(Expression):
-    """
-    Variable type mini-AST header node.
-    """
-
-    def __init__(self, p, vartype: VarTypeNode):
-        super().__init__(p)
-        # Originally vartype was a string,
-        # but it's now its own little AST tree.
-        assert isinstance(vartype, VarTypeNode)
-        self.vartype = vartype
-        self.aki_type = None
-        self.llvm_type = None
-
-    def flatten(self):
-        return [self.__class__.__name__, self.vartype.flatten()]
-
-    def __eq__(self, other):
-        return self.vartype == other.vartype
-
-
 class VarTypeName(VarTypeNode):
     def __init__(self, p, name: str):
         super().__init__(p)
@@ -291,7 +270,12 @@ class Prototype(ASTNode):
     """
 
     def __init__(
-        self, p, name: str, arguments: list, return_type: VarType, is_declaration=False
+        self,
+        p,
+        name: str,
+        arguments: list,
+        return_type: VarTypeNode,
+        is_declaration=False,
     ):
         super().__init__(p)
         self.name = name
@@ -356,6 +340,9 @@ class ExpressionBlock(Expression):
 class LLVMNode(Expression):
     """
     Repackages an LLVM op as if it were an unprocessed AST node.
+    You should use this if:
+    a) you have an op that has been produced by a previous codegen action
+    b) you're going to codegen a synthetic AST node using that result as a parameter        
     """
 
     def __init__(self, node, vartype, llvm_node):

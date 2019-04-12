@@ -1,7 +1,7 @@
 from llvmlite import ir
 from core.akitypes import AkiType, AkiBool, AkiFunction, AkiObject, _AkiTypes
 from core.astree import (
-    VarType,
+    VarTypeNode,
     VarTypeName,
     VarTypeFunc,
     VarTypePtr,
@@ -173,7 +173,7 @@ class AkiCodeGen:
     # Type AST node walker
     #################################################################
 
-    def _get_vartype(self, node: VarType):
+    def _get_vartype(self, node: VarTypeNode):
         """
         Looks up a type in the current module
         based on a `VarType` AST node sequence.
@@ -395,12 +395,19 @@ class AkiCodeGen:
         # var being looked up is a func arg.
 
         for a, b in zip(func.args, node.prototype.arguments):
+            # make sure the variable name is not in use
             self._check_var_name(b, b.name)
+            # create an allocation for the variable
             var_alloc = self._alloca(b, b.vartype.llvm_type, b.name)
+            # set its Aki attributes
             var_alloc.akitype = b.vartype.akitype
             var_alloc.akinode = b
+            # set the akinode attribute for the original argument,
+            # so it can be referenced if we need to throw an error
             a.akinode = b
+            # add the variable to the symbol table
             self.fn.symtab[b.name] = var_alloc
+            # store the default value to the variable
             self.builder.store(a, var_alloc)
 
         # Add return value holder.

@@ -9,7 +9,7 @@ from core.astree import (
     Name,
     Prototype,
     Function,
-    VarType,
+    #VarType,
     VarList,
     Argument,
     Call,
@@ -67,7 +67,6 @@ class AkiParser(Parser):
 
     @_("INTEGER")
     def expr(self, p):
-        #return Constant(Pos(p), p.INTEGER, VarType(Pos(p), VarTypeName(Pos(p), "i32")))
         return Constant(Pos(p), p.INTEGER, VarTypeName(Pos(p), "i32"))
 
     @_("FLOAT")
@@ -197,7 +196,6 @@ class AkiParser(Parser):
 
     @_("COLON vartypedef")
     def vartype(self, p):
-        #return VarType(Pos(p), p.vartypedef)
         return p.vartypedef
 
     # pointer prefix
