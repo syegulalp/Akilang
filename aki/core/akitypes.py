@@ -3,6 +3,7 @@ from llvmlite import ir, binding
 import ctypes
 from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
 from typing import Optional
+from core.error import AkiTypeErr
 
 
 class AkiType:
@@ -61,6 +62,29 @@ class AkiType:
         return result
 
 
+class AkiTypeRef(AkiType):
+    """
+    Type reference type (essentially, an enum).
+    """
+
+    comp_ops = {"==": ".eqop", "!=": ".neqop"}
+    comp_ins = "icmp_unsigned"
+
+    def __init__(self, module):
+        self.module = module
+        self.bits = 64
+        self.llvm_type = types.IntType(self.bits)
+        self.signed = False
+        self.type_id = "type"
+        self._default = 0
+
+    def format_result(self, result):
+        return f"<type{self.module.types.enum_ids[result]}>"
+
+    def default(self):
+        return self._default
+
+
 class AkiPointer(AkiType):
     """
     Takes in an Aki type reference,
@@ -70,7 +94,7 @@ class AkiPointer(AkiType):
     signed = False
     llvm_type: Optional[ir.Type] = None
 
-    def __init__(self, module):
+    def __init__(self, module: ir.Module):
         self.module = module
         self.bits = module.types._pointer_width
 
@@ -103,7 +127,7 @@ class AkiObject(AkiType):
     LENGTH = 1
     OBJECT_POINTER = 2
 
-    def __init__(self, module):
+    def __init__(self, module: ir.Module):
         self.module = module
         self.llvm_type = ir.LiteralStructType(
             (
@@ -127,7 +151,7 @@ class AkiFunction(AkiObject):
 
     signed = False
 
-    def __init__(self, arguments, return_type):
+    def __init__(self, arguments: list, return_type: AkiType):
         # list of decorated AkiType nodes
         self.arguments = arguments
         # single decorated AkiType node
@@ -236,6 +260,7 @@ class AkiIntBoolMathOps:
 
             # if so, return that value
             second_true_result = first_true_result
+
             # if not, return the rhs
             second_false_result = LLVMNode(
                 node.rhs, VarTypeName(node.rhs, rhs.akitype.type_id), rhs
@@ -260,28 +285,6 @@ class AkiBaseInt(AkiType, AkiIntBoolMathOps):
         self.llvm_type = types.IntType(bits)
         self.signed = signed
         self.type_id = f'{"i" if signed else "u"}{bits}'
-
-    def default(self):
-        return 0
-
-
-class AkiTypeRef(AkiType):
-    """
-    Type reference type (essentially, an enum).
-    """
-
-    comp_ops = {"==": ".eqop", "!=": ".neqop"}
-    comp_ins = "icmp_unsigned"
-
-    def __init__(self, module):
-        self.module = module
-        self.bits = 64
-        self.llvm_type = types.IntType(self.bits)
-        self.signed = False
-        self.type_id = "type"
-
-    def format_result(self, result):
-        return f"<type{self.module.types.enum_ids[result]}>"
 
     def default(self):
         return 0
@@ -359,7 +362,9 @@ class AkiBaseFloat(AkiType):
         return codegen.builder.fdiv(lhs, rhs, f".f{op_name}")
 
     def math_op_negop(self, codegen, node, operand):
-        lhs = codegen._codegen(Constant(node, 0.0, VarTypeName(node, operand.akitype.type_id)))
+        lhs = codegen._codegen(
+            Constant(node, 0.0, VarTypeName(node, operand.akitype.type_id))
+        )
         return codegen.builder.fsub(lhs, operand, "fnegop")
 
     signed = True
@@ -435,6 +440,10 @@ class AkiString(AkiObject, AkiType):
         if result is None:
             return '""'
 
+        # TODO: Let's find a way to automatically GEP this pointer
+        # Eventually we'll emit instructions to extract such things
+        # e.g., a c_ref attribute for the type that returns an i8*
+
         char_p = ctypes.POINTER(ctypes.c_char_p)
         result = ctypes.cast(
             result
@@ -478,12 +487,12 @@ class _AkiTypes:
     func = AkiFunction
 
     def __init__(self, module: Optional[ir.Module] = None, bytesize=8):
-
         if module is None:
             module = ir.Module()
 
         # Set internal module reference so types can access each other
         module.types = self
+        self.module = module
 
         # Obtain pointer size from LLVM target
         target_data = binding.create_target_data(module.data_layout)
@@ -511,18 +520,36 @@ class _AkiTypes:
         self.custom_types: dict = {}
 
         # Create type enums
-        index = 0
+        self.enum_index = 0
         self.enum_ids: dict = {}
         for _ in (self.__class__.__dict__.items(), self.__dict__.items()):
             for k, v in _:
                 if isinstance(v, AkiType):
-                    self.enum_ids[index] = v
-                    v.enum_id = index
-                    index += 1
+                    self.enum_ids[self.enum_index] = v
+                    v.enum_id = self.enum_index
+                    self.enum_index += 1
+        self.min_enum_id = self.enum_index
+
+    def reset(self):
+        new_enums: dict = {}
+        for k, v in self.enum_ids.items():
+            if k < self.min_enum_id:
+                new_enums[k] = v
+        self.enum_index = self.min_enum_id
+        self.enum_ids = new_enums
+        self.custom_types: dict = {}
 
     def as_ptr(self, other):
         return self._ptr.new(other)
 
-    def add_type(self, type_name):
-        pass
+    def add_type(self, type_name: str, type_ref: AkiType):
+        if self.custom_types.get(type_name, None) is not None:
+            return None
+        setattr(self, type_name, type_ref)
+        new_type = getattr(self, type_name)
+        new_type.enum_id = self.enum_index
+        self.enum_ids[self.enum_index] = new_type
+        self.enum_index += 1
+        self.custom_types[type_name] = type_ref
+        return new_type
 

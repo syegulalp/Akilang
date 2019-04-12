@@ -342,6 +342,12 @@ class AkiCodeGen:
         proto.akinode = node
         proto.akitype = function_type
 
+        # Add the function signature to the list of types for the module,
+        # using the function's name
+
+        # TODO: eventually this assert will go away
+        assert self.types.add_type(node.name, function_type) is not None        
+
         # Add Aki type metadata
 
         aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
@@ -546,11 +552,13 @@ class AkiCodeGen:
         """
 
         # first, check if this is a request for a type
+        # this will eventually go somewhere else
 
         try:
 
             named_type = self._get_type(node.name)
-            if named_type is not None:
+            
+            if named_type is not None and not isinstance(named_type, AkiFunction):
 
                 if len(node.arguments) != 1:
 
@@ -632,7 +640,6 @@ class AkiCodeGen:
                     if default_arg_value is None:
                         raise LocalException
                     arg_val = self._codegen(default_arg_value)
-                    # arg_val.aki = f_arg.aki
                     args.append(arg_val)
                     continue
 
@@ -650,6 +657,8 @@ class AkiCodeGen:
                     )
 
                 args.append(arg_val)
+
+        # TODO: list which arguments are optional, along with their defaults
 
         except LocalException:
             args = "\n".join(
@@ -1028,7 +1037,7 @@ class AkiCodeGen:
         # Types are returned, for now, as their enum
 
         named_type = self._get_type(node.name)
-        if named_type is not None:
+        if named_type is not None and not isinstance(named_type, AkiFunction):
             return self._codegen(Constant(node, named_type.enum_id, self.types.type))
 
         name = self._name(node, node.name)

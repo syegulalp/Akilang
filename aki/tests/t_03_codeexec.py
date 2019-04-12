@@ -152,9 +152,11 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_function_defs(self):
-        self._e(((r"def m1(){1} m1()", 1), (r"def m1(){1} def m2(){2} m1()+m2()", 3)))
+        self.r.repl_cpl.codegen.types.reset()
+        self._e(((r"def m0(){1} m0()", 1), (r"def m1(){1} def m2(){2} m1()+m2()", 3)))
 
     def test_with(self):
+        self.r.repl_cpl.codegen.types.reset()
         self._e(
             ((r"def m1(z){with var q:i32 loop (q=0, q<20, q+1) {z+=1} z} m1(0)", 20),)
         )
@@ -163,11 +165,12 @@ class TestLexer(unittest.TestCase):
         self._e(((r"def m1(z){var q=0 loop () {q+=1 when q==20 break} q} m1(0)", 20),))
 
     def test_default_function_arguments(self):
+        self.r.repl_cpl.codegen.types.reset()
         self._e(
             (
                 (r"def m1(z=1){z} m1()", 1),
-                (r"def m1(y,z=1){y+z} m1(2)", 3),
-                (r"def m1(y=2,z=1){y+z} m1()", 3),
+                (r"def m2(y,z=1){y+z} m2(2)", 3),
+                (r"def m3(y=2,z=1){y+z} m3()", 3),
             )
         )
         self._ex(AkiSyntaxErr, ((r"def m1(z=1,y){z+y}", None),))
@@ -179,12 +182,13 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_func_arg_count_trapping(self):
+        self.r.repl_cpl.codegen.types.reset()
         self._ex(
             AkiSyntaxErr,
             (
                 (r"def m1(x=1,y=2){x+y} m1(1,2,3)", None),
-                (r"def m1(x,y,z){x+y} m1(1,2)", None),
-                (r"def m1(){0} m1(1,2)", None),
+                (r"def m2(x,y,z){x+y} m2(1,2)", None),
+                (r"def m3(){0} m3(1,2)", None),
             ),
         )
 
@@ -214,10 +218,10 @@ class TestLexer(unittest.TestCase):
             (
                 (r"{var x:func():i32 x}", "<function:func():i32 @ 0x0>"),
                 (r"{var x:func(:i32):i32 x}", "<function:func(:i32):i32 @ 0x0>"),
-                (r"def g1(){32} {var x=g1 x()}", 32),
+                (r"def g0(){32} var x=g0 x()", 32),
                 (r"def g1(){32} def g2(x){32+x} {var x=g1,y=g2 x()+y(1)}", 65),
                 (
-                    r"def g1(){32} def g2(x){32+x} {var x=g1 var y=x var z=g2 x()+y()+z(1)}",
+                    r"def g3(){32} def g4(x){32+x} {var x=g3 var y=x var z=g4 x()+y()+z(1)}",
                     97,
                 ),
             )
