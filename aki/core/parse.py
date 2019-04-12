@@ -28,7 +28,7 @@ from core.error import AkiSyntaxErr
 
 
 class AkiParser(Parser):
-    debugfile = "parser.out"
+    #debugfile = "parser.out"
     tokens = AkiLexer.tokens
     start = "toplevels"
 
