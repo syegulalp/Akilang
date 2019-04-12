@@ -56,13 +56,12 @@ from core.astree import (
     Function,
     Call,
     Prototype,
-    VarType,
     ExpressionBlock,
     TopLevel,
     Name,
     VarTypeName,
 )
-from core.error import AkiBaseErr, ReloadException, QuitException
+from core.error import AkiBaseErr, ReloadException, QuitException, LocalException
 from core import constants
 
 PROMPT = "A>"
@@ -160,17 +159,22 @@ pyaki  :{constants.VERSION}"""
             force_recompilation = True
 
         if not force_recompilation:
-            with Timer() as t:
-                with open(cache_path, "rb") as file:
-                    import pickle
+            try:
+                with Timer() as t:
+                    with open(cache_path, "rb") as file:
+                        import pickle
 
-                    mod_in = pickle.load(file)
-                    self.main_cpl.codegen = mod_in["codegen"]
-                    self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
-                    file_size = os.fstat(file.fileno()).st_size
+                        mod_in = pickle.load(file)
+                        if mod_in["version"]!=constants.VERSION:
+                            raise LocalException
+                        self.main_cpl.codegen = mod_in["codegen"]
+                        self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
+                        file_size = os.fstat(file.fileno()).st_size
 
-            cp(f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)")
-            return
+                cp(f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)")
+                return
+            except LocalException:
+                pass
 
         with Timer() as t:
 
@@ -194,6 +198,7 @@ pyaki  :{constants.VERSION}"""
 
         with open(cache_path, "wb") as file:
             output = {
+                "version": constants.VERSION,
                 "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
                 "codegen": self.main_cpl.codegen,
             }
