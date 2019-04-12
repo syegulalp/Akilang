@@ -9,7 +9,6 @@ from core.astree import (
     Name,
     Prototype,
     Function,
-    #VarType,
     VarList,
     Argument,
     Call,

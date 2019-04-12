@@ -1,5 +1,6 @@
 from core.error import AkiSyntaxErr
 from llvmlite import ir
+from typing import Optional
 
 
 class ASTNode:
@@ -45,7 +46,7 @@ class TopLevel(ASTNode):
 
 
 class VarTypeNode(Expression):
-    pass
+    name: Optional[str] = None
 
 
 class VarTypeName(VarTypeNode):
