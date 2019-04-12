@@ -150,17 +150,6 @@ class AkiCodeGen:
                 node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
             )
 
-    def _check_var_name(self, node, name, is_global=False):
-        """
-        Check routine to determine if a given name is already in use
-        in a given context.
-        """
-        context = self.module.globals if is_global else self.fn.symtab
-        if name in context:
-            raise AkiNameErr(
-                node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
-            )
-
     def _alloca(self, node, llvm_type, name, size=None, is_global=False):
         """
         Allocate space for a variable.
@@ -185,20 +174,24 @@ class AkiCodeGen:
     #################################################################
 
     def _get_vartype(self, node: VarType):
+        """
+        Looks up a type in the current module
+        based on a `VarType` AST node sequence.
+        """
         if isinstance(node, AkiType):
             return node
         return getattr(self, f"_get_vartype_{node.__class__.__name__}")(node)
 
     def _get_vartype_VarTypeName(self, node):
         """
-        Node visitor for VarTypeName nodes.
+        Node visitor for `VarTypeName` nodes.
         """
         if node.name is None:
             id_to_get = self.types._default.type_id
         else:
             id_to_get = node.name
 
-        var_lookup = self._get_type(id_to_get)
+        var_lookup = self._get_type_by_name(id_to_get)
         if var_lookup is None:
             raise AkiTypeErr(
                 node, self.text, f'Unrecognized type definition "{CMD}{id_to_get}{REP}"'
@@ -208,13 +201,16 @@ class AkiCodeGen:
 
     def _get_vartype_VarTypePtr(self, node):
         """
-        Node visitor for VarTypePtr nodes.
+        Node visitor for `VarTypePtr` nodes.
         """
         aki_type = self._get_vartype(node.pointee)
         aki_type = self.types._ptr.new(aki_type)
         return aki_type
 
     def _get_vartype_VarTypeFunc(self, node):
+        """
+        Node visitor for `VarTypeFunc` nodes.
+        """
         for _ in node.arguments:
             _.akitype = self._get_vartype(_)
             _.llvm_type = _.akitype.llvm_type
@@ -226,7 +222,12 @@ class AkiCodeGen:
 
         return aki_node
 
-    def _get_type(self, type_name):
+    def _get_type_by_name(self, type_name):
+        """
+        Find a type in the current module by name.
+        Does not distinguish between built-in types and
+        types registered with the module, e.g., by function signatures.
+        """
         type_to_find = getattr(self.types, type_name, None)
         if type_to_find is None:
             return None
@@ -237,6 +238,17 @@ class AkiCodeGen:
     #################################################################
     # Utilities
     #################################################################
+
+    def _check_var_name(self, node, name, is_global=False):
+        """
+        Check routine to determine if a given name is already in use
+        in a given context.
+        """
+        context = self.module.globals if is_global else self.fn.symtab
+        if name in context:
+            raise AkiNameErr(
+                node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
+            )
 
     def _scalar_as_bool(self, node, expr):
         """
@@ -279,7 +291,7 @@ class AkiCodeGen:
     def _codegen_Prototype(self, node):
         """
         Generate a function prototype for the LLVM module
-        from the Prototype AST node.
+        from the `Prototype` AST node.
         """
         # Name collision check
 
@@ -346,7 +358,7 @@ class AkiCodeGen:
         # using the function's name
 
         # TODO: eventually this assert will go away
-        assert self.types.add_type(node.name, function_type) is not None        
+        assert self.types.add_type(node.name, function_type) is not None
 
         # Add Aki type metadata
 
@@ -357,7 +369,7 @@ class AkiCodeGen:
 
     def _codegen_Function(self, node):
         """
-        Generate an LLVM function from a Function AST node.
+        Generate an LLVM function from a `Function` AST node.
         """
 
         self.init_func_handlers()
@@ -474,7 +486,7 @@ class AkiCodeGen:
 
     def _codegen_ExpressionBlock(self, node):
         """
-        Codegen each expression in an Expression Block.
+        Codegen each expression in an `Expression` Block.
         """
         result = None
         for _ in node.body:
@@ -487,7 +499,7 @@ class AkiCodeGen:
 
     def _codegen_VarList(self, node):
         """
-        Codegen the variables in a VarList node.
+        Codegen the variables in a `VarList` node.
         """
         for _ in node.vars:
 
@@ -548,7 +560,7 @@ class AkiCodeGen:
 
     def _codegen_Call(self, node):
         """
-        Generate a function call from a Call node.
+        Generate a function call from a `Call` node.
         """
 
         # first, check if this is a request for a type
@@ -556,8 +568,8 @@ class AkiCodeGen:
 
         try:
 
-            named_type = self._get_type(node.name)
-            
+            named_type = self._get_type_by_name(node.name)
+
             if named_type is not None and not isinstance(named_type, AkiFunction):
 
                 if len(node.arguments) != 1:
@@ -680,10 +692,10 @@ class AkiCodeGen:
 
     def _codegen_Break(self, node):
         """
-        Codegen a break action.
+        Codegen a `break` action.
         """
 
-        if len(self.fn.breakpoints) == 0:
+        if not self.fn.breakpoints:
             raise AkiSyntaxErr(
                 node, self.text, f'"break" not called within a loop block'
             )
@@ -692,7 +704,7 @@ class AkiCodeGen:
 
     def _codegen_WithExpr(self, node):
         """
-        Codegen a with block.
+        Codegen a `with` block.
         """
 
         self._codegen(node.varlist)
@@ -703,7 +715,7 @@ class AkiCodeGen:
 
     def _codegen_LoopExpr(self, node):
         """
-        Codegen a loop expression.
+        Codegen a `loop` expression.
         """
 
         local_symtab = {}
@@ -799,7 +811,7 @@ class AkiCodeGen:
 
     def _codegen_IfExpr(self, node, is_when_expr=False):
         """
-        Codegen an `if` or `when` expression, where then and else return values are of the same type. The then/else nodes are raw AST nodes. Their vartypes need to be known in advance.
+        Codegen an `if` or `when` expression, where then and else return values are of the same type. The `then/else` nodes are raw AST nodes. Their vartypes need to be known in advance.
         """
 
         if not is_when_expr:
@@ -860,7 +872,7 @@ class AkiCodeGen:
 
     def _codegen_WhenExpr(self, node):
         """
-        Codegen a when expression, which returns the value of the when itself.
+        Codegen a `when` expression, which returns the value of the `when` itself.
         """
         return self._codegen_IfExpr(node, True)
 
@@ -870,7 +882,7 @@ class AkiCodeGen:
 
     def _codegen_UnOp(self, node):
         """
-        Generate a unary op from an AST UnOp node.
+        Generate a unary op from an AST `UnOp` node.
         """
         op = self._unops.get(node.op, None)
 
@@ -923,7 +935,7 @@ class AkiCodeGen:
     def _codegen_Assignment(self, node):
         """
         Assign value to variable pointer.
-        Note that we do not codegen lhs, since in theory
+        Note that we do not codegen `lhs`, since in theory
         we already have that as a named value.
         """
 
@@ -1036,7 +1048,7 @@ class AkiCodeGen:
 
         # Types are returned, for now, as their enum
 
-        named_type = self._get_type(node.name)
+        named_type = self._get_type_by_name(node.name)
         if named_type is not None and not isinstance(named_type, AkiFunction):
             return self._codegen(Constant(node, named_type.enum_id, self.types.type))
 
@@ -1065,7 +1077,7 @@ class AkiCodeGen:
 
     def _codegen_Constant(self, node):
         """
-        Generate an LLVM ir.Constant value from a Constant AST node.
+        Generate an LLVM `ir.Constant` value from a `Constant` AST node.
         """
 
         # Get the Aki variable type for the node
