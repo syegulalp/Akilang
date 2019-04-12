@@ -215,12 +215,12 @@ class AkiIntBoolMathOps:
         # Handles both and and or operations
 
         if not isinstance(lhs.akitype, AkiBool):
-            lhs_x = codegen._codegen_tf(node.lhs, lhs)
+            lhs_x = codegen._scalar_as_bool(node.lhs, lhs)
         else:
             lhs_x = lhs
 
         if not isinstance(rhs.akitype, AkiBool):
-            rhs_x = codegen._codegen_tf(node.rhs, rhs)
+            rhs_x = codegen._scalar_as_bool(node.rhs, rhs)
         else:
             rhs_x = rhs
 

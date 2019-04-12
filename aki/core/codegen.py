@@ -238,7 +238,7 @@ class AkiCodeGen:
     # Utilities
     #################################################################
 
-    def _codegen_tf(self, node, expr):
+    def _scalar_as_bool(self, node, expr):
         """
         Takes an LLVM instruction result of a scalar type
         and converts it to a boolean type.
@@ -818,7 +818,7 @@ class AkiCodeGen:
         # E.g., `if 2` would yield `True`; `if 0` would yield `False`.
 
         if not isinstance(if_expr.akitype, AkiBool):
-            if_expr = self._codegen_tf(node.if_expr, if_expr)
+            if_expr = self._scalar_as_bool(node.if_expr, if_expr)
 
         # Set the appropriate return type based on the operation.
 
@@ -908,7 +908,7 @@ class AkiCodeGen:
         Generate a NOT operation for a true/false value.
         """
         if not isinstance(operand.akitype, AkiBool):
-            operand = self._codegen_tf(node, operand)
+            operand = self._scalar_as_bool(node, operand)
 
         xor = self.builder.xor(
             operand, self._codegen(Constant(node, 1, operand.akitype))
