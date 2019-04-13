@@ -362,19 +362,17 @@ class AkiCodeGen:
         # Add the function signature to the list of types for the module,
         # using the function's name
 
-        # TODO: eventually this assert will go away
         _ = self.typemgr.add_type(node.name, function_type, self.module)
         if _ is None:
             raise AkiTypeErr(node, self.text, "Invalid name")
         proto.enum_id = proto.akitype.enum_id
 
         # Add Aki type metadata
-
-        #aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
-        #proto.set_metadata("aki.type", [aki_type_metadata])
-
         # TODO:
         # store the original string for the function sig and use that
+
+        aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
+        proto.set_metadata("aki.type", [aki_type_metadata])        
 
         return proto
 

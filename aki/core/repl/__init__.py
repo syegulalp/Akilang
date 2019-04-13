@@ -161,7 +161,6 @@ pyaki  :{constants.VERSION}"""
 
         # Attempt to load precomputed module from cache
 
-        # cache_path = f"output/{file_to_load}.akic"
         filepath = f"examples/{file_to_load}.aki"
         cache_path = filepath + "c"
 
@@ -377,7 +376,6 @@ pyaki  :{constants.VERSION}"""
 
             cfunc = ctypes.CFUNCTYPE(return_type_ctype, *[])(func_ptr)
             res = cfunc()
-            # print (return_type, res)
             yield return_type.format_result(res)
 
     def about(self, *a):
