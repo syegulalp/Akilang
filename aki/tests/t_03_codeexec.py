@@ -147,21 +147,17 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_function_defs(self):
-        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(((r"def m0(){1} m0()", 1), (r"def m1(){1} def m2(){2} m1()+m2()", 3)))
 
     def test_with(self):
-        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(
             ((r"def m1(z){with var q:i32 loop (q=0, q<20, q+1) {z+=1} z} m1(0)", 20),)
         )
 
     def test_break(self):
-        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(((r"def m1(z){var q=0 loop () {q+=1 when q==20 break} q} m1(0)", 20),))
 
     def test_default_function_arguments(self):
-        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(
             (
                 (r"def m1(z=1){z} m1()", 1),
@@ -173,14 +169,12 @@ class TestLexer(unittest.TestCase):
         self._ex(AkiSyntaxErr, ((r"def m1(z=1,y){z+y}", None),))
 
     def test_func_arg_type_trapping(self):
-        self.r.repl_cpl.codegen.typemgr.reset()
         self._ex(
             AkiTypeErr,
             ((r"def m1(x:i32){x} m1(1.0)", None), (r"def m2(x:f32){x} m2(3)", None)),
         )
 
     def test_func_arg_count_trapping(self):
-        self.r.repl_cpl.codegen.typemgr.reset()
         self._ex(
             AkiSyntaxErr,
             (
@@ -196,7 +190,6 @@ class TestLexer(unittest.TestCase):
         self._ex(AkiTypeErr, ((r"{var x:i32=1 x==i64(1)}", None),))
 
     def test_type_comparison(self):
-        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(
             (
                 (r"{var x=1,y=2 type(x)==type(y)}", True),
