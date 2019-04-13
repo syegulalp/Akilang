@@ -28,6 +28,7 @@ class AkiLexer(Lexer):
         RBRACE,
         QUOTE,
         APOST,
+        BACKQUOTE,
         NAME,
         INTEGER,
         FLOAT,
@@ -47,6 +48,8 @@ class AkiLexer(Lexer):
         AND,
         OR,
         NOT,
+        LSHIFT,
+        RSHIFT,
         BIN_AND,
         BIN_OR,
         ASSIGN,
@@ -62,7 +65,7 @@ class AkiLexer(Lexer):
         FUNC,
         TRUE,
         FALSE,
-        NONE
+        NONE,
     }
 
     ignore = " \t"
@@ -70,7 +73,7 @@ class AkiLexer(Lexer):
     # Tokens
     TEXT1 = r"'[^']*'"
     TEXT2 = r'"[^"]*"'
-    HEX = r'0[hx][a-fA-F0-9]*'
+    HEX = r"0[hx][a-fA-F0-9]*"
     NAME = r"[a-zA-Z_][a-zA-Z0-9_]*"
     NAME["def"] = DEF
     NAME["var"] = VAR
@@ -90,11 +93,8 @@ class AkiLexer(Lexer):
     NAME["None"] = NONE
 
     INT_DIV = r"//"
-
     INCR = r"(\+\=)"
-
     DECR = r"(\-\=)"
-
     PLUS = r"\+"
     MINUS = r"\-"
     TIMES = r"\*"
@@ -111,12 +111,14 @@ class AkiLexer(Lexer):
     GEQ = r"\>\="
     LT = r"\<"
     GT = r"\>"
+    LSHIFT = r"\<\<"
+    RSHIFT = r"\>\>"
     ASSIGN = r"\="
     BIN_AND = r"\&"
     BIN_OR = r"\|"
     QUOTE = r'"'
     APOST = r"'"
-    
+    BACKQUOTE = r'`'
 
     def tokenize(self, text):
         self.text = text
