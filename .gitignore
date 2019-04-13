@@ -19,7 +19,7 @@ a2.bat
 issues
 parser.out
 in.aki
-*.akib
+*.akic
 /a.bat
 .mypy_cache
 
