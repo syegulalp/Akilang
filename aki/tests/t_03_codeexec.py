@@ -236,8 +236,22 @@ class TestLexer(unittest.TestCase):
     def test_ref_deref(self):
         self._e(
             (
+                # This first test ensures the original `x` is not clobbered
                 (r"var x=32 var y=ref(x) var z=deref(y) x", 32),
+                (r"var x=32 var y=ref(x) var z=deref(y) z", 32),
+                (r"var x=32 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) z", 32),
+                (r"var x=32 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x", 32),
+                (r"def g1(){32} var y=ref(g1) var z=deref(y) z()", 32),
                 (r"def g1(){32} var x=g1 var y=ref(x) var z=deref(y) z()", 32),
+                (r"def g1(){32} var x=g1 var y=ref(x) var z=deref(y) x()", 32),
+                (r"def g1(){32} var x=ref(g1) var y=deref(x) y()", 32),
+                (r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) z()", 32),
+                (r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x()", 32),
+                
             )
         )
+        self._ex(AkiTypeErr, (
+            # `y()` is a pointer, not a callable
+            (r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) y()", None),
+        ))
 

@@ -659,9 +659,14 @@ class AkiCodeGen:
             args = []
 
             # If this is a function pointer, get the original function
-
+            
             if isinstance(call_func, ir.AllocaInstr):
-                call_func = call_func.akitype.original_function
+                cf = call_func.akitype.original_function
+                if cf is None:
+                    raise AkiTypeErr(node, self.text, 
+                    f'"{CMD}{node.name}{REP}" is "{CMD}{call_func.akitype}{REP}", not a function')
+                else:
+                    call_func = cf
 
             # If we have too many arguments, give up
 
@@ -920,14 +925,26 @@ class AkiCodeGen:
             )
 
         if isinstance(ref.akitype, AkiFunction):
-            return self._codegen(node.ref)
+            # Function pointers are a special case
+            r1 = self._codegen(node.ref)
+            r2 = self._alloca(node.ref, r1.type, '.r1')
+            self.builder.store(r1, r2)
+            r2.akinode = node.ref
+            r2.akitype = self.typemgr.as_ptr(r1.akitype)
+            r2.akitype.llvm_type.pointee.akitype = r1.akitype
+            # TODO: This should be created when we allocate the pointer, IMO
+            r2.akitype.llvm_type.pointee.akitype.original_function = r1.akitype.original_function
+            return r2
 
-        # We're creating a no-op copy of the original value so we can
-        # modify its Aki properties independently.
+        # The `gep` creates a no-op copy of the original value so we can
+        # modify its Aki properties independently. Otherwise the original
+        # Aki variable reference has its properties clobbered.
 
         r1 = self.builder.gep(ref, [ir.Constant(ir.IntType(32), 0)])
         r1.akinode = node.ref
         r1.akitype = self.typemgr.as_ptr(ref.akitype)
+        r1.akitype.llvm_type.pointee.akitype = ref.akitype
+    
         return r1
 
     def _codegen_DerefExpr(self, node):
@@ -937,12 +954,6 @@ class AkiCodeGen:
             raise AkiTypeErr(
                 node.ref, self.text, "Can't extract a reference; not a variable"
             )
-
-        if isinstance(ref.akitype, AkiFunction):
-            r1 = self.builder.load(ref)
-            r1.akinode = node.ref
-            r1.akitype = ref.akitype
-            return r1
 
         if not isinstance(ref.akitype, AkiPointer):
             raise AkiTypeErr(

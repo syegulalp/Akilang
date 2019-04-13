@@ -18,6 +18,8 @@ class AkiType:
 
     comp_ins: Optional[str] = None
 
+    original_function = None
+
     comp_ops = {
         "==": ".eqop",
         "!=": ".neqop",
