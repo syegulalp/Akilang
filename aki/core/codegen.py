@@ -659,12 +659,15 @@ class AkiCodeGen:
             args = []
 
             # If this is a function pointer, get the original function
-            
+
             if isinstance(call_func, ir.AllocaInstr):
                 cf = call_func.akitype.original_function
                 if cf is None:
-                    raise AkiTypeErr(node, self.text, 
-                    f'"{CMD}{node.name}{REP}" is "{CMD}{call_func.akitype}{REP}", not a function')
+                    raise AkiTypeErr(
+                        node,
+                        self.text,
+                        f'"{CMD}{node.name}{REP}" is "{CMD}{call_func.akitype}{REP}", not a function',
+                    )
                 else:
                     call_func = cf
 
@@ -917,23 +920,26 @@ class AkiCodeGen:
     #################################################################
 
     def _codegen_RefExpr(self, node):
-        if isinstance(node.ref, Name):
-            ref = self._name(node, node.ref.name)
-        else:
+        if not isinstance(node.ref, Name):
+            n1 = self._codegen(node.ref)
             raise AkiTypeErr(
-                node.ref, self.text, "Can't derive a reference; not a variable"
+                node.ref, self.text,
+                f'Can\'t derive a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable'
             )
+        ref = self._name(node, node.ref.name)
 
         if isinstance(ref.akitype, AkiFunction):
-            # Function pointers are a special case
+            # Function pointers are a special case, at least for now
             r1 = self._codegen(node.ref)
-            r2 = self._alloca(node.ref, r1.type, '.r1')
+            r2 = self._alloca(node.ref, r1.type, ".r1")
             self.builder.store(r1, r2)
             r2.akinode = node.ref
             r2.akitype = self.typemgr.as_ptr(r1.akitype)
             r2.akitype.llvm_type.pointee.akitype = r1.akitype
             # TODO: This should be created when we allocate the pointer, IMO
-            r2.akitype.llvm_type.pointee.akitype.original_function = r1.akitype.original_function
+            r2.akitype.llvm_type.pointee.akitype.original_function = (
+                r1.akitype.original_function
+            )
             return r2
 
         # The `gep` creates a no-op copy of the original value so we can
@@ -944,20 +950,24 @@ class AkiCodeGen:
         r1.akinode = node.ref
         r1.akitype = self.typemgr.as_ptr(ref.akitype)
         r1.akitype.llvm_type.pointee.akitype = ref.akitype
-    
+
         return r1
 
     def _codegen_DerefExpr(self, node):
-        if isinstance(node.ref, Name):
-            ref = self._name(node, node.ref.name)
-        else:
+        if not isinstance(node.ref, Name):
+            n1 = self._codegen(node.ref)
             raise AkiTypeErr(
-                node.ref, self.text, "Can't extract a reference; not a variable"
+                node.ref, self.text,
+                f'Can\'t extract a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable'
             )
+
+        ref = self._name(node, node.ref.name)
 
         if not isinstance(ref.akitype, AkiPointer):
             raise AkiTypeErr(
-                node.ref, self.text, "Can't extract a reference; variable is not a pointer"
+                node.ref,
+                self.text,
+                f'Can\'t extract a reference as "{CMD}{node.ref.name}{REP}" is not a pointer'
             )
 
         f0 = self.builder.load(ref)

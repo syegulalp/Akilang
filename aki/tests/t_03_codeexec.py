@@ -253,5 +253,6 @@ class TestLexer(unittest.TestCase):
         self._ex(AkiTypeErr, (
             # `y()` is a pointer, not a callable
             (r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) y()", None),
+            (r"ref(32)", None)
         ))
 
