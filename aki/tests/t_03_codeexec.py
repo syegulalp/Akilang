@@ -239,20 +239,41 @@ class TestLexer(unittest.TestCase):
                 # This first test ensures the original `x` is not clobbered
                 (r"var x=32 var y=ref(x) var z=deref(y) x", 32),
                 (r"var x=32 var y=ref(x) var z=deref(y) z", 32),
-                (r"var x=32 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) z", 32),
-                (r"var x=32 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x", 32),
+                (
+                    r"var x=32 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) z",
+                    32,
+                ),
+                (
+                    r"var x=32 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x",
+                    32,
+                ),
                 (r"def g1(){32} var y=ref(g1) var z=deref(y) z()", 32),
                 (r"def g1(){32} var x=g1 var y=ref(x) var z=deref(y) z()", 32),
                 (r"def g1(){32} var x=g1 var y=ref(x) var z=deref(y) x()", 32),
                 (r"def g1(){32} var x=ref(g1) var y=deref(x) y()", 32),
-                (r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) z()", 32),
-                (r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x()", 32),
-                
+                (
+                    r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) z()",
+                    32,
+                ),
+                (
+                    r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x()",
+                    32,
+                ),
             )
         )
-        self._ex(AkiTypeErr, (
-            # `y()` is a pointer, not a callable
-            (r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) y()", None),
-            (r"ref(32)", None)
-        ))
+        self._ex(
+            AkiTypeErr,
+            (
+                # `y()` is a pointer, not a callable
+                (
+                    r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) y()",
+                    None,
+                ),
+                # you can't `ref` or `deref` anything not a variable
+                (r"ref(32)", None),
+                (r"deref(32)", None),
+                # `x` is not a reference
+                (r"var x=1 deref(x)", None),
+            ),
+        )
 
