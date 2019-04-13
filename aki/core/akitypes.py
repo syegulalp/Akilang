@@ -5,6 +5,7 @@ from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
 from typing import Optional
 from core.error import AkiTypeErr
 
+
 class AkiType:
     """
     Base type for all Aki types.
@@ -112,9 +113,6 @@ class AkiPointer(AkiType):
         new.llvm_type = base_type.llvm_type.as_pointer()
         new.type_id = f"ptr {base_type.type_id}"
         return new
-
-    # def format_result(self, result):
-    #     return f'<object {hex(result)}>'
 
 
 class AkiObject(AkiType):

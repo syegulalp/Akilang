@@ -1,6 +1,13 @@
 from llvmlite import ir
-from core.akitypes import AkiType, AkiBool, AkiFunction, AkiObject, AkiTypeMgr
-#_AkiTypes
+from core.akitypes import (
+    AkiType,
+    AkiBool,
+    AkiFunction,
+    AkiObject,
+    AkiTypeMgr,
+    AkiPointer,
+)
+
 from core.astree import (
     VarTypeNode,
     VarTypeName,
@@ -58,7 +65,10 @@ class AkiCodeGen:
     """
 
     def __init__(
-        self, module: Optional[ir.Module] = None, typemgr = None, module_name: Optional[str] = None
+        self,
+        module: Optional[ir.Module] = None,
+        typemgr=None,
+        module_name: Optional[str] = None,
     ):
 
         # Create an LLVM module if we aren't passed one.
@@ -391,7 +401,6 @@ class AkiCodeGen:
         # a function pointer.
         func.akitype.original_function = func
 
-
         self.fn.fn = func
 
         # Generate entry block and function body.
@@ -603,10 +612,10 @@ class AkiCodeGen:
                                     Argument(
                                         node,
                                         "vartype",
-                                        VarTypeName(node, self.types['type'].type_id),
+                                        VarTypeName(node, self.types["type"].type_id),
                                     )
                                 ],
-                                VarTypeName(node, self.types['type'].type_id),
+                                VarTypeName(node, self.types["type"].type_id),
                             ),
                             ExpressionBlock(node, []),
                         )
@@ -620,7 +629,7 @@ class AkiCodeGen:
                 if node.name == "type":
                     type_from = self._codegen(arg)
                     const = self._codegen(
-                        Constant(arg, type_from.akitype.enum_id, self.types['type'])
+                        Constant(arg, type_from.akitype.enum_id, self.types["type"])
                     )
                     return const
 
@@ -902,6 +911,51 @@ class AkiCodeGen:
     # Operations (also expressions)
     #################################################################
 
+    def _codegen_RefExpr(self, node):
+        if isinstance(node.ref, Name):
+            ref = self._name(node, node.ref.name)
+        else:
+            raise AkiTypeErr(
+                node.ref, self.text, "Can't derive a reference; not a variable"
+            )
+
+        if isinstance(ref.akitype, AkiFunction):
+            return self._codegen(node.ref)
+
+        # We're creating a no-op copy of the original value so we can
+        # modify its Aki properties independently.
+
+        r1 = self.builder.gep(ref, [ir.Constant(ir.IntType(32), 0)])
+        r1.akinode = node.ref
+        r1.akitype = self.typemgr.as_ptr(ref.akitype)
+        return r1
+
+    def _codegen_DerefExpr(self, node):
+        if isinstance(node.ref, Name):
+            ref = self._name(node, node.ref.name)
+        else:
+            raise AkiTypeErr(
+                node.ref, self.text, "Can't extract a reference; not a variable"
+            )
+
+        if isinstance(ref.akitype, AkiFunction):
+            r1 = self.builder.load(ref)
+            r1.akinode = node.ref
+            r1.akitype = ref.akitype
+            return r1
+
+        if not isinstance(ref.akitype, AkiPointer):
+            raise AkiTypeErr(
+                node.ref, self.text, "Can't extract a reference; variable is not a pointer"
+            )
+
+        f0 = self.builder.load(ref)
+        f1 = self.builder.load(f0)
+
+        f1.akinode = node.ref
+        f1.akitype = ref.akitype.llvm_type.pointee.akitype
+        return f1
+
     def _codegen_UnOp(self, node):
         """
         Generate a unary op from an AST `UnOp` node.
@@ -950,7 +1004,7 @@ class AkiCodeGen:
             operand, self._codegen(Constant(node, 1, operand.akitype))
         )
 
-        xor.akitype = self.types['bool']
+        xor.akitype = self.types["bool"]
         xor.akinode = node
         xor.akinode.name = f'op "{node.op}"'
         return xor
@@ -989,7 +1043,7 @@ class AkiCodeGen:
 
         instr = instr_type(node.op, lhs, rhs, op_name)
 
-        instr.akitype = self.types['bool']
+        instr.akitype = self.types["bool"]
         instr.akinode = node
         instr.akinode.name = f'op "{node.op}"'
 
@@ -1080,14 +1134,14 @@ class AkiCodeGen:
         # TODO: if this is a function, should we look up the registered type?
 
         if named_type is not None and not isinstance(named_type, AkiFunction):
-            return self._codegen(Constant(node, named_type.enum_id, self.types['type']))
+            return self._codegen(Constant(node, named_type.enum_id, self.types["type"]))
 
         name = self._name(node, node.name)
 
         # Return object types as a pointer
 
         # If this is an object... (ir.Function)
-        if isinstance(name.akitype, AkiObject):
+        if isinstance(name.akitype, (AkiObject,)):
             # ... by way of a variable (ir.AllocaInstr)
             if isinstance(name, ir.AllocaInstr):
                 # then load that from the pointer
@@ -1137,7 +1191,7 @@ class AkiCodeGen:
         const_counter = self._const_counter()
 
         akitype = self._get_vartype(node.vartype)
-        data, data_array = self.types['str'].data(node.val)
+        data, data_array = self.types["str"].data(node.val)
 
         # TODO: I'm considering moving this into .data
         # to keep this module leaner
@@ -1153,14 +1207,14 @@ class AkiCodeGen:
         string.unnamed_addr = True
 
         data_object = ir.GlobalVariable(
-            self.module, self.types['obj'].llvm_type, f".str.{const_counter}"
+            self.module, self.types["obj"].llvm_type, f".str.{const_counter}"
         )
         data_object.initializer = ir.Constant(
-            self.types['obj'].llvm_type,
+            self.types["obj"].llvm_type,
             (
-                self.types['str'].enum_id,
+                self.types["str"].enum_id,
                 len(data_array),
-                string.bitcast(self.typemgr.as_ptr(self.types['u_mem']).llvm_type),
+                string.bitcast(self.typemgr.as_ptr(self.types["u_mem"]).llvm_type),
             ),
         )
 

@@ -22,12 +22,14 @@ from core.astree import (
     VarTypeName,
     VarTypePtr,
     VarTypeFunc,
+    RefExpr,
+    DerefExpr,
 )
 from core.error import AkiSyntaxErr
 
 
 class AkiParser(Parser):
-    #debugfile = "parser.out"
+    # debugfile = "parser.out"
     tokens = AkiLexer.tokens
     start = "toplevels"
 
@@ -38,11 +40,11 @@ class AkiParser(Parser):
     log = NullLogger
 
     precedence = (
-        ("right", "ASSIGN"),
+        ("right", "ASSIGN", "REF", "DEREF"),
         ("left", "LOOP", "IF", "WHEN", "ELSE"),
         ("right", "UMINUS", "NOT"),
         ("left", "AND", "BIN_AND"),
-        ("left", "OR", "BIN_OR"),        
+        ("left", "OR", "BIN_OR"),
         ("left", "EQ", "NEQ", "GEQ", "LEQ", "GT", "LT"),
         ("left", "INCR", "DECR"),
         ("left", "PLUS", "MINUS"),
@@ -134,6 +136,19 @@ class AkiParser(Parser):
     @_("assignment_expr")
     def expr(self, p):
         return p.assignment_expr
+
+    @_("REF expr")
+    def expr(self, p):
+        # TODO: turn this into a decorator that ensures we have at least X args of certain types, etc.
+        if p.expr is None:
+            raise AkiSyntaxErr(Pos(p), self.text, "Named expression required")
+        return RefExpr(Pos(p), p.expr)
+
+    @_("DEREF expr")
+    def expr(self, p):
+        if p.expr is None:
+            raise AkiSyntaxErr(Pos(p), self.text, "Named expression required")
+        return DerefExpr(Pos(p), p.expr)
 
     # `def` function
 

@@ -211,6 +211,26 @@ class UnOp(Expression):
         return [self.__class__.__name__, self.op, self.lhs.flatten()]
 
 
+class RefExpr(Expression):
+    """
+    Reference expression (obtaining a pointer to an object)
+    """
+
+    def __init__(self, p, ref):
+        super().__init__(p)
+        self.ref = ref
+
+    def __eq__(self, other):
+        return self.ref == other.ref
+
+    def flatten(self):
+        return [self.__class__.__name__, self.ref.flatten()]
+
+
+class DerefExpr(RefExpr):
+    pass
+
+
 class BinOp(Expression):
     """
     Binary operator expression.

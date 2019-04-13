@@ -53,6 +53,8 @@ class AkiLexer(Lexer):
         BIN_AND,
         BIN_OR,
         ASSIGN,
+        REF,
+        DEREF,
         DEF,
         VAR,
         IF,
@@ -91,6 +93,8 @@ class AkiLexer(Lexer):
     NAME["True"] = TRUE
     NAME["False"] = FALSE
     NAME["None"] = NONE
+    NAME["ref"] = REF
+    NAME["deref"] = DEREF
 
     INT_DIV = r"//"
     INCR = r"(\+\=)"
@@ -118,7 +122,7 @@ class AkiLexer(Lexer):
     BIN_OR = r"\|"
     QUOTE = r'"'
     APOST = r"'"
-    BACKQUOTE = r'`'
+    BACKQUOTE = r"`"
 
     def tokenize(self, text):
         self.text = text

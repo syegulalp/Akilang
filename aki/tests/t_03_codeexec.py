@@ -233,3 +233,11 @@ class TestLexer(unittest.TestCase):
             )
         )
 
+    def test_ref_deref(self):
+        self._e(
+            (
+                (r"var x=32 var y=ref(x) var z=deref(y) x", 32),
+                (r"def g1(){32} var x=g1 var y=ref(x) var z=deref(y) z()", 32),
+            )
+        )
+
