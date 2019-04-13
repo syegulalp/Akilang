@@ -4,8 +4,6 @@ import ctypes
 from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
 from typing import Optional
 from core.error import AkiTypeErr
-from core.utils import Map
-
 
 class AkiType:
     """
