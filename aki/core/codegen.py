@@ -372,7 +372,7 @@ class AkiCodeGen:
         # store the original string for the function sig and use that
 
         aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
-        proto.set_metadata("aki.type", [aki_type_metadata])        
+        proto.set_metadata("aki.type", aki_type_metadata)
 
         return proto
 
