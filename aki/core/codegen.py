@@ -284,7 +284,7 @@ class AkiCodeGen:
 
             if lhs_atype.signed != rhs_atype.signed:
                 is_signed = lambda x: "Signed" if x else "Unsigned"
-                error += f'\nSigned/unsigned disagreement:\n - "{CMD}{lhs.akinode.name}{REP}" ({CMD}{lhs_atype}{REP}): {is_signed(lhs_atype.signed)}\n - "{CMD}{rhs.akinode.name}{REP}" ({CMD}{rhs_atype}{REP}): {is_signed(rhs_atype.signed)}'
+                error += f'\nTypes also have signed/unsigned disagreement:\n - "{CMD}{lhs.akinode.name}{REP}" ({CMD}{lhs_atype}{REP}): {is_signed(lhs_atype.signed)}\n - "{CMD}{rhs.akinode.name}{REP}" ({CMD}{rhs_atype}{REP}): {is_signed(rhs_atype.signed)}'
 
             raise AkiTypeErr(node, self.text, error)
         return lhs_atype, rhs_atype
