@@ -719,6 +719,10 @@ class AkiCodeGen:
 
         self.builder.branch(self.fn.breakpoints[-1])
 
+    #################################################################
+    # Expressions
+    #################################################################
+
     def _codegen_WithExpr(self, node):
         """
         Codegen a `with` block.
@@ -885,6 +889,7 @@ class AkiCodeGen:
         result = self.builder.load(if_result)
         result.akitype = result_akitype
         result.akinode = node
+        result.akinode.name = f'"if" expr'
         return result
 
     def _codegen_WhenExpr(self, node):
@@ -894,7 +899,7 @@ class AkiCodeGen:
         return self._codegen_IfExpr(node, True)
 
     #################################################################
-    # Operations
+    # Operations (also expressions)
     #################################################################
 
     def _codegen_UnOp(self, node):
@@ -912,6 +917,7 @@ class AkiCodeGen:
         instr = op(self, node, operand)
         instr.akiype = operand.akitype
         instr.akinode = node
+        instr.akinode.name = f'op "{node.op}"'
         return instr
 
     def _codegen_UnOp_Neg(self, node, operand):
@@ -930,6 +936,7 @@ class AkiCodeGen:
         instr = op(self, node, operand)
         instr.akitype = operand.akitype
         instr.akinode = node
+        instr.akinode.name = f'op "{node.op}"'
         return instr
 
     def _codegen_UnOp_Not(self, node, operand):
@@ -945,34 +952,10 @@ class AkiCodeGen:
 
         xor.akitype = self.types['bool']
         xor.akinode = node
+        xor.akinode.name = f'op "{node.op}"'
         return xor
 
     _unops = {"-": _codegen_UnOp_Neg, "not": _codegen_UnOp_Not}
-
-    def _codegen_Assignment(self, node):
-        """
-        Assign value to variable pointer.
-        Note that we do not codegen `lhs`, since in theory
-        we already have that as a named value.
-        """
-
-        lhs = node.lhs
-        rhs = node.rhs
-
-        if not isinstance(lhs, Name):
-            raise AkiOpError(
-                node,
-                self.text,
-                f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable',
-            )
-
-        ptr = self._name(node.lhs, lhs.name)
-        val = self._codegen(rhs)
-
-        self._type_check_op(node, ptr, val)
-
-        self.builder.store(val, ptr)
-        return ptr
 
     def _codegen_BinOpComparison(self, node):
         """
@@ -1008,6 +991,7 @@ class AkiCodeGen:
 
         instr.akitype = self.types['bool']
         instr.akinode = node
+        instr.akinode.name = f'op "{node.op}"'
 
         return instr
 
@@ -1047,6 +1031,7 @@ class AkiCodeGen:
 
         instr.akitype = instr_type
         instr.akinode = node
+        instr.akinode.name = f'op "{node.op}"'
         return instr
 
         # TODO: This assumes the left-hand side will always have the correct
@@ -1055,6 +1040,31 @@ class AkiCodeGen:
     #################################################################
     # Values
     #################################################################
+
+    def _codegen_Assignment(self, node):
+        """
+        Assign value to variable pointer.
+        Note that we do not codegen `lhs`, since in theory
+        we already have that as a named value.
+        """
+
+        lhs = node.lhs
+        rhs = node.rhs
+
+        if not isinstance(lhs, Name):
+            raise AkiOpError(
+                node,
+                self.text,
+                f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable',
+            )
+
+        ptr = self._name(node.lhs, lhs.name)
+        val = self._codegen(rhs)
+
+        self._type_check_op(node, ptr, val)
+
+        self.builder.store(val, ptr)
+        return ptr
 
     def _codegen_Name(self, node):
         """
