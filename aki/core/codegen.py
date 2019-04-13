@@ -931,7 +931,7 @@ class AkiCodeGen:
         if isinstance(ref.akitype, AkiFunction):
             # Function pointers are a special case, at least for now
             r1 = self._codegen(node.ref)
-            r2 = self._alloca(node.ref, r1.type, ".r1")
+            r2 = self._alloca(node.ref, r1.type, f".{node.ref.name}.ref")
             self.builder.store(r1, r2)
             r2.akinode = node.ref
             r2.akitype = self.typemgr.as_ptr(r1.akitype)
