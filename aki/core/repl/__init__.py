@@ -189,6 +189,8 @@ pyaki  :{constants.VERSION}"""
                 return
             except LocalException:
                 pass
+            except Exception:
+                cp(f'Error reading cached file')
 
         with Timer() as t:
 
