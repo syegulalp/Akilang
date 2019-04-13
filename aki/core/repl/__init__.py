@@ -62,7 +62,9 @@ from core.astree import (
     VarTypeName,
 )
 from core.error import AkiBaseErr, ReloadException, QuitException, LocalException
+from core.akitypes import AkiTypeMgr
 from core import constants
+
 
 PROMPT = "A>"
 
@@ -110,15 +112,20 @@ class JIT:
     lexer = AkiLexer()
     parser = AkiParser()
 
-    def __init__(self, types=None):
+    def __init__(self, typemgr=None, module_name=None):
+        if typemgr is None:
+            self.typemgr = AkiTypeMgr()
+        else:
+            self.typemgr = typemgr
+        self.types = self.typemgr.types
         self.anon_counter = 0
-        self.types = types
+        self.module_name = module_name
         self.reset()
 
     def reset(self):
         self.compiler = AkiCompiler()
-        self.module = ir.Module()
-        self.codegen = AkiCodeGen(self.module, self.types)
+        self.module = ir.Module(self.module_name)
+        self.codegen = AkiCodeGen(self.module, self.typemgr)
 
 
 def cp(string):
@@ -133,8 +140,12 @@ class Repl:
 LLVM   :{".".join((str(n) for n in binding.llvm_version_info))}
 pyaki  :{constants.VERSION}"""
 
-    def __init__(self, types=None):
-        self.types = types
+    def __init__(self, typemgr=None):
+        if typemgr is None:
+            self.typemgr = AkiTypeMgr()
+        else:
+            self.typemgr = typemgr
+        self.types = self.typemgr.types
         self.reset(silent=True)
 
     def run_tests(self, *a):
@@ -150,8 +161,9 @@ pyaki  :{constants.VERSION}"""
 
         # Attempt to load precomputed module from cache
 
-        cache_path = f"output/{file_to_load}.akic"
+        # cache_path = f"output/{file_to_load}.akic"
         filepath = f"examples/{file_to_load}.aki"
+        cache_path = filepath + "c"
 
         if not os.path.exists(cache_path):
             force_recompilation = True
@@ -165,13 +177,16 @@ pyaki  :{constants.VERSION}"""
                         import pickle
 
                         mod_in = pickle.load(file)
-                        if mod_in["version"]!=constants.VERSION:
+                        if mod_in["version"] != constants.VERSION:
                             raise LocalException
                         self.main_cpl.codegen = mod_in["codegen"]
                         self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
+                        self.typemgr = self.main_cpl.codegen.typemgr
                         file_size = os.fstat(file.fileno()).st_size
 
-                cp(f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)")
+                cp(
+                    f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)"
+                )
                 return
             except LocalException:
                 pass
@@ -321,7 +336,7 @@ pyaki  :{constants.VERSION}"""
 
             self.repl_cpl.anon_counter += 1
 
-            call_name = f".ANONYMOUS.{self.repl_cpl.anon_counter}"
+            call_name = f"_ANONYMOUS_{self.repl_cpl.anon_counter}"
             proto = Prototype(_.p, call_name, (), VarTypeName(_.p, None))
             func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
 
@@ -378,8 +393,8 @@ pyaki  :{constants.VERSION}"""
         self.load_file("1")
 
     def reset(self, *a, **ka):
-        self.main_cpl = JIT(self.types)
-        self.repl_cpl = JIT(self.types)
+        self.main_cpl = JIT(self.typemgr, module_name=".main")
+        self.repl_cpl = JIT(self.typemgr, module_name=".repl")
         if not "silent" in ka:
             cp(f"{RED}Workspace reset")
 

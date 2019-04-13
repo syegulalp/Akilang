@@ -7,12 +7,14 @@
 
 import unittest
 from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr
-
+from core.akitypes import AkiTypeMgr
 
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
 
-    r = Repl()
+    mgr = AkiTypeMgr()
+    types = mgr.types
+    r = Repl(typemgr = mgr)
     i = r.interactive
 
     def _e(self, tests):

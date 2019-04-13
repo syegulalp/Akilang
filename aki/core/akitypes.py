@@ -4,6 +4,7 @@ import ctypes
 from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
 from typing import Optional
 from core.error import AkiTypeErr
+from core.utils import Map
 
 
 class AkiType:
@@ -16,6 +17,8 @@ class AkiType:
     type_id: Optional[str] = None
     enum_id: Optional[int] = None
 
+    comp_ins: Optional[str] = None
+
     comp_ops = {
         "==": ".eqop",
         "!=": ".neqop",
@@ -24,7 +27,6 @@ class AkiType:
         "<": ".ltop",
         ">": ".gtop",
     }
-    comp_ins: Optional[str] = None
 
     c_ref = {
         True: {
@@ -79,7 +81,7 @@ class AkiTypeRef(AkiType):
         self._default = 0
 
     def format_result(self, result):
-        return f"<type{self.module.types.enum_ids[result]}>"
+        return f"<type{self.module.typemgr.enum_ids[result]}>"
 
     def default(self):
         return self._default
@@ -96,7 +98,7 @@ class AkiPointer(AkiType):
 
     def __init__(self, module: ir.Module):
         self.module = module
-        self.bits = module.types._pointer_width
+        self.bits = module.typemgr._pointer_width
 
     def default(self):
         # Null value for pointer
@@ -132,11 +134,11 @@ class AkiObject(AkiType):
         self.llvm_type = ir.LiteralStructType(
             (
                 # Type of object (enum)
-                module.types.u_size.llvm_type,
+                module.types['u_size'].llvm_type,
                 # Length of object
-                module.types.u_size.llvm_type,
+                module.types['u_size'].llvm_type,
                 # Void pointer to object, whatever it may be
-                module.types.as_ptr(module.types.u_mem).llvm_type,
+                module.typemgr.as_ptr(module.types['u_mem']).llvm_type,
             )
         )
 
@@ -428,7 +430,7 @@ class AkiString(AkiObject, AkiType):
 
     def __init__(self, module):
         self.module = module
-        self.llvm_type = ir.PointerType(module.types.obj.llvm_type)
+        self.llvm_type = ir.PointerType(module.types['obj'].llvm_type)
 
     def c(self):
         return ctypes.c_void_p
@@ -437,6 +439,10 @@ class AkiString(AkiObject, AkiType):
         return None
 
     def format_result(self, result):
+
+        # TODO: eventually we will point to a blank string
+        # as the default and not need this
+
         if result is None:
             return '""'
 
@@ -447,7 +453,7 @@ class AkiString(AkiObject, AkiType):
         char_p = ctypes.POINTER(ctypes.c_char_p)
         result = ctypes.cast(
             result
-            + (self.module.types.obj.OBJECT_POINTER * self.module.types.byte.bits),
+            + (self.module.types['obj'].OBJECT_POINTER * self.module.types['byte'].bits),
             char_p,
         )
         result = ctypes.cast(result.contents, char_p)
@@ -457,41 +463,45 @@ class AkiString(AkiObject, AkiType):
     def data(self, text):
         text = text + "\x00"
         data = bytearray(text.encode("utf8"))
-        data_array = ir.ArrayType(self.module.types.byte.llvm_type, len(data))
+        data_array = ir.ArrayType(self.module.types['byte'].llvm_type, len(data))
         return data, data_array
 
 
-class _AkiTypes:
-    """
-    Holds all Aki type definitions for a given module.
-    """
+class AkiTypeMgr:
+    
+    # These do not rely on any particular architecture,
+    # and so are set once and never changed.
 
-    # These types are universal and so do not need to be instantiated
-    # with the module.
-
-    bool = AkiBool()
-    i1 = AkiInt(1)
-    i8 = AkiInt(8)
-    i16 = AkiInt(16)
-    i32 = AkiInt(32)
-    int = i32
-    i64 = AkiInt(64)
-    u8 = AkiUnsignedInt(8)
-    u16 = AkiUnsignedInt(16)
-    u32 = AkiUnsignedInt(32)
-    uint = u32
-    u64 = AkiUnsignedInt(64)
-    f32 = AkiFloat()
-    f64 = AkiDouble()
-    float = f64
-    func = AkiFunction
+    base_types = {
+        "bool": AkiBool(),
+        "i1": AkiInt(1),
+        "i8": AkiInt(8),
+        "i16": AkiInt(16),
+        "i32": AkiInt(32),        
+        "i64": AkiInt(64),
+        "int": AkiInt(32),
+        "u8": AkiUnsignedInt(8),
+        "u16": AkiUnsignedInt(16),
+        "u32": AkiUnsignedInt(32),
+        "u64": AkiUnsignedInt(64),
+        "uint": AkiUnsignedInt(32),
+        "f32": AkiFloat(),
+        "f64": AkiDouble(),
+        "float": AkiDouble(),
+        "func": AkiFunction,
+    }
 
     def __init__(self, module: Optional[ir.Module] = None, bytesize=8):
         if module is None:
             module = ir.Module()
 
         # Set internal module reference so types can access each other
-        module.types = self
+        
+        # we might want to set these in the module,
+        # back-decorating is an antipattern
+        
+        module.typemgr = self
+
         self.module = module
 
         # Obtain pointer size from LLVM target
@@ -501,55 +511,56 @@ class _AkiTypes:
         )
         self._pointer_width = self._byte_width * bytesize
 
-        # Set byte and pointer sizes
-        self.byte = AkiUnsignedInt(self._byte_width)
-        self.u_mem = self.byte
-        self.u_size = AkiUnsignedInt(self._pointer_width)
-
-        # Set types that depend on pointer sizes
-        self._ptr = AkiPointer(module)
-        self.obj = AkiObject(module)
-        self.str = AkiString(module)
-        self.type = AkiTypeRef(module)
-
-        # Default type is a 32-bit signed integer
-        self._default = self.i32
-
-        # Holds type signatures and type references for custom types.
-        # Function signatures and arrays are two common examples.
-        self.custom_types: dict = {}
-
-        # Create type enums
-        self.enum_index = 0
-        self.enum_ids: dict = {}
-        for _ in (self.__class__.__dict__.items(), self.__dict__.items()):
-            for k, v in _:
-                if isinstance(v, AkiType):
-                    self.enum_ids[self.enum_index] = v
-                    v.enum_id = self.enum_index
-                    self.enum_index += 1
-        self.min_enum_id = self.enum_index
+        self.reset()
 
     def reset(self):
-        new_enums: dict = {}
-        for k, v in self.enum_ids.items():
-            if k < self.min_enum_id:
-                new_enums[k] = v
-        self.enum_index = self.min_enum_id
-        self.enum_ids = new_enums
-        self.custom_types: dict = {}
+        # Initialize the type map from the base type list,
+        # which never changes
+
+        #self.types = Map(self.base_types)
+        self.types = dict(self.base_types)
+        self.module.types = self.types
+
+        # Set byte and pointer sizes
+        self.types["byte"] = AkiUnsignedInt(self._byte_width)
+        self.types["u_mem"] = self.types['byte']
+        self.types["u_size"] = AkiUnsignedInt(self._pointer_width)
+
+        # Set types that depend on pointer sizes
+        self._ptr = AkiPointer(self.module)
+        self.types["obj"] = AkiObject(self.module)
+        self.types["str"] = AkiString(self.module)
+        self.types["type"] = AkiTypeRef(self.module)
+
+        # Default type is a 32-bit signed integer
+        self._default = self.types['i32']
+
+        self.enum_id_ctr = 0
+        self.enum_ids = {}
+
+        for _ in self.types.values():
+            setattr(_, 'enum_id', self.enum_id_ctr)
+            self.enum_ids[self.enum_id_ctr] = _
+            self.enum_id_ctr+=1
+
+        self.custom_types = {}
+
 
     def as_ptr(self, other):
         return self._ptr.new(other)
 
-    def add_type(self, type_name: str, type_ref: AkiType):
-        if self.custom_types.get(type_name, None) is not None:
-            return None
-        setattr(self, type_name, type_ref)
-        new_type = getattr(self, type_name)
-        new_type.enum_id = self.enum_index
-        self.enum_ids[self.enum_index] = new_type
-        self.enum_index += 1
-        self.custom_types[type_name] = type_ref
-        return new_type
+    def add_type(self, type_name: str, type_ref: AkiType, module_ref):
+        # custom types have to be stored in their own dict
+        # with module path references
 
+        if module_ref.name not in self.custom_types:
+            self.custom_types[module_ref.name] = {}
+        
+        self.custom_types[module_ref.name][type_name] = type_ref
+       
+        setattr(type_ref, 'enum_id', self.enum_id_ctr)
+        #self.types[reg_type_name] = type_ref        
+        self.enum_ids[self.enum_id_ctr] = type_ref
+        self.enum_id_ctr+=1
+        return type_ref
+        #return self.types[reg_type_name]

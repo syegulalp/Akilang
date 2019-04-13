@@ -1,5 +1,6 @@
 from llvmlite import ir
-from core.akitypes import AkiType, AkiBool, AkiFunction, AkiObject, _AkiTypes
+from core.akitypes import AkiType, AkiBool, AkiFunction, AkiObject, AkiTypeMgr
+#_AkiTypes
 from core.astree import (
     VarTypeNode,
     VarTypeName,
@@ -57,23 +58,27 @@ class AkiCodeGen:
     """
 
     def __init__(
-        self, module: Optional[ir.Module] = None, types: Optional[_AkiTypes] = None
+        self, module: Optional[ir.Module] = None, typemgr = None, module_name: Optional[str] = None
     ):
 
         # Create an LLVM module if we aren't passed one.
 
         if module is None:
-            self.module = ir.Module()
+            self.module = ir.Module(name=module_name)
         else:
             self.module = module
 
         self.fn: Optional[FuncState] = None
         self.text: Optional[str] = None
 
-        if types is None:
-            self.types = _AkiTypes(module=self.module)
+        # Create a type manager module if we aren't passed one.
+
+        if typemgr is None:
+            self.typemgr = AkiTypeMgr(module=self.module)
+            self.types = self.typemgr.types
         else:
-            self.types = types
+            self.typemgr = typemgr
+            self.types = typemgr.types
 
         # Other codegen modules to check for namespaces.
         # Resolved top to bottom.
@@ -187,7 +192,7 @@ class AkiCodeGen:
         Node visitor for `VarTypeName` nodes.
         """
         if node.name is None:
-            id_to_get = self.types._default.type_id
+            id_to_get = self.typemgr._default.type_id
         else:
             id_to_get = node.name
 
@@ -204,7 +209,7 @@ class AkiCodeGen:
         Node visitor for `VarTypePtr` nodes.
         """
         aki_type = self._get_vartype(node.pointee)
-        aki_type = self.types._ptr.new(aki_type)
+        aki_type = self.typemgr.as_ptr(aki_type)
         return aki_type
 
     def _get_vartype_VarTypeFunc(self, node):
@@ -228,7 +233,7 @@ class AkiCodeGen:
         Does not distinguish between built-in types and
         types registered with the module, e.g., by function signatures.
         """
-        type_to_find = getattr(self.types, type_name, None)
+        type_to_find = self.types.get(type_name, None)
         if type_to_find is None:
             return None
         if isinstance(type_to_find, AkiType):
@@ -317,7 +322,7 @@ class AkiCodeGen:
                     f'Function "{node.name}" has non-default argument "{_.name}" after default arguments',
                 )
             if _.vartype.name is None:
-                _.vartype.name = self.types._default.type_id
+                _.vartype.name = self.typemgr._default.type_id
             arg_vartype = self._get_vartype(_.vartype)
 
             _.vartype.llvm_type = arg_vartype.llvm_type
@@ -358,12 +363,18 @@ class AkiCodeGen:
         # using the function's name
 
         # TODO: eventually this assert will go away
-        assert self.types.add_type(node.name, function_type) is not None
+        _ = self.typemgr.add_type(node.name, function_type, self.module)
+        if _ is None:
+            raise AkiTypeErr(node, self.text, "Invalid name")
+        proto.enum_id = proto.akitype.enum_id
 
         # Add Aki type metadata
 
-        aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
-        proto.set_metadata("aki.type", aki_type_metadata)
+        #aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
+        #proto.set_metadata("aki.type", [aki_type_metadata])
+
+        # TODO:
+        # store the original string for the function sig and use that
 
         return proto
 
@@ -381,6 +392,7 @@ class AkiCodeGen:
         # This is so we can refer to it later if we use
         # a function pointer.
         func.akitype.original_function = func
+
 
         self.fn.fn = func
 
@@ -467,7 +479,7 @@ class AkiCodeGen:
             raise AkiTypeErr(
                 node,
                 self.text,
-                f'Return value from function "{CMD}func.name{REP}" ({CMD}{result.vartype.akitype}{REP}) does not match function signature return type ({CMD}{self.fn.return_value.akitype}{REP})',
+                f'Return value from function "{CMD}{func.name}{REP}" ({CMD}{result.akitype}{REP}) does not match function signature return type ({CMD}{self.fn.return_value.akitype}{REP})',
             )
 
         # Add return value for function in exit block,
@@ -593,10 +605,10 @@ class AkiCodeGen:
                                     Argument(
                                         node,
                                         "vartype",
-                                        VarTypeName(node, self.types.type.type_id),
+                                        VarTypeName(node, self.types['type'].type_id),
                                     )
                                 ],
-                                VarTypeName(node, self.types.type.type_id),
+                                VarTypeName(node, self.types['type'].type_id),
                             ),
                             ExpressionBlock(node, []),
                         )
@@ -610,7 +622,7 @@ class AkiCodeGen:
                 if node.name == "type":
                     type_from = self._codegen(arg)
                     const = self._codegen(
-                        Constant(arg, type_from.akitype.enum_id, self.types.type)
+                        Constant(arg, type_from.akitype.enum_id, self.types['type'])
                     )
                     return const
 
@@ -933,7 +945,7 @@ class AkiCodeGen:
             operand, self._codegen(Constant(node, 1, operand.akitype))
         )
 
-        xor.akitype = self.types.bool
+        xor.akitype = self.types['bool']
         xor.akinode = node
         return xor
 
@@ -996,7 +1008,7 @@ class AkiCodeGen:
 
         instr = instr_type(node.op, lhs, rhs, op_name)
 
-        instr.akitype = self.types.bool
+        instr.akitype = self.types['bool']
         instr.akinode = node
 
         return instr
@@ -1056,8 +1068,11 @@ class AkiCodeGen:
         # Types are returned, for now, as their enum
 
         named_type = self._get_type_by_name(node.name)
+
+        # TODO: if this is a function, should we look up the registered type?
+
         if named_type is not None and not isinstance(named_type, AkiFunction):
-            return self._codegen(Constant(node, named_type.enum_id, self.types.type))
+            return self._codegen(Constant(node, named_type.enum_id, self.types['type']))
 
         name = self._name(node, node.name)
 
@@ -1114,7 +1129,7 @@ class AkiCodeGen:
         const_counter = self._const_counter()
 
         akitype = self._get_vartype(node.vartype)
-        data, data_array = self.types.str.data(node.val)
+        data, data_array = self.types['str'].data(node.val)
 
         # TODO: I'm considering moving this into .data
         # to keep this module leaner
@@ -1130,14 +1145,14 @@ class AkiCodeGen:
         string.unnamed_addr = True
 
         data_object = ir.GlobalVariable(
-            self.module, self.types.obj.llvm_type, f".str.{const_counter}"
+            self.module, self.types['obj'].llvm_type, f".str.{const_counter}"
         )
         data_object.initializer = ir.Constant(
-            self.types.obj.llvm_type,
+            self.types['obj'].llvm_type,
             (
-                self.types.str.enum_id,
+                self.types['str'].enum_id,
                 len(data_array),
-                string.bitcast(self.types.as_ptr(self.types.u_mem).llvm_type),
+                string.bitcast(self.typemgr.as_ptr(self.types['u_mem']).llvm_type),
             ),
         )
 

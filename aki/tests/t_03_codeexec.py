@@ -6,10 +6,11 @@ from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr, AkiOpError
 
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
-    from core.akitypes import _AkiTypes
+    from core.akitypes import AkiTypeMgr
 
-    types = _AkiTypes()
-    r = Repl(types=types)
+    mgr = AkiTypeMgr()
+    types = mgr.types
+    r = Repl(typemgr=mgr)
     i = r.interactive
 
     def _e(self, tests):
@@ -60,16 +61,10 @@ class TestLexer(unittest.TestCase):
                 (r"0 or 0", 0),
             )
         )
-    
+
     def test_neg_ops(self):
         self._e(
-            (
-                (r"-1", -1),
-                (r"-1.0", -1.0),
-                (r"-0", 0),
-                (r"--1", 1),
-                (r"--1.0", 1.0),
-            )
+            ((r"-1", -1), (r"-1.0", -1.0), (r"-0", 0), (r"--1", 1), (r"--1.0", 1.0))
         )
 
     def test_not_ops(self):
@@ -141,7 +136,7 @@ class TestLexer(unittest.TestCase):
                 # Explicit type
                 (r"{var x:f64=2.2 x}", 2.2),
                 # Implicit type
-                (r"{var x=3.3 x}", 3.3)
+                (r"{var x=3.3 x}", 3.3),
             )
         )
 
@@ -152,20 +147,21 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_function_defs(self):
-        self.r.repl_cpl.codegen.types.reset()
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(((r"def m0(){1} m0()", 1), (r"def m1(){1} def m2(){2} m1()+m2()", 3)))
 
     def test_with(self):
-        self.r.repl_cpl.codegen.types.reset()
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(
             ((r"def m1(z){with var q:i32 loop (q=0, q<20, q+1) {z+=1} z} m1(0)", 20),)
         )
 
     def test_break(self):
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(((r"def m1(z){var q=0 loop () {q+=1 when q==20 break} q} m1(0)", 20),))
 
     def test_default_function_arguments(self):
-        self.r.repl_cpl.codegen.types.reset()
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(
             (
                 (r"def m1(z=1){z} m1()", 1),
@@ -173,16 +169,18 @@ class TestLexer(unittest.TestCase):
                 (r"def m3(y=2,z=1){y+z} m3()", 3),
             )
         )
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._ex(AkiSyntaxErr, ((r"def m1(z=1,y){z+y}", None),))
 
     def test_func_arg_type_trapping(self):
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._ex(
             AkiTypeErr,
-            ((r"def m1(x:i32){x} m1(1.0)", None), (r"def m1(x:f32){x} m1(3)", None)),
+            ((r"def m1(x:i32){x} m1(1.0)", None), (r"def m2(x:f32){x} m2(3)", None)),
         )
 
     def test_func_arg_count_trapping(self):
-        self.r.repl_cpl.codegen.types.reset()
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._ex(
             AkiSyntaxErr,
             (
@@ -198,6 +196,7 @@ class TestLexer(unittest.TestCase):
         self._ex(AkiTypeErr, ((r"{var x:i32=1 x==i64(1)}", None),))
 
     def test_type_comparison(self):
+        self.r.repl_cpl.codegen.typemgr.reset()
         self._e(
             (
                 (r"{var x=1,y=2 type(x)==type(y)}", True),
@@ -206,6 +205,9 @@ class TestLexer(unittest.TestCase):
                 (r"{var x=1,y=2 type(x)!=type(y)}", False),
                 (r"type(i32)", "<type:type>"),
                 (r"i32", "<type:i32>"),
+                (r"def x(){} type(x)", "<type:func():i32>"),
+                (r"def y(z:i32){z} type(y)", "<type:func(:i32):i32>"),
+                (r"def q(z:i64):i64{z} type(q)", "<type:func(:i64):i64>"),
             )
         )
         self._ex(AkiOpError, ((r"{var x=1,y=2 type(x)<type(y)}", None),))
@@ -234,6 +236,7 @@ class TestLexer(unittest.TestCase):
                 (r'{var x="hi" x}', '"hi"'),
                 (r'{var x:str x="hi" x}', '"hi"'),
                 (r"{var x:str x}", '""'),
+                (r"if 1 'hi' else 'bye'", '"hi"'),
             )
         )
 
