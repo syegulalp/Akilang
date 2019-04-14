@@ -206,7 +206,7 @@ class TestLexer(unittest.TestCase):
         self._ex(AkiOpError, ((r"{var x=1,y=2 type(x)<type(y)}", None),))
 
     def test_pointer(self):
-        self._e(((r"{var x:ptr i32 x}", 0),))
+        self._e(((r"{var x:ptr i32 x}", "<ptr i32 @ 0x0>"),))
 
     def test_function_pointer(self):
         self._e(
