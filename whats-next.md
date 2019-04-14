@@ -44,6 +44,7 @@
 * [x] Color-coded output in REPL
 * [x] Store Aki-native type signatures as LLVM metadata
 * [x] Pointers and pointer types, mainly for compatibility with C right now
+  * [x] `ref`/`deref` (to create and dereference pointers)
 * [x] Function type (for function pointers)
   * [x] Function pointer type
   * [x] String constants
