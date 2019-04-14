@@ -132,11 +132,15 @@ class TestLexer(unittest.TestCase):
         self._e(
             (
                 # Default type
-                (r"{var x=1 x}", 1),
+                (r"var x=1 x", 1),
                 # Explicit type
-                (r"{var x:f64=2.2 x}", 2.2),
+                (r"var x:f64=2.2 x", 2.2),
                 # Implicit type
-                (r"{var x=3.3 x}", 3.3),
+                (r"var x=3.3 x", 3.3),
+                (r"var x,y,z x=y=z=1", 1),
+                (r"var x,y,z x=y=z=1 x", 1),
+                (r"var x,y,z x=y=z=1 y", 1),
+                (r"var x,y,z x=y=z=1 z", 1),
             )
         )
 
