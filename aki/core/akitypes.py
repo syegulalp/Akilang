@@ -117,6 +117,7 @@ class AkiPointer(AkiType):
     def format_result(self, result):
         return f"<{self.type_id} @ {hex(result)}>"
 
+
 class AkiObject(AkiType):
     """
     Type for objects in Aki. This is essentially a header,

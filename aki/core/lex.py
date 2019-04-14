@@ -120,7 +120,7 @@ class AkiLexer(Lexer):
     ASSIGN = r"\="
     BIN_AND = r"\&"
     BIN_OR = r"\|"
-    QUOTE = r'\"'
+    QUOTE = r"\""
     APOST = r"\'"
     BACKQUOTE = r"\`"
 
@@ -142,7 +142,7 @@ class AkiLexer(Lexer):
     @_(r"\#[^\n]*\n")
     def comment(self, t):
         pass
-    
+
     @_(r"\n+")
     def newline(self, t):
         self.lineno += t.value.count("\n")

@@ -923,8 +923,9 @@ class AkiCodeGen:
         if not isinstance(node.ref, Name):
             n1 = self._codegen(node.ref)
             raise AkiTypeErr(
-                node.ref, self.text,
-                f'Can\'t derive a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable'
+                node.ref,
+                self.text,
+                f'Can\'t derive a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
             )
         ref = self._name(node, node.ref.name)
 
@@ -957,8 +958,9 @@ class AkiCodeGen:
         if not isinstance(node.ref, Name):
             n1 = self._codegen(node.ref)
             raise AkiTypeErr(
-                node.ref, self.text,
-                f'Can\'t extract a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable'
+                node.ref,
+                self.text,
+                f'Can\'t extract a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
             )
 
         ref = self._name(node, node.ref.name)
@@ -967,7 +969,7 @@ class AkiCodeGen:
             raise AkiTypeErr(
                 node.ref,
                 self.text,
-                f'Can\'t extract a reference as "{CMD}{node.ref.name}{REP}" is not a pointer'
+                f'Can\'t extract a reference as "{CMD}{node.ref.name}{REP}" is not a pointer',
             )
 
         f0 = self.builder.load(ref)
