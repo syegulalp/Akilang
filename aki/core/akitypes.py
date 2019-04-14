@@ -15,10 +15,8 @@ class AkiType:
     base_type: Optional["AkiType"]
     type_id: Optional[str] = None
     enum_id: Optional[int] = None
-
     comp_ins: Optional[str] = None
-
-    original_function = None
+    original_function: Optional[ir.Function] = None
 
     comp_ops = {
         "==": ".eqop",
@@ -116,6 +114,8 @@ class AkiPointer(AkiType):
         new.type_id = f"ptr {base_type.type_id}"
         return new
 
+    def format_result(self, result):
+        return f"<{self.type_id} @ {hex(result)}>"
 
 class AkiObject(AkiType):
     """
