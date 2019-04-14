@@ -52,10 +52,12 @@
 
 ## In progress
 
+* [ ] `unsafe` context block for certain operations
 * [ ] Inline typing for constants
   * [x] `True/False` for `bool` values
   * [x] `0x00` and `0h00` for unsigned and signed values, respectively
-  * [ ] Cast from constant, e.g. `i32(100)` or `f64(1.0)`
+* [ ] Cast from constant, e.g. `i32(100)` or `f64(1.0)`
+* [ ] Casting int to pointer and back (`unsafe` only)
 * [ ] External function references (`extern` context block with optional library identifier)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
