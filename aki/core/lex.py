@@ -120,9 +120,9 @@ class AkiLexer(Lexer):
     ASSIGN = r"\="
     BIN_AND = r"\&"
     BIN_OR = r"\|"
-    QUOTE = r'"'
-    APOST = r"'"
-    BACKQUOTE = r"`"
+    QUOTE = r'\"'
+    APOST = r"\'"
+    BACKQUOTE = r"\`"
 
     def tokenize(self, text):
         self.text = text
@@ -139,6 +139,10 @@ class AkiLexer(Lexer):
         t.value = int(t.value)
         return t
 
+    @_(r"\#[^\n]*\n")
+    def comment(self, t):
+        pass
+    
     @_(r"\n+")
     def newline(self, t):
         self.lineno += t.value.count("\n")
