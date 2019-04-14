@@ -40,7 +40,7 @@ class AkiParser(Parser):
     log = NullLogger
 
     precedence = (
-        ("right", "ASSIGN", "REF", "DEREF"),
+        ("right", "ASSIGN"),
         ("left", "LOOP", "IF", "WHEN", "ELSE"),
         ("right", "UMINUS", "NOT"),
         ("left", "AND", "BIN_AND"),
