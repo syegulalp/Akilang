@@ -48,6 +48,7 @@
 * [x] Function type (for function pointers)
   * [x] Function pointer type
   * [x] String constants
+* [x] Comments
 
 ## In progress
 
@@ -58,7 +59,6 @@
 * [ ] External function references (`extern` context block with optional library identifier)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
-* [ ] Comments
 * [ ] `uni` for globals
 * [ ] `const` for constants
 * [ ] Complete REPL command set (as per earlier incarnation of project)
