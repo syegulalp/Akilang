@@ -1135,11 +1135,9 @@ class AkiCodeGen:
 
         ptr = self._name(node.lhs, lhs.name)
         val = self._codegen(rhs)
-
         self._type_check_op(node, ptr, val)
-
         self.builder.store(val, ptr)
-        return ptr
+        return val
 
     def _codegen_Name(self, node):
         """
