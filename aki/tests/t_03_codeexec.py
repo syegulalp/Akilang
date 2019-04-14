@@ -118,15 +118,15 @@ class TestLexer(unittest.TestCase):
                 (r"if 0 2 else 3", 3),
                 (r"when 1 2 else 3", 1),
                 (r"when 0 2 else 3", 0),
-                (r"{var x=1, y=2 if x==2 or y==1 3 else 4}", 4),
-                (r"{var x=1, y=2 if x==1 or y==2 3 else 4}", 3),
-                (r"{var x=1, y=2 if x==1 and y==2 3 else 4}", 3),
-                (r"{var x=1, y=2 if x==2 and y==1 3 else 4}", 4),
+                (r"var x=1, y=2 if x==2 or y==1 3 else 4", 4),
+                (r"var x=1, y=2 if x==1 or y==2 3 else 4", 3),
+                (r"var x=1, y=2 if x==1 and y==2 3 else 4", 3),
+                (r"var x=1, y=2 if x==2 and y==1 3 else 4", 4),
             )
         )
 
     def test_expressionblock_syntax(self):
-        self._e((("{var x=1,y=2 x+y}", 3),))
+        self._e((("var x=1,y=2 x+y", 3),))
 
     def test_var_assignment(self):
         self._e(
@@ -170,7 +170,7 @@ class TestLexer(unittest.TestCase):
             )
         )
         self.r.repl_cpl.codegen.typemgr.reset()
-        self._ex(AkiSyntaxErr, ((r"def m1(z=1,y){z+y}", None),))
+        self._ex(AkiSyntaxErr, ((r"def m1(z=1,y){z+y", None),))
 
     def test_func_arg_type_trapping(self):
         self._ex(
@@ -189,17 +189,17 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_inline_type_declarations(self):
-        self._e(((r"{var x:i32=1 x==i32(1)}", True),))
+        self._e(((r"var x:i32=1 x==i32(1)", True),))
 
-        self._ex(AkiTypeErr, ((r"{var x:i32=1 x==i64(1)}", None),))
+        self._ex(AkiTypeErr, ((r"var x:i32=1 x==i64(1)", None),))
 
     def test_type_comparison(self):
         self._e(
             (
-                (r"{var x=1,y=2 type(x)==type(y)}", True),
+                (r"var x=1,y=2 type(x)==type(y)", True),
                 (r"i32==i32", True),
                 (r"i32==i64", False),
-                (r"{var x=1,y=2 type(x)!=type(y)}", False),
+                (r"var x=1,y=2 type(x)!=type(y)", False),
                 (r"type(i32)", "<type:type>"),
                 (r"i32", "<type:i32>"),
                 (r"def x(){} type(x)", "<type:func():i32>"),
@@ -207,20 +207,20 @@ class TestLexer(unittest.TestCase):
                 (r"def q(z:i64):i64{z} type(q)", "<type:func(:i64):i64>"),
             )
         )
-        self._ex(AkiOpError, ((r"{var x=1,y=2 type(x)<type(y)}", None),))
+        self._ex(AkiOpError, ((r"var x=1,y=2 type(x)<type(y)", None),))
 
     def test_pointer(self):
-        self._e(((r"{var x:ptr i32 x}", "<ptr i32 @ 0x0>"),))
+        self._e(((r"var x:ptr i32 x", "<ptr i32 @ 0x0>"),))
 
     def test_function_pointer(self):
         self._e(
             (
-                (r"{var x:func():i32 x}", "<function:func():i32 @ 0x0>"),
-                (r"{var x:func(:i32):i32 x}", "<function:func(:i32):i32 @ 0x0>"),
+                (r"var x:func():i32 x", "<function:func():i32 @ 0x0>"),
+                (r"var x:func(:i32):i32 x", "<function:func(:i32):i32 @ 0x0>"),
                 (r"def g0(){32} var x=g0 x()", 32),
-                (r"def g1(){32} def g2(x){32+x} {var x=g1,y=g2 x()+y(1)}", 65),
+                (r"def g1(){32} def g2(x){32+x} var x=g1,y=g2 x()+y(1)", 65),
                 (
-                    r"def g3(){32} def g4(x){32+x} {var x=g3 var y=x var z=g4 x()+y()+z(1)}",
+                    r"def g3(){32} def g4(x){32+x} var x=g3 var y=x var z=g4 x()+y()+z(1)",
                     97,
                 ),
             )
@@ -232,7 +232,7 @@ class TestLexer(unittest.TestCase):
                 (r'"hi"', '"hi"'),
                 (r'{var x="hi" x}', '"hi"'),
                 (r'{var x:str x="hi" x}', '"hi"'),
-                (r"{var x:str x}", '""'),
+                (r"var x:str x", '""'),
                 (r"if 1 'hi' else 'bye'", '"hi"'),
             )
         )
