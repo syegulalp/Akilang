@@ -232,7 +232,7 @@ class TestLexer(unittest.TestCase):
                     [
                         [
                             "Function",
-                            ["Prototype", [], ["VarTypeName", None]],
+                            ["Prototype", "main", [], ["VarTypeName", None]],
                             [["Constant", 0, ["VarTypeName", "i32"]]],
                         ]
                     ],
@@ -250,6 +250,7 @@ class TestLexer(unittest.TestCase):
                             "Function",
                             [
                                 "Prototype",
+                                "main",
                                 [["Argument", "x", ["VarTypeName", None], None]],
                                 ["VarTypeName", None],
                             ],
@@ -497,7 +498,12 @@ class TestLexer(unittest.TestCase):
 
     def test_call(self):
         self._e(
-            ((r"x(1)", [["Call", [["Constant", 1, ["VarTypeName", "i32"]]], None]]),)
+            (
+                (
+                    r"x(1)",
+                    [["Call", "x", [["Constant", 1, ["VarTypeName", "i32"]]], None]],
+                ),
+            )
         )
 
     def test_advanced_type_names(self):

@@ -311,7 +311,7 @@ class Prototype(ASTNode):
 
     def flatten(self):
         return [
-            self.__class__.__name__,
+            self.__class__.__name__, self.name,
             [_.flatten() for _ in self.arguments] if self.arguments else [],
             self.return_type.flatten() if self.return_type else None,
         ]
