@@ -20,12 +20,16 @@ class AkiLexer(Lexer):
         LPAREN,
         RPAREN,
         COMMA,
+        DOT,
+        SEMI,
         TEXT1,
         TEXT2,
         HEX,
         COLON,
         LBRACE,
         RBRACE,
+        LBRACKET,
+        RBRACKET,
         QUOTE,
         APOST,
         BACKQUOTE,
@@ -53,9 +57,8 @@ class AkiLexer(Lexer):
         BIN_AND,
         BIN_OR,
         ASSIGN,
-        REF,
-        DEREF,
         DEF,
+        EXTERN,
         VAR,
         IF,
         WHEN,
@@ -78,6 +81,7 @@ class AkiLexer(Lexer):
     HEX = r"0[hx][a-fA-F0-9]*"
     NAME = r"[a-zA-Z_][a-zA-Z0-9_]*"
     NAME["def"] = DEF
+    NAME["extern"] = EXTERN
     NAME["var"] = VAR
     NAME["and"] = AND
     NAME["or"] = OR
@@ -93,8 +97,6 @@ class AkiLexer(Lexer):
     NAME["True"] = TRUE
     NAME["False"] = FALSE
     NAME["None"] = NONE
-    NAME["ref"] = REF
-    NAME["deref"] = DEREF
 
     INT_DIV = r"//"
     INCR = r"(\+\=)"
@@ -103,6 +105,8 @@ class AkiLexer(Lexer):
     MINUS = r"\-"
     TIMES = r"\*"
     DIV = r"\/"
+    LBRACKET = r"\["
+    RBRACKET = r"\]"
     LPAREN = r"\("
     RPAREN = r"\)"
     COMMA = r"\,"
@@ -123,6 +127,8 @@ class AkiLexer(Lexer):
     QUOTE = r"\""
     APOST = r"\'"
     BACKQUOTE = r"\`"
+    DOT = r"\."
+    SEMI = r"\;"
 
     def tokenize(self, text):
         self.text = text

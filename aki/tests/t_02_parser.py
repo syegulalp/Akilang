@@ -38,7 +38,8 @@ class TestLexer(unittest.TestCase):
                 self._parse(text)
 
     # def test_t1(self):
-    #     self.__parse("if x==1 or y==2 3 else 4")
+    #     self.__parse("(x).y().z")
+    #     self.__parse("(x).y()")
 
     def test_constant(self):
         self._e(
@@ -51,7 +52,8 @@ class TestLexer(unittest.TestCase):
                 (r"False", [["Constant", False, ["VarTypeName", "bool"]]]),
             )
         )
-        self._ex(AkiSyntaxErr, ((r"32.x"), (r"x.32")))
+        # These are syntactically valid dot expressions
+        #self._ex(AkiSyntaxErr, ((r"32.x"), (r"x.32")))
 
     def test_expr_names(self):
         self._e(
