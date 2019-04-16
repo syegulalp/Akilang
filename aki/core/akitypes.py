@@ -5,6 +5,8 @@ from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
 from typing import Optional
 from core.error import AkiTypeErr
 
+def _int(value):
+    return ir.Constant(ir.IntType(32),value)
 
 class AkiType:
     """
@@ -61,6 +63,9 @@ class AkiType:
         as used in the REPL.
         """
         return result
+
+    def cdata(self, codegen, node):
+        return node
 
 
 class AkiTypeRef(AkiType):
@@ -447,7 +452,6 @@ class AkiString(AkiObject, AkiType):
 
         # TODO: Let's find a way to automatically GEP this pointer
         # Eventually we'll emit instructions to extract such things
-        # e.g., a c_ref attribute for the type that returns an i8*
 
         char_p = ctypes.POINTER(ctypes.c_char_p)
         result = ctypes.cast(
@@ -466,6 +470,13 @@ class AkiString(AkiObject, AkiType):
         data = bytearray(text.encode("utf8"))
         data_array = ir.ArrayType(self.module.types["byte"].llvm_type, len(data))
         return data, data_array
+
+    def cdata(self, codegen, node):
+        obj_ptr = codegen.builder.gep(node, [_int(0), _int(AkiObject.OBJECT_POINTER)])
+        obj_ptr = codegen.builder.load(obj_ptr)
+        obj_ptr.akitype = codegen.typemgr.as_ptr(codegen.types["u_mem"])
+        obj_ptr.akinode = node.akinode
+        return obj_ptr
 
 
 class AkiTypeMgr:
