@@ -104,7 +104,7 @@ class Name(Expression):
         self.val = val
         # `val` is only used in variable assignment form
         self.vartype = vartype
-
+ 
     def __eq__(self, other):
         return self.name == other.name
 
@@ -334,6 +334,8 @@ class Function(TopLevel, ASTNode):
             [_.flatten() for _ in self.body.body],
         ]
 
+class External(Function):
+    pass
 
 class Call(Expression, Prototype):
     """
@@ -426,3 +428,13 @@ class WithExpr(Expression):
             self.body.flatten(),
         ]
 
+class ChainExpr(Expression):
+    def __init__(self, p, exprchain: list):
+        super().__init__(p)
+        self.exprchain = exprchain
+
+    def flatten(self):
+        return [self.__class__.__name__, [_.flatten() for _ in self.exprchain]]
+
+# class Accessor:
+# object to access, and one or more accessors with dimensions
