@@ -25,6 +25,7 @@ from core.astree import (
     Argument,
     Function,
     ExpressionBlock,
+    External
 )
 from core.error import (
     AkiNameErr,
@@ -254,6 +255,13 @@ class AkiCodeGen:
     # Utilities
     #################################################################
 
+    def _move_before_terminator(self, block):
+        """
+        Position in an existing LLVM block before the terminator instruction.
+        """
+        assert block.is_terminal
+        self.builder.position_before(block.instructions[-1])
+
     def _check_var_name(self, node, name, is_global=False):
         """
         Check routine to determine if a given name is already in use
@@ -280,12 +288,22 @@ class AkiCodeGen:
         )
         return result
 
+    def _is_type(self, node, expr, other_type):
+        akitype = getattr(expr, "akitype", None)
+        if not akitype:
+            raise AkiSyntaxErr(node, self.text, f"Expression does not yield a value")
+        return isinstance(akitype, other_type)
+
     def _type_check_op(self, node, lhs, rhs):
         """
         Perform a type compatibility check for a binary op.
         This takes in two LLVM nodes decorated with Aki data.
         """
+
+        self._is_type(node.lhs, lhs, AkiType)
         lhs_atype = lhs.akitype
+
+        self._is_type(node.rhs, rhs, AkiType)
         rhs_atype = rhs.akitype
 
         if lhs_atype != rhs_atype:
@@ -325,6 +343,13 @@ class AkiCodeGen:
         for _ in node.arguments:
             if _.default_value is not None:
                 require_defaults = True
+                if isinstance(_.default_value, ExpressionBlock):
+                    raise AkiSyntaxErr(
+                        _.default_value,
+                        self.text,
+                        f"Function argument defaults cannot be an expression block (yet)",
+                    )
+
             if not _.default_value and require_defaults:
                 raise AkiSyntaxErr(
                     _,
@@ -381,10 +406,17 @@ class AkiCodeGen:
         # TODO:
         # store the original string for the function sig and use that
 
-        aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
-        proto.set_metadata("aki.type", aki_type_metadata)
+        # aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
+        # proto.set_metadata("aki.type", aki_type_metadata)
 
         return proto
+
+    def _codegen_External(self, node):
+        """
+        Generate an external function call from an `External` AST node.
+        """
+
+        return self._codegen_Function(node)
 
     def _codegen_Function(self, node):
         """
@@ -402,6 +434,9 @@ class AkiCodeGen:
         func.akitype.original_function = func
 
         self.fn.fn = func
+
+        if isinstance(node, External):
+            return func
 
         # Generate entry block and function body.
 
@@ -441,6 +476,8 @@ class AkiCodeGen:
         self.fn.return_value.akitype = func.akitype.return_type
         func.return_value.akitype = func.akitype.return_type
 
+        
+
         # Create actual starting function block and codegen instructions.
 
         self.body_block = func.append_basic_block("body")
@@ -454,6 +491,13 @@ class AkiCodeGen:
         # and return that.
 
         assert isinstance(result, ir.Instruction)
+
+        # TODO: We need to set a flag somewhere indicating that the function
+        # did not return a value, so that it can be used later.
+        # (for instance, when checking to see if a given statement returns a value)
+        # This could be set in the LLVM function object,
+        # in the Aki type for the function definition,
+        # or in the AST node. Not sure which one would be best.
 
         if result is None:
             result = self._codegen(
@@ -589,7 +633,13 @@ class AkiCodeGen:
         Generate a function call from a `Call` node.
         """
 
-        # first, check if this is a request for a type
+        # check if this is a builtin
+
+        builtin = getattr(self, f"_builtins_{node.name}", None)
+        if builtin:
+            return builtin(node)
+
+        # check if this is a request for a type
         # this will eventually go somewhere else
 
         try:
@@ -686,6 +736,9 @@ class AkiCodeGen:
                     if default_arg_value is None:
                         raise LocalException
                     arg_val = self._codegen(default_arg_value)
+
+                    # self._is_type(f_arg.akinode, arg_val, f_arg.akinode.vartype.akitype)
+
                     args.append(arg_val)
                     continue
 
@@ -721,7 +774,7 @@ class AkiCodeGen:
 
         call = self.builder.call(call_func, args, call_func.name + ".call")
         call.akitype = call_func.akitype.return_type
-        call.akinode = node
+        call.akinode = call_func.akinode
         return call
 
     def _codegen_Break(self, node):
@@ -849,59 +902,71 @@ class AkiCodeGen:
 
     def _codegen_IfExpr(self, node, is_when_expr=False):
         """
-        Codegen an `if` or `when` expression, where then and else return values are of the same type. The `then/else` nodes are raw AST nodes. Their vartypes need to be known in advance.
+        Codegen an `if` or `when` expression, where then and else return values are of the same type. The `then/else` nodes are raw AST nodes.
+        Because the expressions could be indeterminate, we have to codegen them
+        to get a vartype.
         """
 
+        if_expr = self._codegen(node.if_expr)
+
+        if not self._is_type(node.if_expr, if_expr, AkiBool):
+            if_expr = self._scalar_as_bool(node.if_expr, if_expr)
+
+        if_block = self.builder._block
+
+        # codegen the clauses so we can determine their return types
+
+        with self.builder.if_else(if_expr) as (then_clause, else_clause):
+            with then_clause:
+                then_block = self.builder._block
+                then_result = self._codegen(node.then_expr)
+            with else_clause:
+                else_block = self.builder._block
+                if node.else_expr:
+                    else_result = self._codegen(node.else_expr)
+
+        exit_block = self.builder._block
+
+        # for if expresssion, typematch results
+
         if not is_when_expr:
-            if node.then_expr.vartype != node.else_expr.vartype:
+
+            if then_result.akitype != else_result.akitype:
                 raise AkiTypeErr(
                     node.then_expr,
                     self.text,
                     f'"{CMD}if/else{REP}" must yield same type; use "{CMD}when/else{REP}" for results of different types',
                 )
-            node.then_expr.akitype = self._get_vartype(node.then_expr.vartype)
 
-        if_expr = self._codegen(node.if_expr)
+            self._move_before_terminator(if_block)
 
-        # If our `if` expression is not a boolean value,
-        # try to generate one from it.
-        # E.g., `if 2` would yield `True`; `if 0` would yield `False`.
+            if_result = self._alloca(
+                node.then_expr, then_result.akitype.llvm_type, ".if_result"
+            )
 
-        if not isinstance(if_expr.akitype, AkiBool):
-            if_expr = self._scalar_as_bool(node.if_expr, if_expr)
+            self._move_before_terminator(then_block)
+            self.builder.store(then_result, if_result)
 
-        # Set the appropriate return type based on the operation.
+            self._move_before_terminator(else_block)
+            self.builder.store(else_result, if_result)
 
-        if is_when_expr:
+            self.builder.position_at_start(exit_block)
+            result = if_result
+            result_akitype = then_result.akitype
+
+        # for when expressions, just return the if clause value
+
+        else:
+
+            self._move_before_terminator(if_block)
+
             if_result = self._alloca(
                 node.if_expr, if_expr.akitype.llvm_type, ".when_result"
             )
-        else:
-            if_result = self._alloca(
-                node.then_expr, node.then_expr.akitype.llvm_type, ".if_result"
-            )
+            self.builder.position_at_start(exit_block)
 
-        # Build the clauses.
-
-        with self.builder.if_else(if_expr) as (then_clause, else_clause):
-            with then_clause:
-                then_result = self._codegen(node.then_expr)
-                if not is_when_expr:
-                    self.builder.store(then_result, if_result)
-            with else_clause:
-                if node.else_expr:
-                    else_result = self._codegen(node.else_expr)
-                    if not is_when_expr:
-                        self.builder.store(else_result, if_result)
-
-        # Decorate the return type.
-
-        if is_when_expr:
             result = self.builder.store(if_expr, if_result)
             result_akitype = if_expr.akitype
-        else:
-            result = if_result
-            result_akitype = then_result.akitype
 
         result = self.builder.load(if_result)
         result.akitype = result_akitype
@@ -918,66 +983,6 @@ class AkiCodeGen:
     #################################################################
     # Operations (also expressions)
     #################################################################
-
-    def _codegen_RefExpr(self, node):
-        if not isinstance(node.ref, Name):
-            n1 = self._codegen(node.ref)
-            raise AkiTypeErr(
-                node.ref,
-                self.text,
-                f'Can\'t derive a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
-            )
-        ref = self._name(node, node.ref.name)
-
-        if isinstance(ref.akitype, AkiFunction):
-            # Function pointers are a special case, at least for now
-            r1 = self._codegen(node.ref)
-            r2 = self._alloca(node.ref, r1.type, f".{node.ref.name}.ref")
-            self.builder.store(r1, r2)
-            r2.akinode = node.ref
-            r2.akitype = self.typemgr.as_ptr(r1.akitype)
-            r2.akitype.llvm_type.pointee.akitype = r1.akitype
-            # TODO: This should be created when we allocate the pointer, IMO
-            r2.akitype.llvm_type.pointee.akitype.original_function = (
-                r1.akitype.original_function
-            )
-            return r2
-
-        # The `gep` creates a no-op copy of the original value so we can
-        # modify its Aki properties independently. Otherwise the original
-        # Aki variable reference has its properties clobbered.
-
-        r1 = self.builder.gep(ref, [ir.Constant(ir.IntType(32), 0)])
-        r1.akinode = node.ref
-        r1.akitype = self.typemgr.as_ptr(ref.akitype)
-        r1.akitype.llvm_type.pointee.akitype = ref.akitype
-
-        return r1
-
-    def _codegen_DerefExpr(self, node):
-        if not isinstance(node.ref, Name):
-            n1 = self._codegen(node.ref)
-            raise AkiTypeErr(
-                node.ref,
-                self.text,
-                f'Can\'t extract a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
-            )
-
-        ref = self._name(node, node.ref.name)
-
-        if not isinstance(ref.akitype, AkiPointer):
-            raise AkiTypeErr(
-                node.ref,
-                self.text,
-                f'Can\'t extract a reference as "{CMD}{node.ref.name}{REP}" is not a pointer',
-            )
-
-        f0 = self.builder.load(ref)
-        f1 = self.builder.load(f0)
-
-        f1.akinode = node.ref
-        f1.akitype = ref.akitype.llvm_type.pointee.akitype
-        return f1
 
     def _codegen_UnOp(self, node):
         """
@@ -1020,7 +1025,8 @@ class AkiCodeGen:
         """
         Generate a NOT operation for a true/false value.
         """
-        if not isinstance(operand.akitype, AkiBool):
+        # if not isinstance(operand.akitype, AkiBool):
+        if not self._is_type(node, operand, AkiBool):
             operand = self._scalar_as_bool(node, operand)
 
         xor = self.builder.xor(
@@ -1162,7 +1168,8 @@ class AkiCodeGen:
         # Return object types as a pointer
 
         # If this is an object... (ir.Function)
-        if isinstance(name.akitype, (AkiObject,)):
+        # if isinstance(name.akitype, (AkiObject,)):
+        if self._is_type(node, name, AkiObject):
             # ... by way of a variable (ir.AllocaInstr)
             if isinstance(name, ir.AllocaInstr):
                 # then load that from the pointer
@@ -1242,3 +1249,94 @@ class AkiCodeGen:
         data_object.akitype = akitype
         data_object.akinode = node
         return data_object
+
+    #################################################################
+    # Builtins
+    #################################################################
+
+    # Builtins are not reserved words, but functions that cannot be
+    # expressed by way of other Aki code due to low-level manipulations.
+    # This list should remain as small as possible.
+
+    # TODO: Create function signatures for these so we can auto-check
+    # argument counts, types, etc.
+
+    def _builtins_cdata(self, node):
+        if len(node.arguments) != 1:
+            raise
+        node_ref = node.arguments[0]
+        c1 = self._codegen(node_ref)
+        c2 = c1.akitype.cdata(self, c1)
+        return c2
+
+    def _builtins_ref(self, node):
+        if len(node.arguments) != 1:
+            raise
+
+        node_ref = node.arguments[0]
+
+        if not isinstance(node_ref, Name):
+            n1 = self._codegen(node_ref)
+            raise AkiTypeErr(
+                node_ref,
+                self.text,
+                f'Can\'t derive a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
+            )
+        ref = self._name(node, node_ref.name)
+
+        # if isinstance(ref.akitype, AkiFunction):
+        if self._is_type(node_ref, ref, AkiFunction):
+            # Function pointers are a special case, at least for now
+            r1 = self._codegen(node_ref)
+            r2 = self._alloca(node_ref, r1.type, f".{node_ref.name}.ref")
+            self.builder.store(r1, r2)
+            r2.akinode = node_ref
+            r2.akitype = self.typemgr.as_ptr(r1.akitype)
+            r2.akitype.llvm_type.pointee.akitype = r1.akitype
+            # TODO: This should be created when we allocate the pointer, IMO
+            r2.akitype.llvm_type.pointee.akitype.original_function = (
+                r1.akitype.original_function
+            )
+            return r2
+
+        # The `gep` creates a no-op copy of the original value so we can
+        # modify its Aki properties independently. Otherwise the original
+        # Aki variable reference has its properties clobbered.
+
+        r1 = self.builder.gep(ref, [ir.Constant(ir.IntType(32), 0)])
+        r1.akinode = node_ref
+        r1.akitype = self.typemgr.as_ptr(ref.akitype)
+        r1.akitype.llvm_type.pointee.akitype = ref.akitype
+
+        return r1
+
+    def _builtins_deref(self, node):
+        if len(node.arguments) != 1:
+            raise
+
+        node_deref = node.arguments[0]
+
+        if not isinstance(node_deref, Name):
+            n1 = self._codegen(node_deref)
+            raise AkiTypeErr(
+                node_deref,
+                self.text,
+                f'Can\'t extract a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
+            )
+
+        ref = self._name(node, node_deref.name)
+
+        # if not isinstance(ref.akitype, AkiPointer):
+        if not self._is_type(node, ref, AkiPointer):
+            raise AkiTypeErr(
+                node_deref,
+                self.text,
+                f'Can\'t extract a reference as "{CMD}{node_deref.name}{REP}" is not a pointer',
+            )
+
+        f0 = self.builder.load(ref)
+        f1 = self.builder.load(f0)
+
+        f1.akinode = node_deref
+        f1.akitype = ref.akitype.llvm_type.pointee.akitype
+        return f1
