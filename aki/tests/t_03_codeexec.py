@@ -237,6 +237,21 @@ class TestLexer(unittest.TestCase):
             )
         )
 
+    # Trap expressions that return no value, like `var`
+    
+    def test_nonyielding_expression_trap(self):        
+        self._ex(AkiSyntaxErr,(
+            (r"if {var x:i32=1} 2 else 3", None),
+            (r"{var x:i32=1}==1", None)
+            
+        )
+    )
+
+    def test_function_default_trap(self):
+        self._ex(AkiSyntaxErr, (
+            (r"def x1(x={var x:i32=1 x}){}", None),
+        ))
+
     def test_ref_deref(self):
         self._e(
             (
