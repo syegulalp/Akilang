@@ -49,6 +49,7 @@
   * [x] Function pointer type
   * [x] String constants
 * [x] Comments
+* [x] Extract C-compatible data from Aki structures
 
 ## In progress
 
@@ -72,6 +73,7 @@
 
 # Stage 1: Advanced variables and structures
 
+* [ ] Slice methods
 * [ ] N-dimensional arrays of scalars
 * [ ] Type declarations
 * [ ] Enums
