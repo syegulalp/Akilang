@@ -26,13 +26,3 @@ def g3(z4){
     }
     z4
 }
-
-extern puts(x:ptr i8):i32
-
-def print(_str:str):i32 {
-    puts(cdata(_str))
-}
-
-def g(x:str="Hi there"){
-    print(x)
-}

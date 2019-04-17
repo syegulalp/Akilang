@@ -1,0 +1,52 @@
+# Win32-specific library functions
+
+extern GetStdHandle(nStdHandle:i32):ptr u_size
+
+extern WriteConsoleA(
+    hConsoleOutput:ptr u_size,
+    lpBuffer: ptr i8,
+    nNumberOfCharsToWrite: i32,
+    lpNumberOfCharsWritten: ptr i32,
+    lpReserved: u64 = 0x0000000000000000
+):i32
+
+extern GetProcessHeap():ptr u_size
+
+extern HeapAlloc(
+    hHeap: ptr u_size,
+    dwFlags: i32, # 0x00000008,
+    dwBytes: u_size
+):ptr u_mem
+
+# implementations
+
+def alloc(bytes:u_size):ptr u_mem {
+    HeapAlloc(
+        GetProcessHeap(),
+        0x00000008,
+        bytes
+    )
+}
+
+def free(ptr_to_free:ptr u_size){}
+    
+def print(_str:str):i32 {
+    
+    var bytes_written:i32=0
+
+    WriteConsoleA(
+        GetStdHandle(-11),
+        c_data(_str),
+        cast(c_size(_str),i32)-1,
+        ref(bytes_written)
+    )
+    bytes_written
+}
+
+def g(x:str="Hi there"){
+    print(x)
+}
+
+def main(){
+    print ("Hello world!")
+}
