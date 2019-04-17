@@ -190,7 +190,7 @@ pyaki  :{constants.VERSION}"""
             except LocalException:
                 pass
             except Exception:
-                cp(f'Error reading cached file')
+                cp(f"Error reading cached file")
 
         with Timer() as t:
 
@@ -212,15 +212,22 @@ pyaki  :{constants.VERSION}"""
 
         # Write cached compilation to file
 
-        with open(cache_path, "wb") as file:
-            output = {
-                "version": constants.VERSION,
-                "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
-                "codegen": self.main_cpl.codegen,
-            }
-            import pickle
+        try:
+            with open(cache_path, "wb") as file:
+                output = {
+                    "version": constants.VERSION,
+                    "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
+                    "codegen": self.main_cpl.codegen,
+                }
+                import pickle
 
-            pickle.dump(output, file)
+                try:
+                    pickle.dump(output, file)
+                except Exception:
+                    raise LocalException
+        except LocalException:
+            cp("Can't write bytecode")
+            os.remove(cache_path)
 
         cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({t.time:.3f} sec)")
 
