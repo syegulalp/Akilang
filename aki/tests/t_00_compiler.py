@@ -9,12 +9,13 @@ import unittest
 from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr
 from core.akitypes import AkiTypeMgr
 
+
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
 
     mgr = AkiTypeMgr()
     types = mgr.types
-    r = Repl(typemgr = mgr)
+    r = Repl(typemgr=mgr)
     i = r.interactive
 
     def _e(self, tests):
@@ -30,9 +31,8 @@ class TestLexer(unittest.TestCase):
                     pass
 
     def test_module_load(self):
-        self.r.load_file('1')
-        self._e(
-            (
-                ('g1()+g1()',38),
-            )
-        )
+        self.r.load_file("1")
+        self._e((("g1()+g1()", 38),))
+        self.r.load_file("2")
+        self._e((('print("Hello world!")', 12),))
+
