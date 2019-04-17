@@ -2,10 +2,10 @@
 
 def g1 (z1=0) {
     var q=z1
-    loop (var x=1, x<20, x+1) {
+    loop (var x=1,x<20, x+1) {
         q+=1
-    }    
-    q    
+    }
+    q
 }
 
 # Another comment example
@@ -21,9 +21,18 @@ def g2 (z2,z3=0) {
 
 def g3(z4){
     loop () {
-        when z4>=20
-            break
+        when z4>=20 break
         z4+=1        
     }
     z4
+}
+
+extern puts(x:ptr i8):i32
+
+def print(_str:str):i32 {
+    puts(cdata(_str))
+}
+
+def g(x:str="Hi there"){
+    print(x)
 }
