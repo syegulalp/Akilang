@@ -21,6 +21,7 @@ class AkiType:
     enum_id: Optional[int] = None
     comp_ins: Optional[str] = None
     original_function: Optional[ir.Function] = None
+    literal_ptr = False
 
     comp_ops = {
         "==": ".eqop",
@@ -66,7 +67,10 @@ class AkiType:
         """
         return result
 
-    def cdata(self, codegen, node):
+    def c_data(self, codegen, node):
+        return node
+
+    def c_size(self, codegen, node):
         return node
 
 
@@ -110,7 +114,7 @@ class AkiPointer(AkiType):
         # Null value for pointer
         return None
 
-    def new(self, base_type: AkiType):
+    def new(self, base_type: AkiType, literal_ptr=False):
         """
         Create a new pointer type from an existing type.
         """
@@ -119,6 +123,7 @@ class AkiPointer(AkiType):
         new.base_type = base_type
         new.llvm_type = base_type.llvm_type.as_pointer()
         new.type_id = f"ptr {base_type.type_id}"
+        new.literal_ptr = literal_ptr
         return new
 
     def format_result(self, result):
@@ -472,10 +477,17 @@ class AkiString(AkiObject, AkiType):
         data_array = ir.ArrayType(self.module.types["byte"].llvm_type, len(data))
         return data, data_array
 
-    def cdata(self, codegen, node):
+    def c_data(self, codegen, node):
         obj_ptr = codegen.builder.gep(node, [_int(0), _int(AkiObject.OBJECT_POINTER)])
         obj_ptr = codegen.builder.load(obj_ptr)
         obj_ptr.akitype = codegen.typemgr.as_ptr(codegen.types["u_mem"])
+        obj_ptr.akinode = node.akinode
+        return obj_ptr
+
+    def c_size(self, codegen, node):
+        obj_ptr = codegen.builder.gep(node, [_int(0), _int(AkiObject.LENGTH)])
+        obj_ptr = codegen.builder.load(obj_ptr)
+        obj_ptr.akitype = codegen.types["u_size"]
         obj_ptr.akinode = node.akinode
         return obj_ptr
 
@@ -518,13 +530,15 @@ class AkiTypeMgr:
         self.module = module
 
         # Obtain pointer size from LLVM target
-        target_data = binding.create_target_data(module.data_layout)
         self._byte_width = ir.PointerType(ir.IntType(bytesize)).get_abi_size(
-            target_data
+            self.target_data()
         )
         self._pointer_width = self._byte_width * bytesize
 
         self.reset()
+
+    def target_data(self):
+        return binding.create_target_data(self.module.data_layout)
 
     def reset(self):
         # Initialize the type map from the base type list,
@@ -557,8 +571,8 @@ class AkiTypeMgr:
 
         self.custom_types = {}
 
-    def as_ptr(self, other):
-        return self._ptr.new(other)
+    def as_ptr(self, *a, **ka):
+        return self._ptr.new(*a, **ka)
 
     def add_type(self, type_name: str, type_ref: AkiType, module_ref):
         if module_ref.name not in self.custom_types:

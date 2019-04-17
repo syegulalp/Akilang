@@ -25,7 +25,7 @@ from core.astree import (
     Argument,
     Function,
     ExpressionBlock,
-    External
+    External,
 )
 from core.error import (
     AkiNameErr,
@@ -220,7 +220,7 @@ class AkiCodeGen:
         Node visitor for `VarTypePtr` nodes.
         """
         aki_type = self._get_vartype(node.pointee)
-        aki_type = self.typemgr.as_ptr(aki_type)
+        aki_type = self.typemgr.as_ptr(aki_type, literal_ptr=True)
         return aki_type
 
     def _get_vartype_VarTypeFunc(self, node):
@@ -436,6 +436,16 @@ class AkiCodeGen:
         self.fn.fn = func
 
         if isinstance(node, External):
+            for a, b in zip(func.args, node.prototype.arguments):
+                # make sure the variable name is not in use
+                self._check_var_name(b, b.name)
+                # set its Aki attributes
+                # var_alloc.akitype = b.vartype.akitype
+                # var_alloc.akinode = b
+                # set the akinode attribute for the original argument,
+                # so it can be referenced if we need to throw an error
+                a.akitype = b.vartype.akitype
+                a.akinode = b
             return func
 
         # Generate entry block and function body.
@@ -476,8 +486,6 @@ class AkiCodeGen:
         self.fn.return_value.akitype = func.akitype.return_type
         func.return_value.akitype = func.akitype.return_type
 
-        
-
         # Create actual starting function block and codegen instructions.
 
         self.body_block = func.append_basic_block("body")
@@ -514,14 +522,16 @@ class AkiCodeGen:
         if node.prototype.return_type.name is None:
 
             # Set the result holder
-            self.fn.return_value.type = result.akitype.llvm_type.as_pointer()
-            self.fn.return_value.akitype = result.akitype
+            r_type = result.akitype
+
+            self.fn.return_value.type = r_type.llvm_type.as_pointer()
+            self.fn.return_value.akitype = r_type
 
             # Set the actual type for the function
-            func.return_value = result.akitype.llvm_type
+            func.return_value = r_type.llvm_type
 
             # Set the return value type as used by the REPL
-            func.return_value.akitype = result.akitype
+            func.return_value.akitype = r_type
 
         # If the function prototype and return type still don't agree,
         # throw an exception
@@ -533,10 +543,11 @@ class AkiCodeGen:
                 f'Return value from function "{CMD}{func.name}{REP}" ({CMD}{result.akitype}{REP}) does not match function signature return type ({CMD}{self.fn.return_value.akitype}{REP})',
             )
 
-        # Add return value for function in exit block,
-        # branch to exit, return the return value.
+        # Add return value for function in exit block.
 
         self.builder.store(result, self.fn.return_value)
+
+        # branch to exit, return the return value.
 
         exit_block = func.append_basic_block("exit")
         self.builder.branch(exit_block)
@@ -752,7 +763,7 @@ class AkiCodeGen:
                     raise AkiTypeErr(
                         arg,
                         self.text,
-                        f'Value "{CMD}{arg.name}{REP}" of type "{CMD}{arg_val.akitype}{REP}" does not match function argument {CMD}{_+1}{REP} of type "{CMD}{call_func.args[_].akinode.vartype.akitype}{REP}"',
+                        f'Value "{CMD}{arg.name}{REP}" of type "{CMD}{arg_val.akitype}{REP}" does not match {CMD}{node.name}{REP} argument {CMD}{_+1}{REP} of type "{CMD}{call_func.args[_].akinode.vartype.akitype}{REP}"',
                     )
 
                 args.append(arg_val)
@@ -1147,7 +1158,7 @@ class AkiCodeGen:
         self.builder.store(val, ptr)
         return val
 
-    def _codegen_Name(self, node):
+    def _codegen_Name(self, node, load_from_ptr=True):
         """
         Generate a variable reference from a name.
         This always assumes we want the variable value associated with the name,
@@ -1167,8 +1178,6 @@ class AkiCodeGen:
 
         # Return object types as a pointer
 
-        # If this is an object... (ir.Function)
-        # if isinstance(name.akitype, (AkiObject,)):
         if self._is_type(node, name, AkiObject):
             # ... by way of a variable (ir.AllocaInstr)
             if isinstance(name, ir.AllocaInstr):
@@ -1181,10 +1190,10 @@ class AkiCodeGen:
             return name
 
         # Otherwise, load and decorate the value
-        load = self.builder.load(name)
+        if load_from_ptr:
+            load = self.builder.load(name)
         load.akinode = name.akinode
         load.akitype = name.akitype
-
         return load
 
     def _codegen_Constant(self, node):
@@ -1261,18 +1270,49 @@ class AkiCodeGen:
     # TODO: Create function signatures for these so we can auto-check
     # argument counts, types, etc.
 
-    def _builtins_cdata(self, node):
+    def _builtins_cast(self, node):
+        if len(node.arguments) != 2:
+            raise
+        node_ref = node.arguments[0]
+        target_type = node.arguments[1]
+
+        c1 = self._codegen(node_ref)
+        c2 = self._get_vartype(VarTypeName(target_type, target_type.name))
+
+        target_data = self.typemgr.target_data()
+        c1_size = c1.type.get_abi_size(target_data)
+        c2_size = c2.llvm_type.get_abi_size(target_data)
+
+        if c2_size > c1_size:
+            c3 = self.builder.zext(c1, c2.llvm_type)
+        elif c2_size < c1_size:
+            c3 = self.builder.trunc(c1, c2.llvm_type)
+        else:
+            c3 = self.builder.bitcast(c1, c2.llvm_type)
+
+        c3.akitype = c2
+        c3.akinode = node
+        return c3
+
+    def _builtins_c_size(self, node):
         if len(node.arguments) != 1:
             raise
         node_ref = node.arguments[0]
         c1 = self._codegen(node_ref)
-        c2 = c1.akitype.cdata(self, c1)
+        c2 = c1.akitype.c_size(self, c1)
+        return c2
+
+    def _builtins_c_data(self, node):
+        if len(node.arguments) != 1:
+            raise
+        node_ref = node.arguments[0]
+        c1 = self._codegen(node_ref)
+        c2 = c1.akitype.c_data(self, c1)
         return c2
 
     def _builtins_ref(self, node):
         if len(node.arguments) != 1:
             raise
-
         node_ref = node.arguments[0]
 
         if not isinstance(node_ref, Name):
@@ -1305,7 +1345,7 @@ class AkiCodeGen:
 
         r1 = self.builder.gep(ref, [ir.Constant(ir.IntType(32), 0)])
         r1.akinode = node_ref
-        r1.akitype = self.typemgr.as_ptr(ref.akitype)
+        r1.akitype = self.typemgr.as_ptr(ref.akitype, literal_ptr=True)
         r1.akitype.llvm_type.pointee.akitype = ref.akitype
 
         return r1
