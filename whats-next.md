@@ -51,6 +51,10 @@
 * [x] Comments
 * [x] Extract C-compatible data from Aki structures
 * [x] External function references (`extern` keyword)
+* [ ] `cast`/`convert`
+  * [x] Unsafe `cast`
+  * [ ] Cast from constant, e.g. `i32(100)` or `f64(1.0)`
+  * [ ] Casting int to pointer and back (`unsafe` only)
 
 ## In progress
 
@@ -58,8 +62,6 @@
 * [ ] Inline typing for constants
   * [x] `True/False` for `bool` values
   * [x] `0x00` and `0h00` for unsigned and signed values, respectively
-* [ ] Cast from constant, e.g. `i32(100)` or `f64(1.0)`
-* [ ] Casting int to pointer and back (`unsafe` only)
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
@@ -98,7 +100,9 @@
 
 * [ ] Container objects
 * [ ] Lists
+  * [ ] Prereq for functions that take arbitrary numbers of arguments (since they are just list objects)
 * [ ] Dictionaries/hashmaps
+  * [ ] Prereq for functions that take named arguments (since they are just dicts with string keys)
 * [ ] Sets
 * [ ] Auto-conversion rules for scalars?
 
