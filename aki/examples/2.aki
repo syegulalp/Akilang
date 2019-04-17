@@ -37,7 +37,7 @@ def print(_str:str):i32 {
     WriteConsoleA(
         GetStdHandle(-11),
         c_data(_str),
-        cast(c_size(_str),i32)-1,
+        unsafe cast(c_size(_str),i32)-1,
         ref(bytes_written)
     )
     bytes_written

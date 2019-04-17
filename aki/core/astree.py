@@ -429,12 +429,21 @@ class WithExpr(Expression):
         ]
 
 class ChainExpr(Expression):
-    def __init__(self, p, exprchain: list):
+    def __init__(self, p, expr_chain: list):
         super().__init__(p)
-        self.exprchain = exprchain
+        self.expr_chain = expr_chain
 
     def flatten(self):
-        return [self.__class__.__name__, [_.flatten() for _ in self.exprchain]]
+        return [self.__class__.__name__, [_.flatten() for _ in self.expr_chain]]
+
+class UnsafeBlock(Expression):
+    def __init__(self, p, expr_block):
+        super().__init__(p)
+        self.expr_block = expr_block
+    
+    def flatten(self):
+        return [self.__class__.__name__, [_.flatten() for _ in self.expr_block]]
+
 
 # class Accessor:
 # object to access, and one or more accessors with dimensions

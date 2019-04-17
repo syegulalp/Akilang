@@ -26,6 +26,7 @@ from core.astree import (
     RefExpr,
     DerefExpr,
     ChainExpr,
+    UnsafeBlock,
 )
 from core.error import AkiSyntaxErr
 
@@ -97,6 +98,14 @@ class AkiParser(Parser):
         proto = Prototype(Pos(p), p.NAME, p.arglist, p.vartype)
         func = External(Pos(p), proto, None)
         return func        
+
+    #################################################################
+    # Context
+    #################################################################
+
+    @_("UNSAFE expr_block")
+    def expr(self, p):
+        return UnsafeBlock(Pos(p), p.expr_block)
 
     #################################################################
     # Multiline expressions
