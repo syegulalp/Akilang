@@ -50,6 +50,7 @@
   * [x] String constants
 * [x] Comments
 * [x] Extract C-compatible data from Aki structures
+* [x] External function references (`extern` keyword)
 
 ## In progress
 
@@ -59,7 +60,7 @@
   * [x] `0x00` and `0h00` for unsigned and signed values, respectively
 * [ ] Cast from constant, e.g. `i32(100)` or `f64(1.0)`
 * [ ] Casting int to pointer and back (`unsafe` only)
-* [ ] External function references (`extern` context block with optional library identifier)
+* [ ] `meta` keyword for program metadata (compiler directives, etc.)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
 * [ ] `uni` for globals
