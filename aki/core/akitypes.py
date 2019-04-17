@@ -5,8 +5,10 @@ from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
 from typing import Optional
 from core.error import AkiTypeErr
 
+
 def _int(value):
-    return ir.Constant(ir.IntType(32),value)
+    return ir.Constant(ir.IntType(32), value)
+
 
 class AkiType:
     """
@@ -135,16 +137,15 @@ class AkiObject(AkiType):
 
     def __init__(self, module: ir.Module):
         self.module = module
-        self.llvm_type = ir.LiteralStructType(
-            (
-                # Type of object (enum)
-                module.types["u_size"].llvm_type,
-                # Length of object
-                module.types["u_size"].llvm_type,
-                # Void pointer to object, whatever it may be
-                module.typemgr.as_ptr(module.types["u_mem"]).llvm_type,
-            )
-        )
+        self.llvm_type = module.context.get_identified_type(".object")
+        self.llvm_type.elements = [
+            # Type of object (enum)
+            module.types["u_size"].llvm_type,
+            # Length of object
+            module.types["u_size"].llvm_type,
+            # Void pointer to object, whatever it may be
+            module.typemgr.as_ptr(module.types["u_mem"]).llvm_type,
+        ]
 
     def new(self):
         pass
