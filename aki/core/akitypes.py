@@ -522,7 +522,7 @@ class AkiTypeMgr:
 
         # Set internal module reference so types can access each other
 
-        # we might want to set these in the module,
+        # TODO: we might want to set these in the module,
         # back-decorating is an antipattern
 
         module.typemgr = self
@@ -544,6 +544,11 @@ class AkiTypeMgr:
         # Initialize the type map from the base type list,
         # which never changes
 
+        self.custom_types = {}
+        
+        self.enum_id_ctr = 0
+        self.enum_ids = {}
+
         self.types = dict(self.base_types)
         self.module.types = self.types
 
@@ -551,6 +556,9 @@ class AkiTypeMgr:
         self.types["byte"] = AkiUnsignedInt(self._byte_width)
         self.types["u_mem"] = self.types["byte"]
         self.types["u_size"] = AkiUnsignedInt(self._pointer_width)
+
+        # TODO: u_mem and u_size should be registered types
+        # they might not be u8 or u64 on all platforms!
 
         # Set types that depend on pointer sizes
         self._ptr = AkiPointer(self.module)
@@ -561,22 +569,21 @@ class AkiTypeMgr:
         # Default type is a 32-bit signed integer
         self._default = self.types["i32"]
 
-        self.enum_id_ctr = 0
-        self.enum_ids = {}
-
         for _ in self.types.values():
             setattr(_, "enum_id", self.enum_id_ctr)
             self.enum_ids[self.enum_id_ctr] = _
             self.enum_id_ctr += 1
 
-        self.custom_types = {}
-
     def as_ptr(self, *a, **ka):
-        return self._ptr.new(*a, **ka)
+        new = self._ptr.new(*a, **ka)
+        self.add_type(new.type_id, new, self.module)
+        return new
 
     def add_type(self, type_name: str, type_ref: AkiType, module_ref):
         if module_ref.name not in self.custom_types:
             self.custom_types[module_ref.name] = {}
+        if type_name in self.custom_types[module_ref.name]:
+            return self.custom_types[module_ref.name][type_name]
         self.custom_types[module_ref.name][type_name] = type_ref
         setattr(type_ref, "enum_id", self.enum_id_ctr)
         self.enum_ids[self.enum_id_ctr] = type_ref
