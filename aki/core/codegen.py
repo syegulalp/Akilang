@@ -6,6 +6,8 @@ from core.akitypes import (
     AkiObject,
     AkiTypeMgr,
     AkiPointer,
+    AkiBaseInt,
+    _int,
 )
 
 from core.astree import (
@@ -94,6 +96,7 @@ class AkiCodeGen:
 
         # Other codegen modules to check for namespaces.
         # Resolved top to bottom.
+
         self.other_modules: list = []
 
         self.const_enum = 0
@@ -198,6 +201,12 @@ class AkiCodeGen:
         if isinstance(node, AkiType):
             return node
         return getattr(self, f"_get_vartype_{node.__class__.__name__}")(node)
+
+    def _get_vartype_Name(self, node):
+        # TODO: this is a shim to get around the fact that we have
+        # no syntactical way to distinguish a variable-associated
+        # typeref (x:i32) with a bare type ref (cast(x,i32))
+        return self._get_vartype_VarTypeName(node)
 
     def _get_vartype_VarTypeName(self, node):
         """
@@ -395,14 +404,6 @@ class AkiCodeGen:
         proto.akinode = node
         proto.akitype = function_type
 
-        # Add the function signature to the list of types for the module,
-        # using the function's name
-
-        _ = self.typemgr.add_type(node.name, function_type, self.module)
-        if _ is None:
-            raise AkiTypeErr(node, self.text, "Invalid name")
-        proto.enum_id = proto.akitype.enum_id
-
         # Add Aki type metadata
         # TODO:
         # store the original string for the function sig and use that
@@ -521,18 +522,24 @@ class AkiCodeGen:
         # we infer it from the return value of the body.
 
         if node.prototype.return_type.name is None:
-
-            # Set the result holder
             r_type = result.akitype
 
+            # Set the result holder
             self.fn.return_value.type = r_type.llvm_type.as_pointer()
             self.fn.return_value.akitype = r_type
 
-            # Set the actual type for the function
+            # Set the actual type for the function return value
             func.return_value = r_type.llvm_type
 
             # Set the return value type as used by the REPL
             func.return_value.akitype = r_type
+
+            # Set the return type on the function's own signature
+            # func.type.pointee.return_type = r_type.llvm_type
+            func.ftype.return_type = r_type.llvm_type
+
+            # Set the Aki type node for the function
+            func.akitype.return_type = r_type
 
         # If the function prototype and return type still don't agree,
         # throw an exception
@@ -559,6 +566,16 @@ class AkiCodeGen:
         # Reset function state handlers.
 
         self.fn = None
+
+        # Add the function signature to the list of types for the module,
+        # using the function's name
+        # We have to do this here because the signature may have mutated
+        # during the construction process.
+
+        _ = self.typemgr.add_type(node.prototype.name, func.akitype, self.module)
+        if _ is None:
+            raise AkiTypeErr(node, self.text, "Invalid name")
+        func.enum_id = func.akitype.enum_id
 
         return func
 
@@ -655,6 +672,10 @@ class AkiCodeGen:
         builtin = getattr(self, f"_builtins_{node.name}", None)
         if builtin:
             return builtin(node)
+
+        # TODO: get a pre-generated AST node that represents the builtin,
+        # verify its arguments and other behavior as we would another function call,
+        # then instead of codegenning a call, we codegen the body inline
 
         # check if this is a request for a type
         # this will eventually go somewhere else
@@ -1291,21 +1312,70 @@ class AkiCodeGen:
         target_type = node.arguments[1]
 
         c1 = self._codegen(node_ref)
-        c2 = self._get_vartype(VarTypeName(target_type, target_type.name))
+        c2 = self._get_vartype(target_type)
+
+        # if isinstance(target_type, Name):
+        #     target_type = VarTypeName(target_type.p, target_type.name)
 
         target_data = self.typemgr.target_data()
         c1_size = c1.type.get_abi_size(target_data)
         c2_size = c2.llvm_type.get_abi_size(target_data)
 
-        if c2_size > c1_size:
-            c3 = self.builder.zext(c1, c2.llvm_type)
-        elif c2_size < c1_size:
-            c3 = self.builder.trunc(c1, c2.llvm_type)
-        else:
-            c3 = self.builder.bitcast(c1, c2.llvm_type)
+        try:
+
+            # object casts are not OK
+
+            if isinstance(c1.akitype, AkiObject):
+                raise AkiTypeErr(
+                    node_ref,
+                    self.text,
+                    f"Objects are not a valid source for {CMD}cast{REP}",
+                )
+
+            if isinstance(c2, AkiObject):
+                raise AkiTypeErr(
+                    target_type,
+                    self.text,
+                    f"Objects are not a valid target for {CMD}cast{REP}",
+                )
+
+            # same size, so pointer cast is OK
+
+            if c1_size == c2_size:
+                if isinstance(c1.akitype, AkiBaseInt) and isinstance(c2, AkiPointer):
+                    c3 = self.builder.inttoptr(c1, c2.llvm_type)
+                    raise LocalException
+                elif isinstance(c1.akitype, AkiPointer) and isinstance(c2, AkiBaseInt):
+                    c3 = self.builder.ptrtoint(c1, c2.llvm_type)
+                    raise LocalException
+                else:
+                    c3 = self.builder.bitcast(c1, c2.llvm_type)
+                    raise LocalException
+
+            # different size, pointer cast not OK
+
+            if isinstance(c1.akitype, AkiPointer) or isinstance(c2, AkiPointer):
+                raise AkiTypeErr(
+                    node_ref,
+                    self.text,
+                    f"Types must be of same size for pointer {CMD}cast{REP}",
+                )
+
+            # different size, zero-extend or truncate as needed
+
+            if c2_size > c1_size:
+                c3 = self.builder.zext(c1, c2.llvm_type)
+                raise LocalException
+            elif c2_size < c1_size:
+                c3 = self.builder.trunc(c1, c2.llvm_type)
+                raise LocalException
+
+        except LocalException:
+            pass
 
         c3.akitype = c2
         c3.akinode = node
+        c3.akinode.vartype = c2
         return c3
 
     def _builtins_c_size(self, node):
@@ -1361,7 +1431,7 @@ class AkiCodeGen:
         # modify its Aki properties independently. Otherwise the original
         # Aki variable reference has its properties clobbered.
 
-        r1 = self.builder.gep(ref, [ir.Constant(ir.IntType(32), 0)])
+        r1 = self.builder.gep(ref, [_int(0)])
         r1.akinode = node_ref
         r1.akitype = self.typemgr.as_ptr(ref.akitype, literal_ptr=True)
         r1.akitype.llvm_type.pointee.akitype = ref.akitype
