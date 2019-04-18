@@ -1,5 +1,5 @@
-if __name__ == "__main__":
-    import sys, gc, msvcrt
+if __name__ == "__main__":    
+    import sys
     init_modules = set(sys.modules.keys())
     while True:
         from core import repl
