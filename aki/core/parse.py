@@ -285,6 +285,16 @@ class AkiParser(Parser):
 
     # pointer prefix
 
+    # TODO: we don't have a syntactical way of saying
+    # that a particular name is actually a typeref;
+    # it just gets generated as a name (e.g., for `cast`).
+    # for now we've paved that over by looking up Name nodes
+    # in the vartype AST, but I want to find a better solution.
+
+    @_('vartypedef')
+    def expr(self, p):
+        return p.vartypedef
+
     @_("ptrlist vartypekind")
     def vartypedef(self, p):
         name = p.vartypekind
