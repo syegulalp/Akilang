@@ -1278,11 +1278,15 @@ class AkiCodeGen:
 
     def _builtins_cast(self, node):
         if not self.unsafe_set:
-            raise AkiSyntaxErr(node, self.text,
-            f'"{CMD}cast{REP}" requires an "{CMD}unsafe{REP}" block')
+            raise AkiSyntaxErr(
+                node,
+                self.text,
+                f'"{CMD}cast{REP}" requires an "{CMD}unsafe{REP}" block',
+            )
         if len(node.arguments) != 2:
-            raise AkiSyntaxErr(node, self.text,
-            f'"{CMD}cast{REP}" requires 2 arguments')
+            raise AkiSyntaxErr(
+                node, self.text, f'"{CMD}cast{REP}" requires 2 arguments'
+            )
         node_ref = node.arguments[0]
         target_type = node.arguments[1]
 
@@ -1306,8 +1310,9 @@ class AkiCodeGen:
 
     def _builtins_c_size(self, node):
         if len(node.arguments) != 1:
-            raise AkiSyntaxErr(node, self.text,
-            f'"{CMD}c_size{REP}" requires 1 argument')
+            raise AkiSyntaxErr(
+                node, self.text, f'"{CMD}c_size{REP}" requires 1 argument'
+            )
         node_ref = node.arguments[0]
         c1 = self._codegen(node_ref)
         c2 = c1.akitype.c_size(self, c1)
@@ -1315,8 +1320,9 @@ class AkiCodeGen:
 
     def _builtins_c_data(self, node):
         if len(node.arguments) != 1:
-            raise AkiSyntaxErr(node, self.text,
-            f'"{CMD}c_data{REP}" requires 1 argument')
+            raise AkiSyntaxErr(
+                node, self.text, f'"{CMD}c_data{REP}" requires 1 argument'
+            )
         node_ref = node.arguments[0]
         c1 = self._codegen(node_ref)
         c2 = c1.akitype.c_data(self, c1)
@@ -1324,8 +1330,7 @@ class AkiCodeGen:
 
     def _builtins_ref(self, node):
         if len(node.arguments) != 1:
-            raise AkiSyntaxErr(node, self.text,
-            f'"{CMD}ref{REP}" requires 1 argument')
+            raise AkiSyntaxErr(node, self.text, f'"{CMD}ref{REP}" requires 1 argument')
         node_ref = node.arguments[0]
 
         if not isinstance(node_ref, Name):
@@ -1365,8 +1370,9 @@ class AkiCodeGen:
 
     def _builtins_deref(self, node):
         if len(node.arguments) != 1:
-            raise AkiSyntaxErr(node, self.text,
-            f'"{CMD}deref{REP}" requires 1 argument')
+            raise AkiSyntaxErr(
+                node, self.text, f'"{CMD}deref{REP}" requires 1 argument'
+            )
 
         node_deref = node.arguments[0]
 
