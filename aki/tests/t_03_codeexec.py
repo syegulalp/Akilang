@@ -308,8 +308,21 @@ class TestLexer(unittest.TestCase):
                 # signed to unsigned
                 (r'unsafe cast(0hff,i8)',-1),
                 (r'type(unsafe cast(0hff,i8))=={var x:i8 type(x)}',True),
+                # int to ptr
+                (r'var x:u_size var y=unsafe cast(x, ptr u_mem) type(y)', '<type:ptr u8>'),
+                # ptr to int
+                (r'var x:ptr u_mem var y=unsafe cast(x, u_size) type(y)', '<type:u64>')
             )
         )
+    def test_incorrect_casting(self):
+        self._ex(AkiTypeErr,
+        (
+            (r'var x:ptr u_mem var y=unsafe cast(x, i32) type(y)', None),
+            (r'var x:i32 var y=unsafe cast(x, ptr u_mem) type(y)', None),
+            (r'unsafe cast(32,str)', None),
+            (r'unsafe cast("Hello",i32)', None),
+        )
+    )
     
     def test_unsafe_trapping(self):
         self._ex(AkiSyntaxErr,
