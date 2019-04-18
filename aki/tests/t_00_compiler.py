@@ -31,8 +31,8 @@ class TestLexer(unittest.TestCase):
                     pass
 
     def test_module_load(self):
-        self.r.load_file("1")
+        self.r.load_file("1", ignore_cache=True)
         self._e((("g1()+g1()", 38),))
-        self.r.load_file("2")
+        self.r.load_file("2", ignore_cache=True)
         self._e((('print("Hello world!")', 12),))
 
