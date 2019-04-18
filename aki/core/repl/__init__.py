@@ -155,42 +155,47 @@ pyaki  :{constants.VERSION}"""
         tests = unittest.defaultTestLoader.discover("tests", "*.py")
         unittest.TextTestRunner().run(tests)
 
-    def load_file(self, file_to_load, force_recompilation=False):
+    def load_file(self, file_to_load, ignore_cache=False):
 
         self.main_cpl.reset()
 
         # Attempt to load precomputed module from cache
 
         filepath = f"examples/{file_to_load}.aki"
-        cache_path = filepath + "c"
+        
+        if not ignore_cache:
 
-        if not os.path.exists(cache_path):
-            force_recompilation = True
-        elif os.path.getmtime(filepath) > os.path.getmtime(cache_path):
-            force_recompilation = True
+            force_recompilation = False
 
-        if not force_recompilation:
-            try:
-                with Timer() as t:
-                    with open(cache_path, "rb") as file:
-                        import pickle
+            cache_path = filepath + "c"
 
-                        mod_in = pickle.load(file)
-                        if mod_in["version"] != constants.VERSION:
-                            raise LocalException
-                        self.main_cpl.codegen = mod_in["codegen"]
-                        self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
-                        self.typemgr = self.main_cpl.codegen.typemgr
-                        file_size = os.fstat(file.fileno()).st_size
+            if not os.path.exists(cache_path):
+                force_recompilation = True
+            elif os.path.getmtime(filepath) > os.path.getmtime(cache_path):
+                force_recompilation = True
 
-                cp(
-                    f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)"
-                )
-                return
-            except LocalException:
-                pass
-            except Exception:
-                cp(f"Error reading cached file")
+            if not force_recompilation:
+                try:
+                    with Timer() as t:
+                        with open(cache_path, "rb") as file:
+                            import pickle
+
+                            mod_in = pickle.load(file)
+                            if mod_in["version"] != constants.VERSION:
+                                raise LocalException
+                            self.main_cpl.codegen = mod_in["codegen"]
+                            self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
+                            self.typemgr = self.main_cpl.codegen.typemgr
+                            file_size = os.fstat(file.fileno()).st_size
+
+                    cp(
+                        f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)"
+                    )
+                    return
+                except LocalException:
+                    pass
+                except Exception:
+                    cp(f"Error reading cached file")
 
         with Timer() as t:
 
@@ -212,22 +217,24 @@ pyaki  :{constants.VERSION}"""
 
         # Write cached compilation to file
 
-        try:
-            with open(cache_path, "wb") as file:
-                output = {
-                    "version": constants.VERSION,
-                    "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
-                    "codegen": self.main_cpl.codegen,
-                }
-                import pickle
+        if not ignore_cache:
 
-                try:
-                    pickle.dump(output, file)
-                except Exception:
-                    raise LocalException
-        except LocalException:
-            cp("Can't write bytecode")
-            os.remove(cache_path)
+            try:
+                with open(cache_path, "wb") as file:
+                    output = {
+                        "version": constants.VERSION,
+                        "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
+                        "codegen": self.main_cpl.codegen,
+                    }
+                    import pickle
+
+                    try:
+                        pickle.dump(output, file)
+                    except Exception:
+                        raise LocalException
+            except LocalException:
+                cp("Can't write bytecode")
+                os.remove(cache_path)
 
         cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({t.time:.3f} sec)")
 
