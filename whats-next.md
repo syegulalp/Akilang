@@ -45,23 +45,26 @@
 * [x] Store Aki-native type signatures as LLVM metadata
 * [x] Pointers and pointer types, mainly for compatibility with C right now
   * [x] `ref`/`deref` (to create and dereference pointers)
+  * [ ] Pointer comparisons
+  * [ ] Pointer math (may require its own type)
 * [x] Function type (for function pointers)
   * [x] Function pointer type
   * [x] String constants
 * [x] Comments
 * [x] Extract C-compatible data from Aki structures
 * [x] External function references (`extern` keyword)
-* [ ] `cast`/`convert`
+* [ ] `cast`
   * [x] Unsafe `cast`
-  * [ ] Cast from constant, e.g. `i32(100)` or `f64(1.0)`
-  * [ ] Casting int to pointer and back (`unsafe` only)
-
-## In progress
-
-* [ ] `unsafe` context block for certain operations
+  * [x] Casting int to pointer and back (`unsafe` only)
 * [ ] Inline typing for constants
   * [x] `True/False` for `bool` values
   * [x] `0x00` and `0h00` for unsigned and signed values, respectively
+* [x] `unsafe` context block for certain operations  
+
+## In progress
+
+* [ ] Type conversions
+  * [ ] Cast from constant, e.g. `i32(100)` or `f32(1.0)` (safe operation)  
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
@@ -71,8 +74,7 @@
 * [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
 * [ ] Positional and named/optional arguments
-* [ ] Type conversions
-* [ ] Function name mangling
+* [ ] Function name mangling to allow overloading
 
 # Stage 1: Advanced variables and structures
 
