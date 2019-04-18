@@ -296,3 +296,25 @@ class TestLexer(unittest.TestCase):
             ),
         )
 
+    def test_cast(self):
+        self._e(
+            (
+                # truncation
+                (r'unsafe cast(0x000000ff,u8)',255),
+                (r'type(unsafe cast(0x000000ff,u8))=={var x:u8 type(x)}',True),
+                # zero extend
+                (r'unsafe cast(0xff,u64)',255),
+                (r'type(unsafe cast(0xff,u64))=={var x:u64 type(x)}',True),
+                # signed to unsigned
+                (r'unsafe cast(0hff,i8)',-1),
+                (r'type(unsafe cast(0hff,i8))=={var x:i8 type(x)}',True),
+            )
+        )
+    
+    def test_unsafe_trapping(self):
+        self._ex(AkiSyntaxErr,
+            (
+                # `cast` operations are unsafe
+                (r'cast(2,f64)', None),
+            )
+        )
