@@ -53,19 +53,20 @@
 * [x] Comments
 * [x] Extract C-compatible data from Aki structures
 * [x] External function references (`extern` keyword)
-* [ ] `cast`
+* [x] `cast`
   * [x] Unsafe `cast`
   * [x] Casting int to pointer and back (`unsafe` only)
-* [ ] Inline typing for constants
+* [x] Inline typing for constants
   * [x] `True/False` for `bool` values
   * [x] `0x00` and `0h00` for unsigned and signed values, respectively
+  * [x] Inline constant type declarations (e.g., `4096:u_size`)
 * [x] `unsafe` context block for certain operations  
+* [x] Variable argument functions (for compatibility with C calls)
+* [x] String escape characters (e.g., `\x00` for inline hex)
+  * [x] Escaped quoting (`'It\'s a quote!'`)
 
 ## In progress
 
-* [ ] Variable argument functions (for compatibility with C calls)
-* [ ] Type conversions
-  * [ ] Cast from constant, e.g. `i32(100)` or `f32(1.0)` (safe operation)  
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
@@ -75,6 +76,7 @@
 * [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
 * [ ] Function name mangling to allow overloading
+* [ ] Type conversions
 
 # Stage 1: Advanced variables and structures
 
@@ -86,8 +88,8 @@
 * [ ] Object methods and method calls
 * [ ] Iterables by way of object methods
 * [ ] Array slices
-* [ ] Strings
-* [ ] String slices
+* [ ] String operations
+  * [ ] String slices
 * [ ] Call chains
 
 # Stage 2: Advanced error handling
