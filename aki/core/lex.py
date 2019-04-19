@@ -77,8 +77,8 @@ class AkiLexer(Lexer):
     ignore = " \t"
 
     # Tokens
-    TEXT1 = r"'[^']*'"
-    TEXT2 = r'"[^"]*"'
+    TEXT1 = r"'(?:[^'\\]|\\.)*'"
+    TEXT2 = r'"(?:[^"\\]|\\.)*"'
     HEX = r"0[hx][a-fA-F0-9]*"
     NAME = r"[a-zA-Z_][a-zA-Z0-9_]*"
     NAME["def"] = DEF

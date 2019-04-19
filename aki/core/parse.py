@@ -12,6 +12,7 @@ from core.astree import (
     External,
     VarList,
     Argument,
+    StarArgument,
     Call,
     ExpressionBlock,
     IfExpr,
@@ -32,7 +33,7 @@ from core.error import AkiSyntaxErr
 
 
 class AkiParser(Parser):
-    #debugfile = "parser.out"
+    # debugfile = "parser.out"
     tokens = AkiLexer.tokens
     start = "toplevels"
 
@@ -97,7 +98,7 @@ class AkiParser(Parser):
     def toplevel(self, p):
         proto = Prototype(Pos(p), p.NAME, p.arglist, p.vartype)
         func = External(Pos(p), proto, None)
-        return func        
+        return func
 
     #################################################################
     # Context
@@ -157,6 +158,10 @@ class AkiParser(Parser):
     def expr(self, p):
         return Constant(Pos(p), p.INTEGER, VarTypeName(Pos(p), "i32"))
 
+    @_("INTEGER COLON vartypedef")
+    def expr(self, p):
+        return Constant(Pos(p), p.INTEGER, p.vartypedef)
+
     @_("FLOAT")
     def expr(self, p):
         return Constant(Pos(p), p.FLOAT, VarTypeName(Pos(p), "f64"))
@@ -190,11 +195,63 @@ class AkiParser(Parser):
     def expr(self, p):
         return Name(Pos(p), p.NAME)
 
+    ctrl_chars = {
+        # Bell
+        'a':'\a',
+        # Backspace
+        'b':'\b',
+        # Form feed
+        'f':'\f',
+        # Line feed/newline
+        'n':'\n',
+        # Carriage return
+        'r':'\r',
+        # Horizontal tab
+        't':'\t',
+        # vertical tab
+        'v':'\v'
+    }
+
+    char_code = {
+        # 8-bit ASCII
+        'x':3,
+        # 16-bit Unicode
+        'u':5,
+        # 32-bit Unicode
+        'U':9
+    }
+    
     # string constants
 
     @_("TEXT1", "TEXT2")
     def expr(self, p):
-        return String(Pos(p), p[0][1:-1], VarTypeName(Pos(p), "str"))
+        new_str = []
+        subs = p[0][1:-1].split("\\")
+        # the first one will never be a control sequence
+        new_str.append(subs.pop(0))
+        for n in subs:
+            s = n[0]
+            if s in self.ctrl_chars:
+                new_str.append(self.ctrl_chars[s])
+                new_str.append(n[1:])
+            elif s in self.char_code:
+                r = self.char_code[s]
+                hexval = n[1:r]
+                try:
+                    new_str.append(chr(int(hexval, 16)))
+                except ValueError:
+                    raise AkiSyntaxErr(
+                        Pos(p), self.text, f"Unrecognized hex sequence for character"
+                    )
+                new_str.append(n[r:])
+            elif s in ('"',"'"):
+                new_str.append(n[0:])
+            else:
+                raise AkiSyntaxErr(
+                    Pos(p), self.text, f"Unrecognized control sequence in string"
+                )
+
+        return String(Pos(p), "".join(new_str), VarTypeName(Pos(p), "str"))
 
     # other constants
 
@@ -232,6 +289,10 @@ class AkiParser(Parser):
     @_("NAME varassign")
     def arg(self, p):
         return Argument(Pos(p), p.NAME, *p.varassign)
+
+    @_("TIMES NAME")
+    def arg(self, p):
+        return StarArgument(Pos(p), p.NAME, VarTypeName(Pos(p), None))
 
     @_("optvartype argassign")
     def varassign(self, p):
@@ -291,7 +352,7 @@ class AkiParser(Parser):
     # for now we've paved that over by looking up Name nodes
     # in the vartype AST, but I want to find a better solution.
 
-    @_('vartypedef')
+    @_("vartypedef")
     def expr(self, p):
         return p.vartypedef
 
@@ -510,15 +571,15 @@ class AkiParser(Parser):
 
     @_("expr DOT dotexprlist")
     def exprchain(self, p):
-        return ChainExpr(Pos(p), [p.expr]+p.dotexprlist)
-    
+        return ChainExpr(Pos(p), [p.expr] + p.dotexprlist)
+
     @_("dotexprlist DOT expr")
     def dotexprlist(self, p):
         return p.dotexprlist + [p.expr]
-    
+
     @_("expr")
     def dotexprlist(self, p):
-        return [p.expr]    
+        return [p.expr]
 
     #################################################################
     # Slice
@@ -551,5 +612,6 @@ class AkiParser(Parser):
     @_("")
     def empty(self, p):
         pass
+
 
 _AkiParser = AkiParser()
