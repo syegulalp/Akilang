@@ -1,31 +1,41 @@
-# Win32-specific library functions
+# Layer 0: Platform-specific functions
+# Use the platform version of a function when we can.
 
 extern GetStdHandle(nStdHandle:i32):ptr u_size
 
 extern WriteConsoleA(
     hConsoleOutput:ptr u_size,
-    lpBuffer: ptr i8,
+    lpBuffer: ptr u_mem,
     nNumberOfCharsToWrite: i32,
     lpNumberOfCharsWritten: ptr i32,
-    lpReserved: u64 = 0x0000000000000000
+    lpReserved: u64 = 0:u64
 ):i32
 
 extern GetProcessHeap():ptr u_size
 
 extern HeapAlloc(
     hHeap: ptr u_size,
-    dwFlags: i32, # 0x00000008,
+    dwFlags: i32,
     dwBytes: u_size
 ):ptr u_mem
 
-# extern snprintf(
-#     buffer: ptr u_mem,
-#     count: u_size,
-#     format: str,
-#     *args
-# ):i32
+extern HeapFree(
+    hHeap: ptr u_size,
+    dwFlags: i32,
+    lpMem: ptr u_mem
+):i32
 
-# implementations
+# Layer 0a: Non-platform specific functions
+# We can use portable versions of functions if it's easier.
+
+extern _snprintf(
+    buffer: ptr u_mem,
+    count: u_size,
+    format: ptr u8,
+    *args
+):i32
+
+# Layer 1: stdlib
 
 def alloc(bytes:u_size):ptr u_mem {
     HeapAlloc(
@@ -35,18 +45,36 @@ def alloc(bytes:u_size):ptr u_mem {
     )
 }
 
-def free(ptr_to_free:ptr u_size){}
-    
+def free(ptr_to_free:ptr u_mem){
+    HeapFree(
+        GetProcessHeap(),
+        0x00000000,
+        ptr_to_free
+    )
+}
+
 def print(_str:str):i32 {
     
     var bytes_written:i32=0
+    var _size = 4096:u_size
+    var buffer = alloc(_size)
+
+    var len = _snprintf(
+        buffer,
+        _size,
+        c_data('%s
+'),
+        c_data(_str)
+    )
 
     WriteConsoleA(
         GetStdHandle(-11),
-        c_data(_str),
-        unsafe cast(c_size(_str),i32)-1,
+        buffer,
+        len,
         ref(bytes_written)
     )
+
+    free(buffer)
     bytes_written
 }
 
@@ -57,3 +85,4 @@ def g(x:str="Hi there"){
 def main(){
     print ("Hello world!")
 }
+# test
