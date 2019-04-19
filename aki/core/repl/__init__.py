@@ -122,7 +122,7 @@ class JIT:
         self.module_name = module_name
         self.reset()
 
-    def reset(self, typemgr = None):
+    def reset(self, typemgr=None):
         if not typemgr:
             typemgr = self.typemgr
         typemgr.reset()
@@ -155,27 +155,31 @@ pyaki  :{constants.VERSION}"""
 
     def load_file(self, file_to_load, ignore_cache=False):
 
-        self.main_cpl.reset(typemgr= self.typemgr)
+        self.main_cpl.reset(typemgr=self.typemgr)
 
         # Attempt to load precomputed module from cache
 
-        filepath = f"examples/{file_to_load}.aki"
-        
+        file_dir = "examples"
+
+        filepath = f"{file_dir}/{file_to_load}.aki"
+
         if not ignore_cache:
 
             force_recompilation = False
 
-            cache_path = filepath + "c"
+            cache_path = f"{file_dir}/__akic__/"
+            cache_file = f"{file_to_load}.akic"
+            full_cache_path = cache_path + cache_file
 
-            if not os.path.exists(cache_path):
+            if not os.path.exists(full_cache_path):
                 force_recompilation = True
-            elif os.path.getmtime(filepath) > os.path.getmtime(cache_path):
+            elif os.path.getmtime(filepath) > os.path.getmtime(full_cache_path):
                 force_recompilation = True
 
             if not force_recompilation:
                 try:
                     with Timer() as t:
-                        with open(cache_path, "rb") as file:
+                        with open(full_cache_path, "rb") as file:
                             import pickle
 
                             mod_in = pickle.load(file)
@@ -187,7 +191,7 @@ pyaki  :{constants.VERSION}"""
                             file_size = os.fstat(file.fileno()).st_size
 
                     cp(
-                        f"Read {file_size} bytes from {CMD}{cache_path}{REP} ({t.time:.3f} sec)"
+                        f"Read {file_size} bytes from {CMD}{cache_file}{REP} ({t.time:.3f} sec)"
                     )
                     return
                 except LocalException:
@@ -218,7 +222,9 @@ pyaki  :{constants.VERSION}"""
         if not ignore_cache:
 
             try:
-                with open(cache_path, "wb") as file:
+                if not os.path.exists(cache_path):
+                    os.makedirs(cache_path)
+                with open(full_cache_path, "wb") as file:
                     output = {
                         "version": constants.VERSION,
                         "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
@@ -405,10 +411,10 @@ pyaki  :{constants.VERSION}"""
         self.load_file("1")
 
     def reset(self, *a, **ka):
-        if 'typemgr' not in ka or ka['typemgr'] is None:
+        if "typemgr" not in ka or ka["typemgr"] is None:
             self.typemgr = AkiTypeMgr()
         else:
-            self.typemgr = ka['typemgr']
+            self.typemgr = ka["typemgr"]
             self.typemgr.reset()
         self.types = self.typemgr.types
         self.main_cpl = JIT(self.typemgr, module_name=".main")
