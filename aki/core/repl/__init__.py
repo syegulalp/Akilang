@@ -122,10 +122,13 @@ class JIT:
         self.module_name = module_name
         self.reset()
 
-    def reset(self):
+    def reset(self, typemgr = None):
+        if not typemgr:
+            typemgr = self.typemgr
+        typemgr.reset()
         self.compiler = AkiCompiler()
         self.module = ir.Module(self.module_name)
-        self.codegen = AkiCodeGen(self.module, self.typemgr)
+        self.codegen = AkiCodeGen(self.module, typemgr)
 
 
 def cp(string):
@@ -152,7 +155,7 @@ pyaki  :{constants.VERSION}"""
 
     def load_file(self, file_to_load, ignore_cache=False):
 
-        self.main_cpl.reset()
+        self.main_cpl.reset(typemgr= self.typemgr)
 
         # Attempt to load precomputed module from cache
 
@@ -406,6 +409,7 @@ pyaki  :{constants.VERSION}"""
             self.typemgr = AkiTypeMgr()
         else:
             self.typemgr = ka['typemgr']
+            self.typemgr.reset()
         self.types = self.typemgr.types
         self.main_cpl = JIT(self.typemgr, module_name=".main")
         self.repl_cpl = JIT(self.typemgr, module_name=".repl")
