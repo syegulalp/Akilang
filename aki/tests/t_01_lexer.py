@@ -5,7 +5,7 @@ from sly.lex import Token
 
 
 class TestLexer(unittest.TestCase):
-    l = lex.AkiLexer().tokenize
+    l = lex._AkiLexer.tokenize
 
     def _render(self):
         """

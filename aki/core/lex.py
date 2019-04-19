@@ -158,3 +158,4 @@ class AkiLexer(Lexer):
     def error(self, t):
         raise AkiSyntaxErr(Pos(self), self.text, f'Illegal character "{t.value[0]}"')
 
+_AkiLexer = AkiLexer()

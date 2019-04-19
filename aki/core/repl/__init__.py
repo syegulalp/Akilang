@@ -48,8 +48,8 @@ ir.builder.IRBuilder.comment = comment
 import ctypes
 import os
 
-from core.lex import AkiLexer
-from core.parse import AkiParser
+from core.lex import _AkiLexer as AkiLexer
+from core.parse import _AkiParser as AkiParser
 from core.codegen import AkiCodeGen
 from core.compiler import AkiCompiler, ir
 from core.astree import (
@@ -109,8 +109,8 @@ On the command line, the initial dot sign can be replaced with a double dash:
 
 
 class JIT:
-    lexer = AkiLexer()
-    parser = AkiParser()
+    lexer = AkiLexer
+    parser = AkiParser
 
     def __init__(self, typemgr=None, module_name=None):
         if typemgr is None:
@@ -141,12 +141,7 @@ LLVM   :{".".join((str(n) for n in binding.llvm_version_info))}
 pyaki  :{constants.VERSION}"""
 
     def __init__(self, typemgr=None):
-        if typemgr is None:
-            self.typemgr = AkiTypeMgr()
-        else:
-            self.typemgr = typemgr
-        self.types = self.typemgr.types
-        self.reset(silent=True)
+        self.reset(silent=True, typemgr=typemgr)
 
     def run_tests(self, *a):
         print(f"{REP}", end="")
@@ -407,6 +402,11 @@ pyaki  :{constants.VERSION}"""
         self.load_file("1")
 
     def reset(self, *a, **ka):
+        if 'typemgr' not in ka or ka['typemgr'] is None:
+            self.typemgr = AkiTypeMgr()
+        else:
+            self.typemgr = ka['typemgr']
+        self.types = self.typemgr.types
         self.main_cpl = JIT(self.typemgr, module_name=".main")
         self.repl_cpl = JIT(self.typemgr, module_name=".repl")
         if not "silent" in ka:

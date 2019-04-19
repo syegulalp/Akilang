@@ -18,6 +18,13 @@ extern HeapAlloc(
     dwBytes: u_size
 ):ptr u_mem
 
+# extern snprintf(
+#     buffer: ptr u_mem,
+#     count: u_size,
+#     format: str,
+#     *args
+# ):i32
+
 # implementations
 
 def alloc(bytes:u_size):ptr u_mem {

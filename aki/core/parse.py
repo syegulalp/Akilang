@@ -1,5 +1,5 @@
 from sly import Parser
-from core.lex import AkiLexer, Pos
+from core.lex import _AkiLexer as AkiLexer, Pos
 from core.astree import (
     Constant,
     String,
@@ -551,3 +551,5 @@ class AkiParser(Parser):
     @_("")
     def empty(self, p):
         pass
+
+_AkiParser = AkiParser()

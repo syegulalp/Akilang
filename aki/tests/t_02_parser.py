@@ -10,8 +10,8 @@ class TestLexer(unittest.TestCase):
 
     from core import lex, parse
 
-    l = lex.AkiLexer().tokenize
-    p = parse.AkiParser().parse
+    l = lex._AkiLexer.tokenize
+    p = parse._AkiParser.parse
 
     def __parse(self, text):
         return self._parse(text, True)
