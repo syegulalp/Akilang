@@ -472,8 +472,7 @@ class AkiString(AkiObject, AkiType):
         return result
 
     def data(self, text):
-        text = text + "\x00"
-        data = bytearray(text.encode("utf8"))
+        data = bytearray((text+'\x00').encode("utf8"))
         data_array = ir.ArrayType(self.module.types["byte"].llvm_type, len(data))
         return data, data_array
 
