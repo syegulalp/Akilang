@@ -158,6 +158,9 @@ class Argument(ASTNode):
             self.default_value.flatten() if self.default_value else None,
         ]
 
+class StarArgument(Argument):
+    pass
+
 
 class Constant(Expression):
     """
@@ -182,10 +185,10 @@ class String(Expression):
     """
 
     def __init__(self, p, val, vartype):
-        super().__init__(p)
+        super().__init__(p)        
         self.val = val
         self.vartype = vartype
-        self.name = val
+        self.name = f'"{val}"'
 
     def __eq__(self, other):
         return self.val == other.val
