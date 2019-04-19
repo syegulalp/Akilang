@@ -63,6 +63,7 @@
 
 ## In progress
 
+* [ ] Variable argument functions (for compatibility with C calls)
 * [ ] Type conversions
   * [ ] Cast from constant, e.g. `i32(100)` or `f32(1.0)` (safe operation)  
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
@@ -73,7 +74,6 @@
 * [ ] Complete REPL command set (as per earlier incarnation of project)
 * [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
-* [ ] Positional and named/optional arguments
 * [ ] Function name mangling to allow overloading
 
 # Stage 1: Advanced variables and structures
