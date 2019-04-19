@@ -34,5 +34,5 @@ class TestLexer(unittest.TestCase):
         self.r.load_file("1", ignore_cache=True)
         self._e((("g1()+g1()", 38),))
         self.r.load_file("2", ignore_cache=True)
-        self._e((('print("Hello world!")', 12),))
+        self._e((('print("Hello world!")', 13),))
 

@@ -37,10 +37,26 @@ class TestLexer(unittest.TestCase):
             with self.assertRaises(err_type):
                 self._parse(text)
 
-    # def test_t1(self):
-    #     self.__parse("(x).y().z")
-    #     self.__parse("(x).y()")
-
+    def test_string(self):
+        self._e(
+            (
+                (r'"Hello world"',[['String', 'Hello world']]),
+                (r'"Hello \" world"',[['String', 'Hello " world']]),
+                (r"'Hello \' world'",[['String', "Hello ' world"]]),
+                (r"'\x40'",[['String', "@"]]),
+                (r"'\u0040'",[['String', "@"]]),
+                (r"'\U00000040'",[['String', "@"]]),
+                (r"'\x40_'",[['String', "@_"]]),
+                (r"'\u0040_'",[['String', "@_"]]),
+                (r"'\U00000040_'",[['String', "@_"]]),
+            )
+        )
+        self._ex(AkiSyntaxErr,
+            (
+                (r"'\xq5'"),
+            )
+        )
+    
     def test_constant(self):
         self._e(
             (
