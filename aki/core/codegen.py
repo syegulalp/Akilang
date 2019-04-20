@@ -26,7 +26,7 @@ from core.astree import (
     LLVMNode,
     Argument,
     StarArgument,
-    Function,    
+    Function,
     ExpressionBlock,
     External,
 )
@@ -415,7 +415,9 @@ class AkiCodeGen:
 
         # Generate function prototype.
 
-        f_type = ir.FunctionType(return_type.llvm_type, func_args, var_arg=self.fn.varargs is not None)
+        f_type = ir.FunctionType(
+            return_type.llvm_type, func_args, var_arg=self.fn.varargs is not None
+        )
         f_type.return_type.akitype = return_type
 
         for p_arg, n_arg in zip(f_type.args, node.arguments):
@@ -460,8 +462,9 @@ class AkiCodeGen:
 
         if self.fn.varargs and not isinstance(node, External):
             raise AkiSyntaxErr(
-                self.fn.varargs.p, self.text,
-                f"Non-external functions don't yet support variable arguments"
+                self.fn.varargs.p,
+                self.text,
+                f"Non-external functions don't yet support variable arguments",
             )
 
         # Store an original function reference in the prototype.
@@ -796,8 +799,11 @@ class AkiCodeGen:
             # If we have too many arguments,
             # and we're not processing a vararg function, give up
 
-            if len(node.arguments) > len(call_func.args) and not call_func.ftype.var_arg:
-                    raise LocalException
+            if (
+                len(node.arguments) > len(call_func.args)
+                and not call_func.ftype.var_arg
+            ):
+                raise LocalException
 
             total_args = max(len(node.arguments), len(call_func.args))
             for _ in range(total_args):
@@ -805,8 +811,8 @@ class AkiCodeGen:
                 # if we're supplying more arguments than are available
                 # to the called function,
                 # see if this is a vararg
-                
-                if _ > len(call_func.args)-1:
+
+                if _ > len(call_func.args) - 1:
                     if call_func.ftype.var_arg:
                         arg = node.arguments[_]
                         arg_val = self._codegen(arg)
@@ -820,7 +826,7 @@ class AkiCodeGen:
                 # If we're out of supplied arguments,
                 # see if the function has default args.
 
-                if _ > len(node.arguments)-1:
+                if _ > len(node.arguments) - 1:
                     default_arg_value = f_arg.akinode.default_value
                     if default_arg_value is None:
                         raise LocalException
@@ -1319,14 +1325,17 @@ class AkiCodeGen:
         string.unnamed_addr = True
 
         data_object = ir.GlobalVariable(
-            self.module, self.types["obj"].llvm_type, f".str.{const_counter}"
+            self.module, self.types["str"].llvm_type_base, f".str.{const_counter}"
         )
+
         data_object.initializer = ir.Constant(
-            self.types["obj"].llvm_type,
+            self.types["str"].llvm_type_base,
             (
-                self.types["str"].enum_id,
-                len(data_array),
-                string.bitcast(self.typemgr.as_ptr(self.types["u_mem"]).llvm_type),
+                (
+                    self.types["str"].enum_id,
+                    len(data_array),
+                ),
+                (string.bitcast(self.typemgr.as_ptr(self.types["u_mem"]).llvm_type)),
             ),
         )
 

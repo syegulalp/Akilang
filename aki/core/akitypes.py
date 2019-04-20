@@ -133,12 +133,16 @@ class AkiPointer(AkiType):
 class AkiObject(AkiType):
     """
     Type for objects in Aki. This is essentially a header,
-    with the actual object referred to by a pointer.
+    with the actual object in the following structure:
+    [
+        [header],
+        [rest of object]
+    ]
+
     """
 
     OBJECT_TYPE = 0
     LENGTH = 1
-    OBJECT_POINTER = 2
 
     def __init__(self, module: ir.Module):
         self.module = module
@@ -148,8 +152,6 @@ class AkiObject(AkiType):
             module.types["u_size"].llvm_type,
             # Length of object
             module.types["u_size"].llvm_type,
-            # Void pointer to object, whatever it may be
-            module.typemgr.as_ptr(module.types["u_mem"]).llvm_type,
         ]
 
     def new(self):
@@ -440,7 +442,12 @@ class AkiString(AkiObject, AkiType):
 
     def __init__(self, module):
         self.module = module
-        self.llvm_type = ir.PointerType(self.module.types["obj"].llvm_type)
+        self.llvm_type_base = module.context.get_identified_type(".str")
+        self.llvm_type_base.elements = [
+            module.types["obj"].llvm_type,
+            module.typemgr.as_ptr(module.types["u_mem"]).llvm_type,
+        ]
+        self.llvm_type = ir.PointerType(self.llvm_type_base)
 
     def c(self):
         return ctypes.c_void_p
@@ -456,15 +463,11 @@ class AkiString(AkiObject, AkiType):
         if result is None:
             return '""'
 
-        # TODO: Let's find a way to automatically GEP this pointer
-        # Eventually we'll emit instructions to extract such things
+        header_size = self.module.types['obj'].llvm_type.get_abi_size(self.module.typemgr.target_data())
 
         char_p = ctypes.POINTER(ctypes.c_char_p)
         result = ctypes.cast(
-            result
-            + (
-                self.module.types["obj"].OBJECT_POINTER * self.module.types["byte"].bits
-            ),
+            result + header_size,
             char_p,
         )
         result = ctypes.cast(result.contents, char_p)
@@ -477,14 +480,14 @@ class AkiString(AkiObject, AkiType):
         return data, data_array
 
     def c_data(self, codegen, node):
-        obj_ptr = codegen.builder.gep(node, [_int(0), _int(AkiObject.OBJECT_POINTER)])
+        obj_ptr = codegen.builder.gep(node, [_int(0), _int(1)])
         obj_ptr = codegen.builder.load(obj_ptr)
         obj_ptr.akitype = codegen.typemgr.as_ptr(codegen.types["u_mem"])
         obj_ptr.akinode = node.akinode
         return obj_ptr
 
     def c_size(self, codegen, node):
-        obj_ptr = codegen.builder.gep(node, [_int(0), _int(AkiObject.LENGTH)])
+        obj_ptr = codegen.builder.gep(node, [_int(0), _int(0), _int(AkiObject.LENGTH)])
         obj_ptr = codegen.builder.load(obj_ptr)
         obj_ptr.akitype = codegen.types["u_size"]
         obj_ptr.akinode = node.akinode
