@@ -43,6 +43,7 @@ class TestLexer(unittest.TestCase):
                 (r'"Hello world"',[['String', 'Hello world']]),
                 (r'"Hello \" world"',[['String', 'Hello " world']]),
                 (r"'Hello \' world'",[['String', "Hello ' world"]]),
+                (r"'Hello \\ world'",[['String', "Hello \\ world"]]),
                 (r"'\x40'",[['String', "@"]]),
                 (r"'\u0040'",[['String', "@"]]),
                 (r"'\U00000040'",[['String', "@"]]),

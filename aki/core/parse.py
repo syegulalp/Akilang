@@ -229,8 +229,16 @@ class AkiParser(Parser):
         subs = p[0][1:-1].split("\\")
         # the first one will never be a control sequence
         new_str.append(subs.pop(0))
-        for n in subs:
-            s = n[0]
+        _subs = iter(subs)
+        for n in _subs:
+            # a \\ generates an empty sequence
+            # so we consume that and generate a single \
+            if not n:
+                new_str.append('\\')
+                n=next(_subs)
+                new_str.append(n)
+                continue
+            s = n[0]            
             if s in self.ctrl_chars:
                 new_str.append(self.ctrl_chars[s])
                 new_str.append(n[1:])
