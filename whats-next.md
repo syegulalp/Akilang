@@ -64,6 +64,7 @@
 * [x] Variable argument functions (for compatibility with C calls)
 * [x] String escape characters (e.g., `\x00` for inline hex)
   * [x] Escaped quoting (`'It\'s a quote!'`)
+  * [x] Escape slashes (`\\` = \\)
 
 ## In progress
 
