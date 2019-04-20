@@ -25,6 +25,8 @@ extern HeapFree(
     lpMem: ptr u_mem
 ):i32
 
+extern Sleep(dwMilliseconds:i32):i32
+
 # Layer 0a: Non-platform specific functions
 # We can use portable versions of functions if it's easier.
 
@@ -35,7 +37,9 @@ extern _snprintf(
     *args
 ):i32
 
-# Layer 1: stdlib
+# Layer 1
+# Platform-level functions we need to have cross-platform interfaces for.
+# Used mainly in libraries but accessible to the end user.
 
 def alloc(bytes:u_size):ptr u_mem {
     HeapAlloc(
@@ -53,6 +57,13 @@ def free(ptr_to_free:ptr u_mem){
     )
 }
 
+# Layer 2
+# Library functions for all users.
+
+def sleep(msecs:i32):i32 {
+    Sleep(msecs)
+}
+
 def print(_str:str):i32 {
     
     var bytes_written:i32=0
@@ -62,8 +73,7 @@ def print(_str:str):i32 {
     var len = _snprintf(
         buffer,
         _size,
-        c_data('%s
-'),
+        c_data('%s\n'),
         c_data(_str)
     )
 
@@ -78,11 +88,15 @@ def print(_str:str):i32 {
     bytes_written
 }
 
+# -----------------------
+
 def g(x:str="Hi there"){
     print(x)
 }
 
 def main(){
     print ("Hello world!")
+    sleep(1000)
+    print ("Goodbye world!")
 }
 # test
