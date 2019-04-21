@@ -1,7 +1,7 @@
 from llvmlite.ir import types
 from llvmlite import ir, binding
 import ctypes
-from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode
+from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode, String
 from typing import Optional
 from core.error import AkiTypeErr
 
@@ -93,7 +93,7 @@ class AkiTypeRef(AkiType):
     def format_result(self, result):
         return f"<type{self.module.typemgr.enum_ids[result]}>"
 
-    def default(self):
+    def default(self, codegen, node):
         return self._default
 
 
@@ -110,7 +110,7 @@ class AkiPointer(AkiType):
         self.module = module
         self.bits = module.typemgr._pointer_width
 
-    def default(self):
+    def default(self, codegen, node):
         # Null value for pointer
         return None
 
@@ -143,6 +143,8 @@ class AkiObject(AkiType):
 
     OBJECT_TYPE = 0
     LENGTH = 1
+    IS_ALLOCATED = 2
+    REFCOUNT = 3
 
     def __init__(self, module: ir.Module):
         self.module = module
@@ -150,9 +152,14 @@ class AkiObject(AkiType):
         self.llvm_type.elements = [
             # Type of object (enum)
             module.types["u_size"].llvm_type,
-            # Length of object
+            # Length of object data, minus header
+            module.types["u_size"].llvm_type,
+            # Was this object allocated from the heap?
+            module.types["bool"].llvm_type,
+            # refcount for object, not used yet
             module.types["u_size"].llvm_type,
         ]
+        # self.llvm_type.packed=True
 
     def new(self):
         pass
@@ -182,7 +189,7 @@ class AkiFunction(AkiObject):
     def c(self):
         return ctypes.c_void_p
 
-    def default(self):
+    def default(self, codegen, node):
         return None
 
     def format_result(self, result):
@@ -196,7 +203,7 @@ class AkiIntBoolMathOps:
     Math operations shared between integer and boolean types.
     """
 
-    math_ops = {
+    bin_ops = {
         "+": "add",
         "-": "sub",
         "*": "mul",
@@ -207,25 +214,25 @@ class AkiIntBoolMathOps:
         "or": "andor",
     }
 
-    def math_op_addop(self, codegen, node, lhs, rhs, op_name):
+    def binop_add(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.add(lhs, rhs, f".{op_name}")
 
-    def math_op_subop(self, codegen, node, lhs, rhs, op_name):
+    def binop_sub(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.sub(lhs, rhs, f".{op_name}")
 
-    def math_op_mulop(self, codegen, node, lhs, rhs, op_name):
+    def binop_mul(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.mul(lhs, rhs, f".{op_name}")
 
-    def math_op_divop(self, codegen, node, lhs, rhs, op_name):
+    def binop_div(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.sdiv(lhs, rhs, f".{op_name}")
 
-    def math_op_bin_andop(self, codegen, node, lhs, rhs, op_name):
+    def binop_bin_and(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.and_(lhs, rhs, f".{op_name}")
 
-    def math_op_bin_orop(self, codegen, node, lhs, rhs, op_name):
+    def binop_bin_or(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.or_(lhs, rhs, f".{op_name}")
 
-    def math_op_andorop(self, codegen, node, lhs, rhs, op_name):
+    def binop_andor(self, codegen, node, lhs, rhs, op_name):
         # Handles both and and or operations
 
         if not isinstance(lhs.akitype, AkiBool):
@@ -247,7 +254,9 @@ class AkiIntBoolMathOps:
                 node.rhs, VarTypeName(node.rhs, rhs.akitype.type_id), rhs
             )
             false_result = Constant(
-                node, rhs.akitype.default(), VarTypeName(node, rhs.akitype.type_id)
+                node,
+                rhs.akitype.default(self, node.rhs),
+                VarTypeName(node, rhs.akitype.type_id),
             )
 
             result = IfExpr(node, result_test, true_result, false_result)
@@ -258,7 +267,9 @@ class AkiIntBoolMathOps:
             first_result_test = BinOp(node, "|", lhs_x, rhs_x)
             # if so, return 0
             first_false_result = Constant(
-                node, lhs.akitype.default(), VarTypeName(node, lhs.akitype.type_id)
+                node,
+                lhs.akitype.default(self, node.lhs),
+                VarTypeName(node, lhs.akitype.type_id),
             )
             # if not, return the value
             first_true_result = LLVMNode(
@@ -300,7 +311,7 @@ class AkiBaseInt(AkiType, AkiIntBoolMathOps):
         self.signed = signed
         self.type_id = f'{"i" if signed else "u"}{bits}'
 
-    def default(self):
+    def default(self, codegen, node):
         return 0
 
 
@@ -319,10 +330,10 @@ class AkiBool(AkiType, AkiIntBoolMathOps):
         self.signed = False
         self.type_id = "bool"
 
-    def default(self):
+    def default(self, codegen, node):
         return False
 
-    def math_op_negop(self, codegen, node, operand):
+    def unop_neg(self, codegen, node, operand):
         lhs = codegen._codegen(Constant(node, 1, operand.akitype))
         return codegen.builder.xor(lhs, operand, "bnegop")
 
@@ -340,7 +351,7 @@ class AkiInt(AkiBaseInt):
     def __init__(self, bits):
         super().__init__(bits, True)
 
-    def math_op_negop(self, codegen, node, operand):
+    def unop_neg(self, codegen, node, operand):
         lhs = codegen._codegen(Constant(node, 0, operand.akitype))
         return codegen.builder.sub(lhs, operand, "negop")
 
@@ -361,21 +372,21 @@ class AkiBaseFloat(AkiType):
     Base type for floating-point Aki types.
     """
 
-    math_ops = {"+": "add", "-": "sub", "*": "mul", "/": "div"}
+    bin_ops = {"+": "add", "-": "sub", "*": "mul", "/": "div"}
 
-    def math_op_addop(self, codegen, node, lhs, rhs, op_name):
+    def binop_add(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.fadd(lhs, rhs, f".f{op_name}")
 
-    def math_op_subop(self, codegen, node, lhs, rhs, op_name):
+    def binop_sub(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.fsub(lhs, rhs, f".f{op_name}")
 
-    def math_op_mulop(self, codegen, node, lhs, rhs, op_name):
+    def binop_mul(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.fmul(lhs, rhs, f".f{op_name}")
 
-    def math_op_divop(self, codegen, node, lhs, rhs, op_name):
+    def binop_div(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.fdiv(lhs, rhs, f".f{op_name}")
 
-    def math_op_negop(self, codegen, node, operand):
+    def unop_neg(self, codegen, node, operand):
         lhs = codegen._codegen(
             Constant(node, 0.0, VarTypeName(node, operand.akitype.type_id))
         )
@@ -384,7 +395,7 @@ class AkiBaseFloat(AkiType):
     signed = True
     comp_ins = "fcmp_ordered"
 
-    def default(self):
+    def default(self, codegen, node):
         return 0.0
 
 
@@ -440,6 +451,8 @@ class AkiString(AkiObject, AkiType):
     signed = False
     type_id = "str"
 
+    bin_ops = {"+": "add"}
+
     def __init__(self, module):
         self.module = module
         self.llvm_type_base = module.context.get_identified_type(".str")
@@ -452,8 +465,28 @@ class AkiString(AkiObject, AkiType):
     def c(self):
         return ctypes.c_void_p
 
-    def default(self):
-        return None
+    def default(self, codegen, node):
+        null_str = codegen._codegen(
+            String(node, "", VarTypeName(node, None))
+        ).get_reference()
+        return null_str
+
+    def binop_add(self, codegen, node, lhs, rhs, op_name):
+        pass
+        # extract lengths of each string
+        #   c_size
+        # compute new string length
+        # (check for overflow?)
+        # (later when we have result types)
+        # allocate new header
+        #   malloc
+        # set details
+        #
+        # allocate new string body
+        #   malloc
+        # store string data
+        #   =
+
 
     def format_result(self, result):
 
@@ -463,19 +496,13 @@ class AkiString(AkiObject, AkiType):
         if result is None:
             return '""'
 
-        header_size = self.module.types['obj'].llvm_type.get_abi_size(self.module.typemgr.target_data())
-
         char_p = ctypes.POINTER(ctypes.c_char_p)
-        result = ctypes.cast(
-            result + header_size,
-            char_p,
-        )
-        result = ctypes.cast(result.contents, char_p)
-        result = f'"{str(ctypes.string_at(result),"utf8")}"'
-        return result
+        result1 = ctypes.cast(result, char_p)
+        result2 = f'"{str(ctypes.string_at(result1),"utf8")}"'
+        return result2
 
     def data(self, text):
-        data = bytearray((text+'\x00').encode("utf8"))
+        data = bytearray((text + "\x00").encode("utf8"))
         data_array = ir.ArrayType(self.module.types["byte"].llvm_type, len(data))
         return data, data_array
 
@@ -521,6 +548,7 @@ class AkiTypeMgr:
     def __init__(self, module: Optional[ir.Module] = None, bytesize=8):
         if module is None:
             module = ir.Module()
+            module.triple = binding.Target.from_default_triple().triple
 
         # Set internal module reference so types can access each other
 
@@ -547,7 +575,7 @@ class AkiTypeMgr:
         # which never changes
 
         self.custom_types = {}
-        
+
         self.enum_id_ctr = 0
         self.enum_ids = {}
 

@@ -1,4 +1,4 @@
-from llvmlite import ir
+from llvmlite import ir, binding
 from core.akitypes import (
     AkiType,
     AkiBool,
@@ -29,6 +29,7 @@ from core.astree import (
     Function,
     ExpressionBlock,
     External,
+    Call,
 )
 from core.error import (
     AkiNameErr,
@@ -82,6 +83,7 @@ class AkiCodeGen:
 
         if module is None:
             self.module = ir.Module(name=module_name)
+            self.module.triple = binding.Target.from_default_triple().triple
         else:
             self.module = module
 
@@ -297,7 +299,7 @@ class AkiCodeGen:
                 node,
                 "!=",
                 LLVMNode(node, expr.akitype, expr),
-                Constant(node, expr.akitype.default(), expr.akitype),
+                Constant(node, expr.akitype.default(self, node), expr.akitype),
             )
         )
         return result
@@ -503,6 +505,7 @@ class AkiCodeGen:
             # create an allocation for the variable
             var_alloc = self._alloca(b, b.vartype.llvm_type, b.name)
             # set its Aki attributes
+            a.akitype = b.vartype.akitype
             var_alloc.akitype = b.vartype.akitype
             var_alloc.akinode = b
             # set the akinode attribute for the original argument,
@@ -550,7 +553,7 @@ class AkiCodeGen:
             result = self._codegen(
                 Constant(
                     node.body.p,
-                    node.prototype.return_type.akitype.default(),
+                    node.prototype.return_type.akitype.default(self, node),
                     node.prototype.return_type,
                 )
             )
@@ -660,7 +663,7 @@ class AkiCodeGen:
                     _.vartype = Name(_.p, self.type.default.type_id)
 
                 _.akitype = self._get_vartype(_.vartype)
-                _.val = Constant(_.p, _.akitype.default(), _.vartype)
+                _.val = Constant(_.p, _.akitype.default(self, node), _.vartype)
                 value = _.val
 
             else:
@@ -1099,7 +1102,7 @@ class AkiCodeGen:
         Generate a unary negation operation for a scalar value.
         """
 
-        op = getattr(operand.akitype, "math_op_negop", None)
+        op = getattr(operand.akitype, "unop_neg", None)
         if op is None:
             raise AkiOpError(
                 node,
@@ -1183,17 +1186,17 @@ class AkiCodeGen:
 
         # Generate instructions for a binop that yields
         # a value of the same type as the inputs.
-        # Use math_ops property of the Aki type class.
+        # Use bin_ops property of the Aki type class.
 
         try:
             instr_type = lhs_atype
-            op_types = getattr(lhs_atype, "math_ops", None)
+            op_types = getattr(lhs_atype, "bin_ops", None)
             if op_types is None:
                 raise LocalException
             math_op = op_types.get(node.op, None)
             if math_op is None:
                 raise LocalException
-            instr_call = getattr(lhs_atype.__class__, f"math_op_{math_op}op")
+            instr_call = getattr(lhs_atype.__class__, f"binop_{math_op}")
             instr = instr_call(lhs_atype, self, node, lhs, rhs, node.op)
             # (Later for custom types we'll try to generate a call)
 
@@ -1331,11 +1334,8 @@ class AkiCodeGen:
         data_object.initializer = ir.Constant(
             self.types["str"].llvm_type_base,
             (
-                (
-                    self.types["str"].enum_id,
-                    len(data_array),
-                ),
-                (string.bitcast(self.typemgr.as_ptr(self.types["u_mem"]).llvm_type)),
+                (self.types["str"].enum_id, len(data_array), 0, 0),
+                string.bitcast(self.typemgr.as_ptr(self.types["u_mem"]).llvm_type),
             ),
         )
 

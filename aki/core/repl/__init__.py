@@ -62,7 +62,7 @@ from core.astree import (
     VarTypeName,
 )
 from core.error import AkiBaseErr, ReloadException, QuitException, LocalException
-from core.akitypes import AkiTypeMgr
+from core.akitypes import AkiTypeMgr, AkiObject
 from core import constants
 
 
@@ -128,7 +128,8 @@ class JIT:
         typemgr.reset()
         self.compiler = AkiCompiler()
         self.module = ir.Module(self.module_name)
-        self.codegen = AkiCodeGen(self.module, typemgr)
+        self.module.triple = binding.Target.from_default_triple().triple
+        self.codegen = AkiCodeGen(self.module, self.typemgr)
 
 
 def cp(string):
@@ -334,9 +335,6 @@ pyaki  :{constants.VERSION}"""
         # When we encounter a top-level command,
         # we compile it immediately, and don't add it
         # to the stack.
-        # When we come to the end of the node list,
-        # we take the expression node stack, turn it into
-        # an anonymous function, and execute it.
 
         ast_stack = []
 
@@ -349,18 +347,62 @@ pyaki  :{constants.VERSION}"""
 
             ast_stack.append(_)
 
+        # When we come to the end of the node list,
+        # we take the expression node stack, turn it into
+        # an anonymous function, and execute it.
+
         if ast_stack:
 
-            _ = ast_stack[-1]
+            res, return_type = self.anonymous_function(
+                ast_stack, repl_file, immediate_mode
+            )
 
-            self.repl_cpl.anon_counter += 1
+            yield return_type.format_result(res)
 
-            call_name = f"_ANONYMOUS_{self.repl_cpl.anon_counter}"
+    def anonymous_function(self, ast_stack, repl_file, immediate_mode=False):
+
+        _ = ast_stack[-1]
+
+        self.repl_cpl.anon_counter += 1
+
+        call_name = f"_ANONYMOUS_{self.repl_cpl.anon_counter}"
+        proto = Prototype(_.p, call_name, (), VarTypeName(_.p, None))
+        func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
+
+        if not immediate_mode:
+            self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
+
+        try:
+            self.repl_cpl.codegen.eval([func])
+        except AkiBaseErr as e:
+            del self.repl_cpl.module.globals[call_name]
+            raise e
+
+        first_result_type = self.repl_cpl.module.globals[call_name].return_value.akitype
+
+        # If the result from the codegen is an object,
+        # redo the codegen with an addition to the AST stack
+        # that extracts the c_data value.
+
+        if isinstance(first_result_type, AkiObject):
+            _ = ast_stack.pop()
+            ast_stack = []
+
+            ast_stack.append(
+                Call(
+                    _.p,
+                    "c_data",
+                    (Call(_.p, call_name, (), VarTypeName(_.p, None)),),
+                    VarTypeName(_.p, None),
+                )
+            )
+
+            call_name += "_WRAP"
             proto = Prototype(_.p, call_name, (), VarTypeName(_.p, None))
             func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
 
-            if not immediate_mode:
-                self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
+            # It's unlikely that this codegen will ever throw an error,
+            # but I'm keeping this anyway
 
             try:
                 self.repl_cpl.codegen.eval([func])
@@ -368,35 +410,38 @@ pyaki  :{constants.VERSION}"""
                 del self.repl_cpl.module.globals[call_name]
                 raise e
 
-            if not immediate_mode:
-                if self.main_cpl.compiler.mod_ref:
-                    self.repl_cpl.compiler.backing_mod.link_in(
-                        self.main_cpl.compiler.mod_ref, True
-                    )
+            final_result_type = self.repl_cpl.module.globals[
+                call_name
+            ].return_value.akitype
 
-            self.repl_cpl.compiler.compile_module(self.repl_cpl.module, repl_file)
+        else:
+            final_result_type = first_result_type
 
-            # Retrieve a pointer to the function
-            func_ptr = self.repl_cpl.compiler.get_addr(call_name)
+        if not immediate_mode:
+            if self.main_cpl.compiler.mod_ref:
+                self.repl_cpl.compiler.backing_mod.link_in(
+                    self.main_cpl.compiler.mod_ref, True
+                )
 
-            return_type = self.repl_cpl.module.globals[call_name].return_value.akitype
+        self.repl_cpl.compiler.compile_module(self.repl_cpl.module, repl_file)
 
-            return_type_ctype = return_type.c()
+        # Retrieve a pointer to the function
+        func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
-            # Get the function signature
-            # We're not using this right now but it might
-            # come in handy later if we need to pass
-            # parameters to the anon func for whatever reason.
+        return_type = first_result_type
+        return_type_ctype = final_result_type.c()
 
-            # func_signature = [
-            #     _.aki.vartype.aki_type.c() for _ in module.globals[call_name].args
-            # ]
+        # Get the function signature
+        func_signature = [
+            _.aki.vartype.aki_type.c()
+            for _ in self.repl_cpl.module.globals[call_name].args
+        ]
 
-            # Generate a result
+        # Generate a result
+        cfunc = ctypes.CFUNCTYPE(return_type_ctype, *[])(func_ptr)
+        res = cfunc()
 
-            cfunc = ctypes.CFUNCTYPE(return_type_ctype, *[])(func_ptr)
-            res = cfunc()
-            yield return_type.format_result(res)
+        return res, return_type
 
     def about(self, *a):
         print(f"\n{GRN}{constants.ABOUT}\n\n{self.VERSION}\n")
