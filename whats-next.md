@@ -65,6 +65,7 @@
 * [x] String escape characters (e.g., `\x00` for inline hex)
   * [x] Escaped quoting (`'It\'s a quote!'`)
   * [x] Escape slashes (`\\` = \\)
+* [x] Array type
 
 ## In progress
 
@@ -80,15 +81,13 @@
 * [ ] Type conversions
 
 # Stage 1: Advanced variables and structures
-
-* [ ] Slice methods
+* [ ] Slices
 * [ ] N-dimensional arrays of scalars
 * [ ] Type declarations
 * [ ] Enums
 * [ ] Classes and object structures
 * [ ] Object methods and method calls
 * [ ] Iterables by way of object methods
-* [ ] Array slices
 * [ ] String operations
   * [ ] String slices
 * [ ] Call chains
