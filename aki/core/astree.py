@@ -92,6 +92,24 @@ class VarTypeFunc(VarTypeNode):
             self.return_type.flatten() if self.return_type else None,
         ]
 
+class VarTypeAccessor(VarTypeNode):
+    def __init__(self, p, vartype:VarTypeNode, accessors:list):
+        super().__init__(p)
+        self.vartype = vartype
+        self.accessors = accessors
+        #self.name = f"array({vartype.name})[{','.join([str(_[0]) for _ in accessors.accessors])}]"
+
+    def __eq__(self, other):
+        return (
+            self.vartype == other.vartype and self.accessors == other.accessors
+        )
+
+    def flatten(self):
+        return [
+            self.__class__.__name__,
+            self.vartype.flatten(),
+            self.accessors.flatten() if self.accessors else []
+        ]
 
 class Name(Expression):
     """
@@ -154,7 +172,7 @@ class Argument(ASTNode):
         return [
             self.__class__.__name__,
             self.name,
-            self.vartype.flatten(),
+            self.vartype.flatten() if self.vartype else None,
             self.default_value.flatten() if self.default_value else None,
         ]
 
@@ -447,6 +465,44 @@ class UnsafeBlock(Expression):
     def flatten(self):
         return [self.__class__.__name__, [_.flatten() for _ in self.expr_block]]
 
+class Accessor(Expression):
+    def __init__(self, p, accessors):
+        super().__init__(p)
+        self.accessors = accessors
 
-# class Accessor:
-# object to access, and one or more accessors with dimensions
+    def flatten(self):
+        return [self.__class__.__name__, [_.flatten() for _ in self.accessors]]
+
+class AccessorExpr(Expression):
+    def __init__(self, p, expr, accessors):
+        super().__init__(p)
+        self.expr = expr
+        self.accessors = accessors
+
+    def flatten(self):
+        return [self.__class__.__name__, self.expr.flatten(), [_.flatten() for _ in self.accessors]]
+
+class ObjectRef(Expression):
+    """
+    Target of an assignment operation.
+    The expr in question is a name, etc.
+    In every case we want to return a reference to the object,
+    not its value.
+    """
+    def __init__(self, p, expr):
+        super().__init__(p)
+        self.expr = expr
+    
+    def flatten(self):
+        return [self.__class__.__name__, self.expr.flatten()]
+
+class ObjectValue(Expression):
+    """
+    Extracted value.
+    """
+    def __init__(self, p, expr):
+        super().__init__(p)
+        self.expr = expr
+    
+    def flatten(self):
+        return [self.__class__.__name__, self.expr.flatten()]

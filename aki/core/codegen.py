@@ -30,6 +30,9 @@ from core.astree import (
     ExpressionBlock,
     External,
     Call,
+    AccessorExpr,
+    ObjectValue,
+    ObjectRef
 )
 from core.error import (
     AkiNameErr,
@@ -65,6 +68,9 @@ class FuncState:
 
         # Varargs reference (if any) for function.
         self.varargs = None
+
+        # Allocations builder.
+        self.allocator = None
 
 
 class AkiCodeGen:
@@ -132,7 +138,7 @@ class AkiCodeGen:
     def _codegen(self, node):
         """
         Dispatch function for codegen based on AST classes.
-        """
+        """        
         method = f"_codegen_{node.__class__.__name__}"
         result = getattr(self, method)(node)
         return result
@@ -176,14 +182,19 @@ class AkiCodeGen:
                 node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
             )
 
-    def _alloca(self, node, llvm_type, name, size=None, is_global=False):
+    def _alloca(self, node, llvm_type, name, size=None, is_global=False, is_heap = False):
         """
         Allocate space for a variable.
         Right now this is stack-only; eventually it'll include
         heap allocations, too.
+        We must also later make distinctions between allocations that are for
+        a REFERENCE (e.g., a pointer to a string construction) and for an
+        UNDERLYING VALUE (e.g., the heap-allocated string itself). That way
+        we can track and dispose those by way of scopes.
         """
 
-        return self.builder.alloca(llvm_type, size, name)
+        allocation = self.fn.allocator.alloca(llvm_type, size, name)
+        return allocation
 
     def _delete_var(self, name):
         """
@@ -204,6 +215,10 @@ class AkiCodeGen:
         Looks up a type in the current module
         based on a `VarType` AST node sequence.
         """
+        if node is None:
+            print ("OK")
+            return self.typemgr._default
+            #return self._get_type_by_name(self.typemgr._default.type_id)
         if isinstance(node, AkiType):
             return node
         return getattr(self, f"_get_vartype_{node.__class__.__name__}")(node)
@@ -230,6 +245,21 @@ class AkiCodeGen:
             )
 
         return var_lookup
+
+    def _get_vartype_VarTypeAccessor(self, node):                 
+        base_type = self._get_vartype(node.vartype)
+        accessors = []
+        for _ in node.accessors.accessors:
+            accessor_type = self._get_vartype(_.vartype)
+            if not isinstance(accessor_type, AkiBaseInt):
+                raise AkiSyntaxErr(
+                    _, self.text,
+                    "Array indices must be integer constants"
+                )
+            accessors.append([_.val,accessor_type])            
+        array_type = self.types['array'].new(self, node, base_type, accessors)
+        return array_type
+
 
     def _get_vartype_VarTypePtr(self, node):
         """
@@ -395,8 +425,9 @@ class AkiCodeGen:
                     self.text,
                     f'Function "{node.name}" has non-default argument "{_.name}" after default arguments',
                 )
-            if _.vartype.name is None:
-                _.vartype.name = self.typemgr._default.type_id
+            if _.vartype is None:
+                #_.vartype.name = self.typemgr._default.type_id
+                _.vartype = self.typemgr._default
             arg_vartype = self._get_vartype(_.vartype)
 
             _.vartype.llvm_type = arg_vartype.llvm_type
@@ -408,6 +439,9 @@ class AkiCodeGen:
             node_args.append(_)
 
         # Set return type.
+        if node.return_type is None:
+            node.return_type = VarTypeName(node, self.typemgr._default.type_id)
+            
         return_type = self._get_vartype(node.return_type)
         node.return_type.akitype = return_type
 
@@ -492,7 +526,8 @@ class AkiCodeGen:
         # Generate entry block and function body.
 
         self.entry_block = func.append_basic_block("entry")
-        self.builder = ir.IRBuilder(self.entry_block)
+        #self.fn.alloc_block = self.entry_block
+        self.fn.allocator = ir.IRBuilder(self.entry_block)
 
         # Add prototype arguments to function symbol table
         # and add references in function.
@@ -514,7 +549,7 @@ class AkiCodeGen:
             # add the variable to the symbol table
             self.fn.symtab[b.name] = var_alloc
             # store the default value to the variable
-            self.builder.store(a, var_alloc)
+            self.fn.allocator.store(a, var_alloc)
 
         # Add return value holder.
 
@@ -531,7 +566,7 @@ class AkiCodeGen:
         # Create actual starting function block and codegen instructions.
 
         self.body_block = func.append_basic_block("body")
-        self.builder.branch(self.body_block)
+        self.builder = ir.IRBuilder(self.body_block)
         self.builder.position_at_start(self.body_block)
 
         result = self._codegen(node.body)
@@ -603,6 +638,8 @@ class AkiCodeGen:
         self.builder.position_at_start(exit_block)
         self.builder.ret(self.builder.load(self.fn.return_value, ".ret"))
 
+        self.fn.allocator.branch(self.body_block)
+
         # Reset function state handlers.
 
         self.fn = None
@@ -660,7 +697,8 @@ class AkiCodeGen:
                 # and no default vartype, then create the default
 
                 if _.vartype is None:
-                    _.vartype = Name(_.p, self.type.default.type_id)
+                    #_.vartype = Name(_.p, self.types.default.type_id)
+                    _.vartype = Name(_.p, self.typemgr._default.type_id)
 
                 _.akitype = self._get_vartype(_.vartype)
                 _.val = Constant(_.p, _.akitype.default(self, node), _.vartype)
@@ -674,12 +712,14 @@ class AkiCodeGen:
 
                 # and there is no type identifier on the variable ...
 
-                if _.vartype.name is None:
+                # FIXME: do NOT rely on the name!
+                # if we have no vartype, it should just be None
+
+                if _.vartype is None:
                     # then use the value's variable type
                     _.vartype = value.akinode.vartype
                     _.akitype = value.akitype
                 else:
-                    # otherwise, use the named vartype
                     _.akitype = self._get_vartype(_.vartype)
 
                 value = LLVMNode(_.val, _.vartype, value)
@@ -696,7 +736,8 @@ class AkiCodeGen:
 
             # and store the value itself to the variable
             # by way of an Assignment op
-            self._codegen(Assignment(_.p, "=", Name(_.p, _.name), value))
+            self._codegen(Assignment(_.p, "=", 
+                ObjectRef(_.p, Name(_.p, _.name)), value))
 
     #################################################################
     # Control flow
@@ -971,7 +1012,8 @@ class AkiCodeGen:
             with self.builder.if_else(loop_condition) as (then_clause, else_clause):
                 with then_clause:
                     loop_body = self._codegen(node.body)
-                    n = self._codegen(Assignment(step, "+", step.lhs, step))
+                    n = self._codegen(Assignment(step, "+", 
+                    ObjectRef(step, step.lhs), step))
                     self.builder.branch(loop_test)
                 with else_clause:
                     pass
@@ -1143,6 +1185,7 @@ class AkiCodeGen:
         lhs = self._codegen(node.lhs)
         rhs = self._codegen(node.rhs)
 
+
         # Type checking for operation
         lhs_atype, rhs_atype = self._type_check_op(node, lhs, rhs)
         signed_op = lhs_atype.signed
@@ -1215,46 +1258,78 @@ class AkiCodeGen:
         # TODO: This assumes the left-hand side will always have the correct
         # type information to be propagated. Need to confirm this.
 
+    def _codegen_AccessorExpr(self, node, load=True):
+        # XXX: this should be a direct extraction codegen
+        expr = self._name(node.expr, node.expr.name)
+        index = getattr(expr.akitype, 'op_index', None)
+        if index is None:
+            raise AkiTypeErr(
+                node.expr, self.text,
+                "No index operator found for this type"
+            )
+        result = index(self, node, expr)
+        if load:
+            t= result.akitype
+            result = self.builder.load(result)
+            result.akitype=t
+        return result
+
     #################################################################
     # Values
     #################################################################
 
-    def _codegen_Assignment(self, node):
-        """
-        Assign value to variable pointer.
-        Note that we do not codegen `lhs`, since in theory
-        we already have that as a named value.
-        """
-
-        lhs = node.lhs
-        rhs = node.rhs
-
-        if not isinstance(lhs, Name):
-            raise AkiOpError(
+    def _codegen_ObjectRef(self, node):
+        # TODO: direct codegen of the node that does noload
+        if isinstance(node.expr, Name):
+            return self._name(node.expr, node.expr.name)
+        if isinstance(node.expr,AccessorExpr):
+            return self._codegen_AccessorExpr(node.expr, False)
+        raise AkiOpError(
                 node,
                 self.text,
                 f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable',
             )
 
-        ptr = self._name(node.lhs, lhs.name)
+    def _codegen_ObjectValue(self, node):
+        pass
+    
+    def _codegen_Assignment(self, node):
+        """
+        Assign value to variable pointer.        
+        """
+
+        # `lhs` should be an ObjectRef node.
+        # This `assert` will go away once we establish all
+        # the code paths to an Assignment.
+
+        assert isinstance(node.lhs, ObjectRef)
+
+        lhs = node.lhs
+        rhs = node.rhs
+
+        ptr = self._codegen(lhs)
         val = self._codegen(rhs)
+
         self._type_check_op(node, ptr, val)
         self.builder.store(val, ptr)
+
         return val
 
-    def _codegen_Name(self, node, load_from_ptr=True):
+    def _codegen_Name(self, node):
         """
         Generate a variable reference from a name.
         This always assumes we want the variable value associated with the name,
-        not the variable's pointer.        
+        not the variable's pointer.
+        For that, use ObjectRef.
+        This will eventually no longer be its own node, I think
         """
 
         # Types are returned, for now, as their enum
+        # TODO: Where possible in the grammar, generate nodes that return these directly.
 
         named_type = self._get_type_by_name(node.name)
 
         # TODO: if this is a function, should we look up the registered type?
-
         if named_type is not None and not isinstance(named_type, AkiFunction):
             return self._codegen(Constant(node, named_type.enum_id, self.types["type"]))
 
@@ -1274,8 +1349,7 @@ class AkiCodeGen:
             return name
 
         # Otherwise, load and decorate the value
-        if load_from_ptr:
-            load = self.builder.load(name)
+        load = self.builder.load(name)
         load.akinode = name.akinode
         load.akitype = name.akitype
         return load

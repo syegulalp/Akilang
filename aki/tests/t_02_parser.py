@@ -97,7 +97,7 @@ class TestLexer(unittest.TestCase):
                                     "Name",
                                     "y",
                                     ["Constant", 2, ["VarTypeName", "i32"]],
-                                    ["VarTypeName", None],
+                                    None,
                                 ],
                                 ["Name", "z", None, ["VarTypeName", "i32"]],
                             ],
@@ -176,7 +176,7 @@ class TestLexer(unittest.TestCase):
                         [
                             "Assignment",
                             "=",
-                            ["Name", "x", None, None],
+                            ['ObjectRef', ['Name', 'x', None, None]],
                             ["Constant", 5, ["VarTypeName", "i32"]],
                         ]
                     ],
@@ -204,7 +204,7 @@ class TestLexer(unittest.TestCase):
                         [
                             "Assignment",
                             "=",
-                            ["Name", "x", None, None],
+                            ['ObjectRef', ['Name', 'x', None, None]],
                             ["Constant", 1, ["VarTypeName", "i32"]],
                         ]
                     ],
@@ -251,7 +251,7 @@ class TestLexer(unittest.TestCase):
                     [
                         [
                             "Function",
-                            ["Prototype", "main", [], ["VarTypeName", None]],
+                            ["Prototype", "main", [], None],
                             [["Constant", 0, ["VarTypeName", "i32"]]],
                         ]
                     ],
@@ -270,14 +270,14 @@ class TestLexer(unittest.TestCase):
                             [
                                 "Prototype",
                                 "main",
-                                [["Argument", "x", ["VarTypeName", None], None]],
-                                ["VarTypeName", None],
+                                [["Argument", "x", None, None]],
+                                None,
                             ],
                             [
                                 [
                                     "Assignment",
                                     "=",
-                                    ["Name", "x", None, None],
+                                    ['ObjectRef', ['Name', 'x', None, None]],
                                     [
                                         "BinOp",
                                         "+",
@@ -305,7 +305,7 @@ class TestLexer(unittest.TestCase):
                                 [
                                     "Assignment",
                                     "=",
-                                    ["Name", "x", None, None],
+                                    ['ObjectRef', ['Name', 'x', None, None]],
                                     ["Constant", 0, ["VarTypeName", "i32"]],
                                 ],
                                 [
@@ -338,7 +338,7 @@ class TestLexer(unittest.TestCase):
                                             "Name",
                                             "x",
                                             ["Constant", 0, ["VarTypeName", "i32"]],
-                                            ["VarTypeName", None],
+                                            None,
                                         ]
                                     ],
                                 ],
@@ -477,7 +477,7 @@ class TestLexer(unittest.TestCase):
                                     "Name",
                                     "x",
                                     ["Constant", 1, ["VarTypeName", "i32"]],
-                                    ["VarTypeName", None],
+                                    None,
                                 ]
                             ],
                             ["ExpressionBlock", [["Name", "x", None, None]]],
@@ -494,13 +494,13 @@ class TestLexer(unittest.TestCase):
                                     "Name",
                                     "x",
                                     ["Constant", 1, ["VarTypeName", "i32"]],
-                                    ["VarTypeName", None],
+                                    None,
                                 ],
                                 [
                                     "Name",
                                     "y",
                                     ["Constant", 2, ["VarTypeName", "i32"]],
-                                    ["VarTypeName", None],
+                                    None,
                                 ],
                             ],
                             ["ExpressionBlock", [["Name", "x", None, None]]],

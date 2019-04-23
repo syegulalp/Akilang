@@ -72,6 +72,7 @@ class AkiLexer(Lexer):
         FALSE,
         NONE,
         UNSAFE,
+        ARRAY
     }
 
     ignore = " \t"
@@ -99,6 +100,7 @@ class AkiLexer(Lexer):
     NAME["False"] = FALSE
     NAME["None"] = NONE
     NAME["unsafe"] = UNSAFE
+    NAME["array"] = ARRAY
 
     INT_DIV = r"//"
     INCR = r"(\+\=)"

@@ -430,18 +430,50 @@ class AkiDouble(AkiBaseFloat):
 class AkiArray(AkiType):
     """
     Aki array type.
+    This is a raw array, not managed.
+    Arrays should not be stack-allocated.
     """
 
-    def __init__(self, vartype, dimensions):
-        super().__init__()
-        # With each one we create a nested type structure.
-        # Signature: `:array[20,32]:i32`
-        # `:array[20]:ptr u64` also OK
-        # For a dimensionless array, as in a function signature:
-        # `:array[]:i32` (not permitted in a declaration)
-        # Each newly created array type signature must be added to the
-        # module's enum list
+    signed = None
+    name = None
 
+    def __init__(self, module):
+        self.module = module
+
+    def new(self, codegen, node, base_type: AkiType, accessors: list):
+        if isinstance(base_type, AkiObject):
+            raise AkiTypeErr(
+                node.vartype, codegen.text,
+                "Arrays may only use scalars as their base types"
+            )
+        new = AkiArray(codegen.module)
+        array_type = base_type.llvm_type
+        for _, akitype in accessors:
+            array_type = ir.ArrayType(array_type, _)
+            array_type.akitype = akitype
+        new.llvm_type = array_type
+        new.type_id = f"array({base_type})[{','.join([str(_[0]) for _ in accessors])}]"
+        
+        #new.name = new.type_id
+
+        codegen.typemgr.add_type(new.type_id, new, codegen.module)
+        return new
+
+    def default(self, codegen, node):
+        return None
+
+    def op_index(self, codegen, node, expr):
+        current = expr
+        akitype_loc = current.type.pointee
+        indices = [_int(0)]
+        for _ in node.accessors.accessors:
+            akitype_loc = akitype_loc.element
+            akitype = akitype_loc.akitype
+            index = codegen._codegen(_)
+            indices.append(index)
+        result = codegen.builder.gep(current, indices)
+        result.akitype = akitype
+        return result
 
 class AkiString(AkiObject, AkiType):
     """
@@ -486,7 +518,6 @@ class AkiString(AkiObject, AkiType):
         #   malloc
         # store string data
         #   =
-
 
     def format_result(self, result):
 
@@ -595,6 +626,7 @@ class AkiTypeMgr:
         self.types["obj"] = AkiObject(self.module)
         self.types["str"] = AkiString(self.module)
         self.types["type"] = AkiTypeRef(self.module)
+        self.types["array"] = AkiArray(self.module)
 
         # Default type is a 32-bit signed integer
         self._default = self.types["i32"]
@@ -606,6 +638,7 @@ class AkiTypeMgr:
 
     def as_ptr(self, *a, **ka):
         new = self._ptr.new(*a, **ka)
+        # TODO: move this into the actual new method?
         self.add_type(new.type_id, new, self.module)
         return new
 

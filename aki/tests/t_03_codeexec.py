@@ -331,3 +331,20 @@ class TestLexer(unittest.TestCase):
                 (r'cast(2,f64)', None),
             )
         )
+
+    def test_array(self):
+        self._e(
+            (
+                (r'var x:array(:i32)[2,2] x[0,0]=32 x[0,1]=12 x[1,0]=8 x[0,1]+x[0,0]+x[1,0]',52),
+            )
+
+        )
+    def test_array_trapping(self):
+        self._ex(AkiTypeErr,
+            (
+                # arrays of non-scalars are not permitted
+                (r'var x:array(:str)[20]', None),
+                # assignments to non-array types not permitted
+                (r'var x:array(:i32)[20]=0', None),
+            )
+        )

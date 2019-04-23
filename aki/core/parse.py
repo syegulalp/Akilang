@@ -28,6 +28,11 @@ from core.astree import (
     DerefExpr,
     ChainExpr,
     UnsafeBlock,
+    Accessor,
+    AccessorExpr,
+    VarTypeAccessor,
+    ObjectRef,
+    ObjectValue,
 )
 from core.error import AkiSyntaxErr
 
@@ -191,36 +196,42 @@ class AkiParser(Parser):
 
     # names
 
-    @_("NAME")
-    def expr(self, p):
+    @_("NAME optaccessor")
+    def name_expr(self, p):
+        if p.optaccessor:
+            return AccessorExpr(Pos(p), Name(Pos(p), p.NAME), p.optaccessor)
         return Name(Pos(p), p.NAME)
+
+    @_("name_expr")
+    def expr(self, p):
+        return p.name_expr
 
     ctrl_chars = {
         # Bell
-        'a':'\a',
+        "a": "\a",
         # Backspace
-        'b':'\b',
+        "b": "\b",
         # Form feed
-        'f':'\f',
+        "f": "\f",
         # Line feed/newline
-        'n':'\n',
+        "n": "\n",
         # Carriage return
-        'r':'\r',
+        "r": "\r",
         # Horizontal tab
-        't':'\t',
+        "t": "\t",
         # vertical tab
-        'v':'\v'
+        "v": "\v",
     }
 
     char_code = {
         # 8-bit ASCII
-        'x':3,
+        "x": 3,
         # 16-bit Unicode
-        'u':5,
+        "u": 5,
         # 32-bit Unicode
-        'U':9
+        "U": 9,
     }
-    
+
     # string constants
 
     @_("TEXT1", "TEXT2")
@@ -234,11 +245,11 @@ class AkiParser(Parser):
             # a \\ generates an empty sequence
             # so we consume that and generate a single \
             if not n:
-                new_str.append('\\')
-                n=next(_subs)
+                new_str.append("\\")
+                n = next(_subs)
                 new_str.append(n)
                 continue
-            s = n[0]            
+            s = n[0]
             if s in self.ctrl_chars:
                 new_str.append(self.ctrl_chars[s])
                 new_str.append(n[1:])
@@ -252,7 +263,7 @@ class AkiParser(Parser):
                         Pos(p), self.text, f"Unrecognized hex sequence for character"
                     )
                 new_str.append(n[r:])
-            elif s in ('"',"'"):
+            elif s in ('"', "'"):
                 new_str.append(n[0:])
             else:
                 raise AkiSyntaxErr(
@@ -324,7 +335,8 @@ class AkiParser(Parser):
 
     @_("empty")
     def optvartype(self, p):
-        return VarTypeName(Pos(p), None)
+        #return VarTypeName(Pos(p), None)
+        return None
 
     @_("COLON vartypedef")
     def vartype(self, p):
@@ -333,6 +345,19 @@ class AkiParser(Parser):
     @_("NAME")
     def vartypekind(self, p):
         return VarTypeName(Pos(p), p.NAME)
+
+    @_("ARRAY LPAREN vartype RPAREN optaccessor")
+    def vartypekind(self, p):
+        name = p.vartype
+        if p.optaccessor:
+            name = VarTypeAccessor(Pos(p), name, p.optaccessor)
+        else:
+            name = VarTypeAccessor(
+                Pos(p),
+                name,
+                Accessor(Pos(p), [Constant(Pos(p), 0, VarTypeName(Pos(p), "i32"))]),
+            )
+        return name
 
     @_("FUNC LPAREN vartypelist RPAREN vartype")
     def vartypekind(self, p):
@@ -451,29 +476,40 @@ class AkiParser(Parser):
         "expr GT expr",
         "expr LT expr",
     )
-    def expr(self, p):
+    def comp_op(self, p):
         return BinOpComparison(Pos(p), p[1], p.expr0, p.expr1)
+
+    @_('comp_op')
+    def expr(self, p):
+        return p.comp_op
 
     #################################################################
     # assignment
     #################################################################
 
-    @_("NAME ASSIGN expr")
+    @_("name_expr")
+    def assigntarget(sepf, p):
+        return ObjectRef(Pos(p), 
+            p.name_expr
+        )
+
+
+    @_("assigntarget ASSIGN expr")
     def assignment_expr(self, p):
-        return Assignment(Pos(p), p[1], Name(Pos(p), p[0]), p.expr)
+        return Assignment(Pos(p), p.ASSIGN, p.assigntarget, p.expr)
 
     @_("assignment_expr")
     def expr(self, p):
         return p.assignment_expr
 
-    @_("NAME INCR expr", "NAME DECR expr")
+    @_("assigntarget INCR expr", "assigntarget DECR expr")
     def expr(self, p):
         # n+=expr / n-=expr are encoded as n=n+expr
         return Assignment(
             Pos(p),
             "=",
-            Name(Pos(p), p[0]),
-            BinOp(Pos(p), p[1][0], Name(Pos(p), p[0]), p.expr),
+            p.assigntarget,
+            BinOp(Pos(p), p[1][0], p.assigntarget.expr, p.expr),
         )
 
     #################################################################
@@ -541,9 +577,9 @@ class AkiParser(Parser):
             return p.assignment_expr
         return VarList(Pos(p), [p.varlistelement])
 
-    @_("LOOP LPAREN loop_expr_var COMMA expr COMMA expr RPAREN expr_block")
+    @_("LOOP LPAREN loop_expr_var COMMA comp_op COMMA expr RPAREN expr_block")
     def loop_expr(self, p):
-        return LoopExpr(Pos(p), [p.loop_expr_var, p.expr0, p.expr1], p.expr_block)
+        return LoopExpr(Pos(p), [p.loop_expr_var, p.comp_op, p.expr], p.expr_block)
 
     @_("LOOP empty expr_block", "LOOP LPAREN RPAREN expr_block")
     def loop_expr(self, p):
@@ -605,13 +641,29 @@ class AkiParser(Parser):
     # Accessor
     #################################################################
 
-    # @_("accessor_expr")
-    # def expr(self, p):
-    #     return p.accessor_expr
+    @_("LBRACKET RBRACKET")
+    def accessor_list(self, p):
+        return Accessor(Pos(p), [Constant(Pos(p), 0, VarTypeName(Pos(p), "i32"))])
 
-    # @_("expr LBRACKET accessor_list RBRACKET")
-    # def accessor_list(self, p):
-    #     pass
+    @_("LBRACKET accessors RBRACKET")
+    def accessor_list(self, p):
+        return Accessor(Pos(p), p.accessors)
+
+    @_("exprs COMMA expr")
+    def accessors(self, p):
+        return p.exprs + [p.expr]
+
+    @_("expr")
+    def accessors(self, p):
+        return [p.expr]
+
+    @_("accessor_list")
+    def optaccessor(self, p):
+        return p.accessor_list
+
+    @_("empty")
+    def optaccessor(self, p):
+        return None
 
     #################################################################
     # Empty
