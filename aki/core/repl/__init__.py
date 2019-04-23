@@ -366,7 +366,7 @@ pyaki  :{constants.VERSION}"""
         self.repl_cpl.anon_counter += 1
 
         call_name = f"_ANONYMOUS_{self.repl_cpl.anon_counter}"
-        proto = Prototype(_.p, call_name, (), VarTypeName(_.p, None))
+        proto = Prototype(_.p, call_name, (), None)
         func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
 
         if not immediate_mode:
@@ -392,13 +392,13 @@ pyaki  :{constants.VERSION}"""
                 Call(
                     _.p,
                     "c_data",
-                    (Call(_.p, call_name, (), VarTypeName(_.p, None)),),
-                    VarTypeName(_.p, None),
+                    (Call(_.p, call_name, (), None),),
+                    None,
                 )
             )
 
             call_name += "_WRAP"
-            proto = Prototype(_.p, call_name, (), VarTypeName(_.p, None))
+            proto = Prototype(_.p, call_name, (), None)
             func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
 
             # It's unlikely that this codegen will ever throw an error,

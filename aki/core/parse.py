@@ -311,7 +311,7 @@ class AkiParser(Parser):
 
     @_("TIMES NAME")
     def arg(self, p):
-        return StarArgument(Pos(p), p.NAME, VarTypeName(Pos(p), None))
+        return StarArgument(Pos(p), p.NAME, None)
 
     @_("optvartype argassign")
     def varassign(self, p):

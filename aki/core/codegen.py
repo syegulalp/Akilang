@@ -216,9 +216,7 @@ class AkiCodeGen:
         based on a `VarType` AST node sequence.
         """
         if node is None:
-            print ("OK")
             return self.typemgr._default
-            #return self._get_type_by_name(self.typemgr._default.type_id)
         if isinstance(node, AkiType):
             return node
         return getattr(self, f"_get_vartype_{node.__class__.__name__}")(node)
@@ -284,6 +282,20 @@ class AkiCodeGen:
 
         return aki_node
 
+    def _codegen_VarTypeFunc(self, node):
+        """
+        Traps expresson-level instances of the `func` type.
+        TODO: This will be removed as we refactor how types
+        are handled at the parser level.
+        """
+        func_type= self._get_vartype_VarTypeFunc(node)
+        n = self.typemgr.add_type(func_type.type_id, func_type, self.module)
+        n2= self._codegen(
+            Name(node, func_type.type_id, None, n)
+        )
+        return n2
+
+
     def _get_type_by_name(self, type_name):
         """
         Find a type in the current module by name.
@@ -292,10 +304,12 @@ class AkiCodeGen:
         """
         type_to_find = self.types.get(type_name, None)
         if type_to_find is None:
+            type_to_find = self.typemgr.custom_types.get(type_name, None)
+        if type_to_find is None:
             return None
         if isinstance(type_to_find, AkiType):
             return type_to_find
-        return None
+        raise
 
     #################################################################
     # Utilities
@@ -314,9 +328,20 @@ class AkiCodeGen:
         in a given context.
         """
         context = self.module.globals if is_global else self.fn.symtab
+        
         if name in context:
             raise AkiNameErr(
                 node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
+            )
+
+        if name in self.types:
+            raise AkiNameErr(
+                node, self.text, f'Name "{CMD}{name}{REP}" conflicts with an existing type'
+            )
+
+        if name in self.typemgr.custom_types:
+            raise AkiNameErr(
+                node, self.text, f'Name "{CMD}{name}{REP}" conflicts with an existing defined type'
             )
 
     def _scalar_as_bool(self, node, expr):
@@ -439,8 +464,17 @@ class AkiCodeGen:
             node_args.append(_)
 
         # Set return type.
+        
+        # If the AST node has no return type explicitly identified,
+        # make a note of it and use a temporary type for now.
+        # We'll assign the proper type to the signature after generating
+        # the function body.
+
         if node.return_type is None:
+            node.return_type_unset = True
             node.return_type = VarTypeName(node, self.typemgr._default.type_id)
+        else:
+            node.return_type_unset = False
             
         return_type = self._get_vartype(node.return_type)
         node.return_type.akitype = return_type
@@ -596,7 +630,7 @@ class AkiCodeGen:
         # If we don't explicitly assign a return type on the function prototype,
         # we infer it from the return value of the body.
 
-        if node.prototype.return_type.name is None:
+        if node.prototype.return_type_unset:
             r_type = result.akitype
 
             # Set the result holder
@@ -649,7 +683,8 @@ class AkiCodeGen:
         # We have to do this here because the signature may have mutated
         # during the construction process.
 
-        _ = self.typemgr.add_type(node.prototype.name, func.akitype, self.module)
+        #print (func.akitype.type_id)
+        _ = self.typemgr.add_type(func.akitype.type_id, func.akitype, self.module)
         if _ is None:
             raise AkiTypeErr(node, self.text, "Invalid name")
         func.enum_id = func.akitype.enum_id
@@ -1330,11 +1365,12 @@ class AkiCodeGen:
         named_type = self._get_type_by_name(node.name)
 
         # TODO: if this is a function, should we look up the registered type?
-        if named_type is not None and not isinstance(named_type, AkiFunction):
+        # ... and not isinstance(named_type, AkiFunction):
+
+        if named_type is not None:
             return self._codegen(Constant(node, named_type.enum_id, self.types["type"]))
 
         name = self._name(node, node.name)
-
         # Return object types as a pointer
 
         if self._is_type(node, name, AkiObject):
