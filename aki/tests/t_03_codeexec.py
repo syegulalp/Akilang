@@ -278,6 +278,9 @@ class TestLexer(unittest.TestCase):
                     r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x()",
                     32,
                 ),
+                
+                # TODO: doesn't work yet
+                #(r'def b1(x:ptr i32){x} var q=ref(b1)',0)
             )
         )
         self._ex(
@@ -346,5 +349,21 @@ class TestLexer(unittest.TestCase):
                 (r'var x:array(:str)[20]', None),
                 # assignments to non-array types not permitted
                 (r'var x:array(:i32)[20]=0', None),
+            )
+        )
+
+    def test_pointer_comparison(self):
+        self._e(
+            (
+                (r'def a1(x:ptr i32){x} var x=32 var y=ref(x) var z=a1(y) z==y', True),
+            )
+        )
+
+
+    def test_autoset_return_type(self):
+        self._e(
+            (
+                (f'def a(){32} type(a())==i32',True),
+                (f'def a(){32} type(a)==func():i32',True),
             )
         )
