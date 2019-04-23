@@ -106,6 +106,12 @@ class AkiPointer(AkiType):
     signed = False
     llvm_type: Optional[ir.Type] = None
 
+    comp_ops = {
+        "==": ".eqop",
+        "!=": ".neqop"
+    }
+    comp_ins = "icmp_unsigned"
+
     def __init__(self, module: ir.Module):
         self.module = module
         self.bits = module.typemgr._pointer_width
@@ -499,7 +505,7 @@ class AkiString(AkiObject, AkiType):
 
     def default(self, codegen, node):
         null_str = codegen._codegen(
-            String(node, "", VarTypeName(node, None))
+            String(node, "", None)
         ).get_reference()
         return null_str
 
@@ -643,11 +649,9 @@ class AkiTypeMgr:
         return new
 
     def add_type(self, type_name: str, type_ref: AkiType, module_ref):
-        if module_ref.name not in self.custom_types:
-            self.custom_types[module_ref.name] = {}
-        if type_name in self.custom_types[module_ref.name]:
-            return self.custom_types[module_ref.name][type_name]
-        self.custom_types[module_ref.name][type_name] = type_ref
+        if type_name in self.custom_types:
+            return self.custom_types[type_name]
+        self.custom_types[type_name] = type_ref
         setattr(type_ref, "enum_id", self.enum_id_ctr)
         self.enum_ids[self.enum_id_ctr] = type_ref
         self.enum_id_ctr += 1
