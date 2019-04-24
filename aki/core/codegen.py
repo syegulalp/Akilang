@@ -649,6 +649,13 @@ class AkiCodeGen:
 
             # Set the Aki type node for the function
             func.akitype.return_type = r_type
+            
+            # The llvm_type node on the akitype node also needs to be set
+            func.akitype.llvm_type = func.type
+
+            # I know, the above is terrible and I deserve to be
+            # thrown into a pit of voles for writing it.
+            # I swear to Ptah I will fix it someday.
 
         # If the function prototype and return type still don't agree,
         # throw an exception
@@ -683,7 +690,6 @@ class AkiCodeGen:
         # We have to do this here because the signature may have mutated
         # during the construction process.
 
-        #print (func.akitype.type_id)
         _ = self.typemgr.add_type(func.akitype.type_id, func.akitype, self.module)
         if _ is None:
             raise AkiTypeErr(node, self.text, "Invalid name")
@@ -1371,8 +1377,12 @@ class AkiCodeGen:
             return self._codegen(Constant(node, named_type.enum_id, self.types["type"]))
 
         name = self._name(node, node.name)
-        # Return object types as a pointer
+        
+        # Functions can be returned as-is
+        if isinstance(name, ir.Function):
+            return name
 
+        # Return object types as a pointer
         if self._is_type(node, name, AkiObject):
             # ... by way of a variable (ir.AllocaInstr)
             if isinstance(name, ir.AllocaInstr):
@@ -1592,6 +1602,7 @@ class AkiCodeGen:
             r2.akitype.llvm_type.pointee.akitype.original_function = (
                 r1.akitype.original_function
             )
+
             return r2
 
         # The `gep` creates a no-op copy of the original value so we can

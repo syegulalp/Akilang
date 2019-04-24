@@ -280,7 +280,7 @@ class TestLexer(unittest.TestCase):
                 ),
                 
                 # TODO: doesn't work yet
-                #(r'def b1(x:ptr i32){x} var q=ref(b1)',0)
+                (r'def b1(x:ptr i32){x} var q=ref(b1)',0)
             )
         )
         self._ex(
