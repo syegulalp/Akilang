@@ -389,12 +389,7 @@ pyaki  :{constants.VERSION}"""
             ast_stack = []
 
             ast_stack.append(
-                Call(
-                    _.p,
-                    "c_data",
-                    (Call(_.p, call_name, (), None),),
-                    None,
-                )
+                Call(_.p, "c_data", (Call(_.p, call_name, (), None),), None)
             )
 
             call_name += "_WRAP"

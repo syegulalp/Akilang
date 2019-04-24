@@ -32,7 +32,7 @@ from core.astree import (
     Call,
     AccessorExpr,
     ObjectValue,
-    ObjectRef
+    ObjectRef,
 )
 from core.error import (
     AkiNameErr,
@@ -138,7 +138,7 @@ class AkiCodeGen:
     def _codegen(self, node):
         """
         Dispatch function for codegen based on AST classes.
-        """        
+        """
         method = f"_codegen_{node.__class__.__name__}"
         result = getattr(self, method)(node)
         return result
@@ -182,7 +182,7 @@ class AkiCodeGen:
                 node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
             )
 
-    def _alloca(self, node, llvm_type, name, size=None, is_global=False, is_heap = False):
+    def _alloca(self, node, llvm_type, name, size=None, is_global=False, is_heap=False):
         """
         Allocate space for a variable.
         Right now this is stack-only; eventually it'll include
@@ -244,20 +244,18 @@ class AkiCodeGen:
 
         return var_lookup
 
-    def _get_vartype_VarTypeAccessor(self, node):                 
+    def _get_vartype_VarTypeAccessor(self, node):
         base_type = self._get_vartype(node.vartype)
         accessors = []
         for _ in node.accessors.accessors:
             accessor_type = self._get_vartype(_.vartype)
             if not isinstance(accessor_type, AkiBaseInt):
                 raise AkiSyntaxErr(
-                    _, self.text,
-                    "Array indices must be integer constants"
+                    _, self.text, "Array indices must be integer constants"
                 )
-            accessors.append([_.val,accessor_type])            
-        array_type = self.types['array'].new(self, node, base_type, accessors)
+            accessors.append([_.val, accessor_type])
+        array_type = self.types["array"].new(self, node, base_type, accessors)
         return array_type
-
 
     def _get_vartype_VarTypePtr(self, node):
         """
@@ -288,13 +286,10 @@ class AkiCodeGen:
         TODO: This will be removed as we refactor how types
         are handled at the parser level.
         """
-        func_type= self._get_vartype_VarTypeFunc(node)
+        func_type = self._get_vartype_VarTypeFunc(node)
         n = self.typemgr.add_type(func_type.type_id, func_type, self.module)
-        n2= self._codegen(
-            Name(node, func_type.type_id, None, n)
-        )
+        n2 = self._codegen(Name(node, func_type.type_id, None, n))
         return n2
-
 
     def _get_type_by_name(self, type_name):
         """
@@ -328,7 +323,7 @@ class AkiCodeGen:
         in a given context.
         """
         context = self.module.globals if is_global else self.fn.symtab
-        
+
         if name in context:
             raise AkiNameErr(
                 node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
@@ -336,12 +331,16 @@ class AkiCodeGen:
 
         if name in self.types:
             raise AkiNameErr(
-                node, self.text, f'Name "{CMD}{name}{REP}" conflicts with an existing type'
+                node,
+                self.text,
+                f'Name "{CMD}{name}{REP}" conflicts with an existing type',
             )
 
         if name in self.typemgr.custom_types:
             raise AkiNameErr(
-                node, self.text, f'Name "{CMD}{name}{REP}" conflicts with an existing defined type'
+                node,
+                self.text,
+                f'Name "{CMD}{name}{REP}" conflicts with an existing defined type',
             )
 
     def _scalar_as_bool(self, node, expr):
@@ -451,7 +450,7 @@ class AkiCodeGen:
                     f'Function "{node.name}" has non-default argument "{_.name}" after default arguments',
                 )
             if _.vartype is None:
-                #_.vartype.name = self.typemgr._default.type_id
+                # _.vartype.name = self.typemgr._default.type_id
                 _.vartype = self.typemgr._default
             arg_vartype = self._get_vartype(_.vartype)
 
@@ -464,7 +463,7 @@ class AkiCodeGen:
             node_args.append(_)
 
         # Set return type.
-        
+
         # If the AST node has no return type explicitly identified,
         # make a note of it and use a temporary type for now.
         # We'll assign the proper type to the signature after generating
@@ -475,7 +474,7 @@ class AkiCodeGen:
             node.return_type = VarTypeName(node, self.typemgr._default.type_id)
         else:
             node.return_type_unset = False
-            
+
         return_type = self._get_vartype(node.return_type)
         node.return_type.akitype = return_type
 
@@ -560,7 +559,7 @@ class AkiCodeGen:
         # Generate entry block and function body.
 
         self.entry_block = func.append_basic_block("entry")
-        #self.fn.alloc_block = self.entry_block
+        # self.fn.alloc_block = self.entry_block
         self.fn.allocator = ir.IRBuilder(self.entry_block)
 
         # Add prototype arguments to function symbol table
@@ -644,12 +643,11 @@ class AkiCodeGen:
             func.return_value.akitype = r_type
 
             # Set the return type on the function's own signature
-            # func.type.pointee.return_type = r_type.llvm_type
             func.ftype.return_type = r_type.llvm_type
 
             # Set the Aki type node for the function
             func.akitype.return_type = r_type
-            
+
             # The llvm_type node on the akitype node also needs to be set
             func.akitype.llvm_type = func.type
 
@@ -738,7 +736,7 @@ class AkiCodeGen:
                 # and no default vartype, then create the default
 
                 if _.vartype is None:
-                    #_.vartype = Name(_.p, self.types.default.type_id)
+                    # _.vartype = Name(_.p, self.types.default.type_id)
                     _.vartype = Name(_.p, self.typemgr._default.type_id)
 
                 _.akitype = self._get_vartype(_.vartype)
@@ -777,8 +775,9 @@ class AkiCodeGen:
 
             # and store the value itself to the variable
             # by way of an Assignment op
-            self._codegen(Assignment(_.p, "=", 
-                ObjectRef(_.p, Name(_.p, _.name)), value))
+            self._codegen(
+                Assignment(_.p, "=", ObjectRef(_.p, Name(_.p, _.name)), value)
+            )
 
     #################################################################
     # Control flow
@@ -1053,8 +1052,9 @@ class AkiCodeGen:
             with self.builder.if_else(loop_condition) as (then_clause, else_clause):
                 with then_clause:
                     loop_body = self._codegen(node.body)
-                    n = self._codegen(Assignment(step, "+", 
-                    ObjectRef(step, step.lhs), step))
+                    n = self._codegen(
+                        Assignment(step, "+", ObjectRef(step, step.lhs), step)
+                    )
                     self.builder.branch(loop_test)
                 with else_clause:
                     pass
@@ -1226,7 +1226,6 @@ class AkiCodeGen:
         lhs = self._codegen(node.lhs)
         rhs = self._codegen(node.rhs)
 
-
         # Type checking for operation
         lhs_atype, rhs_atype = self._type_check_op(node, lhs, rhs)
         signed_op = lhs_atype.signed
@@ -1302,17 +1301,16 @@ class AkiCodeGen:
     def _codegen_AccessorExpr(self, node, load=True):
         # XXX: this should be a direct extraction codegen
         expr = self._name(node.expr, node.expr.name)
-        index = getattr(expr.akitype, 'op_index', None)
+        index = getattr(expr.akitype, "op_index", None)
         if index is None:
             raise AkiTypeErr(
-                node.expr, self.text,
-                "No index operator found for this type"
+                node.expr, self.text, "No index operator found for this type"
             )
         result = index(self, node, expr)
         if load:
-            t= result.akitype
+            t = result.akitype
             result = self.builder.load(result)
-            result.akitype=t
+            result.akitype = t
         return result
 
     #################################################################
@@ -1323,17 +1321,17 @@ class AkiCodeGen:
         # TODO: direct codegen of the node that does noload
         if isinstance(node.expr, Name):
             return self._name(node.expr, node.expr.name)
-        if isinstance(node.expr,AccessorExpr):
+        if isinstance(node.expr, AccessorExpr):
             return self._codegen_AccessorExpr(node.expr, False)
         raise AkiOpError(
-                node,
-                self.text,
-                f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable',
-            )
+            node,
+            self.text,
+            f'Assignment target "{CMD}{node.lhs}{REP}" must be a variable',
+        )
 
     def _codegen_ObjectValue(self, node):
         pass
-    
+
     def _codegen_Assignment(self, node):
         """
         Assign value to variable pointer.        
@@ -1377,7 +1375,7 @@ class AkiCodeGen:
             return self._codegen(Constant(node, named_type.enum_id, self.types["type"]))
 
         name = self._name(node, node.name)
-        
+
         # Functions can be returned as-is
         if isinstance(name, ir.Function):
             return name

@@ -106,10 +106,7 @@ class AkiPointer(AkiType):
     signed = False
     llvm_type: Optional[ir.Type] = None
 
-    comp_ops = {
-        "==": ".eqop",
-        "!=": ".neqop"
-    }
+    comp_ops = {"==": ".eqop", "!=": ".neqop"}
     comp_ins = "icmp_unsigned"
 
     def __init__(self, module: ir.Module):
@@ -449,8 +446,9 @@ class AkiArray(AkiType):
     def new(self, codegen, node, base_type: AkiType, accessors: list):
         if isinstance(base_type, AkiObject):
             raise AkiTypeErr(
-                node.vartype, codegen.text,
-                "Arrays may only use scalars as their base types"
+                node.vartype,
+                codegen.text,
+                "Arrays may only use scalars as their base types",
             )
         new = AkiArray(codegen.module)
         array_type = base_type.llvm_type
@@ -459,8 +457,8 @@ class AkiArray(AkiType):
             array_type.akitype = akitype
         new.llvm_type = array_type
         new.type_id = f"array({base_type})[{','.join([str(_[0]) for _ in accessors])}]"
-        
-        #new.name = new.type_id
+
+        # new.name = new.type_id
 
         codegen.typemgr.add_type(new.type_id, new, codegen.module)
         return new
@@ -480,6 +478,7 @@ class AkiArray(AkiType):
         result = codegen.builder.gep(current, indices)
         result.akitype = akitype
         return result
+
 
 class AkiString(AkiObject, AkiType):
     """
@@ -504,9 +503,7 @@ class AkiString(AkiObject, AkiType):
         return ctypes.c_void_p
 
     def default(self, codegen, node):
-        null_str = codegen._codegen(
-            String(node, "", None)
-        ).get_reference()
+        null_str = codegen._codegen(String(node, "", None)).get_reference()
         return null_str
 
     def binop_add(self, codegen, node, lhs, rhs, op_name):

@@ -335,7 +335,7 @@ class AkiParser(Parser):
 
     @_("empty")
     def optvartype(self, p):
-        #return VarTypeName(Pos(p), None)
+        # return VarTypeName(Pos(p), None)
         return None
 
     @_("COLON vartypedef")
@@ -479,7 +479,7 @@ class AkiParser(Parser):
     def comp_op(self, p):
         return BinOpComparison(Pos(p), p[1], p.expr0, p.expr1)
 
-    @_('comp_op')
+    @_("comp_op")
     def expr(self, p):
         return p.comp_op
 
@@ -489,10 +489,7 @@ class AkiParser(Parser):
 
     @_("name_expr")
     def assigntarget(sepf, p):
-        return ObjectRef(Pos(p), 
-            p.name_expr
-        )
-
+        return ObjectRef(Pos(p), p.name_expr)
 
     @_("assigntarget ASSIGN expr")
     def assignment_expr(self, p):
