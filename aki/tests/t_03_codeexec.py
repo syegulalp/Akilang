@@ -238,19 +238,15 @@ class TestLexer(unittest.TestCase):
         )
 
     # Trap expressions that return no value, like `var`
-    
-    def test_nonyielding_expression_trap(self):        
-        self._ex(AkiSyntaxErr,(
-            (r"if {var x:i32=1} 2 else 3", None),
-            (r"{var x:i32=1}==1", None)
-            
+
+    def test_nonyielding_expression_trap(self):
+        self._ex(
+            AkiSyntaxErr,
+            ((r"if {var x:i32=1} 2 else 3", None), (r"{var x:i32=1}==1", None)),
         )
-    )
 
     def test_function_default_trap(self):
-        self._ex(AkiSyntaxErr, (
-            (r"def x1(x={var x:i32=1 x}){}", None),
-        ))
+        self._ex(AkiSyntaxErr, ((r"def x1(x={var x:i32=1 x}){}", None),))
 
     def test_ref_deref(self):
         self._e(
@@ -278,9 +274,7 @@ class TestLexer(unittest.TestCase):
                     r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) x()",
                     32,
                 ),
-                
-                # TODO: doesn't work yet
-                (r'def b1(x:ptr i32){x} var q=ref(b1)',0)
+                (r"def b1(x:ptr i32){x} var q=ref(b1)", 0),
             )
         )
         self._ex(
@@ -303,67 +297,75 @@ class TestLexer(unittest.TestCase):
         self._e(
             (
                 # truncation
-                (r'unsafe cast(0x000000ff,u8)',255),
-                (r'type(unsafe cast(0x000000ff,u8))=={var x:u8 type(x)}',True),
+                (r"unsafe cast(0x000000ff,u8)", 255),
+                (r"type(unsafe cast(0x000000ff,u8))=={var x:u8 type(x)}", True),
                 # zero extend
-                (r'unsafe cast(0xff,u64)',255),
-                (r'type(unsafe cast(0xff,u64))=={var x:u64 type(x)}',True),
+                (r"unsafe cast(0xff,u64)", 255),
+                (r"type(unsafe cast(0xff,u64))=={var x:u64 type(x)}", True),
                 # signed to unsigned
-                (r'unsafe cast(0hff,i8)',-1),
-                (r'type(unsafe cast(0hff,i8))=={var x:i8 type(x)}',True),
+                (r"unsafe cast(0hff,i8)", -1),
+                (r"type(unsafe cast(0hff,i8))=={var x:i8 type(x)}", True),
                 # int to ptr
-                (r'var x:u_size var y=unsafe cast(x, ptr u_mem) type(y)', '<type:ptr u8>'),
+                (
+                    r"var x:u_size var y=unsafe cast(x, ptr u_mem) type(y)",
+                    "<type:ptr u8>",
+                ),
                 # ptr to int
-                (r'var x:ptr u_mem var y=unsafe cast(x, u_size) type(y)', '<type:u64>')
+                (r"var x:ptr u_mem var y=unsafe cast(x, u_size) type(y)", "<type:u64>"),
             )
         )
+
     def test_incorrect_casting(self):
-        self._ex(AkiTypeErr,
-        (
-            (r'var x:ptr u_mem var y=unsafe cast(x, i32) type(y)', None),
-            (r'var x:i32 var y=unsafe cast(x, ptr u_mem) type(y)', None),
-            (r'unsafe cast(32,str)', None),
-            (r'unsafe cast("Hello",i32)', None),
+        self._ex(
+            AkiTypeErr,
+            (
+                (r"var x:ptr u_mem var y=unsafe cast(x, i32) type(y)", None),
+                (r"var x:i32 var y=unsafe cast(x, ptr u_mem) type(y)", None),
+                (r"unsafe cast(32,str)", None),
+                (r'unsafe cast("Hello",i32)', None),
+            ),
         )
-    )
-    
+
     def test_unsafe_trapping(self):
-        self._ex(AkiSyntaxErr,
+        self._ex(
+            AkiSyntaxErr,
             (
                 # `cast` operations are unsafe
-                (r'cast(2,f64)', None),
-            )
+                (r"cast(2,f64)", None),
+            ),
         )
 
     def test_array(self):
         self._e(
             (
-                (r'var x:array(:i32)[2,2] x[0,0]=32 x[0,1]=12 x[1,0]=8 x[0,1]+x[0,0]+x[1,0]',52),
+                (
+                    r"var x:array(:i32)[2,2] x[0,0]=32 x[0,1]=12 x[1,0]=8 x[0,1]+x[0,0]+x[1,0]",
+                    52,
+                ),
             )
-
         )
+
     def test_array_trapping(self):
-        self._ex(AkiTypeErr,
+        self._ex(
+            AkiTypeErr,
             (
                 # arrays of non-scalars are not permitted
-                (r'var x:array(:str)[20]', None),
+                (r"var x:array(:str)[20]", None),
                 # assignments to non-array types not permitted
-                (r'var x:array(:i32)[20]=0', None),
-            )
+                (r"var x:array(:i32)[20]=0", None),
+            ),
         )
 
     def test_pointer_comparison(self):
         self._e(
-            (
-                (r'def a1(x:ptr i32){x} var x=32 var y=ref(x) var z=a1(y) z==y', True),
-            )
+            ((r"def a1(x:ptr i32){x} var x=32 var y=ref(x) var z=a1(y) z==y", True),)
         )
-
 
     def test_autoset_return_type(self):
         self._e(
             (
-                (f'def a(){32} type(a())==i32',True),
-                (f'def a(){32} type(a)==func():i32',True),
+                (f"def a(){32} type(a())==i32", True),
+                (f"def a(){32} type(a)==func():i32", True),
             )
         )
+

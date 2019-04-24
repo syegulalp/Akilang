@@ -40,24 +40,20 @@ class TestLexer(unittest.TestCase):
     def test_string(self):
         self._e(
             (
-                (r'"Hello world"',[['String', 'Hello world']]),
-                (r'"Hello \" world"',[['String', 'Hello " world']]),
-                (r"'Hello \' world'",[['String', "Hello ' world"]]),
-                (r"'Hello \\ world'",[['String', "Hello \\ world"]]),
-                (r"'\x40'",[['String', "@"]]),
-                (r"'\u0040'",[['String', "@"]]),
-                (r"'\U00000040'",[['String', "@"]]),
-                (r"'\x40_'",[['String', "@_"]]),
-                (r"'\u0040_'",[['String', "@_"]]),
-                (r"'\U00000040_'",[['String', "@_"]]),
+                (r'"Hello world"', [["String", "Hello world"]]),
+                (r'"Hello \" world"', [["String", 'Hello " world']]),
+                (r"'Hello \' world'", [["String", "Hello ' world"]]),
+                (r"'Hello \\ world'", [["String", "Hello \\ world"]]),
+                (r"'\x40'", [["String", "@"]]),
+                (r"'\u0040'", [["String", "@"]]),
+                (r"'\U00000040'", [["String", "@"]]),
+                (r"'\x40_'", [["String", "@_"]]),
+                (r"'\u0040_'", [["String", "@_"]]),
+                (r"'\U00000040_'", [["String", "@_"]]),
             )
         )
-        self._ex(AkiSyntaxErr,
-            (
-                (r"'\xq5'"),
-            )
-        )
-    
+        self._ex(AkiSyntaxErr, ((r"'\xq5'"),))
+
     def test_constant(self):
         self._e(
             (
@@ -70,7 +66,7 @@ class TestLexer(unittest.TestCase):
             )
         )
         # These are syntactically valid dot expressions
-        #self._ex(AkiSyntaxErr, ((r"32.x"), (r"x.32")))
+        # self._ex(AkiSyntaxErr, ((r"32.x"), (r"x.32")))
 
     def test_expr_names(self):
         self._e(
@@ -176,7 +172,7 @@ class TestLexer(unittest.TestCase):
                         [
                             "Assignment",
                             "=",
-                            ['ObjectRef', ['Name', 'x', None, None]],
+                            ["ObjectRef", ["Name", "x", None, None]],
                             ["Constant", 5, ["VarTypeName", "i32"]],
                         ]
                     ],
@@ -204,7 +200,7 @@ class TestLexer(unittest.TestCase):
                         [
                             "Assignment",
                             "=",
-                            ['ObjectRef', ['Name', 'x', None, None]],
+                            ["ObjectRef", ["Name", "x", None, None]],
                             ["Constant", 1, ["VarTypeName", "i32"]],
                         ]
                     ],
@@ -277,7 +273,7 @@ class TestLexer(unittest.TestCase):
                                 [
                                     "Assignment",
                                     "=",
-                                    ['ObjectRef', ['Name', 'x', None, None]],
+                                    ["ObjectRef", ["Name", "x", None, None]],
                                     [
                                         "BinOp",
                                         "+",
@@ -305,7 +301,7 @@ class TestLexer(unittest.TestCase):
                                 [
                                     "Assignment",
                                     "=",
-                                    ['ObjectRef', ['Name', 'x', None, None]],
+                                    ["ObjectRef", ["Name", "x", None, None]],
                                     ["Constant", 0, ["VarTypeName", "i32"]],
                                 ],
                                 [
