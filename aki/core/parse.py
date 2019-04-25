@@ -567,7 +567,6 @@ class AkiParser(Parser):
 
     # "loop" expressions
 
-    # TODO: replace with regular var list
     @_("VAR varlistelement", "assignment_expr")
     def loop_expr_var(self, p):
         if isinstance(p[0], Assignment):
