@@ -361,8 +361,8 @@ class TestLexer(unittest.TestCase):
     def test_autoset_return_type(self):
         self._e(
             (
-                (f"def a(){32} type(a())==i32", True),
-                (f"def a(){32} type(a)==func():i32", True),
+                (r"def a(){32} type(a())==i32", True),
+                (r"def a(){32} type(a)==func():i32", True),
             )
         )
 
