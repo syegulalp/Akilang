@@ -85,8 +85,8 @@ world!") # so are multi-line strings, as linebreaks are arbitrary
 
 ```
 def main() {
-    var a = 0U, b = 1U, c = 0U
-    # U = unsigned 64-bit integer
+    var a = 0:u64, b = 1:u64, c = 0:u64
+    # :u64 = unsigned 64-bit integer
     loop (x = 0, x < 50) {
         # by default loops increment by one
         print (a)
@@ -126,7 +126,7 @@ This project is based (very loosely) on the
 [Pykaleidoscope project](https://github.com/frederickjeanguerin/pykaleidoscope) by [Frédéric Guérin](https://github.com/frederickjeanguerin), 
 derived in turn from the [Pykaleidoscope project](https://github.com/eliben/pykaleidoscope) by [Eli Bendersky](https://github.com/eliben). (An earlier version of this project used their code directly; this version is a complete rewrite from scratch.)
 
-The original Pykaleidoscope project was made available under the [Unlicense](https://github.com/eliben/pykaleidoscope/blob/master/LICENSE). This version is distributed under the [MIT license](LICENSE.TXT).
+The original Pykaleidoscope project was made available under the [Unlicense](https://github.com/eliben/pykaleidoscope/blob/master/LICENSE). This version is distributed under the [MIT license](LICENSE).
 
 Licensing for included and to-be-included modules:
 
