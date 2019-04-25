@@ -51,7 +51,6 @@ class FuncState:
     Object for storing function state, such as its symbol table,
     and context information such as the decorator stack and 
     `unsafe` states.
-    TODO: let's make this into a context manager, maybe
     """
 
     def __init__(self):
@@ -283,9 +282,9 @@ class AkiCodeGen:
     def _codegen_VarTypeFunc(self, node):
         """
         Traps expresson-level instances of the `func` type.
-        TODO: This will be removed as we refactor how types
-        are handled at the parser level.
         """
+        # TODO: This will be removed as we refactor how types
+        # are handled at the parser level.
         func_type = self._get_vartype_VarTypeFunc(node)
         n = self.typemgr.add_type(func_type.type_id, func_type, self.module)
         n2 = self._codegen(Name(node, func_type.type_id, None, n))
@@ -298,13 +297,19 @@ class AkiCodeGen:
         types registered with the module, e.g., by function signatures.
         """
         type_to_find = self.types.get(type_name, None)
-        if type_to_find is None:
-            type_to_find = self.typemgr.custom_types.get(type_name, None)
-        if type_to_find is None:
-            return None
-        if isinstance(type_to_find, AkiType):
+        if type_to_find:
             return type_to_find
-        raise
+
+        type_to_find = self.typemgr.custom_types.get(type_name, None)
+        if type_to_find:
+            return type_to_find
+
+        for _ in self.other_modules:
+            type_to_find = _.typemgr.custom_types.get(type_name, None)
+            if type_to_find:
+                return type_to_find
+
+        return None
 
     #################################################################
     # Utilities
@@ -504,8 +509,6 @@ class AkiCodeGen:
         proto.akitype = function_type
 
         # Add Aki type metadata
-        # TODO:
-        # store the original string for the function sig and use that
 
         # aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
         # proto.set_metadata("aki.type", aki_type_metadata)
@@ -609,13 +612,6 @@ class AkiCodeGen:
         # and return that.
 
         assert isinstance(result, ir.Instruction)
-
-        # TODO: We need to set a flag somewhere indicating that the function
-        # did not return a value, so that it can be used later.
-        # (for instance, when checking to see if a given statement returns a value)
-        # This could be set in the LLVM function object,
-        # in the Aki type for the function definition,
-        # or in the AST node. Not sure which one would be best.
 
         if result is None:
             result = self._codegen(
@@ -797,6 +793,8 @@ class AkiCodeGen:
         # TODO: get a pre-generated AST node that represents the builtin,
         # verify its arguments and other behavior as we would another function call,
         # then instead of codegenning a call, we codegen the body inline
+        # another possibility: when generating calls in the AST,
+        # intercept builtins from a central list and check them there
 
         # check if this is a request for a type
         # this will eventually go somewhere else
@@ -867,18 +865,40 @@ class AkiCodeGen:
             call_func = self._name(node, node.name)
             args = []
 
-            # If this is a function pointer, get the original function
+            # If this is a function pointer ...
 
             if isinstance(call_func, ir.AllocaInstr):
-                cf = call_func.akitype.original_function
-                if cf is None:
+
+                # get the actual function reference
+                func_type_id = call_func.akitype.type_id
+                load_call_func = self.builder.load(call_func)
+
+                # set the name to use for the call
+                final_call_func = load_call_func
+
+                # set the description to use in the call
+                call_func_name = node.name
+
+                # use the type ID for the function to get a signature
+                # that we can use for checking the arguments.
+                # Note that this means checks for things like mandatory
+                # arguments are NOT going to work, because that isn't
+                # part of the type signature as we currently have it
+                # (although eventually it will be)
+
+                original_call_func = self._get_type_by_name(
+                    func_type_id
+                ).original_function
+                if original_call_func is None:
                     raise AkiTypeErr(
                         node,
                         self.text,
                         f'"{CMD}{node.name}{REP}" is "{CMD}{call_func.akitype}{REP}", not a function',
                     )
-                else:
-                    call_func = cf
+                call_func = original_call_func
+            else:
+                call_func_name = call_func.name
+                final_call_func = call_func
 
             # If we have too many arguments,
             # and we're not processing a vararg function, give up
@@ -948,7 +968,7 @@ class AkiCodeGen:
                 f'Function call to "{CMD}{node.name}{REP}" expected {CMD}{len(call_func.args)}{REP} arguments but got {CMD}{len(node.arguments)}{REP}\n{args}',
             )
 
-        call = self.builder.call(call_func, args, call_func.name + ".call")
+        call = self.builder.call(final_call_func, args, call_func_name + ".call")
         call.akitype = call_func.akitype.return_type
         call.akinode = call_func.akinode
         return call
@@ -1311,6 +1331,8 @@ class AkiCodeGen:
             t = result.akitype
             result = self.builder.load(result)
             result.akitype = t
+            result.akinode = node
+            result.akinode.vartype = result.akitype.type_id
         return result
 
     #################################################################
@@ -1318,7 +1340,6 @@ class AkiCodeGen:
     #################################################################
 
     def _codegen_ObjectRef(self, node):
-        # TODO: direct codegen of the node that does noload
         if isinstance(node.expr, Name):
             return self._name(node.expr, node.expr.name)
         if isinstance(node.expr, AccessorExpr):
@@ -1364,12 +1385,8 @@ class AkiCodeGen:
         """
 
         # Types are returned, for now, as their enum
-        # TODO: Where possible in the grammar, generate nodes that return these directly.
 
         named_type = self._get_type_by_name(node.name)
-
-        # TODO: if this is a function, should we look up the registered type?
-        # ... and not isinstance(named_type, AkiFunction):
 
         if named_type is not None:
             return self._codegen(Constant(node, named_type.enum_id, self.types["type"]))

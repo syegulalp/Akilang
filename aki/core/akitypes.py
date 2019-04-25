@@ -6,7 +6,7 @@ from typing import Optional
 from core.error import AkiTypeErr
 
 
-def _int(value):
+def _int(value: int):
     return ir.Constant(ir.IntType(32), value)
 
 
@@ -21,7 +21,7 @@ class AkiType:
     enum_id: Optional[int] = None
     comp_ins: Optional[str] = None
     original_function: Optional[ir.Function] = None
-    literal_ptr = False
+    literal_ptr: bool = False
 
     comp_ops = {
         "==": ".eqop",
@@ -444,21 +444,31 @@ class AkiArray(AkiType):
         self.module = module
 
     def new(self, codegen, node, base_type: AkiType, accessors: list):
-        if isinstance(base_type, AkiObject):
-            raise AkiTypeErr(
-                node.vartype,
-                codegen.text,
-                "Arrays may only use scalars as their base types",
-            )
         new = AkiArray(codegen.module)
+
         array_type = base_type.llvm_type
+        array_type.akitype = base_type
+        array_type.akinode = node
+
+        array_aki_type = base_type
+        subaccessors = []
+
         for _, akitype in accessors:
             array_type = ir.ArrayType(array_type, _)
-            array_type.akitype = akitype
+
+            subaccessors.append(_)
+
+            subakitype = AkiArray(codegen.module)
+            subakitype.llvm_type = array_type
+            subakitype.type_id = (
+                f"array({base_type})[{','.join([str(_) for _ in subaccessors])}]"
+            )
+
+            array_type.akitype = subakitype
+            array_type.akinode = node
+
         new.llvm_type = array_type
         new.type_id = f"array({base_type})[{','.join([str(_[0]) for _ in accessors])}]"
-
-        # new.name = new.type_id
 
         codegen.typemgr.add_type(new.type_id, new, codegen.module)
         return new
@@ -477,12 +487,14 @@ class AkiArray(AkiType):
             indices.append(index)
         result = codegen.builder.gep(current, indices)
         result.akitype = akitype
+        result.akinode = node
         return result
 
 
 class AkiString(AkiObject, AkiType):
     """
     Type for Aki string constants.
+   
     """
 
     signed = False
@@ -494,9 +506,16 @@ class AkiString(AkiObject, AkiType):
         self.module = module
         self.llvm_type_base = module.context.get_identified_type(".str")
         self.llvm_type_base.elements = [
+            # Header block
             module.types["obj"].llvm_type,
+            # Pointer to data
             module.typemgr.as_ptr(module.types["u_mem"]).llvm_type,
         ]
+
+        # TODO: we may later use a zero length array as the type,
+        # so that we can encode the data directly into the block
+        # instead of following a pointer
+
         self.llvm_type = ir.PointerType(self.llvm_type_base)
 
     def c(self):
@@ -523,13 +542,6 @@ class AkiString(AkiObject, AkiType):
         #   =
 
     def format_result(self, result):
-
-        # TODO: eventually we will point to a blank string
-        # as the default and not need this
-
-        if result is None:
-            return '""'
-
         char_p = ctypes.POINTER(ctypes.c_char_p)
         result1 = ctypes.cast(result, char_p)
         result2 = f'"{str(ctypes.string_at(result1),"utf8")}"'
@@ -641,7 +653,7 @@ class AkiTypeMgr:
 
     def as_ptr(self, *a, **ka):
         new = self._ptr.new(*a, **ka)
-        # TODO: move this into the actual new method?
+        # TODO: move this into the actual `new` method?
         self.add_type(new.type_id, new, self.module)
         return new
 

@@ -281,10 +281,7 @@ class TestLexer(unittest.TestCase):
             AkiTypeErr,
             (
                 # `y()` is a pointer, not a callable
-                (
-                    r"def g1(){32} var x=g1 var y=ref(x) var q=ref(y) var t=deref(q) var z=deref(t) y()",
-                    None,
-                ),
+                (r"def g1(){32} var x=g1 var y=ref(x) var z=deref(y) y()", None),
                 # you can't `ref` or `deref` anything not a variable
                 (r"ref(32)", None),
                 (r"deref(32)", None),
@@ -342,18 +339,18 @@ class TestLexer(unittest.TestCase):
                     r"var x:array(:i32)[2,2] x[0,0]=32 x[0,1]=12 x[1,0]=8 x[0,1]+x[0,0]+x[1,0]",
                     52,
                 ),
+                (r"var x:array(:str)[20] x[1]='Hi' x[1]", '"Hi"'),
+                (
+                    r"def a(){30} def b(){64} var x:array(:func():i32)[2,2] x[1,2]=a x[2,1]=b var c=x[1,2] var d=x[2,1] d()-c()",
+                    34,
+                ),
             )
         )
 
     def test_array_trapping(self):
         self._ex(
             AkiTypeErr,
-            (
-                # arrays of non-scalars are not permitted
-                (r"var x:array(:str)[20]", None),
-                # assignments to non-array types not permitted
-                (r"var x:array(:i32)[20]=0", None),
-            ),
+            ((r"var x:array(:i32)[20]=0", None), (r"var x:array(:i32)[20]=0", None)),
         )
 
     def test_pointer_comparison(self):
