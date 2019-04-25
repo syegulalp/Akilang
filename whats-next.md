@@ -66,9 +66,12 @@
   * [x] Escaped quoting (`'It\'s a quote!'`)
   * [x] Escape slashes (`\\` = \\)
 * [x] Array type
+  * [x] Support for objects in arrays
 
 ## In progress
 
+* [ ] Decorators by way of the `@` symbol
+* [ ] `print` builtin
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
