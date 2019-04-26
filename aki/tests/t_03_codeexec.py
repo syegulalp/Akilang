@@ -366,3 +366,10 @@ class TestLexer(unittest.TestCase):
             )
         )
 
+    def test_c_size(self):
+        self._e(
+            ((r"c_size('Hello there')", 12), (r"c_size(1)", 4), (r"c_size(1:u64)", 8))
+        )
+
+    def test_size(self):
+        self._e(((r"size('Hello there')", 8), (r"size(1)", 4), (r"size(1:u64)", 8)))

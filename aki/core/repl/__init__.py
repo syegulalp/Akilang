@@ -412,6 +412,8 @@ pyaki  :{constants.VERSION}"""
         else:
             final_result_type = first_result_type
 
+        # Link the main module into the REPL module.
+        
         if not immediate_mode:
             if self.main_cpl.compiler.mod_ref:
                 self.repl_cpl.compiler.backing_mod.link_in(
@@ -420,7 +422,7 @@ pyaki  :{constants.VERSION}"""
 
         self.repl_cpl.compiler.compile_module(self.repl_cpl.module, repl_file)
 
-        # Retrieve a pointer to the function
+        # Retrieve a pointer to the function to execute
         func_ptr = self.repl_cpl.compiler.get_addr(call_name)
 
         return_type = first_result_type

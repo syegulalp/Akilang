@@ -22,6 +22,7 @@ class AkiType:
     comp_ins: Optional[str] = None
     original_function: Optional[ir.Function] = None
     literal_ptr: bool = False
+    bits: int = 0
 
     comp_ops = {
         "==": ".eqop",
@@ -70,8 +71,9 @@ class AkiType:
     def c_data(self, codegen, node):
         return node
 
-    def c_size(self, codegen, node):
-        return node
+    def c_size(self, codegen, node, llvm_obj):
+        size = llvm_obj.type.get_abi_size(codegen.typemgr.target_data())
+        return codegen._codegen(Constant(node, size, codegen.types["u_size"]))
 
 
 class AkiTypeRef(AkiType):
@@ -559,11 +561,13 @@ class AkiString(AkiObject, AkiType):
         obj_ptr.akinode = node.akinode
         return obj_ptr
 
-    def c_size(self, codegen, node):
-        obj_ptr = codegen.builder.gep(node, [_int(0), _int(0), _int(AkiObject.LENGTH)])
+    def c_size(self, codegen, node, llvm_obj):
+        obj_ptr = codegen.builder.gep(
+            llvm_obj, [_int(0), _int(0), _int(AkiObject.LENGTH)]
+        )
         obj_ptr = codegen.builder.load(obj_ptr)
         obj_ptr.akitype = codegen.types["u_size"]
-        obj_ptr.akinode = node.akinode
+        obj_ptr.akinode = llvm_obj.akinode
         return obj_ptr
 
 

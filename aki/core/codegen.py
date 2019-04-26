@@ -218,7 +218,10 @@ class AkiCodeGen:
             return self.typemgr._default
         if isinstance(node, AkiType):
             return node
-        return getattr(self, f"_get_vartype_{node.__class__.__name__}")(node)
+        try:
+            return getattr(self, f"_get_vartype_{node.__class__.__name__}")(node)
+        except AttributeError:
+            raise AkiTypeErr(node, self.text, f"Object is not a type descriptor")
 
     def _get_vartype_Name(self, node):
         # TODO: this is a shim to get around the fact that we have
@@ -335,6 +338,7 @@ class AkiCodeGen:
             )
 
         if name in self.types:
+            raise
             raise AkiNameErr(
                 node,
                 self.text,
@@ -786,15 +790,15 @@ class AkiCodeGen:
 
         # check if this is a builtin
 
-        builtin = getattr(self, f"_builtins_{node.name}", None)
-        if builtin:
-            return builtin(node)
-
         # TODO: get a pre-generated AST node that represents the builtin,
         # verify its arguments and other behavior as we would another function call,
         # then instead of codegenning a call, we codegen the body inline
         # another possibility: when generating calls in the AST,
         # intercept builtins from a central list and check them there
+
+        builtin = getattr(self, f"_builtins_{node.name}", None)
+        if builtin:
+            return builtin(node)
 
         # check if this is a request for a type
         # this will eventually go somewhere else
@@ -806,41 +810,22 @@ class AkiCodeGen:
             if named_type is not None and not isinstance(named_type, AkiFunction):
 
                 if len(node.arguments) != 1:
-
                     # Create a fake function definition to handle the error
-
-                    call_func = self._codegen(
-                        Function(
-                            node,
-                            Prototype(
+                    call_func = lambda: None
+                    call_func.akinode = node
+                    call_func.args = (
+                        [
+                            Argument(
                                 node,
-                                node.name,
-                                [
-                                    Argument(
-                                        node,
-                                        "vartype",
-                                        VarTypeName(node, self.types["type"].type_id),
-                                    )
-                                ],
-                                VarTypeName(node, self.types["type"].type_id),
-                            ),
-                            ExpressionBlock(node, []),
-                        )
+                                "vartype",
+                                VarTypeName(node, 'type'),
+                            )
+                        ],
                     )
 
                     raise LocalException
 
                 arg = node.arguments[0]
-
-                # this will eventually become a builtin
-                if node.name == "type":
-                    type_from = self._codegen(arg)
-                    const = self._codegen(
-                        Constant(arg, type_from.akitype.enum_id, self.types["type"])
-                    )
-                    return const
-
-                # this will also eventually become a builtin
 
                 if isinstance(arg, Constant):
                     # this check is in place until we have
@@ -1489,25 +1474,45 @@ class AkiCodeGen:
     # TODO: Create function signatures for these so we can auto-check
     # argument counts, types, etc.
 
+    def _argcheck(self, node, args: int):
+        """
+        Ensure builtin call has proper number of arguments.
+        """
+        if len(node.arguments) != args:
+            raise AkiSyntaxErr(
+                node,
+                self.text,
+                f'"{CMD}{node.name}{REP}" requires {args} argument{"s" if args>1 else ""}',
+            )
+
+    def _builtins_type(self, node):
+        """
+        Get type descriptor enum for a given variable or type.
+        """
+        self._argcheck(node, 1)
+        arg = node.arguments[0]
+        type_from = self._codegen(arg)
+        return self._codegen(
+            Constant(arg, type_from.akitype.enum_id, self.types["type"])
+        )
+
     def _builtins_cast(self, node):
+        """
+        Cast one integer type to another.
+        Unsafe operation.
+        """
         if not self.unsafe_set:
             raise AkiSyntaxErr(
                 node,
                 self.text,
                 f'"{CMD}cast{REP}" requires an "{CMD}unsafe{REP}" block',
             )
-        if len(node.arguments) != 2:
-            raise AkiSyntaxErr(
-                node, self.text, f'"{CMD}cast{REP}" requires 2 arguments'
-            )
+        self._argcheck(node, 2)
         node_ref = node.arguments[0]
         target_type = node.arguments[1]
 
         c1 = self._codegen(node_ref)
         c2 = self._get_vartype(target_type)
-
-        # if isinstance(target_type, Name):
-        #     target_type = VarTypeName(target_type.p, target_type.name)
 
         target_data = self.typemgr.target_data()
         c1_size = c1.type.get_abi_size(target_data)
@@ -1570,29 +1575,44 @@ class AkiCodeGen:
         c3.akinode.vartype = c2
         return c3
 
+    def _builtins_size(self, node):
+        """
+        Get the size, in bytes, of the variable allocation in question.
+        For instance, for a string, this would be the size of the string OBJECT,
+        NOT the size of the string DATA. (For that, use `c_size`.)
+        """
+        self._argcheck(node, 1)
+        node_ref = node.arguments[0]
+        item = self._codegen(node_ref)
+        byte_width = item.type.get_abi_size(self.typemgr.target_data())
+        return self._codegen(Constant(node, byte_width, self.typemgr._default))
+
     def _builtins_c_size(self, node):
-        if len(node.arguments) != 1:
-            raise AkiSyntaxErr(
-                node, self.text, f'"{CMD}c_size{REP}" requires 1 argument'
-            )
+        """
+        Get the size, in bytes, of the C-compatible data for a given object.
+        Returns a constant.
+        """
+        self._argcheck(node, 1)
         node_ref = node.arguments[0]
         c1 = self._codegen(node_ref)
-        c2 = c1.akitype.c_size(self, c1)
-        return c2
+        return c1.akitype.c_size(self, node_ref, c1)
 
     def _builtins_c_data(self, node):
-        if len(node.arguments) != 1:
-            raise AkiSyntaxErr(
-                node, self.text, f'"{CMD}c_data{REP}" requires 1 argument'
-            )
+        """
+        Get the underlying C-compatible data for an object.
+        For instance, for a string, this would be the NUL-terminated string data in UTF-8 format.
+        Returns a pointer.
+        """
+        self._argcheck(node, 1)
         node_ref = node.arguments[0]
         c1 = self._codegen(node_ref)
-        c2 = c1.akitype.c_data(self, c1)
-        return c2
+        return c1.akitype.c_data(self, c1)
 
     def _builtins_ref(self, node):
-        if len(node.arguments) != 1:
-            raise AkiSyntaxErr(node, self.text, f'"{CMD}ref{REP}" requires 1 argument')
+        """
+        Create a reference to an object, essentially a pointer.
+        """
+        self._argcheck(node, 1)
         node_ref = node.arguments[0]
 
         if not isinstance(node_ref, Name):
@@ -1604,7 +1624,6 @@ class AkiCodeGen:
             )
         ref = self._name(node, node_ref.name)
 
-        # if isinstance(ref.akitype, AkiFunction):
         if self._is_type(node_ref, ref, AkiFunction):
             # Function pointers are a special case, at least for now
             r1 = self._codegen(node_ref)
@@ -1632,10 +1651,10 @@ class AkiCodeGen:
         return r1
 
     def _builtins_deref(self, node):
-        if len(node.arguments) != 1:
-            raise AkiSyntaxErr(
-                node, self.text, f'"{CMD}deref{REP}" requires 1 argument'
-            )
+        """
+        Dereference a reference object.
+        """
+        self._argcheck(node, 1)
 
         node_deref = node.arguments[0]
 
@@ -1649,7 +1668,6 @@ class AkiCodeGen:
 
         ref = self._name(node, node_deref.name)
 
-        # if not isinstance(ref.akitype, AkiPointer):
         if not self._is_type(node, ref, AkiPointer):
             raise AkiTypeErr(
                 node_deref,
