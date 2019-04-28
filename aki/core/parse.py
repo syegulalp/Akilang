@@ -33,7 +33,9 @@ from core.astree import (
     VarTypeAccessor,
     ObjectRef,
     ObjectValue,
-    UniList
+    UniList,
+    SelectExpr,
+    CaseExpr,
 )
 from core.error import AkiSyntaxErr
 
@@ -643,6 +645,27 @@ class AkiParser(Parser):
     @_("expr")
     def dotexprlist(self, p):
         return [p.expr]
+
+    #################################################################
+    # `select/case`
+    #################################################################
+
+    @_("SELECT expr LBRACE selectitems RBRACE")
+    def expr(self, p):
+        return SelectExpr(Pos(p), p.expr, p.selectitems)
+    
+    @_("selectitem")
+    def selectitems(self, p):
+        return [p.selectitem]
+    
+    @_("selectitems selectitem")
+    def selectitems(self, p):
+        return p.selectitems+[p.selectitem]
+    
+    @_("CASE expr LBRACE expr RBRACE")
+    def selectitem(self, p):
+        return CaseExpr(Pos(p), p.expr0, p.expr1)
+
 
     #################################################################
     # Slice

@@ -524,3 +524,28 @@ class ObjectValue(Expression):
 
     def flatten(self):
         return [self.__class__.__name__, self.expr.flatten()]
+
+class SelectExpr(Expression):
+    """
+    `select` expression.
+    """
+    def __init__(self, p, select_expr, case_list:list):
+        super().__init__(p)
+        self.select_expr = select_expr
+        self.case_list = case_list
+        self.default_case = None
+
+    def flatten(self):
+        return [self.__class__.__name__, self.select_expr.flatten(), [_.flatten() for _ in self.case_list]]
+
+class CaseExpr(Expression):
+    """
+    `case` expression.
+    """
+    def __init__(self, p, case_value, case_expr):
+        super().__init__(p)
+        self.case_value = case_value
+        self.case_expr = case_expr
+
+    def flatten(self):
+        return [self.__class__.__name__, self.case_value.flatten(), self.case_expr.flatten()]

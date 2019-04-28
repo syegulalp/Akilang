@@ -1168,6 +1168,7 @@ class AkiCodeGen:
         result = self.builder.load(if_result)
         result.akitype = result_akitype
         result.akinode = node
+        result.akinode.vartype = result.akitype.type_id
         if is_when_expr:
             result.akinode.name = f'"when" expr'
         else:
@@ -1179,6 +1180,41 @@ class AkiCodeGen:
         Codegen a `when` expression, which returns the value of the `when` itself.
         """
         return self._codegen_IfExpr(node, True)
+
+    def _codegen_SelectExpr(self, node):
+        """
+        Generates a `select` with one or more `case`s.
+        """
+        
+        default_block = self.builder.append_basic_block(".select_default")
+        value = self._codegen(node.select_expr)
+        switch_node = self.builder.switch(value, default_block)
+        exit_block = self.builder.append_basic_block(".select_exit")
+
+        for index, _ in enumerate(node.case_list):
+            case_block = self.builder.append_basic_block(f'.select_{index}')
+            self.builder.position_at_start(case_block)
+            case_value = self._codegen(_.case_value)
+            if not isinstance(case_value, ir.Constant) and not isinstance(case_value.type,ir.IntType):
+                    raise AkiSyntaxErr(
+                        _.case_value, self.text, 
+                        f'"{CMD}{_.case_value.name}{case_value.akitype}{REP}" cannot be used as a "{CMD}case{REP}" node; it must be a compile-time integer constant'
+                    )
+            if case_value.akitype != value.akitype:
+                raise AkiTypeErr(
+                    _.case_value, self.text,
+                    f'Case value "{CMD}{_.case_value.name}{case_value.akitype}{REP}" and selector "{CMD}{node.select_expr.name}{value.akitype}{REP}" must have the same type'
+                )
+
+            switch_node.add_case(case_value, case_block)
+            self._codegen(_.case_expr)
+            self.builder.branch(exit_block)
+        
+        self.builder.position_at_start(default_block)
+        if node.default_case:
+            self._codegen(node.default_case)
+        self.builder.branch(exit_block)        
+        self.builder.position_at_start(exit_block)
 
     #################################################################
     # Operations

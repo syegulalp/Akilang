@@ -74,7 +74,9 @@ class AkiLexer(Lexer):
         UNSAFE,
         ARRAY,
         UNI,
-        MOD
+        MOD,
+        SELECT,
+        CASE
     }
 
     ignore = " \t"
@@ -104,6 +106,8 @@ class AkiLexer(Lexer):
     NAME["unsafe"] = UNSAFE
     NAME["array"] = ARRAY
     NAME["uni"] = UNI
+    NAME["select"] = SELECT
+    NAME["case"] = CASE
 
     INT_DIV = r"//"
     INCR = r"(\+\=)"
