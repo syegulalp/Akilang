@@ -155,6 +155,14 @@ class AkiCodeGen:
         from the symbol table or the list of globals.
         """
 
+        # temporary guard; this will go away eventually
+
+        if not self.fn:
+            raise AkiOpError(
+                node, self.text,
+                "Name reference not allowed here"
+            )
+
         # First, look in the function symbol table:
         name = self.fn.symtab.get(name_to_find, None)
 
@@ -1328,7 +1336,8 @@ class AkiCodeGen:
             result.akitype = t
             result.akinode = node
             result.akinode.vartype = result.akitype.type_id
-            result.akinode.name = node.expr.name
+        #print (expr.akitype)
+        result.akinode.name = node.expr.name+'[]'
         return result
 
     #################################################################
