@@ -461,7 +461,7 @@ class AkiArray(AkiObject, AkiType):
         array_aki_type = base_type
         subaccessors = []
 
-        for _, akitype in accessors:
+        for _, akitype in reversed(accessors):
             array_type = ir.ArrayType(array_type, _)
 
             subaccessors.append(_)
