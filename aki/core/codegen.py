@@ -721,9 +721,23 @@ class AkiCodeGen:
         return result
 
     def _codegen_UnsafeBlock(self, node):
+        """
+        Establish an `unsafe` context block for operations.
+        """
         self.unsafe_set = True
         return self._codegen(node.expr_block)
         self.unsafe_set = False
+
+    def _codegen_WithExpr(self, node):
+        """
+        Codegen a `with` block.
+        """
+
+        self._codegen(node.varlist)
+        body = self._codegen(node.body)
+        for _ in node.varlist.vars:
+            self._delete_var(_.name)
+        return body
 
     #################################################################
     # Declarations
@@ -986,21 +1000,6 @@ class AkiCodeGen:
 
         self.builder.branch(self.fn.breakpoints[-1])
 
-    #################################################################
-    # Expressions
-    #################################################################
-
-    def _codegen_WithExpr(self, node):
-        """
-        Codegen a `with` block.
-        """
-
-        self._codegen(node.varlist)
-        body = self._codegen(node.body)
-        for _ in node.varlist.vars:
-            self._delete_var(_.name)
-        return body
-
     def _codegen_LoopExpr(self, node):
         """
         Codegen a `loop` expression.
@@ -1174,7 +1173,7 @@ class AkiCodeGen:
         return self._codegen_IfExpr(node, True)
 
     #################################################################
-    # Operations (also expressions)
+    # Operations
     #################################################################
 
     def _codegen_UnOp(self, node):
