@@ -591,6 +591,11 @@ class AkiParser(Parser):
     def loop_expr(self, p):
         return LoopExpr(Pos(p), [p.loop_expr_var, p.comp_op, p.expr], p.expr_block)
 
+    @_("LOOP LPAREN loop_expr_var COMMA comp_op RPAREN expr_block")
+    def loop_expr(self, p):
+        incr_expr = BinOp(Pos(p),'+',p.loop_expr_var.lhs.expr, Constant(Pos(p), '1', p.loop_expr_var.lhs.expr.vartype))
+        return LoopExpr(Pos(p), [p.loop_expr_var, p.comp_op, incr_expr], p.expr_block)
+
     @_("LOOP empty expr_block", "LOOP LPAREN RPAREN expr_block")
     def loop_expr(self, p):
         return LoopExpr(Pos(p), [], p.expr_block)
