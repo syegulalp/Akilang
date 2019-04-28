@@ -67,29 +67,28 @@
   * [x] Escape slashes (`\\` = \\)
 * [x] Array type
   * [x] Support for objects in arrays
+  * [x] N-dimensional arrays of scalars
+* [x] `uni` for globals
 
 ## In progress
 
+* [ ] Classes and object structures
+  * [ ] Object methods and method calls
+* [ ] Type declarations (aliases)
 * [ ] Decorators by way of the `@` symbol
 * [ ] `print` builtin
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
 * [ ] `case` statement for matching against enums
 * [ ] `while` constructions
-* [ ] `uni` for globals
 * [ ] `const` for constants
 * [ ] Complete REPL command set (as per earlier incarnation of project)
 * [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
-* [ ] Function name mangling to allow overloading
 * [ ] Type conversions
 
 # Stage 1: Advanced variables and structures
 * [ ] Slices
-* [ ] N-dimensional arrays of scalars
-* [ ] Type declarations
 * [ ] Enums
-* [ ] Classes and object structures
-* [ ] Object methods and method calls
 * [ ] Iterables by way of object methods
 * [ ] String operations
   * [ ] String slices
