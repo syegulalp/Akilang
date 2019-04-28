@@ -34,7 +34,7 @@ from core.astree import (
     ObjectValue,
     ObjectRef,
     TopLevel,
-    UniList
+    UniList,
 )
 from core.error import (
     AkiNameErr,
@@ -135,10 +135,7 @@ class AkiCodeGen:
 
         for _ in ast:
             if not isinstance(_, TopLevel):
-                raise AkiSyntaxErr(
-                    _, self.text,
-                    f'Unknown top-level instruction'
-                )
+                raise AkiSyntaxErr(_, self.text, f"Unknown top-level instruction")
             self._codegen(_)
 
     def _codegen(self, node):
@@ -198,8 +195,8 @@ class AkiCodeGen:
         UNDERLYING VALUE (e.g., the heap-allocated string itself). That way
         we can track and dispose those by way of scopes.
         """
-       
-        allocation = self.fn.allocator.alloca(llvm_type, size, name)        
+
+        allocation = self.fn.allocator.alloca(llvm_type, size, name)
         return allocation
 
     def _delete_var(self, name):
@@ -340,10 +337,12 @@ class AkiCodeGen:
 
         if name in self.module.globals:
             raise AkiNameErr(
-                node, self.text, f'Name "{CMD}{name}{REP}" already used in this module as a "{CMD}uni{REP}" value'
+                node,
+                self.text,
+                f'Name "{CMD}{name}{REP}" already used in this module as a "{CMD}uni{REP}" value',
             )
 
-        #context = self.module.globals if is_global else self.fn.symtab
+        # context = self.module.globals if is_global else self.fn.symtab
 
         if not is_global and name in self.fn.symtab:
             raise AkiNameErr(
@@ -781,10 +780,7 @@ class AkiCodeGen:
 
             # Create an allocation for that type
             if is_uni:
-                var_ptr = ir.GlobalVariable(self.module,
-                _.akitype.llvm_type,
-                _.name
-                )
+                var_ptr = ir.GlobalVariable(self.module, _.akitype.llvm_type, _.name)
             else:
                 var_ptr = self._alloca(_, _.akitype.llvm_type, _.name)
 
@@ -840,13 +836,7 @@ class AkiCodeGen:
                     call_func = lambda: None
                     call_func.akinode = node
                     call_func.args = (
-                        [
-                            Argument(
-                                node,
-                                "vartype",
-                                VarTypeName(node, 'type'),
-                            )
-                        ],
+                        [Argument(node, "vartype", VarTypeName(node, "type"))],
                     )
 
                     raise LocalException
@@ -1121,66 +1111,60 @@ class AkiCodeGen:
         if not self._is_type(node.if_expr, if_expr, AkiBool):
             if_expr = self._scalar_as_bool(node.if_expr, if_expr)
 
-        if_block = self.builder._block
+        then_block = self.builder.append_basic_block(".then")
 
-        # codegen the clauses so we can determine their return types
+        if node.else_expr:
+            else_block = self.builder.append_basic_block(".else")
 
-        with self.builder.if_else(if_expr) as (then_clause, else_clause):
-            with then_clause:
-                then_block = self.builder._block
-                then_result = self._codegen(node.then_expr)
-            with else_clause:
-                else_block = self.builder._block
-                if node.else_expr:
-                    else_result = self._codegen(node.else_expr)
+        exit_block = self.builder.append_basic_block(".endif")
 
-        exit_block = self.builder._block
-
-        # for if expresssion, typematch results
-
-        if not is_when_expr:
-
-            if then_result.akitype != else_result.akitype:
-                raise AkiTypeErr(
-                    node.then_expr,
-                    self.text,
-                    f'"{CMD}if/else{REP}" must yield same type; use "{CMD}when/else{REP}" for results of different types',
-                )
-
-            self._move_before_terminator(if_block)
-
-            if_result = self._alloca(
-                node.then_expr, then_result.akitype.llvm_type, ".if_result"
-            )
-
-            self._move_before_terminator(then_block)
-            self.builder.store(then_result, if_result)
-
-            self._move_before_terminator(else_block)
-            self.builder.store(else_result, if_result)
-
-            self.builder.position_at_start(exit_block)
-            result = if_result
-            result_akitype = then_result.akitype
-
-        # for when expressions, just return the if clause value
-
+        if node.else_expr:
+            self.builder.cbranch(if_expr, then_block, else_block)
         else:
+            self.builder.cbranch(if_expr, then_block, exit_block)
 
-            self._move_before_terminator(if_block)
+        self.builder.position_at_start(then_block)
 
+        then_result = self._codegen(node.then_expr)
+        if is_when_expr:
             if_result = self._alloca(
                 node.if_expr, if_expr.akitype.llvm_type, ".when_result"
             )
-            self.builder.position_at_start(exit_block)
-
-            result = self.builder.store(if_expr, if_result)
+            self.builder.store(if_expr, if_result)
             result_akitype = if_expr.akitype
+        else:
+            if_result = self._alloca(
+                node.then_expr, then_result.akitype.llvm_type, ".if_result"
+            )
+            self.builder.store(then_result, if_result)
+            result_akitype = then_result.akitype
+
+        self.builder.branch(exit_block)
+
+        if node.else_expr:
+            self.builder.position_at_start(else_block)
+            else_result = self._codegen(node.else_expr)
+            if is_when_expr:
+                self.builder.store(if_expr, if_result)
+            else:
+                if then_result.akitype != else_result.akitype:
+                    raise AkiTypeErr(
+                        node.then_expr,
+                        self.text,
+                        f'"{CMD}if/else{REP}" must yield same type; use "{CMD}when/else{REP}" for results of different types',
+                    )
+                self.builder.store(else_result, if_result)
+            self.builder.branch(exit_block)
+
+        self.builder.position_at_start(exit_block)
 
         result = self.builder.load(if_result)
         result.akitype = result_akitype
         result.akinode = node
-        result.akinode.name = f'"if" expr'
+        if is_when_expr:
+            result.akinode.name = f'"when" expr'
+        else:
+            result.akinode.name = f'"if" expr'
         return result
 
     def _codegen_WhenExpr(self, node):
@@ -1345,6 +1329,7 @@ class AkiCodeGen:
             result.akitype = t
             result.akinode = node
             result.akinode.vartype = result.akitype.type_id
+            result.akinode.name = node.expr.name
         return result
 
     #################################################################
@@ -1516,14 +1501,13 @@ class AkiCodeGen:
         arg = node.arguments[0]
         a = self._codegen(arg)
         if isinstance(a, ir.LoadInstr):
-            n = self.builder.ptrtoint(a.operands[0], self.types['u_size'].llvm_type)
+            n = self.builder.ptrtoint(a.operands[0], self.types["u_size"].llvm_type)
         else:
-            n = self.builder.ptrtoint(a, self.types['u_size'].llvm_type)
-        n.akitype = self.types['u_size']
+            n = self.builder.ptrtoint(a, self.types["u_size"].llvm_type)
+        n.akitype = self.types["u_size"]
         n.akinode = node
         return n
 
-    
     def _builtins_ord(self, node):
         """
         Get the character code for a single character.        
@@ -1532,7 +1516,6 @@ class AkiCodeGen:
         arg = node.arguments[0]
         # confirm this is a string of length 1
 
-    
     def _builtins_type(self, node):
         """
         Get type descriptor enum for a given variable or type.
