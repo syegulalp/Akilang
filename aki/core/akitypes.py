@@ -217,8 +217,14 @@ class AkiIntBoolMathOps:
         "|": "bin_or",
         "and": "andor",
         "or": "andor",
+        "%": "mod"
     }
 
+    def binop_mod(self, codegen, node, lhs, rhs, op_name):
+        f1 = codegen.builder.sdiv(lhs, rhs, f".{op_name}1")
+        f2 = codegen.builder.mul(f1, rhs, f".{op_name}2")
+        return codegen.builder.sub(lhs, f2, f".{op_name}3")
+    
     def binop_add(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.add(lhs, rhs, f".{op_name}")
 
@@ -432,7 +438,7 @@ class AkiDouble(AkiBaseFloat):
         return ctypes.c_double
 
 
-class AkiArray(AkiType):
+class AkiArray(AkiObject, AkiType):
     """
     Aki array type.
     This is a raw array, not managed.
@@ -491,6 +497,12 @@ class AkiArray(AkiType):
         result.akitype = akitype
         result.akinode = node
         return result
+
+    def c_data(self, codegen, node):
+        obj_ptr = codegen.builder.bitcast(node, codegen.types["u_mem"].llvm_type.as_pointer(0))
+        obj_ptr.akitype = codegen.typemgr.as_ptr(codegen.types["u_mem"])
+        obj_ptr.akinode = node.akinode
+        return obj_ptr
 
 
 class AkiString(AkiObject, AkiType):

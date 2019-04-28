@@ -33,6 +33,7 @@ from core.astree import (
     VarTypeAccessor,
     ObjectRef,
     ObjectValue,
+    UniList
 )
 from core.error import AkiSyntaxErr
 
@@ -57,7 +58,7 @@ class AkiParser(Parser):
         ("left", "EQ", "NEQ", "GEQ", "LEQ", "GT", "LT"),
         ("left", "INCR", "DECR"),
         ("left", "PLUS", "MINUS"),
-        ("left", "TIMES", "DIV", "INT_DIV"),
+        ("left", "TIMES", "DIV", "INT_DIV", "MOD"),
     )
 
     def parse(self, tokens, text):
@@ -437,6 +438,18 @@ class AkiParser(Parser):
         return [p.varlistelement]
 
     #################################################################
+    # `uni` expressions
+    #################################################################        
+
+    @_("unilist")
+    def toplevel(self, p):
+        return p.unilist
+
+    @_("UNI LBRACE varlistelements RBRACE")
+    def unilist(self, p):
+        return UniList(Pos(p), p.varlistelements)
+
+    #################################################################
     # Ops
     #################################################################
 
@@ -452,6 +465,7 @@ class AkiParser(Parser):
         "expr OR expr",
         "expr BIN_AND expr",
         "expr BIN_OR expr",
+        "expr MOD expr",
     )
     def expr(self, p):
         return BinOp(Pos(p), p[1], p.expr0, p.expr1)

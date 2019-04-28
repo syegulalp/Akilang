@@ -73,6 +73,8 @@ class AkiLexer(Lexer):
         NONE,
         UNSAFE,
         ARRAY,
+        UNI,
+        MOD
     }
 
     ignore = " \t"
@@ -101,6 +103,7 @@ class AkiLexer(Lexer):
     NAME["None"] = NONE
     NAME["unsafe"] = UNSAFE
     NAME["array"] = ARRAY
+    NAME["uni"] = UNI
 
     INT_DIV = r"//"
     INCR = r"(\+\=)"
@@ -133,6 +136,7 @@ class AkiLexer(Lexer):
     BACKQUOTE = r"\`"
     DOT = r"\."
     SEMI = r"\;"
+    MOD = r"\%"
 
     def tokenize(self, text):
         self.text = text

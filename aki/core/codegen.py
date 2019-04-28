@@ -33,6 +33,8 @@ from core.astree import (
     AccessorExpr,
     ObjectValue,
     ObjectRef,
+    TopLevel,
+    UniList
 )
 from core.error import (
     AkiNameErr,
@@ -132,6 +134,11 @@ class AkiCodeGen:
         """
 
         for _ in ast:
+            if not isinstance(_, TopLevel):
+                raise AkiSyntaxErr(
+                    _, self.text,
+                    f'Unknown top-level instruction'
+                )
             self._codegen(_)
 
     def _codegen(self, node):
@@ -181,7 +188,7 @@ class AkiCodeGen:
                 node, self.text, f'Name "{CMD}{name_to_find}{REP}" not found'
             )
 
-    def _alloca(self, node, llvm_type, name, size=None, is_global=False, is_heap=False):
+    def _alloca(self, node, llvm_type, name, size=None, is_heap=False):
         """
         Allocate space for a variable.
         Right now this is stack-only; eventually it'll include
@@ -191,8 +198,8 @@ class AkiCodeGen:
         UNDERLYING VALUE (e.g., the heap-allocated string itself). That way
         we can track and dispose those by way of scopes.
         """
-
-        allocation = self.fn.allocator.alloca(llvm_type, size, name)
+       
+        allocation = self.fn.allocator.alloca(llvm_type, size, name)        
         return allocation
 
     def _delete_var(self, name):
@@ -330,9 +337,15 @@ class AkiCodeGen:
         Check routine to determine if a given name is already in use
         in a given context.
         """
-        context = self.module.globals if is_global else self.fn.symtab
 
-        if name in context:
+        if name in self.module.globals:
+            raise AkiNameErr(
+                node, self.text, f'Name "{CMD}{name}{REP}" already used in this module as a "{CMD}uni{REP}" value'
+            )
+
+        #context = self.module.globals if is_global else self.fn.symtab
+
+        if not is_global and name in self.fn.symtab:
             raise AkiNameErr(
                 node, self.text, f'Name "{CMD}{name}{REP}" already used in this context'
             )
@@ -717,13 +730,16 @@ class AkiCodeGen:
     # Declarations
     #################################################################
 
-    def _codegen_VarList(self, node):
+    def _codegen_UniList(self, node):
+        return self._codegen_VarList(node, True)
+
+    def _codegen_VarList(self, node, is_uni: bool = False):
         """
         Codegen the variables in a `VarList` node.
         """
         for _ in node.vars:
 
-            self._check_var_name(_, _.name)
+            self._check_var_name(_, _.name, is_uni)
 
             # Create defaults if no value or vartype
 
@@ -764,20 +780,30 @@ class AkiCodeGen:
                 value = LLVMNode(_.val, _.vartype, value)
 
             # Create an allocation for that type
-            var_ptr = self._alloca(_, _.akitype.llvm_type, _.name)
+            if is_uni:
+                var_ptr = ir.GlobalVariable(self.module,
+                _.akitype.llvm_type,
+                _.name
+                )
+            else:
+                var_ptr = self._alloca(_, _.akitype.llvm_type, _.name)
 
             # Store its node attributes
             var_ptr.akitype = _.akitype
             var_ptr.akinode = _
 
-            # Store the variable in the function symbol table
-            self.fn.symtab[_.name] = var_ptr
+            if is_uni:
+                var_ptr.initializer = self._codegen(value)
+            else:
 
-            # and store the value itself to the variable
-            # by way of an Assignment op
-            self._codegen(
-                Assignment(_.p, "=", ObjectRef(_.p, Name(_.p, _.name)), value)
-            )
+                # Store the variable in the function symbol table
+                self.fn.symtab[_.name] = var_ptr
+
+                # and store the value itself to the variable
+                # by way of an Assignment op
+                self._codegen(
+                    Assignment(_.p, "=", ObjectRef(_.p, Name(_.p, _.name)), value)
+                )
 
     #################################################################
     # Control flow
@@ -1298,6 +1324,7 @@ class AkiCodeGen:
         instr.akitype = instr_type
         instr.akinode = node
         instr.akinode.name = f'op "{node.op}"'
+        instr.akinode.vartype = instr.akitype.type_id
         return instr
 
         # TODO: This assumes the left-hand side will always have the correct
@@ -1485,6 +1512,27 @@ class AkiCodeGen:
                 f'"{CMD}{node.name}{REP}" requires {args} argument{"s" if args>1 else ""}',
             )
 
+    def _builtins_dummy(self, node):
+        arg = node.arguments[0]
+        a = self._codegen(arg)
+        if isinstance(a, ir.LoadInstr):
+            n = self.builder.ptrtoint(a.operands[0], self.types['u_size'].llvm_type)
+        else:
+            n = self.builder.ptrtoint(a, self.types['u_size'].llvm_type)
+        n.akitype = self.types['u_size']
+        n.akinode = node
+        return n
+
+    
+    def _builtins_ord(self, node):
+        """
+        Get the character code for a single character.        
+        """
+        self._argcheck(node, 1)
+        arg = node.arguments[0]
+        # confirm this is a string of length 1
+
+    
     def _builtins_type(self, node):
         """
         Get type descriptor enum for a given variable or type.

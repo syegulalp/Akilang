@@ -153,6 +153,8 @@ class VarList(Expression):
             [_.flatten() for _ in self.vars] if self.vars else [],
         ]
 
+class UniList(TopLevel, VarList):
+    pass
 
 class Argument(ASTNode):
     """
