@@ -1,4 +1,0 @@
-def a1(x:ptr i32){x}
-
-def a2(){var x=32 var y=ref(x) var z=a1(y) z==y}
-

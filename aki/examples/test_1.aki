@@ -22,7 +22,7 @@ def g2 (z2,z3=0) {
 def g3(z4){
     loop () {
         when z4>=20 break
-        z4+=1        
+        z4+=1
     }
     z4
 }

@@ -1,0 +1,120 @@
+# Conway's Game Of Life in Aki
+
+# Stuff to eventually be turned into libraries
+# --------------------------------
+
+# non-macro print
+
+extern printf_s(_format:ptr u8, *args):i32
+
+def print(_str:str):i32 {
+    printf_s(c_data(_str))
+}
+
+# rand
+
+extern rand():i32
+
+def rnd(_min:i32, _max:i32):i32 {
+    rand() / (32767 / ((_max+1) - _min)) +_min
+}
+
+# inkey
+
+extern _getch():u8
+
+def inkey():u8 {
+    _getch()
+}
+
+# Main program
+# --------------------------------
+
+uni {
+    HEIGHT = 40,
+    WIDTH = 80,
+   
+    # need to let this be set with constants as before
+    world:array(:u8)[2,40,80],    
+    #world:array(:i32)[2,HEIGHT,WIDTH],    
+    output:array(:u8)[3242],
+    #output:array(:u8)[(HEIGHT*(WIDTH+1))+1],
+    
+    current_world = 0,
+    population = 0,
+    generation = 0
+}
+
+def setup(){
+    var output_index=0
+    loop (var x=0, x<HEIGHT) {
+        loop (var y=0, y<WIDTH) {
+            var bit:u8 = unsafe cast(rnd(0,1),u8)
+            world[0,x,y] = bit
+            output[output_index]=
+                if bit 64:u8 else 32:u8
+            output_index+=1
+        }
+        output[output_index]=10:u8
+        output_index+=1
+    }
+    output[3240]=0:u8
+}
+
+def evolve() {
+    var other_world = 1-current_world
+    var output_index=0    
+    var temp = 0:u8
+
+    population = 0
+
+    loop (var x=0, x<HEIGHT) {
+        loop (var y=0, y<WIDTH) {
+            var sum=0:u8
+            var t=0:u8
+            loop (var k=x-1, k<x+2)
+                loop (var j=y-1,j <y+2)                     
+                    sum+=world[current_world,
+                        (k+HEIGHT) % HEIGHT,
+                        (j+WIDTH) % WIDTH]
+            t = world[current_world,x,y]
+            sum-=t
+            temp = world[other_world,x,y] = {
+                if sum == 3:u8 1:u8 else if sum == 2:u8 t else 0:u8
+            }
+            output[output_index]=if temp {population+=1 64:u8} else 32:u8
+            output_index+=1
+        }
+        output_index+=1
+    }
+    
+    generation += 1
+    current_world = other_world
+}
+
+def main(){
+    
+    setup()
+    
+    print("Conway's Game Of Life\nAny key evolves pattern\nPress [q] to quit\n\n")
+
+    loop {
+
+        printf_s(c_data("%s\nGeneration %i -- Population %i\n"),c_data(output), generation, population)
+        print ('----\n')
+        
+        var cmd = inkey()
+        if cmd == 113:u8
+            break
+
+        evolve()
+
+        # add:
+        # select/case
+        # ord() - compiles to constant if a constant string is supplied
+
+    }
+
+    0
+
+}

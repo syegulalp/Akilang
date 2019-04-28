@@ -59,6 +59,7 @@ def free(ptr_to_free:ptr u_mem){
 
 # Layer 2
 # Library functions for all users.
+# Anything that requires these imports the stdlib
 
 def sleep(msecs:i32):i32 {
     Sleep(msecs)
