@@ -35,4 +35,6 @@ class TestLexer(unittest.TestCase):
         self._e((("g1()+g1()", 38),))
         self.r.load_file("test_2", ignore_cache=True)
         self._e((('print("Hello world!")', 13),))
+        # Right now we're just trying to see if the Life file compiles
+        self.r.load_file("l", ignore_cache=True)
 

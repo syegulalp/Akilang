@@ -42,17 +42,19 @@ uni {
     
     current_world = 0,
     population = 0,
-    generation = 0
+    generation = 0,
+    GENESIS_FACTOR = 3
 }
 
 def setup(){
     var output_index=0
     loop (var x=0, x<HEIGHT) {
         loop (var y=0, y<WIDTH) {
-            var bit:u8 = unsafe cast(rnd(0,1),u8)
-            world[0,x,y] = bit
+            var bit = rnd(0,10)
+            var val = world[0,x,y] = 
+                {if bit<GENESIS_FACTOR 1:u8 else 0:u8}
             output[output_index]=
-                if bit 64:u8 else 32:u8
+                {if val 64:u8 else 32:u8}
             output_index+=1
         }
         output[output_index]=10:u8
@@ -104,13 +106,16 @@ def main(){
         print ('----\n')
         
         var cmd = inkey()
-        if cmd == 113:u8
-            break
+
+        select cmd {
+            case 113:u8 {
+                break
+            }
+        }
 
         evolve()
 
         # add:
-        # select/case
         # ord() - compiles to constant if a constant string is supplied
 
     }
