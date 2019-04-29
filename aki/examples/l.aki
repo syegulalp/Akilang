@@ -53,19 +53,19 @@ def setup(){
             var bit = rnd(0,10)
             var val = world[0,x,y] = 
                 {if bit<GENESIS_FACTOR 1:u8 else 0:u8}
-            output[output_index]=
+            output[output_index] =
                 {if val 64:u8 else 32:u8}
             output_index+=1
         }
-        output[output_index]=10:u8
-        output_index+=1
+        output[output_index] = 10:u8
+        output_index += 1
     }
-    output[3240]=0:u8
+    output[3240] = 0:u8
 }
 
 def evolve() {
     var other_world = 1-current_world
-    var output_index=0    
+    var output_index = 0    
     var temp = 0:u8
 
     population = 0
@@ -75,16 +75,18 @@ def evolve() {
             var sum=0:u8
             var t=0:u8
             loop (var k=x-1, k<x+2)
-                loop (var j=y-1,j <y+2)                     
+                loop (var j=y-1, j<y+2)                     
                     sum+=world[current_world,
                         (k+HEIGHT) % HEIGHT,
                         (j+WIDTH) % WIDTH]
             t = world[current_world,x,y]
-            sum-=t
+            sum -= t
             temp = world[other_world,x,y] = {
                 if sum == 3:u8 1:u8 else if sum == 2:u8 t else 0:u8
             }
-            output[output_index]=if temp {population+=1 64:u8} else 32:u8
+            output[output_index]={
+                if temp {population+=1 64:u8} else 32:u8
+            }
             output_index+=1
         }
         output_index+=1
