@@ -243,11 +243,11 @@ pyaki  :{constants.VERSION}"""
 
         cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({t.time:.3f} sec)")
 
-    def quit(self, *a):
+    def quit(self, *a, **ka):
         print(XX)
         raise QuitException
 
-    def reload(self, *a):
+    def reload(self, *a, **ka):
         print(XX)
         raise ReloadException
 
@@ -273,7 +273,7 @@ pyaki  :{constants.VERSION}"""
             except EOFError:
                 break
 
-    def help(self, *a):
+    def help(self, *a, **ka):
         cp(f"\n{USAGE}")
 
     def cmd(self, text):
@@ -296,13 +296,20 @@ pyaki  :{constants.VERSION}"""
                 print(_)
             return
 
-        cmd_func = self.cmds.get(command, None)
+        cmd_split = command.split(' ')        
+        cmd_name = cmd_split[0]
+        if len(cmd_split)>1:
+            params=cmd_split[1:]
+        else:
+            params=None
+
+        cmd_func = self.cmds.get(cmd_name)
 
         if cmd_func is None:
             cp(f'Unrecognized command "{CMD}{command}{REP}"')
             return
 
-        return cmd_func(self, text)
+        return cmd_func(self, text, params=params)
 
     def interactive(self, text, immediate_mode=False):
         # Immediate mode processes everything in the repl compiler.
@@ -440,16 +447,16 @@ pyaki  :{constants.VERSION}"""
 
         return res, return_type
 
-    def about(self, *a):
+    def about(self, *a, **ka):
         print(f"\n{GRN}{constants.ABOUT}\n\n{self.VERSION}\n")
 
-    def not_implemented(self, *a):
+    def not_implemented(self, *a, **ka):
         cp(f"{RED}Not implemented yet")
 
-    def version(self, *a):
+    def version(self, *a, **ka):
         print(f"\n{GRN}{self.VERSION}\n")
 
-    def load_test(self, *a):
+    def load_test(self, *a, **ka):
         self.load_file("1")
 
     def reset(self, *a, **ka):
@@ -467,6 +474,22 @@ pyaki  :{constants.VERSION}"""
     def run_main(self, *a, **ka):
         self.cmd("main()")
 
+    def dump(self, *a, params, **ka):
+        if params is not None and len(params)>0:
+            function = params[0]
+        else:
+            function = None
+        
+        if function:
+            to_print = self.main_cpl.codegen.module.globals.get(function, None)
+        else:
+            to_print = self.main_cpl.codegen.module
+        
+        if not to_print:
+            cp("Function not found")
+        else:
+            cp(str(to_print))            
+
     cmds = {
         "t": run_tests,
         "l": load_test,
@@ -476,8 +499,8 @@ pyaki  :{constants.VERSION}"""
         "about": about,
         "compile": not_implemented,
         "cp": not_implemented,
-        "dump": not_implemented,
-        "dp": not_implemented,
+        "dump": dump,
+        "dp": dump,
         "exit": quit,
         "quit": quit,
         "stop": quit,
