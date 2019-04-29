@@ -1293,6 +1293,7 @@ class AkiCodeGen:
         xor.akinode.name = f'op "{node.op}"'
         return xor
 
+    # TODO: move this to akitypes
     _unops = {"-": _codegen_UnOp_Neg, "not": _codegen_UnOp_Not}
 
     def _codegen_BinOpComparison(self, node):
@@ -1415,7 +1416,7 @@ class AkiCodeGen:
 
     def _codegen_Assignment(self, node):
         """
-        Assign value to variable pointer.        
+        Assign value to variable pointer.
         """
 
         # `lhs` should be an ObjectRef node.
