@@ -158,10 +158,7 @@ class AkiCodeGen:
         # temporary guard; this will go away eventually
 
         if not self.fn:
-            raise AkiOpError(
-                node, self.text,
-                "Name reference not allowed here"
-            )
+            raise AkiOpError(node, self.text, "Name reference not allowed here")
 
         # First, look in the function symbol table:
         name = self.fn.symtab.get(name_to_find, None)
@@ -1073,21 +1070,30 @@ class AkiCodeGen:
 
         if stop:
 
+            # Codegen the loop_test, loop, and loop_exit blocks.
+            # The result of the loop body is saved in a variable
+            # so we can retrieve it even if the loop runs zero times.
+
             loop_test = self.builder.append_basic_block("loop_test")
             self.builder.branch(loop_test)
             self.builder.position_at_start(loop_test)
             loop_condition = self._codegen(stop)
-            with self.builder.if_else(loop_condition) as (then_clause, else_clause):
-                with then_clause:
-                    loop_body = self._codegen(node.body)
-                    n = self._codegen(
-                        Assignment(step, "+", ObjectRef(step, step.lhs), step)
-                    )
-                    self.builder.branch(loop_test)
-                with else_clause:
-                    pass
+            loop = self.builder.append_basic_block("loop")
+            loop_exit = self.builder.append_basic_block("loop_exit")
+            self.fn.breakpoints.append(loop_exit)
+            self.builder.cbranch(loop_condition, loop, loop_exit)
+            self.builder.position_at_start(loop)
+            loop_body = self._codegen(node.body)
+            loop_result = self.fn.allocator.alloca(loop_body.type)
+            self.builder.store(loop_body, loop_result)
+            self._codegen(Assignment(step, "+", ObjectRef(step, step.lhs), step))
+            self.builder.branch(loop_test)
+            self.builder.position_at_start(loop_exit)
+            self.fn.breakpoints.pop()
 
         else:
+
+            # Create the infinite loop and loop exit blocks.
 
             loop = self.builder.append_basic_block("loop_inf")
             loop_exit = self.builder.append_basic_block("loop_exit")
@@ -1095,6 +1101,8 @@ class AkiCodeGen:
             self.builder.branch(loop)
             self.builder.position_at_start(loop)
             loop_body = self._codegen(node.body)
+            loop_result = self.fn.allocator.alloca(loop_body.type)
+            self.builder.store(loop_body, loop_result)
             self.builder.branch(loop)
             self.builder.position_at_start(loop_exit)
             self.fn.breakpoints.pop()
@@ -1104,7 +1112,10 @@ class AkiCodeGen:
         for _ in local_symtab:
             self._delete_var(_)
 
-        return loop_body
+        loop_result = self.builder.load(loop_result)
+        loop_result.akinode = loop_body.akinode
+        loop_result.akitype = loop_body.akitype
+        return loop_result
 
     def _codegen_IfExpr(self, node, is_when_expr=False):
         """
@@ -1185,35 +1196,39 @@ class AkiCodeGen:
         """
         Generates a `select` with one or more `case`s.
         """
-        
+
         default_block = self.builder.append_basic_block(".select_default")
         value = self._codegen(node.select_expr)
         switch_node = self.builder.switch(value, default_block)
         exit_block = self.builder.append_basic_block(".select_exit")
 
         for index, _ in enumerate(node.case_list):
-            case_block = self.builder.append_basic_block(f'.select_{index}')
+            case_block = self.builder.append_basic_block(f".select_{index}")
             self.builder.position_at_start(case_block)
             case_value = self._codegen(_.case_value)
-            if not isinstance(case_value, ir.Constant) and not isinstance(case_value.type,ir.IntType):
-                    raise AkiSyntaxErr(
-                        _.case_value, self.text, 
-                        f'"{CMD}{_.case_value.name}{case_value.akitype}{REP}" cannot be used as a "{CMD}case{REP}" node; it must be a compile-time integer constant'
-                    )
+            if not isinstance(case_value, ir.Constant) and not isinstance(
+                case_value.type, ir.IntType
+            ):
+                raise AkiSyntaxErr(
+                    _.case_value,
+                    self.text,
+                    f'"{CMD}{_.case_value.name}{case_value.akitype}{REP}" cannot be used as a "{CMD}case{REP}" node; it must be a compile-time integer constant',
+                )
             if case_value.akitype != value.akitype:
                 raise AkiTypeErr(
-                    _.case_value, self.text,
-                    f'Case value "{CMD}{_.case_value.name}{case_value.akitype}{REP}" and selector "{CMD}{node.select_expr.name}{value.akitype}{REP}" must have the same type'
+                    _.case_value,
+                    self.text,
+                    f'Case value "{CMD}{_.case_value.name}{case_value.akitype}{REP}" and selector "{CMD}{node.select_expr.name}{value.akitype}{REP}" must have the same type',
                 )
 
             switch_node.add_case(case_value, case_block)
             self._codegen(_.case_expr)
             self.builder.branch(exit_block)
-        
+
         self.builder.position_at_start(default_block)
         if node.default_case:
             self._codegen(node.default_case)
-        self.builder.branch(exit_block)        
+        self.builder.branch(exit_block)
         self.builder.position_at_start(exit_block)
 
     #################################################################
@@ -1372,8 +1387,8 @@ class AkiCodeGen:
             result.akitype = t
             result.akinode = node
             result.akinode.vartype = result.akitype.type_id
-        #print (expr.akitype)
-        result.akinode.name = node.expr.name+'[]'
+        # print (expr.akitype)
+        result.akinode.name = node.expr.name + "[]"
         return result
 
     #################################################################
