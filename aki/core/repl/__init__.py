@@ -464,6 +464,9 @@ pyaki  :{constants.VERSION}"""
         if not "silent" in ka:
             cp(f"{RED}Workspace reset")
 
+    def run_main(self, *a, **ka):
+        self.cmd("main()")
+
     cmds = {
         "t": run_tests,
         "l": load_test,
@@ -489,8 +492,8 @@ pyaki  :{constants.VERSION}"""
         "rlr": not_implemented,
         "reset": reset,
         "~": reset,
-        "run": not_implemented,
-        "r": not_implemented,
+        "run": run_main,
+        "r": run_main,
         "test": run_tests,
         "version": version,
         "ver": version,
