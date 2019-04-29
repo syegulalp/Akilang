@@ -6,6 +6,7 @@ llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 
+import os
 
 class AkiCompiler:
     def __init__(self):
@@ -56,6 +57,8 @@ class AkiCompiler:
 
         # Write IR to file for debugging
         if filename:
+            if not os.path.exists('output'):
+                os.mkdir('output')
             with open(f"output//{filename}.llvm", "w") as file:
                 file.write(f"; File written at {datetime.datetime.now()}\n")
                 file.write(llvm_ir)
