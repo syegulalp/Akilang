@@ -1112,9 +1112,13 @@ class AkiCodeGen:
         for _ in local_symtab:
             self._delete_var(_)
 
+        # Load and decorate results
+
         loop_result = self.builder.load(loop_result)
-        loop_result.akinode = loop_body.akinode
         loop_result.akitype = loop_body.akitype
+        loop_result.akinode = loop_body.akinode
+        loop_result.akinode.vartype = loop_body.akitype.type_id
+        loop_result.akinode.name = '"loop" expr'
         return loop_result
 
     def _codegen_IfExpr(self, node, is_when_expr=False):
