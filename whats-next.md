@@ -74,7 +74,7 @@
 ## In progress
 
 * [ ] `const` for constants
-* [ ] Compile-time computation of constants
+* [ ] Compile-time computation of constants and values for `uni` assignments
 * [ ] Classes and object structures
   * [ ] Object methods and method calls
 * [ ] Type declarations (aliases)
