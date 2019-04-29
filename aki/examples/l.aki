@@ -43,16 +43,16 @@ uni {
     current_world = 0,
     population = 0,
     generation = 0,
-    GENESIS_FACTOR = 3
+    GENESIS_FACTOR = 30,
+    MUTATION_FACTOR = 5
 }
 
 def setup(){
     var output_index=0
     loop (var x=0, x<HEIGHT) {
         loop (var y=0, y<WIDTH) {
-            var bit = rnd(0,10)
             var val = world[0,x,y] = 
-                {if bit<GENESIS_FACTOR 1:u8 else 0:u8}
+                {if rnd(0,100)<GENESIS_FACTOR 1:u8 else 0:u8}
             output[output_index] =
                 {if val 64:u8 else 32:u8}
             output_index+=1
@@ -63,17 +63,27 @@ def setup(){
     output[3240] = 0:u8
 }
 
+def mutate(){
+    loop (var x=0, x<HEIGHT) {
+        loop (var y=0, y<WIDTH) {
+            if world[current_world,x,y] == 0:u8 {
+                world[current_world,x,y] = {if rnd(0,100)<MUTATION_FACTOR 1:u8 else 0:u8}
+            }
+        }
+    }
+}
+
 def evolve() {
-    var other_world = 1-current_world
-    var output_index = 0    
-    var temp = 0:u8
+    var other_world = 1-current_world,
+        output_index = 0,
+        temp = 0:u8
 
     population = 0
 
     loop (var x=0, x<HEIGHT) {
         loop (var y=0, y<WIDTH) {
-            var sum=0:u8
-            var t=0:u8
+            var sum=0:u8,
+                t=0:u8
             loop (var k=x-1, k<x+2)
                 loop (var j=y-1, j<y+2)                     
                     sum+=world[current_world,
@@ -100,7 +110,9 @@ def main(){
     
     setup()
     
-    print("Conway's Game Of Life\nAny key evolves pattern\nPress [q] to quit\n\n")
+    print("Conway's Game Of Life\nAny key evolves pattern\n[m]: mutate\n[q]: quit\n\n")
+
+    inkey()
 
     loop {
 
@@ -110,9 +122,10 @@ def main(){
         var cmd = inkey()
 
         select cmd {
-            case 113:u8 {
+            case 109:u8
+                mutate()
+            case 113:u8
                 break
-            }
         }
 
         evolve()
