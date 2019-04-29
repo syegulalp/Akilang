@@ -147,7 +147,7 @@ pyaki  :{constants.VERSION}"""
     def __init__(self, typemgr=None):
         self.reset(silent=True, typemgr=typemgr)
 
-    def run_tests(self, *a):
+    def run_tests(self, *a, **ka):
         print(f"{REP}", end="")
         import unittest
 
