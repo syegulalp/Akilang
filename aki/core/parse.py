@@ -662,7 +662,7 @@ class AkiParser(Parser):
     def selectitems(self, p):
         return p.selectitems+[p.selectitem]
     
-    @_("CASE expr LBRACE expr RBRACE")
+    @_("CASE expr LBRACE expr RBRACE", "CASE expr expr")
     def selectitem(self, p):
         return CaseExpr(Pos(p), p.expr0, p.expr1)
 
