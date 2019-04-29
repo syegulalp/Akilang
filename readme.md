@@ -1,10 +1,6 @@
 # **Aki**:  a compiler for a simple language, built with Python 3.6+ and the [LLVM framework](https://www.llvm.org) by way of the [llvmlite](http://llvmlite.pydata.org/en/latest/) library
 
-> ⚠ This project is pre-pre-alpha and does not yet work. It's being rewritten completely from the ground up.
-
-<!--
 > ⚠ This project is currently very unstable and should not be used in production. However, you should always be able to pull from `master`, run the demos, and pass the test suite. (The test suite compiles the demos internally as well.)
--->
 
 This project is an attempt to create a compiler, language server, and REPL in Python for a simple language that's compiled to native machine code.
 
@@ -97,7 +93,7 @@ def main() {
     return 0
 }
 ```
-<!--
+
 # Quickstart
 
 You'll need Python 3.6 and Windows 10 64-bit.
@@ -105,13 +101,13 @@ You'll need Python 3.6 and Windows 10 64-bit.
 1. Clone or download the repo.
 2. `pip install -r requirements.txt` to ensure you have all the requirements.
 3. Run `python aki.py` to start the REPL.
-4. Enter `.l.` to load the Conway's Life demo from the `src` directory.
+4. Enter `.l.` to load the Conway's Life demo from the `examples` directory.
 5. Enter `.r` to run the demo.
 6. Hit `q` to exit Conway's Life. Enter `.` to see all commands.
-7. If you have the Microsoft Visual Studio tools installed, you can enter `.l.` to load the Conway's Life demo, then enter `.cp` to compile it to a standalone binary in the `\output` subdirectory. (Make sure `nt_compiler_path` in `config.ini` points to the correct location for `vcvarsall.bat`. This limitation will be removed in the future.)
+<!-- 7. If you have the Microsoft Visual Studio tools installed, you can enter `.l.` to load the Conway's Life demo, then enter `.cp` to compile it to a standalone binary in the `\output` subdirectory. (Make sure `nt_compiler_path` in `config.ini` points to the correct location for `vcvarsall.bat`. This limitation will be removed in the future.) -->
 
 There's also going to be a standalone binary version of the compiler, most likely by way of `pyinstaller`.
--->
+
 
 # Limitations
 
