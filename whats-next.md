@@ -69,18 +69,19 @@
   * [x] Support for objects in arrays
   * [x] N-dimensional arrays of scalars
 * [x] `uni` for globals
+* [x] `case` statement for matching against enums
 
 ## In progress
 
+* [ ] `const` for constants
+* [ ] Compile-time computation of constants
 * [ ] Classes and object structures
   * [ ] Object methods and method calls
 * [ ] Type declarations (aliases)
 * [ ] Decorators by way of the `@` symbol
 * [ ] `print` builtin
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
-* [ ] `case` statement for matching against enums
 * [ ] `while` constructions
-* [ ] `const` for constants
 * [ ] Complete REPL command set (as per earlier incarnation of project)
 * [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
