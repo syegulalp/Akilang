@@ -147,28 +147,78 @@ pyaki  :{constants.VERSION}"""
     def __init__(self, typemgr=None):
         self.reset(silent=True, typemgr=typemgr)
 
-    def run_tests(self, *a, **ka):
-        print(f"{REP}", end="")
-        import unittest
+    def run(self):
+        import shutil
 
-        tests = unittest.defaultTestLoader.discover("tests", "*.py")
-        unittest.TextTestRunner().run(tests)
+        cols = shutil.get_terminal_size()[0]
+        if cols < 80:
+            warn = f"\n{RED}Terminal is less than 80 colums wide.\nOutput may not be correctly formatted."
+        else:
+            warn = ""
 
-    def load_file(self, file_to_load, ignore_cache=False):
+        cp(
+            f"{GRN}{constants.WELCOME}{warn}\n{REP}Type {CMD}.help{REP} or a command to be interpreted"
+        )
+        while True:
+            try:
+                print(f"{REP}{PROMPT}{CMD}", end="")
+                text = input()
+                self.cmd(text)
+            except AkiBaseErr as e:
+                print(e)
+            except EOFError:
+                break
+
+    def cmd(self, text):
+        if not text:
+            return
+        if text[0] == ".":
+            if len(text) == 1:
+                self.help()
+                return
+            if text[-1] == ".":
+                if len(text) == 2:
+                    return self.reload()
+                text = text[1:-1]
+                self.load_file(text)
+                return
+            command = text[1:]
+        else:
+            print(f"{REP}", end="")
+            for _ in self.interactive(text):
+                print(_)
+            return
+
+        cmd_split = command.split(" ")
+        cmd_name = cmd_split[0]
+        if len(cmd_split) > 1:
+            params = cmd_split[1:]
+        else:
+            params = None
+
+        cmd_func = self.cmds.get(cmd_name)
+
+        if cmd_func is None:
+            cp(f'Unrecognized command "{CMD}{command}{REP}"')
+            return
+
+        return cmd_func(self, text, params=params)
+
+    def load_file(self, file_to_load, file_path="examples", ignore_cache=False):
 
         self.main_cpl.reset(typemgr=self.typemgr)
 
+        filepath = os.path.join(file_path, f"{file_to_load}.aki")
+
+        self.last_file_loaded = file_to_load
+
         # Attempt to load precomputed module from cache
-
-        file_dir = "examples"
-
-        filepath = f"{file_dir}/{file_to_load}.aki"
 
         if not ignore_cache:
 
             force_recompilation = False
 
-            cache_path = f"{file_dir}/__akic__/"
+            cache_path = f"{file_path}/__akic__/"
             cache_file = f"{file_to_load}.akic"
             full_cache_path = cache_path + cache_file
 
@@ -238,78 +288,10 @@ pyaki  :{constants.VERSION}"""
                     except Exception:
                         raise LocalException
             except LocalException:
-                cp("Can't write bytecode")
+                cp("Can't write cache file")
                 os.remove(cache_path)
 
         cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({t.time:.3f} sec)")
-
-    def quit(self, *a, **ka):
-        print(XX)
-        raise QuitException
-
-    def reload(self, *a, **ka):
-        print(XX)
-        raise ReloadException
-
-    def run(self):
-        import shutil
-
-        cols = shutil.get_terminal_size()[0]
-        if cols < 80:
-            warn = f"\n{RED}Terminal is less than 80 colums wide.\nOutput may not be correctly formatted."
-        else:
-            warn = ""
-
-        cp(
-            f"{GRN}{constants.WELCOME}{warn}\n{REP}Type {CMD}.help{REP} or a command to be interpreted"
-        )
-        while True:
-            try:
-                print(f"{REP}{PROMPT}{CMD}", end="")
-                text = input()
-                self.cmd(text)
-            except AkiBaseErr as e:
-                print(e)
-            except EOFError:
-                break
-
-    def help(self, *a, **ka):
-        cp(f"\n{USAGE}")
-
-    def cmd(self, text):
-        if not text:
-            return
-        if text[0] == ".":
-            if len(text) == 1:
-                self.help()
-                return
-            if text[-1] == ".":
-                if len(text) == 2:
-                    return self.reload()
-                text = text[1:-1]
-                self.load_file(text)
-                return
-            command = text[1:]
-        else:
-            print(f"{REP}", end="")
-            for _ in self.interactive(text):
-                print(_)
-            return
-
-        cmd_split = command.split(' ')        
-        cmd_name = cmd_split[0]
-        if len(cmd_split)>1:
-            params=cmd_split[1:]
-        else:
-            params=None
-
-        cmd_func = self.cmds.get(cmd_name)
-
-        if cmd_func is None:
-            cp(f'Unrecognized command "{CMD}{command}{REP}"')
-            return
-
-        return cmd_func(self, text, params=params)
 
     def interactive(self, text, immediate_mode=False):
         # Immediate mode processes everything in the repl compiler.
@@ -420,7 +402,7 @@ pyaki  :{constants.VERSION}"""
             final_result_type = first_result_type
 
         # Link the main module into the REPL module.
-        
+
         if not immediate_mode:
             if self.main_cpl.compiler.mod_ref:
                 self.repl_cpl.compiler.backing_mod.link_in(
@@ -447,6 +429,24 @@ pyaki  :{constants.VERSION}"""
 
         return res, return_type
 
+    def run_tests(self, *a, **ka):
+        print(f"{REP}", end="")
+        import unittest
+
+        tests = unittest.defaultTestLoader.discover("tests", "*.py")
+        unittest.TextTestRunner().run(tests)
+
+    def quit(self, *a, **ka):
+        print(XX)
+        raise QuitException
+
+    def reload(self, *a, **ka):
+        print(XX)
+        raise ReloadException
+
+    def help(self, *a, **ka):
+        cp(f"\n{USAGE}")
+
     def about(self, *a, **ka):
         print(f"\n{GRN}{constants.ABOUT}\n\n{self.VERSION}\n")
 
@@ -468,6 +468,7 @@ pyaki  :{constants.VERSION}"""
         self.types = self.typemgr.types
         self.main_cpl = JIT(self.typemgr, module_name=".main")
         self.repl_cpl = JIT(self.typemgr, module_name=".repl")
+        self.last_file_loaded = None
         if not "silent" in ka:
             cp(f"{RED}Workspace reset")
 
@@ -475,20 +476,26 @@ pyaki  :{constants.VERSION}"""
         self.cmd("main()")
 
     def dump(self, *a, params, **ka):
-        if params is not None and len(params)>0:
+        if params is not None and len(params) > 0:
             function = params[0]
         else:
             function = None
-        
+
         if function:
             to_print = self.main_cpl.codegen.module.globals.get(function, None)
         else:
             to_print = self.main_cpl.codegen.module
-        
+
         if not to_print:
             cp("Function not found")
         else:
-            cp(str(to_print))            
+            cp(str(to_print))
+
+    def reload_file(self, *a, **ka):
+        if self.last_file_loaded is None:
+            cp("No file history to load")
+            return
+        self.load_file(self.last_file_loaded)
 
     cmds = {
         "t": run_tests,
@@ -510,7 +517,7 @@ pyaki  :{constants.VERSION}"""
         "help": help,
         "?": help,
         "rerun": not_implemented,
-        "rl": not_implemented,
+        "rl": reload_file,
         "rlc": not_implemented,
         "rlr": not_implemented,
         "reset": reset,
