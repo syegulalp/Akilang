@@ -8,6 +8,7 @@ llvm.initialize_native_asmprinter()
 
 import os
 
+
 class AkiCompiler:
     def __init__(self):
         """
@@ -57,9 +58,10 @@ class AkiCompiler:
 
         # Write IR to file for debugging
         if filename:
-            if not os.path.exists('output'):
-                os.mkdir('output')
-            with open(f"output//{filename}.llvm", "w") as file:
+            if not os.path.exists("output"):
+                os.mkdir("output")
+
+            with open(os.path.join("output", f"{filename}.llvm"), "w") as file:
                 file.write(f"; File written at {datetime.datetime.now()}\n")
                 file.write(llvm_ir)
 
@@ -68,7 +70,7 @@ class AkiCompiler:
 
         # Write assembly to file
         if filename:
-            with open(f"output//{filename}.llvmbc", "wb") as file:
+            with open(os.path.join("output", f"{filename}.llvmbc"), "wb") as file:
                 file.write(mod.as_bitcode())
 
     def get_addr(self, func_name="main"):
