@@ -114,7 +114,7 @@ There's also going to be a standalone binary version of the compiler, most likel
 (Apart from the language itself being a minimal affair, that is.)
 
 * Currently only Windows 10 64-bit is supported. We'd like to add support for other systems in time, though.
-* When we add string support, we have no plans to support any encoding other than UTF-8, and whatever encodings are used in the kernel of a given target platform.
+* We have no plans to support any text encoding other than UTF-8, plus whatever encodings are used in the kernel of a given target platform (e.g., UTF-16 for Windows).
 
 # Derivation and licensing
 
