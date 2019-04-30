@@ -33,7 +33,9 @@ def inkey():u8 {
 uni {
     HEIGHT = 40,
     WIDTH = 80,
-   
+    GENESIS_FACTOR = 30,
+    MUTATION_FACTOR = 5,
+
     # need to let this be set with constants as before
     world:array(:u8)[2,40,80],    
     #world:array(:i32)[2,HEIGHT,WIDTH],    
@@ -42,9 +44,8 @@ uni {
     
     current_world = 0,
     population = 0,
-    generation = 0,
-    GENESIS_FACTOR = 30,
-    MUTATION_FACTOR = 5
+    generation = 0
+    # fix: allow trailing comma
 }
 
 def setup(){
