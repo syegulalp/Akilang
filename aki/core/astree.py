@@ -549,3 +549,16 @@ class CaseExpr(Expression):
 
     def flatten(self):
         return [self.__class__.__name__, self.case_value.flatten(), self.case_expr.flatten()]
+
+
+class WhileExpr(Expression):
+    """
+    `while` expression.
+    """
+    def __init__(self, p, while_value, while_expr):
+        super().__init__(p)
+        self.while_value = while_value
+        self.while_expr = while_expr
+
+    def flatten(self):
+        return [self.__class__.__name__, self.while_value.flatten(), self.while_expr.flatten()]

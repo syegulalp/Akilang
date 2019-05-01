@@ -36,6 +36,7 @@ from core.astree import (
     UniList,
     SelectExpr,
     CaseExpr,
+    WhileExpr,
 )
 from core.error import AkiSyntaxErr
 
@@ -665,7 +666,14 @@ class AkiParser(Parser):
     @_("CASE expr LBRACE expr RBRACE", "CASE expr expr")
     def selectitem(self, p):
         return CaseExpr(Pos(p), p.expr0, p.expr1)
+    
+    #################################################################
+    # `while`
+    #################################################################
 
+    @_("WHILE expr expr")
+    def expr(self, p):
+        return WhileExpr(Pos(p), p.expr0, p.expr1)
 
     #################################################################
     # Slice

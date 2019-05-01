@@ -76,7 +76,8 @@ class AkiLexer(Lexer):
         UNI,
         MOD,
         SELECT,
-        CASE
+        CASE,
+        WHILE
     }
 
     ignore = " \t"
@@ -108,6 +109,7 @@ class AkiLexer(Lexer):
     NAME["uni"] = UNI
     NAME["select"] = SELECT
     NAME["case"] = CASE
+    NAME["while"] = WHILE
 
     INT_DIV = r"//"
     INCR = r"(\+\=)"

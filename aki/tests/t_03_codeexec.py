@@ -373,3 +373,43 @@ class TestLexer(unittest.TestCase):
 
     def test_size(self):
         self._e(((r"size('Hello there')", 8), (r"size(1)", 4), (r"size(1:u64)", 8)))
+
+    def test_while(self):
+        self._e(
+            (
+                (r"var x=1,q=20 while x<20 {x+=1} q+x", 40),
+                (r"var x=1 while x<20 {x+=1 if x==10 break} x", 10),
+            )
+        )
+
+    def test_select(self):
+        p1 = r"""
+def main(){
+    var x=2
+    var y:i64
+    select type(x) {
+        case i32{
+            y=1:i64
+        }
+        case type(y){
+            y=2:i64
+        }
+    }
+    y
+}
+main()"""
+        p2 = r"""
+def main(){
+    var x=2
+    var y:i64
+    select x {
+        case type(y){
+            y=2:i64
+        }
+    }
+    y
+}
+main()"""
+        self._e(((p1, 1),))
+        self._ex(AkiTypeErr, ((p2, None),))
+

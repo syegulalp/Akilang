@@ -1005,6 +1005,38 @@ class AkiCodeGen:
 
         self.builder.branch(self.fn.breakpoints[-1])
 
+    def _codegen_WhileExpr(self, node):
+        """
+        Codegen a `while` expression.
+        This is essentially a loop with only a conditional block.
+        We will eventually merge this with the `loop` codegen.
+        """
+
+        loop_cond = self.builder.append_basic_block("loop_cond")
+        loop_body = self.builder.append_basic_block("loop_body")
+        loop_exit = self.builder.append_basic_block("loop_exit")
+        
+        self.builder.branch(loop_cond)
+        self.builder.position_at_start(loop_cond)
+        while_test =self._codegen(node.while_value)
+        self.builder.cbranch(while_test, loop_body, loop_exit)
+        self.builder.position_at_start(loop_body)        
+        self.fn.breakpoints.append(loop_exit)
+        while_body = self._codegen(node.while_expr)
+        while_result = self.fn.allocator.alloca(while_body.type)
+        self.builder.store(while_body, while_result)
+        self.builder.branch(loop_cond)
+        self.builder.position_at_start(loop_exit)
+        self.fn.breakpoints.pop()
+
+        while_result = self.builder.load(while_result)
+        while_result.akitype = while_body.akitype
+        while_result.akinode = while_body.akinode
+        while_result.akinode.vartype = while_body.akitype.type_id
+        while_result.akinode.name = '"while" expr'
+
+        return while_result
+    
     def _codegen_LoopExpr(self, node):
         """
         Codegen a `loop` expression.
