@@ -69,7 +69,8 @@
   * [x] Support for objects in arrays
   * [x] N-dimensional arrays of scalars
 * [x] `uni` for globals
-* [x] `case` statement for matching against enums
+* [x] `case` statement for matching against constant enums (including type enumerators)
+* [x] `while` expressions
 
 ## In progress
 
@@ -81,7 +82,6 @@
 * [ ] Decorators by way of the `@` symbol
 * [ ] `print` builtin
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
-* [ ] `while` constructions
 * [ ] Complete REPL command set (as per earlier incarnation of project)
 * [ ] CLI command support
 * [ ] Compile to standalone binary, maybe with `lld` instead of the platform linker
