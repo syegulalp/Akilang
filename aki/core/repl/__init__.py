@@ -261,12 +261,24 @@ pyaki  :{constants.VERSION}"""
                     None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
                 )
 
+            # import cProfile, pstats, io
+            # pr = cProfile.Profile()
+            # pr.enable()
+            
             tokens = self.main_cpl.lexer.tokenize(text)
             ast = self.main_cpl.parser.parse(tokens, text)
 
             self.main_cpl.codegen.text = text
             self.main_cpl.codegen.eval(ast)
             self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
+
+            # pr.disable()
+            # s = io.StringIO()
+            # sortby = pstats.SortKey.CUMULATIVE
+            # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            # ps.print_stats()            
+            # with open ('stats.txt','w') as file:
+            #     file.write(s.getvalue())
 
         # Write cached compilation to file
 
@@ -364,6 +376,8 @@ pyaki  :{constants.VERSION}"""
         try:
             self.repl_cpl.codegen.eval([func])
         except AkiBaseErr as e:
+            if not immediate_mode:
+                self.repl_cpl.codegen.other_modules.pop()
             del self.repl_cpl.module.globals[call_name]
             raise e
 
@@ -410,6 +424,9 @@ pyaki  :{constants.VERSION}"""
                 )
 
         self.repl_cpl.compiler.compile_module(self.repl_cpl.module, repl_file)
+
+        if not immediate_mode:
+            self.repl_cpl.codegen.other_modules.pop()
 
         # Retrieve a pointer to the function to execute
         func_ptr = self.repl_cpl.compiler.get_addr(call_name)

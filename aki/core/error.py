@@ -29,6 +29,8 @@ class AkiBaseErr(Exception):
     _errtype = "0 (General error)"
 
     def __init__(self, p, txt, msg):
+        if txt is None:
+            txt=''
         if p is None:
             self.lineno = 1
             self.col = 1

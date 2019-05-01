@@ -1,9 +1,9 @@
 from llvmlite.ir import types
 from llvmlite import ir, binding
 import ctypes
-from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode, String
+from core.astree import Constant, IfExpr, BinOp, VarTypeName, LLVMNode, String, Name
 from typing import Optional
-from core.error import AkiTypeErr
+from core.error import AkiTypeErr, AkiSyntaxErr
 
 
 def _int(value: int):
@@ -461,10 +461,31 @@ class AkiArray(AkiObject, AkiType):
         array_aki_type = base_type
         subaccessors = []
 
-        for _, akitype in reversed(accessors):
-            array_type = ir.ArrayType(array_type, _)
+        for _ in reversed(accessors):            
+            accessor_dimension = None            
+            if isinstance(_, Constant):
+                accessor_dimension = _.val
+            elif isinstance(_, Name):                
 
-            subaccessors.append(_)
+                # try:
+                #     t_val = codegen.eval_to_result(node,[_])
+                # except Exception as e:
+                #     print("err", e)
+
+                name_val = codegen._name(node,_.name)
+                try:
+                    accessor_dimension = name_val.initializer.constant
+                except Exception:
+                    pass        
+            
+            if not accessor_dimension:
+                raise AkiSyntaxErr(
+                    _, codegen.text,
+                    f'Only constants (not computed values) allowed for array dimensions'
+                )
+
+            array_type = ir.ArrayType(array_type, accessor_dimension)
+            subaccessors.append(accessor_dimension)
 
             subakitype = AkiArray(codegen.module)
             subakitype.llvm_type = array_type
@@ -476,7 +497,7 @@ class AkiArray(AkiObject, AkiType):
             array_type.akinode = node
 
         new.llvm_type = array_type
-        new.type_id = f"array({base_type})[{','.join([str(_[0]) for _ in accessors])}]"
+        new.type_id = f"array({base_type})[{','.join([str(_) for _ in accessors])}]"
 
         codegen.typemgr.add_type(new.type_id, new, codegen.module)
         return new
