@@ -1,0 +1,42 @@
+# Layer 0 stdlib
+# This contains the platform-specific system calls we need
+# to create the primitives for each stdlib implementation.
+
+# Memory management
+
+extern GetProcessHeap():ptr u_size
+
+extern HeapAlloc(
+    hHeap: ptr u_size,
+    dwFlags: i32,
+    dwBytes: u_size
+):ptr u_mem
+
+extern HeapFree(
+    hHeap: ptr u_size,
+    dwFlags: i32,
+    lpMem: ptr u_mem
+):i32
+
+# Output
+
+extern GetStdHandle(nStdHandle:i32):ptr u_size
+
+extern WriteConsoleA(
+    hConsoleOutput:ptr u_size,
+    lpBuffer: ptr u_mem,
+    nNumberOfCharsToWrite: i32,
+    lpNumberOfCharsWritten: ptr i32,
+    lpReserved: u64 = 0:u64
+):i32
+
+extern _snprintf(
+    buffer: ptr u_mem,
+    count: u_size,
+    format: ptr u8,
+    *args
+):i32
+
+# Etc
+
+extern Sleep(dwMilliseconds:i32):i32

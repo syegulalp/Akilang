@@ -1,0 +1,48 @@
+# Layer 1 stdlib
+# These are the primitives we actually use in Aki,
+# which are wrappers for the platform primitives.
+# All of this will eventually be namespaced.
+
+def alloc(bytes:u_size):ptr u_mem {
+    HeapAlloc(
+        GetProcessHeap(),
+        0x00000008,
+        bytes
+    )
+}
+
+def free(ptr_to_free:ptr u_mem){
+    HeapFree(
+        GetProcessHeap(),
+        0x00000000,
+        ptr_to_free
+    )
+}
+
+def sleep(msecs:i32):i32 {
+    Sleep(msecs)
+}
+
+def print(_str:str):i32 {
+    
+    var bytes_written:i32=0
+    var _size = 4096:u_size
+    var buffer = alloc(_size)
+
+    var len = _snprintf(
+        buffer,
+        _size,
+        c_data('%s\n'),
+        c_data(_str)
+    )
+
+    WriteConsoleA(
+        GetStdHandle(-11),
+        buffer,
+        len,
+        ref(bytes_written)
+    )
+
+    free(buffer)
+    bytes_written
+}
