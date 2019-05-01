@@ -30,22 +30,24 @@ def inkey():u8 {
 # Main program
 # --------------------------------
 
-uni {
+const {
     HEIGHT = 40,
     WIDTH = 80,
     GENESIS_FACTOR = 30,
-    MUTATION_FACTOR = 5,
+    MUTATION_FACTOR = 5
+    # DISPLAY_SIZE = ((WIDTH+1) * HEIGHT) + 1
+    # TODO: allow computed constants
+}
 
-    # need to let this be set with constants as before
-    world:array(:u8)[2,40,80],    
-    #world:array(:i32)[2,HEIGHT,WIDTH],    
-    output:array(:u8)[3242],
-    #output:array(:u8)[(HEIGHT*(WIDTH+1))+1],
+uni {
     
+    world:array(:u8)[2,HEIGHT,WIDTH],    
+    output:array(:u8)[3242],    
+
     current_world = 0,
     population = 0,
     generation = 0
-    # fix: allow trailing comma
+    # TODO: allow trailing comma in these types of definitions
 }
 
 def setup(){
@@ -87,9 +89,11 @@ def evolve() {
                 t=0:u8
             loop (var k=x-1, k<x+2)
                 loop (var j=y-1, j<y+2)                     
-                    sum+=world[current_world,
+                    sum+=world[
+                        current_world,
                         (k+HEIGHT) % HEIGHT,
-                        (j+WIDTH) % WIDTH]
+                        (j+WIDTH) % WIDTH
+                    ]
             t = world[current_world,x,y]
             sum -= t
             temp = world[other_world,x,y] = {
