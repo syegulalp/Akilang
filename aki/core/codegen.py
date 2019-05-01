@@ -114,6 +114,8 @@ class AkiCodeGen:
 
         self.const_enum = 0
 
+        self.evaluator = None
+
     def _const_counter(self):
         self.const_enum += 1
         return self.const_enum
@@ -146,6 +148,24 @@ class AkiCodeGen:
         result = getattr(self, method)(node)
         return result
 
+    def eval_to_result(self, node, ast):
+        # Not working yet
+        """
+        Takes an AST expression block, compiles it to an anonymous
+        function in the current module,
+        and returns the result as a constant value.
+        The constant value is an LLVM value with an Aki type.
+        """
+        pass
+
+        # create a new REPL compiler instance
+        # if we already have one, soft-reset it
+        # i think we can use immediate mode
+        # link the typemgr from this module
+        # also link constants:
+        # self.repl_cpl.codegen.other_modules.append
+        # be sure to unlink module when we're done
+
     def _codegen_LLVMNode(self, node):
         return node.llvm_node
 
@@ -155,20 +175,15 @@ class AkiCodeGen:
         from the symbol table or the list of globals.
         """
 
-        # temporary guard; this will go away eventually
-
-        if not self.fn:
-            raise AkiOpError(node, self.text, "Name reference not allowed here")
-
-        # First, look in the function symbol table:
-        name = self.fn.symtab.get(name_to_find, None)
-
-        if name is not None:
-            return name
+        # First, look in the function symbol table,
+        # if there is one
+        if self.fn:
+            name = self.fn.symtab.get(name_to_find, None)
+            if name is not None:
+                return name
 
         # Next, look in the globals:
         name = self.module.globals.get(name_to_find, None)
-
         if name is not None:
             return name
 
@@ -176,6 +191,15 @@ class AkiCodeGen:
         for _ in self.other_modules:
             name = _.module.globals.get(name_to_find, None)
             if name is not None:
+
+                # if this is just a regular variable,
+                # then copy it into the module.
+
+                if isinstance(name, ir.GlobalVariable):
+                    self.module.globals[name_to_find] = name
+                    return name
+
+                # otherwise, this is a function.
                 # emit function reference for this module
                 link = ir.Function(self.module, name.ftype, name.name)
                 # copy aki data for function
@@ -257,15 +281,9 @@ class AkiCodeGen:
 
     def _get_vartype_VarTypeAccessor(self, node):
         base_type = self._get_vartype(node.vartype)
-        accessors = []
-        for _ in node.accessors.accessors:
-            accessor_type = self._get_vartype(_.vartype)
-            if not isinstance(accessor_type, AkiBaseInt):
-                raise AkiSyntaxErr(
-                    _, self.text, "Array indices must be integer constants"
-                )
-            accessors.append([_.val, accessor_type])
-        array_type = self.types["array"].new(self, node, base_type, accessors)
+        array_type = self.types["array"].new(
+            self, node, base_type, node.accessors.accessors
+        )
         return array_type
 
     def _get_vartype_VarTypePtr(self, node):
@@ -411,6 +429,7 @@ class AkiCodeGen:
                 error += f'\nTypes also have signed/unsigned disagreement:\n - "{CMD}{lhs.akinode.name}{REP}" ({CMD}{lhs_atype}{REP}): {is_signed(lhs_atype.signed)}\n - "{CMD}{rhs.akinode.name}{REP}" ({CMD}{rhs_atype}{REP}): {is_signed(rhs_atype.signed)}'
 
             raise AkiTypeErr(node, self.text, error)
+
         return lhs_atype, rhs_atype
 
     #################################################################
@@ -748,10 +767,13 @@ class AkiCodeGen:
     # Declarations
     #################################################################
 
+    def _codegen_ConstList(self, node):
+        return self._codegen_VarList(node, True, True)
+
     def _codegen_UniList(self, node):
         return self._codegen_VarList(node, True)
 
-    def _codegen_VarList(self, node, is_uni: bool = False):
+    def _codegen_VarList(self, node, is_uni: bool = False, is_const: bool = False):
         """
         Codegen the variables in a `VarList` node.
         """
@@ -800,6 +822,8 @@ class AkiCodeGen:
             # Create an allocation for that type
             if is_uni:
                 var_ptr = ir.GlobalVariable(self.module, _.akitype.llvm_type, _.name)
+                if is_const:
+                    var_ptr.global_constant = True
             else:
                 var_ptr = self._alloca(_, _.akitype.llvm_type, _.name)
 
@@ -1015,12 +1039,12 @@ class AkiCodeGen:
         loop_cond = self.builder.append_basic_block("loop_cond")
         loop_body = self.builder.append_basic_block("loop_body")
         loop_exit = self.builder.append_basic_block("loop_exit")
-        
+
         self.builder.branch(loop_cond)
         self.builder.position_at_start(loop_cond)
-        while_test =self._codegen(node.while_value)
+        while_test = self._codegen(node.while_value)
         self.builder.cbranch(while_test, loop_body, loop_exit)
-        self.builder.position_at_start(loop_body)        
+        self.builder.position_at_start(loop_body)
         self.fn.breakpoints.append(loop_exit)
         while_body = self._codegen(node.while_expr)
         while_result = self.fn.allocator.alloca(while_body.type)
@@ -1036,7 +1060,7 @@ class AkiCodeGen:
         while_result.akinode.name = '"while" expr'
 
         return while_result
-    
+
     def _codegen_LoopExpr(self, node):
         """
         Codegen a `loop` expression.
@@ -1462,6 +1486,13 @@ class AkiCodeGen:
 
         ptr = self._codegen(lhs)
         val = self._codegen(rhs)
+
+        if getattr(ptr, "global_constant", None) == True:
+            raise AkiTypeErr(
+                node.lhs.expr,
+                self.text,
+                f'"{CMD}{node.lhs.expr.name}{REP}" is a constant and does not accept assignments',
+            )
 
         self._type_check_op(node, ptr, val)
         self.builder.store(val, ptr)

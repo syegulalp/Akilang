@@ -34,6 +34,7 @@ from core.astree import (
     ObjectRef,
     ObjectValue,
     UniList,
+    ConstList,
     SelectExpr,
     CaseExpr,
     WhileExpr,
@@ -451,6 +452,10 @@ class AkiParser(Parser):
     @_("UNI LBRACE varlistelements RBRACE")
     def unilist(self, p):
         return UniList(Pos(p), p.varlistelements)
+
+    @_("CONST LBRACE varlistelements RBRACE")
+    def unilist(self, p):
+        return ConstList(Pos(p), p.varlistelements)
 
     #################################################################
     # Ops

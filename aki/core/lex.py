@@ -3,6 +3,7 @@ from core.error import AkiSyntaxErr
 
 
 class Pos:
+    __slots__ = ('lineno','index')
     def __init__(self, p):
         try:
             self.lineno = p.lineno
@@ -77,7 +78,8 @@ class AkiLexer(Lexer):
         MOD,
         SELECT,
         CASE,
-        WHILE
+        WHILE,
+        CONST
     }
 
     ignore = " \t"
@@ -110,6 +112,7 @@ class AkiLexer(Lexer):
     NAME["select"] = SELECT
     NAME["case"] = CASE
     NAME["while"] = WHILE
+    NAME["const"] = CONST
 
     INT_DIV = r"//"
     INCR = r"(\+\=)"

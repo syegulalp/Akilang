@@ -156,6 +156,9 @@ class VarList(Expression):
 class UniList(TopLevel, VarList):
     pass
 
+class ConstList(TopLevel, VarList):
+    pass
+
 class Argument(ASTNode):
     """
     Function argument, with optional type declaration.
