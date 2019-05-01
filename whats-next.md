@@ -71,15 +71,14 @@
 * [x] `uni` for globals
 * [x] `case` statement for matching against constant enums (including type enumerators)
 * [x] `while` expressions
+* [x] `const` for constants
 
 ## In progress
-
-* [ ] `const` for constants
 * [ ] Compile-time computation of constants and values for `uni` assignments
+* [ ] Decorators by way of the `@` symbol
 * [ ] Classes and object structures
   * [ ] Object methods and method calls
 * [ ] Type declarations (aliases)
-* [ ] Decorators by way of the `@` symbol
 * [ ] `print` builtin
 * [ ] `meta` keyword for program metadata (compiler directives, etc.)
 * [ ] Complete REPL command set (as per earlier incarnation of project)
