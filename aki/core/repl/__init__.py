@@ -370,6 +370,12 @@ pyaki  :{constants.VERSION}"""
 
         if not immediate_mode:
             self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
+            # Note: This copies ALL global variables,
+            # whether or not they are constants.
+            # This may prove problematic later.
+            for k, v in self.main_cpl.codegen.module.globals.items():
+                if isinstance(v, ir.GlobalVariable):
+                    self.repl_cpl.codegen.module.globals[k]=v
 
         try:
             self.repl_cpl.codegen.eval([func])
