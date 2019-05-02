@@ -2,8 +2,9 @@ from sly import Lexer
 from core.error import AkiSyntaxErr
 
 
-class Pos:
-    __slots__ = ('lineno','index')
+class Pos(object):
+    __slots__ = ("lineno", "index")
+
     def __init__(self, p):
         try:
             self.lineno = p.lineno
@@ -79,7 +80,7 @@ class AkiLexer(Lexer):
         SELECT,
         CASE,
         WHILE,
-        CONST
+        CONST,
     }
 
     ignore = " \t"
