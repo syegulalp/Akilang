@@ -5,6 +5,7 @@ class ReloadException(Exception):
     """
     Used to signal that the REPL needs to reload.
     """
+
     pass
 
 
@@ -12,6 +13,7 @@ class QuitException(Exception):
     """
     Used to signal the REPL is quitting normally.
     """
+
     pass
 
 
@@ -19,6 +21,7 @@ class LocalException(Exception):
     """
     Used for control flow in functions.
     """
+
     pass
 
 
@@ -26,18 +29,19 @@ class AkiBaseErr(Exception):
     """
     Base Aki error type. This should not be used directly.
     """
+
     _errtype = "0 (General error)"
 
     def __init__(self, p, txt, msg):
         if txt is None:
-            txt=''
+            txt = ""
         if p is None:
             self.lineno = 1
             self.col = 1
             self.msg = msg
             self.extract = txt
             return
-        
+
         self.msg = msg
         self.p = p
         last_newline = txt.rfind(f"\n", 0, self.p.index)
@@ -64,6 +68,7 @@ class AkiSyntaxErr(AkiBaseErr):
     """
     Thrown when we encounter syntax or parsing issues.
     """
+
     _errtype = "1 (Syntax error)"
 
 
@@ -71,6 +76,7 @@ class AkiNameErr(AkiBaseErr):
     """
     Thrown when a name reference is not recognized.
     """
+
     _errtype = "2 (Name error)"
 
 
@@ -78,6 +84,7 @@ class AkiTypeErr(AkiBaseErr):
     """
     Thrown when types are not compatible or other type-related errors arise.
     """
+
     _errtype = "3 (Type error)"
 
 
@@ -85,4 +92,5 @@ class AkiOpError(AkiBaseErr):
     """
     Thrown when the op for a function does not exist or is incompatible.
     """
+
     _errtype = "4 (Operator error)"

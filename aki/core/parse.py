@@ -443,7 +443,7 @@ class AkiParser(Parser):
 
     #################################################################
     # `uni` expressions
-    #################################################################        
+    #################################################################
 
     @_("unilist")
     def toplevel(self, p):
@@ -605,7 +605,7 @@ class AkiParser(Parser):
             v = p.loop_expr_var.lhs.expr
         else:
             v = p.loop_expr_var.vars[0]
-        incr_expr = BinOp(Pos(p),'+',v, Constant(Pos(p), '1', v.vartype))
+        incr_expr = BinOp(Pos(p), "+", v, Constant(Pos(p), "1", v.vartype))
         return LoopExpr(Pos(p), [p.loop_expr_var, p.comp_op, incr_expr], p.expr_block)
 
     @_("LOOP empty expr_block", "LOOP LPAREN RPAREN expr_block")
@@ -659,19 +659,19 @@ class AkiParser(Parser):
     @_("SELECT expr LBRACE selectitems RBRACE")
     def expr(self, p):
         return SelectExpr(Pos(p), p.expr, p.selectitems)
-    
+
     @_("selectitem")
     def selectitems(self, p):
         return [p.selectitem]
-    
+
     @_("selectitems selectitem")
     def selectitems(self, p):
-        return p.selectitems+[p.selectitem]
-    
+        return p.selectitems + [p.selectitem]
+
     @_("CASE expr LBRACE expr RBRACE", "CASE expr expr")
     def selectitem(self, p):
         return CaseExpr(Pos(p), p.expr0, p.expr1)
-    
+
     #################################################################
     # `while`
     #################################################################
