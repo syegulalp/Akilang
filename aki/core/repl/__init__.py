@@ -1,4 +1,5 @@
 from llvmlite import ir, binding
+import pickle
 
 import colorama
 
@@ -231,8 +232,6 @@ pyaki  :{constants.VERSION}"""
                 try:
                     with Timer() as t:
                         with open(full_cache_path, "rb") as file:
-                            import pickle
-
                             mod_in = pickle.load(file)
                             if mod_in["version"] != constants.VERSION:
                                 raise LocalException
@@ -250,6 +249,10 @@ pyaki  :{constants.VERSION}"""
                 except Exception:
                     cp(f"Error reading cached file")
 
+        # import cProfile, pstats, io
+        # pr = cProfile.Profile()
+        # pr.enable()
+
         with Timer() as t:
 
             try:
@@ -261,10 +264,6 @@ pyaki  :{constants.VERSION}"""
                     None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
                 )
 
-            # import cProfile, pstats, io
-            # pr = cProfile.Profile()
-            # pr.enable()
-            
             tokens = self.main_cpl.lexer.tokenize(text)
             ast = self.main_cpl.parser.parse(tokens, text)
 
@@ -272,13 +271,13 @@ pyaki  :{constants.VERSION}"""
             self.main_cpl.codegen.eval(ast)
             self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
 
-            # pr.disable()
-            # s = io.StringIO()
-            # sortby = pstats.SortKey.CUMULATIVE
-            # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            # ps.print_stats()            
-            # with open ('stats.txt','w') as file:
-            #     file.write(s.getvalue())
+        # pr.disable()
+        # s = io.StringIO()
+        # sortby = pstats.SortKey.CUMULATIVE
+        # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        # ps.print_stats()
+        # with open ('stats.txt','w') as file:
+        #     file.write(s.getvalue())
 
         # Write cached compilation to file
 
@@ -293,7 +292,6 @@ pyaki  :{constants.VERSION}"""
                         "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
                         "codegen": self.main_cpl.codegen,
                     }
-                    import pickle
 
                     try:
                         pickle.dump(output, file)
