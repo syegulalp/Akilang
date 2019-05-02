@@ -72,10 +72,11 @@
 * [x] `case` statement for matching against constant enums (including type enumerators)
 * [x] `while` expressions
 * [x] `const` for constants
+* [x] Decorators by way of the `@` symbol
+  * [x] `inline`/`noinline` for functions
 
 ## In progress
 * [ ] Compile-time computation of constants and values for `uni` assignments
-* [ ] Decorators by way of the `@` symbol
 * [ ] Classes and object structures
   * [ ] Object methods and method calls
 * [ ] Type declarations (aliases)
