@@ -17,6 +17,9 @@ class Pos(object):
             self.index = 0
 
 
+DECORATORS = ("inline", "noinline")
+
+
 class AkiLexer(Lexer):
     tokens = {
         LPAREN,
@@ -81,6 +84,7 @@ class AkiLexer(Lexer):
         CASE,
         WHILE,
         CONST,
+        DECORATOR,
     }
 
     ignore = " \t"
@@ -147,6 +151,7 @@ class AkiLexer(Lexer):
     DOT = r"\."
     SEMI = r"\;"
     MOD = r"\%"
+    DECORATOR = r"\@"
 
     def tokenize(self, text):
         self.text = text

@@ -38,6 +38,7 @@ from core.astree import (
     SelectExpr,
     CaseExpr,
     WhileExpr,
+    Decorator,
 )
 from core.error import AkiSyntaxErr
 
@@ -110,6 +111,12 @@ class AkiParser(Parser):
         func = External(Pos(p), proto, None)
         return func
 
+    # toplevel decorator
+
+    @_("decname toplevel")
+    def toplevel(self, p):
+        return Decorator(Pos(p), p.decname[0], p.decname[1], p.toplevel)
+
     #################################################################
     # Context
     #################################################################
@@ -117,6 +124,22 @@ class AkiParser(Parser):
     @_("UNSAFE expr_block")
     def expr(self, p):
         return UnsafeBlock(Pos(p), p.expr_block)
+
+    @_("DECORATOR NAME")
+    def decname(self, p):
+        return p.NAME, []
+    
+    @_("DECORATOR NAME LPAREN exprlist RPAREN")
+    def decname(self, p):
+        return p.NAME, p.exprlist
+
+    @_("decname expr_block")
+    def decbody(self, p):
+        return Decorator(Pos(p), p.decname[0], p.decname[1], p.expr_block)
+
+    @_("decbody")
+    def expr(self, p):
+        return p.decbody
 
     #################################################################
     # Multiline expressions

@@ -382,6 +382,21 @@ class TestLexer(unittest.TestCase):
             )
         )
 
+    def test_const(self):
+        self._e(((r"const {x=1} x", 1), (r"const {x='hi'} x", '"hi"')))
+        self._ex(AkiTypeErr, ((r"const {x=1} x=2", None),))
+    
+    def test_decorator(self):
+        self._e(
+            (
+                (r"@noinline def m1(){32} m1()",32),
+            )
+        )
+        self._ex(AkiSyntaxErr,
+        (
+            (r"@bogus def m1(){32} m1()",32),
+        ))
+
     def test_select(self):
         p1 = r"""
 def main(){

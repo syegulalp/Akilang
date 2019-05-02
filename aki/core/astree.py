@@ -586,3 +586,23 @@ class WhileExpr(Expression):
             self.while_expr.flatten(),
         ]
 
+
+class Decorator(Expression, TopLevel):
+    """
+    `while` expression.
+    """
+
+    def __init__(self, p, name, args, expr_block):
+        super().__init__(p)
+        self.name = name
+        self.args = args
+        self.expr_block = expr_block
+
+    def flatten(self):
+        return [
+            self.__class__.__name__,
+            self.name,
+            self.args.flatten() if self.args else [],
+            self.expr_block.flatten(),
+        ]
+

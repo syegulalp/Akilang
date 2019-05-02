@@ -35,6 +35,7 @@ from core.astree import (
     ObjectRef,
     TopLevel,
     UniList,
+    Decorator,
 )
 from core.error import (
     AkiNameErr,
@@ -44,6 +45,7 @@ from core.error import (
     AkiSyntaxErr,
     LocalException,
 )
+from core.lex import DECORATORS
 from core.repl import CMD, REP
 from typing import Optional
 
@@ -115,6 +117,8 @@ class AkiCodeGen:
         self.const_enum = 0
 
         self.evaluator = None
+
+        self.decorator_stack: list = []
 
     def _const_counter(self):
         self.const_enum += 1
@@ -436,6 +440,15 @@ class AkiCodeGen:
     # Top-level statements
     #################################################################
 
+    def _codegen_Decorator(self, node):
+        if node.name not in DECORATORS:
+            raise AkiSyntaxErr(
+                node, self.text, f'Decorator "{CMD}{node.name}{REP}" not recognized'
+            )
+        self.decorator_stack.append(node.name)
+        self._codegen(node.expr_block)
+        self.decorator_stack.pop()
+
     def _codegen_Prototype(self, node):
         """
         Generate a function prototype for the LLVM module
@@ -540,6 +553,14 @@ class AkiCodeGen:
         proto = ir.Function(self.module, f_type, name=node.name)
 
         proto.calling_convention = "fastcc" if self.fn.varargs is None else "ccc"
+
+        # Set function attributes
+
+        if "inline" in self.decorator_stack:
+            proto.attributes.add("alwaysinline")
+
+        if "noinline" in self.decorator_stack:
+            proto.attributes.add("noinline")
 
         # Set variable types for function
 
@@ -1523,9 +1544,17 @@ class AkiCodeGen:
 
         # Return object types as a pointer
         if self._is_type(node, name, AkiObject):
-            # ... by way of a variable (ir.AllocaInstr)
-            if isinstance(name, ir.AllocaInstr):
-                # then load that from the pointer
+            # if this is a global constant
+            if isinstance(name, ir.GlobalVariable):
+                # load and return
+                if name.global_constant:
+                    load = self.builder.load(name)
+                    load.akinode = name.akinode
+                    load.akitype = name.akitype
+                    return load
+            # if it's a general variable (ir.AllocaInstr)
+            elif isinstance(name, ir.AllocaInstr):
+                # load and return
                 load = self.builder.load(name)
                 load.akinode = name.akinode
                 load.akitype = name.akitype
