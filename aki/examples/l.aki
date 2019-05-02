@@ -7,6 +7,7 @@
 
 extern printf_s(_format:ptr u8, *args):i32
 
+@inline
 def print(_str:str):i32 {
     printf_s(c_data(_str))
 }
@@ -15,6 +16,7 @@ def print(_str:str):i32 {
 
 extern rand():i32
 
+@inline
 def rnd(_min:i32, _max:i32):i32 {
     rand() / (32767 / ((_max+1) - _min)) +_min
 }
@@ -23,6 +25,7 @@ def rnd(_min:i32, _max:i32):i32 {
 
 extern _getch():u8
 
+@inline
 def inkey():u8 {
     _getch()
 }
@@ -63,7 +66,6 @@ def setup(){
         output[output_index] = 10:u8
         output_index += 1
     }
-    output[3240] = 0:u8
 }
 
 def mutate(){
