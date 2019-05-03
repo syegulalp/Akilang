@@ -205,7 +205,10 @@ pyaki  :{constants.VERSION}"""
 
         return cmd_func(self, text, params=params)
 
-    def load_file(self, file_to_load, file_path="examples", ignore_cache=False):
+    def load_file(self, file_to_load, file_path=None, ignore_cache=False):
+
+        if file_path is None:
+            file_path = self.paths["source_dir"]
 
         self.main_cpl.reset(typemgr=self.typemgr)
 
@@ -214,6 +217,9 @@ pyaki  :{constants.VERSION}"""
         self.last_file_loaded = file_to_load
 
         # Attempt to load precomputed module from cache
+
+        if self.settings["ignore_cache"] is True:
+            ignore_cache = True
 
         if not ignore_cache:
 
@@ -375,7 +381,7 @@ pyaki  :{constants.VERSION}"""
             # This may prove problematic later.
             for k, v in self.main_cpl.codegen.module.globals.items():
                 if isinstance(v, ir.GlobalVariable):
-                    self.repl_cpl.codegen.module.globals[k]=v
+                    self.repl_cpl.codegen.module.globals[k] = v
 
         try:
             self.repl_cpl.codegen.eval([func])
@@ -481,6 +487,12 @@ pyaki  :{constants.VERSION}"""
         self.load_file("1")
 
     def reset(self, *a, **ka):
+        defaults = constants.defaults()
+        self.paths = defaults["paths"]        
+        self.settings = {}
+        self.settings_data = defaults["settings"]
+        for k,v in self.settings_data.items():
+            self.settings[k]=v[1]
         if "typemgr" not in ka or ka["typemgr"] is None:
             self.typemgr = AkiTypeMgr()
         else:

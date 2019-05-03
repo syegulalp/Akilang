@@ -21,14 +21,17 @@ def defaults():
             "nt_compiler": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat",
         },
         "settings": {
-            "write_main_to_file": {
+            "write_main_to_file": (
                 'Dumps loaded module LLVM IR to "{settings.paths.output_dir}" on load.',
                 True,
-            },
-            "write_repl_to_file": {
+            ),
+            "write_repl_to_file": (
                 'Dumps REPL LLVM IR to "{setting.paths.output_dir}" on load.',
                 True,
-            },
-            "compile_on-load": {"Compile immediately when a file is loaded.", True},
+            ),
+            "compile_on_load": ("Compile immediately when a file is loaded.", True),
+            "cache_compilation": ("Cache compiled files for reuse", False),
+            "ignore_cache": ("Ignore cached files when recompiling", True),
         },
     }
+
