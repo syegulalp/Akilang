@@ -113,20 +113,19 @@ class JIT:
     lexer = AkiLexer
     parser = AkiParser
 
-    def __init__(self, typemgr=None, module_name=None):
+    def __init__(self, typemgr, module_name=None):
+        assert typemgr is not None
+        self.typemgr = typemgr
+        self.types = self.typemgr.types
+        self.anon_counter = 0
+        self.module_name = module_name
+        self.reset(self.typemgr)
+
+    def reset(self, typemgr=None):
         if typemgr is None:
             self.typemgr = AkiTypeMgr()
         else:
             self.typemgr = typemgr
-        self.types = self.typemgr.types
-        self.anon_counter = 0
-        self.module_name = module_name
-        self.reset()
-
-    def reset(self, typemgr=None):
-        if not typemgr:
-            typemgr = self.typemgr
-        typemgr.reset()
         self.compiler = AkiCompiler()
         self.module = ir.Module(self.module_name)
         self.module.triple = binding.Target.from_default_triple().triple
@@ -210,7 +209,7 @@ pyaki  :{constants.VERSION}"""
         if file_path is None:
             file_path = self.paths["source_dir"]
 
-        self.main_cpl.reset(typemgr=self.typemgr)
+        self.main_cpl.reset()
 
         filepath = os.path.join(file_path, f"{file_to_load}.aki")
 
@@ -274,7 +273,11 @@ pyaki  :{constants.VERSION}"""
             ast = self.main_cpl.parser.parse(tokens, text)
 
             self.main_cpl.codegen.text = text
-            self.main_cpl.codegen.eval(ast)
+            try:
+                self.main_cpl.codegen.eval(ast)
+            except Exception as e:
+                self.main_cpl.reset()
+                raise e
             self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
 
         # pr.disable()
@@ -312,17 +315,19 @@ pyaki  :{constants.VERSION}"""
     def interactive(self, text, immediate_mode=False):
         # Immediate mode processes everything in the repl compiler.
         # Nothing is retained.
+        # Regular mode only uses the REPL to launch things.
+        # But its typemgr is the same as the main repl.
 
         if immediate_mode:
             main = self.repl_cpl
             main_file = None
             repl_file = None
+            main.reset()
         else:
             main = self.main_cpl
             main_file = "main"
             repl_file = "repl"
-
-        self.repl_cpl.reset()
+            self.repl_cpl.reset()
 
         # Tokenize input
 
@@ -486,18 +491,20 @@ pyaki  :{constants.VERSION}"""
     def load_test(self, *a, **ka):
         self.load_file("1")
 
-    def reset(self, *a, **ka):
+    def reset(self, *a, typemgr = None, **ka):
+        """
+        Reset the REPL and all of its objects.
+        """
         defaults = constants.defaults()
         self.paths = defaults["paths"]        
         self.settings = {}
         self.settings_data = defaults["settings"]
         for k,v in self.settings_data.items():
             self.settings[k]=v[1]
-        if "typemgr" not in ka or ka["typemgr"] is None:
-            self.typemgr = AkiTypeMgr()
+        if typemgr is not None:
+            self.typemgr = typemgr
         else:
-            self.typemgr = ka["typemgr"]
-            self.typemgr.reset()
+            self.typemgr = AkiTypeMgr()        
         self.types = self.typemgr.types
         self.main_cpl = JIT(self.typemgr, module_name=".main")
         self.repl_cpl = JIT(self.typemgr, module_name=".repl")
