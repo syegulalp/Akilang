@@ -113,9 +113,11 @@ class AkiParser(Parser):
 
     # toplevel decorator
 
-    @_("decname toplevel")
+    @_("decorator_header toplevel")
     def toplevel(self, p):
-        return Decorator(Pos(p), p.decname[0], p.decname[1], p.toplevel)
+        p.decorator_header.expr_block = p.toplevel
+        return p.decorator_header
+
 
     #################################################################
     # Context
@@ -126,20 +128,26 @@ class AkiParser(Parser):
         return UnsafeBlock(Pos(p), p.expr_block)
 
     @_("DECORATOR NAME")
-    def decname(self, p):
-        return p.NAME, []
+    def decorator_name(self, p):
+        return Decorator(Pos(p), p.NAME, [], None)
+
+    @_("decorator_name")
+    def decorator_header(self, p):
+        return p.decorator_name
+
+    @_("decorator_name LPAREN exprlist RPAREN")
+    def decorator_header(self, p):
+        p.decorator_name.args = p.expr_list
+        return p.decorator_name
     
-    @_("DECORATOR NAME LPAREN exprlist RPAREN")
-    def decname(self, p):
-        return p.NAME, p.exprlist
+    @_("decorator_header expr_block")
+    def decorator_expr(self, p):
+        p.decorator_name.expr_block = p.expr_block
+        return p.decorator_name
 
-    @_("decname expr_block")
-    def decbody(self, p):
-        return Decorator(Pos(p), p.decname[0], p.decname[1], p.expr_block)
-
-    @_("decbody")
+    @_("decorator_expr")
     def expr(self, p):
-        return p.decbody
+        return p.decorator_expr
 
     #################################################################
     # Multiline expressions

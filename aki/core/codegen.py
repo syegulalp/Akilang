@@ -45,7 +45,6 @@ from core.error import (
     AkiSyntaxErr,
     LocalException,
 )
-from core.lex import DECORATORS
 from core.repl import CMD, REP
 from typing import Optional
 
@@ -119,6 +118,7 @@ class AkiCodeGen:
         self.evaluator = None
 
         self.decorator_stack: list = []
+        self.decorator_context: dict = {}
 
     def _const_counter(self):
         self.const_enum += 1
@@ -440,14 +440,21 @@ class AkiCodeGen:
     # Top-level statements
     #################################################################
 
-    def _codegen_Decorator(self, node):
-        if node.name not in DECORATORS:
+    def _codegen_Decorator(self, node):            
+        self.decorator_stack.append(node)
+
+        _ = getattr(self, f'_decorator_{node.name}_enter',None)
+
+        if not _:
             raise AkiSyntaxErr(
                 node, self.text, f'Decorator "{CMD}{node.name}{REP}" not recognized'
             )
-        self.decorator_stack.append(node.name)
-        self._codegen(node.expr_block)
+        
+        dec_enter = _()
+        result = self._codegen(node.expr_block)
+        dec_exit = getattr(self, f'_decorator_{node.name}_exit')()
         self.decorator_stack.pop()
+        return result
 
     def _codegen_Prototype(self, node):
         """
@@ -556,11 +563,13 @@ class AkiCodeGen:
 
         # Set function attributes
 
-        if "inline" in self.decorator_stack:
-            proto.attributes.add("alwaysinline")
+        inline = self.decorator_context.get('inline',None)
 
-        if "noinline" in self.decorator_stack:
-            proto.attributes.add("noinline")
+        if inline is not None:
+            if inline:
+                proto.attributes.add("alwaysinline")
+            else:
+                proto.attributes.add("noinline")
 
         # Set variable types for function
 
@@ -1868,3 +1877,17 @@ class AkiCodeGen:
         f1.akinode = node_deref
         f1.akitype = ref.akitype.llvm_type.pointee.akitype
         return f1
+
+    #################################################################
+    # Decorators
+    #################################################################
+
+    def _decorator_inline_enter(self):
+        self.decorator_context['inline']=True
+    def _decorator_inline_exit(self):
+        self.decorator_context['inline']=None
+    
+    def _decorator_noinline_enter(self):
+        self.decorator_context['inline']=False
+    def _decorator_noinline_exit(self):
+        return self._decorator_inline_exit()

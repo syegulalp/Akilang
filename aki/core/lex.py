@@ -3,7 +3,7 @@ from core.error import AkiSyntaxErr
 
 
 class Pos(object):
-    __slots__ = ("lineno", "index")
+    #__slots__ = ("lineno", "index")
 
     def __init__(self, p):
         try:
@@ -15,9 +15,6 @@ class Pos(object):
             self.index = p.index
         except (KeyError, AttributeError):
             self.index = 0
-
-
-DECORATORS = ("inline", "noinline")
 
 
 class AkiLexer(Lexer):
@@ -170,7 +167,7 @@ class AkiLexer(Lexer):
 
     @_(r"\#[^\n]*[\n$]*")
     def comment(self, t):
-        self.lineno += t.value.count("\n")
+        self.lineno += 1 #t.value.count("\n")
 
     @_(r"\n+")
     def newline(self, t):
