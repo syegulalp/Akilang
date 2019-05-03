@@ -157,18 +157,20 @@ class AkiCodeGen:
         """
         Takes an AST expression block, compiles it to an anonymous
         function in the current module,
-        and returns the result as a constant value.
+        and returns the result as a constant value,
+        which we then link into.
         The constant value is an LLVM value with an Aki type.
         """
-        pass
+        
+        self.anon_counter+=1
+        call_name = f"_EVALRESULT_{self.anon_counter}"
+        proto = Prototype(node, call_name, (), None)
+        func = Function(node, proto, ExpressionBlock(node, ast))
 
-        # create a new REPL compiler instance
-        # if we already have one, soft-reset it
-        # i think we can use immediate mode
-        # link the typemgr from this module
-        # also link constants:
-        # self.repl_cpl.codegen.other_modules.append
-        # be sure to unlink module when we're done
+        result =self.eval([func])
+        result_type = self.module.globals[call_name].return_value.akitype
+
+        # how do we handle this with the likes of object types like strings?       
 
     def _codegen_LLVMNode(self, node):
         return node.llvm_node
@@ -1478,7 +1480,6 @@ class AkiCodeGen:
             result.akitype = t
             result.akinode = node
             result.akinode.vartype = result.akitype.type_id
-        # print (expr.akitype)
         result.akinode.name = node.expr.name + "[]"
         return result
 
@@ -1811,15 +1812,19 @@ class AkiCodeGen:
         self._argcheck(node, 1)
         node_ref = node.arguments[0]
 
-        if not isinstance(node_ref, Name):
+        if isinstance(node_ref, Name):
+            ref = self._name(node, node_ref.name)
+        elif isinstance(node_ref, AccessorExpr):
+            ref = self._codegen_AccessorExpr(node_ref, False)
+            node_ref.vartype = ref.akitype.type_id
+        else:
             n1 = self._codegen(node_ref)
             raise AkiTypeErr(
                 node_ref,
                 self.text,
                 f'Can\'t derive a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
             )
-        ref = self._name(node, node_ref.name)
-
+        
         if self._is_type(node_ref, ref, AkiFunction):
             # Function pointers are a special case, at least for now
             r1 = self._codegen(node_ref)
@@ -1843,9 +1848,8 @@ class AkiCodeGen:
         r1.akinode = node_ref
         r1.akitype = self.typemgr.as_ptr(ref.akitype, literal_ptr=True)
         r1.akitype.llvm_type.pointee.akitype = ref.akitype
-
         return r1
-
+        
     def _builtins_deref(self, node):
         """
         Dereference a reference object.
