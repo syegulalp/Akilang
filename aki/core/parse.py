@@ -209,7 +209,7 @@ class AkiParser(Parser):
 
     # hex value constants
 
-    @_("HEX")
+    @_("HEX optvartype")
     def expr(self, p):
         if p.HEX[1] == "x":
             # 0x00 = unsigned
@@ -217,8 +217,10 @@ class AkiParser(Parser):
         else:
             # 0h00 = signed
             sign = "i"
+        value = int(p.HEX[2:],16)
+        if p.optvartype:            
+            return Constant(Pos(p), value, p.optvartype)
         bytelength = (len(p.HEX[2:])) * 4
-        value = int(p.HEX[2:], 16)
         if bytelength < 8:
             if value > 1:
                 bytelength = 8
