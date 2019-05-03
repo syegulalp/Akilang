@@ -118,7 +118,6 @@ class AkiParser(Parser):
         p.decorator_header.expr_block = p.toplevel
         return p.decorator_header
 
-
     #################################################################
     # Context
     #################################################################
@@ -139,7 +138,7 @@ class AkiParser(Parser):
     def decorator_header(self, p):
         p.decorator_name.args = p.expr_list
         return p.decorator_name
-    
+
     @_("decorator_header expr_block")
     def decorator_expr(self, p):
         p.decorator_name.expr_block = p.expr_block
@@ -217,8 +216,8 @@ class AkiParser(Parser):
         else:
             # 0h00 = signed
             sign = "i"
-        value = int(p.HEX[2:],16)
-        if p.optvartype:            
+        value = int(p.HEX[2:], 16)
+        if p.optvartype:
             return Constant(Pos(p), value, p.optvartype)
         bytelength = (len(p.HEX[2:])) * 4
         if bytelength < 8:

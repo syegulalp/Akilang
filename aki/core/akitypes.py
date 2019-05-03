@@ -217,14 +217,14 @@ class AkiIntBoolMathOps:
         "|": "bin_or",
         "and": "andor",
         "or": "andor",
-        "%": "mod"
+        "%": "mod",
     }
 
     def binop_mod(self, codegen, node, lhs, rhs, op_name):
         f1 = codegen.builder.sdiv(lhs, rhs, f".{op_name}1")
         f2 = codegen.builder.mul(f1, rhs, f".{op_name}2")
         return codegen.builder.sub(lhs, f2, f".{op_name}3")
-    
+
     def binop_add(self, codegen, node, lhs, rhs, op_name):
         return codegen.builder.add(lhs, rhs, f".{op_name}")
 
@@ -461,27 +461,28 @@ class AkiArray(AkiObject, AkiType):
         array_aki_type = base_type
         subaccessors = []
 
-        for _ in reversed(accessors):            
-            accessor_dimension = None            
+        for _ in reversed(accessors):
+            accessor_dimension = None
             if isinstance(_, Constant):
                 accessor_dimension = _.val
-            elif isinstance(_, Name):                
+            elif isinstance(_, Name):
 
                 # try:
                 #     t_val = codegen.eval_to_result(node,[_])
                 # except Exception as e:
                 #     print("err", e)
 
-                name_val = codegen._name(node,_.name)
+                name_val = codegen._name(node, _.name)
                 try:
                     accessor_dimension = name_val.initializer.constant
                 except Exception:
-                    pass        
-            
+                    pass
+
             if not accessor_dimension:
                 raise AkiSyntaxErr(
-                    _, codegen.text,
-                    f'Only constants (not computed values) allowed for array dimensions'
+                    _,
+                    codegen.text,
+                    f"Only constants (not computed values) allowed for array dimensions",
                 )
 
             array_type = ir.ArrayType(array_type, accessor_dimension)
@@ -520,7 +521,9 @@ class AkiArray(AkiObject, AkiType):
         return result
 
     def c_data(self, codegen, node):
-        obj_ptr = codegen.builder.bitcast(node, codegen.types["u_mem"].llvm_type.as_pointer(0))
+        obj_ptr = codegen.builder.bitcast(
+            node, codegen.types["u_mem"].llvm_type.as_pointer(0)
+        )
         obj_ptr.akitype = codegen.typemgr.as_ptr(codegen.types["u_mem"])
         obj_ptr.akinode = node.akinode
         return obj_ptr

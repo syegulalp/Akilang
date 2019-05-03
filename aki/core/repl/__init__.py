@@ -491,20 +491,20 @@ pyaki  :{constants.VERSION}"""
     def load_test(self, *a, **ka):
         self.load_file("1")
 
-    def reset(self, *a, typemgr = None, **ka):
+    def reset(self, *a, typemgr=None, **ka):
         """
         Reset the REPL and all of its objects.
         """
         defaults = constants.defaults()
-        self.paths = defaults["paths"]        
+        self.paths = defaults["paths"]
         self.settings = {}
         self.settings_data = defaults["settings"]
-        for k,v in self.settings_data.items():
-            self.settings[k]=v[1]
+        for k, v in self.settings_data.items():
+            self.settings[k] = v[1]
         if typemgr is not None:
             self.typemgr = typemgr
         else:
-            self.typemgr = AkiTypeMgr()        
+            self.typemgr = AkiTypeMgr()
         self.types = self.typemgr.types
         self.main_cpl = JIT(self.typemgr, module_name=".main")
         self.repl_cpl = JIT(self.typemgr, module_name=".repl")
