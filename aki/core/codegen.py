@@ -161,16 +161,16 @@ class AkiCodeGen:
         which we then link into.
         The constant value is an LLVM value with an Aki type.
         """
-        
-        self.anon_counter+=1
+
+        self.anon_counter += 1
         call_name = f"_EVALRESULT_{self.anon_counter}"
         proto = Prototype(node, call_name, (), None)
         func = Function(node, proto, ExpressionBlock(node, ast))
 
-        result =self.eval([func])
+        result = self.eval([func])
         result_type = self.module.globals[call_name].return_value.akitype
 
-        # how do we handle this with the likes of object types like strings?       
+        # how do we handle this with the likes of object types like strings?
 
     def _codegen_LLVMNode(self, node):
         return node.llvm_node
@@ -442,19 +442,19 @@ class AkiCodeGen:
     # Top-level statements
     #################################################################
 
-    def _codegen_Decorator(self, node):            
+    def _codegen_Decorator(self, node):
         self.decorator_stack.append(node)
 
-        _ = getattr(self, f'_decorator_{node.name}_enter',None)
+        _ = getattr(self, f"_decorator_{node.name}_enter", None)
 
         if not _:
             raise AkiSyntaxErr(
                 node, self.text, f'Decorator "{CMD}{node.name}{REP}" not recognized'
             )
-        
+
         dec_enter = _()
         result = self._codegen(node.expr_block)
-        dec_exit = getattr(self, f'_decorator_{node.name}_exit')()
+        dec_exit = getattr(self, f"_decorator_{node.name}_exit")()
         self.decorator_stack.pop()
         return result
 
@@ -565,7 +565,7 @@ class AkiCodeGen:
 
         # Set function attributes
 
-        inline = self.decorator_context.get('inline',None)
+        inline = self.decorator_context.get("inline", None)
 
         if inline is not None:
             if inline:
@@ -1448,6 +1448,8 @@ class AkiCodeGen:
             instr_call = getattr(lhs_atype.__class__, f"binop_{math_op}")
             instr = instr_call(lhs_atype, self, node, lhs, rhs, node.op)
             # (Later for custom types we'll try to generate a call)
+            if instr is None:
+                raise LocalException
 
         except LocalException:
             raise AkiOpError(
@@ -1819,7 +1821,7 @@ class AkiCodeGen:
             node_ref.vartype = ref.akitype.type_id
             # XXX: This creates a pointer to an ARRAY and not
             # an ARRAY OBJECT.
-            # IOW, this won't work correctly until we have 
+            # IOW, this won't work correctly until we have
             # slicing.
         else:
             n1 = self._codegen(node_ref)
@@ -1828,7 +1830,7 @@ class AkiCodeGen:
                 self.text,
                 f'Can\'t derive a reference as "{CMD}{n1.akinode.name}{REP}" is not a variable',
             )
-        
+
         if self._is_type(node_ref, ref, AkiFunction):
             # Function pointers are a special case, at least for now
             r1 = self._codegen(node_ref)
@@ -1853,7 +1855,7 @@ class AkiCodeGen:
         r1.akitype = self.typemgr.as_ptr(ref.akitype, literal_ptr=True)
         r1.akitype.llvm_type.pointee.akitype = ref.akitype
         return r1
-        
+
     def _builtins_deref(self, node):
         """
         Dereference a reference object.
@@ -1891,11 +1893,13 @@ class AkiCodeGen:
     #################################################################
 
     def _decorator_inline_enter(self):
-        self.decorator_context['inline']=True
+        self.decorator_context["inline"] = True
+
     def _decorator_inline_exit(self):
-        self.decorator_context['inline']=None
-    
+        self.decorator_context["inline"] = None
+
     def _decorator_noinline_enter(self):
-        self.decorator_context['inline']=False
+        self.decorator_context["inline"] = False
+
     def _decorator_noinline_exit(self):
         return self._decorator_inline_exit()
