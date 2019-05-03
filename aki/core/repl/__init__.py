@@ -488,9 +488,6 @@ pyaki  :{constants.VERSION}"""
     def version(self, *a, **ka):
         print(f"\n{GRN}{self.VERSION}\n")
 
-    def load_test(self, *a, **ka):
-        self.load_file("1")
-
     def reset(self, *a, typemgr=None, **ka):
         """
         Reset the REPL and all of its objects.
@@ -539,7 +536,6 @@ pyaki  :{constants.VERSION}"""
 
     cmds = {
         "t": run_tests,
-        "l": load_test,
         "q": quit,
         ".": reload,
         "ab": about,
