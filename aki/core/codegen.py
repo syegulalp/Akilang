@@ -1817,6 +1817,10 @@ class AkiCodeGen:
         elif isinstance(node_ref, AccessorExpr):
             ref = self._codegen_AccessorExpr(node_ref, False)
             node_ref.vartype = ref.akitype.type_id
+            # XXX: This creates a pointer to an ARRAY and not
+            # an ARRAY OBJECT.
+            # IOW, this won't work correctly until we have 
+            # slicing.
         else:
             n1 = self._codegen(node_ref)
             raise AkiTypeErr(
