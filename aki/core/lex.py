@@ -167,7 +167,7 @@ class AkiLexer(Lexer):
 
     @_(r"\#[^\n]*[\n$]*")
     def comment(self, t):
-        self.lineno += 1 #t.value.count("\n")
+        self.lineno += 1
 
     @_(r"\n+")
     def newline(self, t):
