@@ -298,7 +298,11 @@ class IfExpr(ASTNode):
         self.else_expr = else_expr
 
     def __eq__(self, other):
-        raise NotImplementedError
+        return (
+            self.if_expr == other.if_expr
+            and self.then_expr == other.then_expr
+            and self.else_expr == other.else_expr
+        )
 
     def flatten(self):
         return [
@@ -356,6 +360,9 @@ class Function(TopLevel, ASTNode):
         self.prototype = prototype
         self.body = body
 
+    def __eq__(self, other):
+        return self.prototype == other.prototype and self.body == other.body
+
     def flatten(self):
         return [
             self.__class__.__name__,
@@ -386,6 +393,9 @@ class ExpressionBlock(Expression):
     def __init__(self, p, body):
         super().__init__(p)
         self.body = body
+
+    def __eq__(self, other):
+        return self.body == other.body
 
     def flatten(self):
         return [self.__class__.__name__, [_.flatten() for _ in self.body]]
@@ -430,6 +440,9 @@ class LoopExpr(Expression):
         self.conditions = conditions
         self.body = body
 
+    def __eq__(self, other):
+        return self.conditions == other.conditions and self.body == other.body
+
     def flatten(self):
         return [
             self.__class__.__name__,
@@ -445,12 +458,18 @@ class Break(Expression):
     def flatten(self):
         return [self.__class__.__name__]
 
+    def __eq__(self, other):
+        return self.__class__ == other.__class__
+
 
 class WithExpr(Expression):
     def __init__(self, p, varlist: VarList, body: ExpressionBlock):
         super().__init__(p)
         self.varlist = varlist
         self.body = body
+
+    def __eq__(self, other):
+        return self.varlist == other.varlist and self.body == other.body
 
     def flatten(self):
         return [
@@ -465,6 +484,9 @@ class ChainExpr(Expression):
         super().__init__(p)
         self.expr_chain = expr_chain
 
+    def __eq__(self, other):
+        return self.expr_chain == other.expr_chain
+
     def flatten(self):
         return [self.__class__.__name__, [_.flatten() for _ in self.expr_chain]]
 
@@ -473,6 +495,9 @@ class UnsafeBlock(Expression):
     def __init__(self, p, expr_block):
         super().__init__(p)
         self.expr_block = expr_block
+
+    def __eq__(self, other):
+        return self.expr_block == other.expr_block
 
     def flatten(self):
         return [self.__class__.__name__, [_.flatten() for _ in self.expr_block]]
@@ -483,6 +508,9 @@ class Accessor(Expression):
         super().__init__(p)
         self.accessors = accessors
 
+    def __eq__(self, other):
+        return self.accessors == other.accessors
+
     def flatten(self):
         return [self.__class__.__name__, [_.flatten() for _ in self.accessors]]
 
@@ -492,6 +520,9 @@ class AccessorExpr(Expression):
         super().__init__(p)
         self.expr = expr
         self.accessors = accessors
+
+    def __eq__(self, other):
+        return self.expr == other.expr and self.accessors == other.accessors
 
     def flatten(self):
         return [
@@ -513,6 +544,9 @@ class ObjectRef(Expression):
         super().__init__(p)
         self.expr = expr
 
+    def __eq__(self, other):
+        return self.expr == other.expr
+
     def flatten(self):
         return [self.__class__.__name__, self.expr.flatten()]
 
@@ -525,6 +559,9 @@ class ObjectValue(Expression):
     def __init__(self, p, expr):
         super().__init__(p)
         self.expr = expr
+
+    def __eq__(self, other):
+        return self.expr == other.expr
 
     def flatten(self):
         return [self.__class__.__name__, self.expr.flatten()]
@@ -540,6 +577,13 @@ class SelectExpr(Expression):
         self.select_expr = select_expr
         self.case_list = case_list
         self.default_case = None
+
+    def __eq__(self, other):
+        return (
+            self.select_expr == other.select_expr
+            and self.case_list == other.case_list
+            and self.default_case == other.default_case
+        )
 
     def flatten(self):
         return [
@@ -559,6 +603,9 @@ class CaseExpr(Expression):
         self.case_value = case_value
         self.case_expr = case_expr
 
+    def __eq__(self, other):
+        return self.case_value == other.case_value and self.case_expr == other.case_expr
+
     def flatten(self):
         return [
             self.__class__.__name__,
@@ -576,6 +623,12 @@ class WhileExpr(Expression):
         super().__init__(p)
         self.while_value = while_value
         self.while_expr = while_expr
+
+    def __eq__(self, other):
+        return (
+            self.while_value == other.while_value
+            and self.while_expr == other.while_expr
+        )
 
     def flatten(self):
         return [
@@ -595,6 +648,9 @@ class Decorator(Expression, TopLevel):
         self.name = name
         self.args = args
         self.expr_block = expr_block
+
+    def __eq__(self, other):
+        return self.name == other.name and self.args == other.args
 
     def flatten(self):
         return [
