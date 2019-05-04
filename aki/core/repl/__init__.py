@@ -290,7 +290,7 @@ pyaki  :{constants.VERSION}"""
 
         # Write cached compilation to file
 
-        if not ignore_cache:
+        if not ignore_cache and self.settings["cache_compilation"] == True:
 
             try:
                 if not os.path.exists(cache_path):
@@ -376,8 +376,8 @@ pyaki  :{constants.VERSION}"""
         self.repl_cpl.anon_counter += 1
 
         call_name = f"_ANONYMOUS_{self.repl_cpl.anon_counter}"
-        proto = Prototype(_.p, call_name, (), None)
-        func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
+        proto = Prototype(_.index, call_name, (), None)
+        func = Function(_.index, proto, ExpressionBlock(_.index, ast_stack))
 
         if not immediate_mode:
             self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
@@ -407,12 +407,12 @@ pyaki  :{constants.VERSION}"""
             ast_stack = []
 
             ast_stack.append(
-                Call(_.p, "c_data", (Call(_.p, call_name, (), None),), None)
+                Call(_.index, "c_data", (Call(_.index, call_name, (), None),), None)
             )
 
             call_name += "_WRAP"
-            proto = Prototype(_.p, call_name, (), None)
-            func = Function(_.p, proto, ExpressionBlock(_.p, ast_stack))
+            proto = Prototype(_.index, call_name, (), None)
+            func = Function(_.index, proto, ExpressionBlock(_.index, ast_stack))
 
             # It's unlikely that this codegen will ever throw an error,
             # but I'm keeping this anyway
