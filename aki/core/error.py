@@ -32,33 +32,33 @@ class AkiBaseErr(Exception):
 
     _errtype = "0 (General error)"
 
-    def __init__(self, p, txt, msg):
+    def __init__(self, node, txt, msg):
         if txt is None:
             txt = ""
-        if p is None:
-            self.lineno = 1
-            self.col = 1
-            self.msg = msg
-            self.extract = txt
-            return
+        try:
+            index = node.index
+        except (KeyError, AttributeError):
+            index = 1
 
-        self.msg = msg
-        self.p = p
-        last_newline = txt.rfind(f"\n", 0, self.p.index)
-
+        last_newline = txt.rfind(f"\n", 0, index)
         if last_newline == -1:
             last_newline = 0
-            self.col = self.p.index + 1
+            self.col = index
         else:
-            self.col = self.p.index - last_newline
+            self.col = index - last_newline
 
-        end = txt.find(f"\n", self.p.index + 1)
+        end = txt.find(f"\n", index + 1)
         if end == -1:
             self.extract = txt[last_newline:]
         else:
             self.extract = txt[last_newline:end]
 
-        self.lineno = self.p.lineno
+        if last_newline == 0:
+            self.lineno = 1
+        else:
+            self.lineno = txt.count(f"\n", 0, last_newline + 1) + 1
+
+        self.msg = msg
 
     def __str__(self):
         return f"{'-'*72}\n{RED}Error: {self._errtype}\n{REP}Line {self.lineno}:{self.col}\n{self.msg}\n{'-'*72}\n{CMD}{self.extract}\n{MAG}{'-'*(self.col-1)}^{REP}"

@@ -8,11 +8,9 @@ class ASTNode:
     Base type for all AST nodes, with helper functions.
     """
 
-    def __init__(self, p):
-        self.p = p
+    def __init__(self, index):
         self.child = None
-        self.lineno = p.lineno
-        self.index = p.index
+        self.index = index
 
     def __eq__(self, other):
         raise NotImplementedError
@@ -402,7 +400,7 @@ class LLVMNode(Expression):
     """
 
     def __init__(self, node, vartype, llvm_node):
-        super().__init__(node.p)
+        super().__init__(node.index)
 
         # Aki node, for position information
         self.node = node

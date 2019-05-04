@@ -2,19 +2,16 @@ from sly import Lexer
 from core.error import AkiSyntaxErr
 
 
-class Pos(object):
-    #__slots__ = ("lineno", "index")
+def Pos(p):
+    try:
+        return p.index
+    except (KeyError, AttributeError):
+        return 0
 
-    def __init__(self, p):
-        try:
-            self.lineno = p.lineno
-        except (KeyError, AttributeError):
-            self.lineno = 1
 
-        try:
-            self.index = p.index
-        except (KeyError, AttributeError):
-            self.index = 0
+def Errpos(p, add=0):
+    p._slice[0].index += add
+    return p._slice[0]
 
 
 class AkiLexer(Lexer):
@@ -152,7 +149,7 @@ class AkiLexer(Lexer):
 
     def tokenize(self, text):
         self.text = text
-        self.lineno = 1
+        # self.lineno = 1
         return super().tokenize(text)
 
     @_(r"\d+[.]\d+")
@@ -167,11 +164,13 @@ class AkiLexer(Lexer):
 
     @_(r"\#[^\n]*[\n$]*")
     def comment(self, t):
-        self.lineno += 1
+        # self.lineno += 1
+        pass
 
     @_(r"\n+")
     def newline(self, t):
-        self.lineno += t.value.count("\n")
+        # self.lineno += t.value.count("\n")
+        pass
 
     def error(self, t):
         raise AkiSyntaxErr(Pos(self), self.text, f'Illegal character "{t.value[0]}"')

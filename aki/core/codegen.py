@@ -606,7 +606,7 @@ class AkiCodeGen:
 
         if self.fn.varargs and not isinstance(node, External):
             raise AkiSyntaxErr(
-                self.fn.varargs.p,
+                self.fn.varargs.index,
                 self.text,
                 f"Non-external functions don't yet support variable arguments",
             )
@@ -688,7 +688,7 @@ class AkiCodeGen:
         if result is None:
             result = self._codegen(
                 Constant(
-                    node.body.p,
+                    node.body.index,
                     node.prototype.return_type.akitype.default(self, node),
                     node.prototype.return_type,
                 )
@@ -824,11 +824,11 @@ class AkiCodeGen:
                 # and no default vartype, then create the default
 
                 if _.vartype is None:
-                    # _.vartype = Name(_.p, self.types.default.type_id)
-                    _.vartype = Name(_.p, self.typemgr._default.type_id)
+                    # _.vartype = Name(_.index, self.types.default.type_id)
+                    _.vartype = Name(_.index, self.typemgr._default.type_id)
 
                 _.akitype = self._get_vartype(_.vartype)
-                _.val = Constant(_.p, _.akitype.default(self, node), _.vartype)
+                _.val = Constant(_.index, _.akitype.default(self, node), _.vartype)
                 value = _.val
 
             else:
@@ -873,7 +873,9 @@ class AkiCodeGen:
                 # and store the value itself to the variable
                 # by way of an Assignment op
                 self._codegen(
-                    Assignment(_.p, "=", ObjectRef(_.p, Name(_.p, _.name)), value)
+                    Assignment(
+                        _.index, "=", ObjectRef(_.index, Name(_.index, _.name)), value
+                    )
                 )
 
     #################################################################

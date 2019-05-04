@@ -1,5 +1,5 @@
 from sly import Parser
-from core.lex import _AkiLexer as AkiLexer, Pos
+from core.lex import _AkiLexer as AkiLexer, Pos, Errpos
 from core.astree import (
     Constant,
     String,
@@ -278,6 +278,7 @@ class AkiParser(Parser):
         # the first one will never be a control sequence
         new_str.append(subs.pop(0))
         _subs = iter(subs)
+        strlen = 0
         for n in _subs:
             # a \\ generates an empty sequence
             # so we consume that and generate a single \
@@ -287,6 +288,7 @@ class AkiParser(Parser):
                 new_str.append(n)
                 continue
             s = n[0]
+            strlen += len(n)
             if s in self.ctrl_chars:
                 new_str.append(self.ctrl_chars[s])
                 new_str.append(n[1:])
@@ -303,8 +305,11 @@ class AkiParser(Parser):
             elif s in ('"', "'"):
                 new_str.append(n[0:])
             else:
+                print(n)
                 raise AkiSyntaxErr(
-                    Pos(p), self.text, f"Unrecognized control sequence in string"
+                    Errpos(p, strlen + 2),
+                    self.text,
+                    f"Unrecognized control sequence in string",
                 )
 
         return String(Pos(p), "".join(new_str), VarTypeName(Pos(p), "str"))

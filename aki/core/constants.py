@@ -31,7 +31,7 @@ def defaults():
             ),
             "compile_on_load": ("Compile immediately when a file is loaded.", True),
             "cache_compilation": ("Cache compiled files for reuse", False),
-            "ignore_cache": ("Ignore cached files when recompiling", True),
+            "ignore_cache": ("Ignore cached files when recompiling", False),
         },
     }
 
