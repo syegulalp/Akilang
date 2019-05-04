@@ -10,6 +10,11 @@ We most need help with the following:
   * String handling.
   * Memory management / garbage collection.
 
+# Code Standards
+
+* We use `black` as the standard code formatter.
+* We use `mypy` as the linter. (Note that not all the code currently conforms to `mypy` standards; we use it as a guide, not dogma.)
+
 # Code Of Conduct
 
 See the [Code of Conduct](code-of-conduct.md) for rules about how to interact with and participate in this project.
