@@ -141,8 +141,8 @@ class AkiParser(Parser):
 
     @_("decorator_header expr_block")
     def decorator_expr(self, p):
-        p.decorator_name.expr_block = p.expr_block
-        return p.decorator_name
+        p.decorator_header.expr_block = p.expr_block
+        return p.decorator_header
 
     @_("decorator_expr")
     def expr(self, p):
