@@ -677,7 +677,7 @@ class AkiTransformer(Transformer):
         vartype = node[1]
         if vartype is None:
             vartype = VarTypeName(number.pos_in_stream, "f64")
-        return Constant(number.pos_in_stream, number.value, vartype)
+        return Constant(number.pos_in_stream, float(number.value), vartype)
 
 
 with open("core/grammar/grammar.lark") as file:
@@ -688,7 +688,7 @@ AkiParser = Lark(
     transformer=AkiTransformer(),
     parser="lalr",
     debug=False,
-    ambiguity="explicit",
+    ambiguity="explicit"
 )
 
 def parse(text, *a, **ka):
