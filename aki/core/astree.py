@@ -500,7 +500,7 @@ class UnsafeBlock(Expression):
         return self.expr_block == other.expr_block
 
     def flatten(self):
-        return [self.__class__.__name__, [_.flatten() for _ in self.expr_block.body]]
+        return [self.__class__.__name__, [_.flatten() for _ in self.expr_block]]
 
 
 class Accessor(Expression):
