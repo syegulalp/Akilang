@@ -39,6 +39,9 @@ class AkiBaseErr(Exception):
         if not isinstance(index, int):
             index = index.index
 
+        if index==0:
+            index=1
+
         last_newline = txt.rfind(f"\n", 0, index)
 
         if last_newline == -1:
