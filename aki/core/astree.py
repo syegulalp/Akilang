@@ -201,7 +201,7 @@ class Constant(Expression):
         return self.val == other.val and self.vartype == other.vartype
 
     def flatten(self):
-        return [self.__class__.__name__, self.val, self.vartype.flatten()]
+        return [self.__class__.__name__, self.val, self.vartype.flatten() if self.vartype is not None else None]
 
 
 class String(Expression):
@@ -367,7 +367,7 @@ class Function(TopLevel, ASTNode):
         return [
             self.__class__.__name__,
             self.prototype.flatten(),
-            [_.flatten() for _ in self.body.body],
+            [_.flatten() for _ in self.body],
         ]
 
 
@@ -500,7 +500,7 @@ class UnsafeBlock(Expression):
         return self.expr_block == other.expr_block
 
     def flatten(self):
-        return [self.__class__.__name__, [_.flatten() for _ in self.expr_block]]
+        return [self.__class__.__name__, [_.flatten() for _ in self.expr_block.body]]
 
 
 class Accessor(Expression):
@@ -638,11 +638,7 @@ class WhileExpr(Expression):
         ]
 
 
-class Decorator(Expression, TopLevel):
-    """
-    `while` expression.
-    """
-
+class BaseDecorator(Expression):
     def __init__(self, p, name, args, expr_block):
         super().__init__(p)
         self.name = name
@@ -660,3 +656,10 @@ class Decorator(Expression, TopLevel):
             self.expr_block.flatten(),
         ]
 
+
+class Decorator(BaseDecorator, TopLevel):
+    pass
+
+
+class InlineDecorator(Decorator):
+    pass

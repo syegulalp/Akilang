@@ -121,9 +121,10 @@ def main(){
 
     inkey()
 
-    loop {
+    loop () {
 
         printf_s(c_data("%s\nGeneration %i -- Population %i\n"),c_data(output), generation, population)
+
         print ('----\n')
         
         var cmd = inkey()

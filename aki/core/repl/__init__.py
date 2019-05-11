@@ -49,8 +49,8 @@ ir.builder.IRBuilder.comment = comment
 import ctypes
 import os
 
-from core.lex import _AkiLexer as AkiLexer
-from core.parse import _AkiParser as AkiParser
+#from core.grammar import parse as AkiParser
+from core import grammar as AkiParser
 from core.codegen import AkiCodeGen
 from core.compiler import AkiCompiler, ir
 from core.astree import (
@@ -110,7 +110,6 @@ On the command line, the initial dot sign can be replaced with a double dash:
 
 
 class JIT:
-    lexer = AkiLexer
     parser = AkiParser
 
     def __init__(self, typemgr, module_name=None):
@@ -269,8 +268,7 @@ pyaki  :{constants.VERSION}"""
                     None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
                 )
 
-            tokens = self.main_cpl.lexer.tokenize(text)
-            ast = self.main_cpl.parser.parse(tokens, text)
+            ast = self.repl_cpl.parser.parse(text)
 
             self.main_cpl.codegen.text = text
             try:
@@ -331,8 +329,7 @@ pyaki  :{constants.VERSION}"""
 
         # Tokenize input
 
-        tokens = self.repl_cpl.lexer.tokenize(text)
-        ast = self.repl_cpl.parser.parse(tokens, text)
+        ast = self.repl_cpl.parser.parse(text)
 
         # Iterate through tokens
 

@@ -3,7 +3,7 @@
 @inline
 def g1 (z1=0) {
     var q=z1
-    loop (var x=1,x<20, x+1) {
+    loop (var x=1, x<20, x+1) {
         q+=1
     }
     q

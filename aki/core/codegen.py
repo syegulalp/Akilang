@@ -141,6 +141,8 @@ class AkiCodeGen:
 
         for _ in ast:
             if not isinstance(_, TopLevel):
+                print (_.__class__)
+                print (_)
                 raise AkiSyntaxErr(_, self.text, f"Unknown top-level instruction")
             self._codegen(_)
 
@@ -148,6 +150,9 @@ class AkiCodeGen:
         """
         Dispatch function for codegen based on AST classes.
         """
+        if isinstance(node, VarTypeNode):
+            _=self._get_vartype(node)
+            return self._codegen_Name(node)
         method = f"_codegen_{node.__class__.__name__}"
         result = getattr(self, method)(node)
         return result
@@ -1342,9 +1347,10 @@ class AkiCodeGen:
 
         operand = self._codegen(node.lhs)
         instr = op(self, node, operand)
-        instr.akiype = operand.akitype
+        #instr.akitype = operand.akitype
         instr.akinode = node
         instr.akinode.name = f'op "{node.op}"'
+        #instr.akinode.vartype = instr.akitype.type_id
         return instr
 
     def _codegen_UnOp_Neg(self, node, operand):
@@ -1362,15 +1368,14 @@ class AkiCodeGen:
 
         instr = op(self, node, operand)
         instr.akitype = operand.akitype
-        instr.akinode = node
-        instr.akinode.name = f'op "{node.op}"'
+        #instr.akinode = node
+        #instr.akinode.name = f'op "{node.op}"'
         return instr
 
     def _codegen_UnOp_Not(self, node, operand):
         """
         Generate a NOT operation for a true/false value.
         """
-        # if not isinstance(operand.akitype, AkiBool):
         if not self._is_type(node, operand, AkiBool):
             operand = self._scalar_as_bool(node, operand)
 
@@ -1379,8 +1384,8 @@ class AkiCodeGen:
         )
 
         xor.akitype = self.types["bool"]
-        xor.akinode = node
-        xor.akinode.name = f'op "{node.op}"'
+        #xor.akinode = node
+        #xor.akinode.name = f'op "{node.op}"'
         return xor
 
     # TODO: move this to akitypes

@@ -1,5 +1,4 @@
 from sly import Parser
-from core.lex import _AkiLexer as AkiLexer, Pos, Errpos
 from core.astree import (
     Constant,
     String,
@@ -45,7 +44,7 @@ from core.error import AkiSyntaxErr
 
 class AkiParser(Parser):
     # debugfile = "parser.out"
-    tokens = AkiLexer.tokens
+    # tokens = AkiLexer.tokens
     start = "toplevels"
 
     class NullLogger:

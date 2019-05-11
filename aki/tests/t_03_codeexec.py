@@ -2,7 +2,7 @@
 
 import unittest
 from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr, AkiOpError
-
+from lark import exceptions as L_Ex
 
 class TestLexer(unittest.TestCase):
     from core.repl import Repl

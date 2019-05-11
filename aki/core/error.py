@@ -32,15 +32,15 @@ class AkiBaseErr(Exception):
 
     _errtype = "0 (General error)"
 
-    def __init__(self, node, txt, msg):
+    def __init__(self, index, txt, msg):
         if txt is None:
             txt = ""
-        try:
-            index = node.index
-        except (KeyError, AttributeError):
-            index = 1
+        
+        if not isinstance(index, int):
+            index = index.index
 
         last_newline = txt.rfind(f"\n", 0, index)
+
         if last_newline == -1:
             last_newline = 0
             self.col = index

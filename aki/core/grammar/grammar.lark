@@ -1,0 +1,231 @@
+%import common.WS
+%ignore WS
+
+start: toplevel*
+
+toplevel: function_declaration
+    |expression
+    |external_declaration
+    |const_declaration_block
+    |uni_declaration_block
+    |toplevel_decorator
+
+// when to use name vs NAME?
+// name is when we need an actual Name AST node
+// NAME is when we just need a text node
+
+function_declaration: DEF name LPAREN opt_arglist RPAREN opt_vartype subexpression
+external_declaration: EXTERN name LPAREN opt_arglist RPAREN opt_vartype
+
+const_declaration_block: CONST LBRACE varassignments RBRACE
+uni_declaration_block: UNI LBRACE varassignments RBRACE
+
+toplevel_decorator: decorators function_declaration
+inline_decorator: decorators expression
+decorators: decorator+
+decorator: DECORATOR NAME opt_args
+
+// An EXPRESSION can only PRODUCE a value
+
+expression: test
+    | assignment
+    | variable_declaration_block
+    | terminal
+    | inline_decorator
+    | with_expr
+    | while_expr
+    | when_expr
+    | if_expr
+    | break_expr
+    | loop_expr | infinite_loop_expr
+    | select_expr
+
+terminal: SEMI
+
+?test: or_test
+?or_test: and_test (OR and_test)*
+?and_test: not_test (AND not_test)*
+?not_test: NOT not_test | comparison
+?comparison: add_ops (comp_op add_ops)*
+?add_ops: mult_ops (add_op mult_ops)*
+?mult_ops: factor_ops (mult_op factor_ops)*
+?factor_ops: factor_op factor_ops | atom_expr
+
+// Atom-expressions are the only things that can both receive and produce a value.
+// However, only some atom types can receive a value (name, slice, dot ref)
+
+?atom_expr: atom_expr LPAREN opt_call_args RPAREN -> func_call
+    | atom_expr LBRACKET dimensions RBRACKET -> array_ref
+    | atom
+
+atom: number
+    | name
+    | constant
+    | subexpression
+    | parenthetical
+    | vartype
+    | string
+    | unsafe_block
+
+unsafe_block: UNSAFE expression
+
+single_variable_declaration_block: VAR varassignment
+variable_declaration_block: VAR (varassignments | alt_open varassignments alt_close)
+opt_varassignments: [varassignments]
+varassignments: varassignment ("," varassignment)*
+varassignment: name opt_vartype opt_assignment
+opt_assignment: [ASSIGN expression]
+
+opt_args: [LPAREN arglist RPAREN]
+opt_arglist: [arglist]
+arglist: argument ("," argument)*
+argument: stararg NAME opt_vartype opt_assignment
+stararg: [TIMES]
+
+opt_call_args: [call_args]
+call_args: call_arg ("," call_arg)*
+call_arg: expression
+
+assignment: atom_expr assignment_op expression
+assignment_op: ASSIGN|SM_PLUS|SM_MINUS|SM_TIMES|SM_DIV
+
+opt_vartype: [COLON vartype]
+mandatory_vartype: COLON vartype
+vartype: ptr_list (NAME|functypedef|arraytypedef)
+ptr_list: PTR*
+functypedef: FUNC LPAREN vartypelist RPAREN opt_vartype
+vartypelist: opt_vartype ("," mandatory_vartype)*
+arraytypedef: ARRAY LPAREN mandatory_vartype RPAREN LBRACKET dimensions RBRACKET
+dimensions: [dimension ("," dimension)*]
+dimension: expression
+
+// with
+
+with_expr: WITH (variable_declaration_block | alt_open variable_declaration_block alt_close) expression
+
+// while
+
+while_expr: WHILE expression expression
+
+// if/when
+
+if_expr: IF expression expression optional_else
+when_expr: WHEN expression expression optional_else
+optional_else: [ELSE expression]
+
+// loop
+
+loop_expr: LOOP LPAREN (assignment|single_variable_declaration_block) "," expression ["," expression] RPAREN expression
+
+infinite_loop_expr: LOOP LPAREN RPAREN expression
+
+// select
+
+select_expr: SELECT expression LBRACE cases RBRACE
+cases: case+
+case: CASE expression expression 
+
+// break
+
+break_expr: BREAK
+
+// --------------------
+
+parenthetical: LPAREN test RPAREN
+subexpression: LBRACE expression* RBRACE
+
+?comp_op: EQ|NEQ|GT|LT|GEQ|LEQ
+?add_op: PLUS|MINUS
+?mult_op: MOD|TIMES|DIV
+?factor_op: NEG
+
+constant: TRUE|FALSE
+
+number: decimal_number
+    |float_number
+    |hex_number
+
+// TODO: move opt_vartype to number node, process it there
+
+decimal_number: DEC_NUMBER opt_vartype
+float_number: FLOAT_NUMBER opt_vartype
+hex_number: HEX_NUMBER opt_vartype
+
+?alt_open: ["("|"{"] 
+?alt_close: ["}"|")"]
+
+DEC_NUMBER: /\d+/
+FLOAT_NUMBER: /\d+[.]\d+/
+HEX_NUMBER: /0[hx][a-fA-F0-9]*/
+
+name: NAME
+NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+
+string: TEXT1
+    |TEXT2
+
+TEXT1: /'(?:[^'\\]|\\.)*'/
+TEXT2: /"(?:[^"\\]|\\.)*"/
+
+VAR: "var"
+PTR: "ptr"
+ARRAY: "array"
+FUNC: "func"
+
+BREAK: "break"
+CASE: "case"
+CONST: "const"
+DEF: "def"
+ELSE: "else"
+EXTERN: "extern"
+IF: "if"
+LOOP: "loop"
+SELECT: "select"
+UNI: "uni"
+UNSAFE: "unsafe"
+WITH: "with"
+WHEN: "when"
+WHILE: "while"
+
+ASSIGN: "="
+
+OR: "or"
+AND: "and"
+NOT: "not"
+
+PLUS: "+"
+MINUS: "-"
+TIMES: "*"
+DIV: "/"
+MOD: "%"
+
+SM_PLUS: "+="
+SM_MINUS: "-="
+SM_TIMES: "*="
+SM_DIV: "/="
+
+EQ: "=="
+NEQ: "!="
+GT: ">"
+LT: "<"
+GEQ: ">="
+LEQ: "<="
+
+NEG: "-"
+
+LPAREN: "("
+RPAREN: ")"
+LBRACE: "{"
+RBRACE: "}"
+LBRACKET: "["
+RBRACKET: "]"
+SEMI: ";"
+COLON: ":"
+DECORATOR: "@"
+
+TRUE: "True"
+FALSE: "False"
+
+COMMENT: /#[^\n]*/
+
+%ignore COMMENT
