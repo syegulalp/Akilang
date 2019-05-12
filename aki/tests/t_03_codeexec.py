@@ -4,6 +4,7 @@ import unittest
 from core.error import AkiTypeErr, AkiSyntaxErr, AkiBaseErr, AkiOpError
 from lark import exceptions as L_Ex
 
+
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
     from core.akitypes import AkiTypeMgr
@@ -26,7 +27,15 @@ class TestLexer(unittest.TestCase):
                     pass
 
     def test_constant(self):
-        self._e(((r"2", 2), (r"2.0", 2.0), (r"0hff", -1), (r"0xff", 255)))
+        self._e(
+            (
+                (r"2", 2),
+                (r"2.0", 2.0),
+                (r"0hff", -1),
+                (r"0xff", 255),
+                (r"type(0x00:u64)", "<type:u64>"),
+            )
+        )
 
     def test_basic_ops(self):
         self._e(
@@ -275,6 +284,7 @@ class TestLexer(unittest.TestCase):
                     32,
                 ),
                 (r"def b1(x:ptr i32){x} var q=ref(b1)", 0),
+                (r"var x:array(:i32)[10] x[1]=10 var y=ref(x[1]) deref(y)", 10),
             )
         )
         self._ex(
@@ -385,17 +395,10 @@ class TestLexer(unittest.TestCase):
     def test_const(self):
         self._e(((r"const {x=1} x", 1), (r"const {x='hi'} x", '"hi"')))
         self._ex(AkiTypeErr, ((r"const {x=1} x=2", None),))
-    
+
     def test_decorator(self):
-        self._e(
-            (
-                (r"@noinline def m1(){32} m1()",32),
-            )
-        )
-        self._ex(AkiSyntaxErr,
-        (
-            (r"@bogus def m1(){32} m1()",32),
-        ))
+        self._e(((r"@noinline def m1(){32} m1()", 32),))
+        self._ex(AkiSyntaxErr, ((r"@bogus def m1(){32} m1()", 32),))
 
     def test_select(self):
         p1 = r"""
