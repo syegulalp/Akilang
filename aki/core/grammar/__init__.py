@@ -688,20 +688,15 @@ AkiParser = Lark(
     transformer=AkiTransformer(),
     parser="lalr",
     debug=False,
-    ambiguity="explicit"
+    ambiguity="explicit",
 )
+
 
 def parse(text, *a, **ka):
     try:
         result = AkiParser.parse(text, *a, **ka)
-    except exceptions.UnexpectedCharacters as e:       
-        raise error.AkiSyntaxErr(
-            e.pos_in_stream, text,
-            'Unexpected character'
-        )
+    except exceptions.UnexpectedCharacters as e:
+        raise error.AkiSyntaxErr(e.pos_in_stream, text, "Unexpected character")
     except exceptions.UnexpectedToken as e:
-        raise error.AkiSyntaxErr(
-            e.pos_in_stream, text,
-            'Unexpected token or keyword'
-        )
+        raise error.AkiSyntaxErr(e.pos_in_stream, text, "Unexpected token or keyword")
     return result
