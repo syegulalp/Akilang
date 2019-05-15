@@ -164,6 +164,8 @@ class AkiObject(AkiType):
             # refcount for object, not used yet
             module.types["u_size"].llvm_type,
         ]
+        # TODO: Have a dummy pointer at end that we use to calculate total size?
+        
         # self.llvm_type.packed=True
 
     def new(self):
@@ -209,6 +211,7 @@ class AkiIntBoolMathOps:
     """
 
     bin_ops = {
+
         "+": "add",
         "-": "sub",
         "*": "mul",
