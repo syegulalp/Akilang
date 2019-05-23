@@ -1721,7 +1721,7 @@ class AkiCodeGen:
         c1 = self._codegen(node_ref)
         c2 = self._get_vartype(target_type)
 
-        target_data = self.typemgr.target_data()
+        target_data = self.typemgr.target_data
         c1_size = c1.type.get_abi_size(target_data)
         c2_size = c2.llvm_type.get_abi_size(target_data)
 
@@ -1784,14 +1784,15 @@ class AkiCodeGen:
 
     def _builtins_size(self, node):
         """
-        Get the size, in bytes, of the variable allocation in question.
+        Get the size, in bytes, of the variable allocation in question.        
         For instance, for a string, this would be the size of the string OBJECT,
         NOT the size of the string DATA. (For that, use `c_size`.)
+        For a 64-bit int, this would be 64.
         """
         self._argcheck(node, 1)
         node_ref = node.arguments[0]
         item = self._codegen(node_ref)
-        byte_width = item.type.get_abi_size(self.typemgr.target_data())
+        byte_width = item.type.get_abi_size(self.typemgr.target_data)
         return self._codegen(Constant(node, byte_width, self.typemgr._default))
 
     def _builtins_c_size(self, node):

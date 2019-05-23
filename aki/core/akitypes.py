@@ -72,7 +72,7 @@ class AkiType:
         return node
 
     def c_size(self, codegen, node, llvm_obj):
-        size = llvm_obj.type.get_abi_size(codegen.typemgr.target_data())
+        size = llvm_obj.type.get_abi_size(codegen.typemgr.target_data)
         return codegen._codegen(Constant(node, size, codegen.types["u_size"]))
 
 
@@ -648,16 +648,15 @@ class AkiTypeMgr:
 
         self.module = module
 
+        self.target_data = binding.create_target_data(self.module.data_layout)
+
         # Obtain pointer size from LLVM target
         self._byte_width = ir.PointerType(ir.IntType(bytesize)).get_abi_size(
-            self.target_data()
+            self.target_data
         )
-        self._pointer_width = self._byte_width * bytesize
+        self._pointer_width = self._byte_width * bytesize        
 
         self.reset()
-
-    def target_data(self):
-        return binding.create_target_data(self.module.data_layout)
 
     def reset(self):
         # Initialize the type map from the base type list,
