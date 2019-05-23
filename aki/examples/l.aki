@@ -134,15 +134,13 @@ def main(){
                 mutate()
             case 113:u8
                 break
+            default
+                evolve()
         }
-
-        evolve()
 
         # add:
         # ord() - compiles to constant if a constant string is supplied
 
-    }
-
-    0
+    }    
 
 }

@@ -401,6 +401,24 @@ class TestLexer(unittest.TestCase):
         self._ex(AkiSyntaxErr, ((r"@bogus def m1(){32} m1()", 32),))
 
     def test_select(self):
+        p0 = r"""
+def main(){
+    var x="Hello"
+    var y:i64
+    select type(x) {
+        case i32{
+            y=1:i64
+        }
+        case type(y){
+            y=2:i64
+        }
+        default {
+            y=3:i64
+        }
+    }
+    y
+}
+main()"""        
         p1 = r"""
 def main(){
     var x=2
@@ -428,6 +446,24 @@ def main(){
     y
 }
 main()"""
+
+        p3 = r"""
+def main(){
+    var x=2, y=0
+    select x {
+        case 3
+            y=0
+        case 4
+            y=1
+        default
+            y=2
+        default
+            y=3
+    }
+}
+"""
+        self._e(((p0, 3),))
         self._e(((p1, 1),))
         self._ex(AkiTypeErr, ((p2, None),))
+        self._ex(AkiSyntaxErr, ((p3, None),))
 

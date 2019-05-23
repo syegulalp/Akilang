@@ -10,12 +10,12 @@ toplevel: function_declaration
     |uni_declaration_block
     |toplevel_decorator
 
-// when to use name vs NAME?
-// name is when we need an actual Name AST node
-// NAME is when we just need a text node
-
 function_declaration: DEF name LPAREN opt_arglist RPAREN opt_vartype subexpression
 external_declaration: EXTERN name LPAREN opt_arglist RPAREN opt_vartype
+
+function_multi_declaration: DEF name LBRACE multi_dec_list RBRACE
+multi_dec_list: multi_dec+
+multi_dec: (CASE|DEFAULT) LPAREN opt_arglist RPAREN opt_vartype subexpression
 
 const_declaration_block: CONST LBRACE varassignments RBRACE
 uni_declaration_block: UNI LBRACE varassignments RBRACE
@@ -123,7 +123,7 @@ infinite_loop_expr: LOOP LPAREN RPAREN expression
 
 select_expr: SELECT expression LBRACE cases RBRACE
 cases: case+
-case: CASE expression expression 
+case: (CASE expression expression)|(DEFAULT expression)
 
 // break
 
@@ -176,6 +176,7 @@ BREAK: "break"
 CASE: "case"
 CONST: "const"
 DEF: "def"
+DEFAULT: "default"
 ELSE: "else"
 EXTERN: "extern"
 IF: "if"

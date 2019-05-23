@@ -572,11 +572,11 @@ class SelectExpr(Expression):
     `select` expression.
     """
 
-    def __init__(self, p, select_expr, case_list: list):
+    def __init__(self, p, select_expr, case_list: list, default_case=None):
         super().__init__(p)
         self.select_expr = select_expr
         self.case_list = case_list
-        self.default_case = None
+        self.default_case = default_case
 
     def __eq__(self, other):
         return (
@@ -612,6 +612,9 @@ class CaseExpr(Expression):
             self.case_value.flatten(),
             self.case_expr.flatten(),
         ]
+
+class DefaultExpr(CaseExpr):
+    pass
 
 
 class WhileExpr(Expression):

@@ -25,6 +25,7 @@ from core.astree import (
     String,
     SelectExpr,
     CaseExpr,
+    DefaultExpr,
     VarTypePtr,
     VarTypeFunc,
     VarTypeAccessor,
@@ -438,7 +439,20 @@ class AkiTransformer(Transformer):
         """
         Select expression.
         """
-        return SelectExpr(node[0].pos_in_stream, node[1], node[3])
+        caselist = []
+        default_case = None        
+        for _ in node[3]:
+            if isinstance(_, DefaultExpr):
+                if default_case is not None:
+                    raise error.AkiSyntaxErr(
+                        _.index,
+                        self.text,
+                        'Multiple default cases specified in select'
+                    )
+                default_case = _
+            else:
+                caselist.append(_)
+        return SelectExpr(node[0].pos_in_stream, node[1], caselist, default_case)
 
     def cases(self, node):
         """
@@ -450,6 +464,8 @@ class AkiTransformer(Transformer):
         """
         Case expression.
         """
+        if node[0].value=='default':
+            return DefaultExpr(node[0].pos_in_stream, None, node[1])
         return CaseExpr(node[0].pos_in_stream, node[1], node[2])
 
     def optional_else(self, node):
@@ -694,6 +710,7 @@ AkiParser = Lark(
 
 def parse(text, *a, **ka):
     try:
+        AkiParser.options.transformer.text = text
         result = AkiParser.parse(text, *a, **ka)
     except exceptions.UnexpectedCharacters as e:
         raise error.AkiSyntaxErr(e.pos_in_stream, text, "Unexpected character")

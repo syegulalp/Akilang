@@ -1326,9 +1326,10 @@ class AkiCodeGen:
 
         self.builder.position_at_start(default_block)
         if node.default_case:
-            self._codegen(node.default_case)
+            self._codegen(node.default_case.case_expr)
         self.builder.branch(exit_block)
         self.builder.position_at_start(exit_block)
+        return value
 
     #################################################################
     # Operations
