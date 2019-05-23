@@ -130,8 +130,10 @@ def main(){
         var cmd = inkey()
 
         select cmd {
-            case 109:u8
+            case 109:u8 {
                 mutate()
+                evolve()
+            }
             case 113:u8
                 break
             default
