@@ -130,5 +130,4 @@ Licensing for included and to-be-included modules:
 * [llvmlite](http://llvmlite.pydata.org/en/latest/): [BSD 2-Clause "Simplified" License](https://github.com/numba/llvmlite/blob/master/LICENSE)
 * [termcolor](https://pypi.org/project/termcolor/): MIT License
 * [colorama](https://pypi.org/project/colorama/): [BSD License](https://github.com/tartley/colorama/blob/master/LICENSE.txt)
-* [sly](https://github.com/dabeaz/sly): [MIT-style license](https://github.com/dabeaz/sly/blob/master/LICENSE)
 * [lark-parser](https://github.com/lark-parser/lark/): [MIT license](https://github.com/lark-parser/lark/blob/master/LICENSE)
