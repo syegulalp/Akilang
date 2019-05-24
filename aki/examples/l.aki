@@ -117,9 +117,7 @@ def main(){
     
     setup()
     
-    print("Conway's Game Of Life\nAny key evolves pattern\n[m]: mutate\n[q]: quit\n\n")
-
-    inkey()
+    print("Conway's Game Of Life\n[m]: mutate\n[q]: quit\nAny other key evolves pattern\n\n")
 
     loop () {
 
@@ -131,11 +129,13 @@ def main(){
 
         select cmd {
             case 109:u8 {
+                print ("Mutate\n")
                 mutate()
                 evolve()
             }
-            case 113:u8
+            case 113:u8 {
                 break
+            }
             default
                 evolve()
         }
@@ -143,6 +143,10 @@ def main(){
         # add:
         # ord() - compiles to constant if a constant string is supplied
 
-    }    
+    }
+
+    print ("Goodbye!\n")
+
+    0
 
 }
