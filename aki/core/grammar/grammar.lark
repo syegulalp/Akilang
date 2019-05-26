@@ -10,12 +10,12 @@ toplevel: function_declaration
     |uni_declaration_block
     |toplevel_decorator
 
-function_declaration: DEF name LPAREN opt_arglist RPAREN opt_vartype subexpression
+function_declaration: DEF name LPAREN opt_arglist RPAREN opt_vartype expression
 external_declaration: EXTERN name LPAREN opt_arglist RPAREN opt_vartype
 
 function_multi_declaration: DEF name LBRACE multi_dec_list RBRACE
 multi_dec_list: multi_dec+
-multi_dec: (CASE|DEFAULT) LPAREN opt_arglist RPAREN opt_vartype subexpression
+multi_dec: (WITH|DEFAULT) LPAREN opt_arglist RPAREN opt_vartype expression
 
 const_declaration_block: CONST LBRACE varassignments RBRACE
 uni_declaration_block: UNI LBRACE varassignments RBRACE
