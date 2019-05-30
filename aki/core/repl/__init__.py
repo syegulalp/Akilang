@@ -49,7 +49,6 @@ ir.builder.IRBuilder.comment = comment
 import ctypes
 import os
 
-#from core.grammar import parse as AkiParser
 from core import grammar as AkiParser
 from core.codegen import AkiCodeGen
 from core.compiler import AkiCompiler, ir
@@ -239,8 +238,8 @@ pyaki  :{constants.VERSION}"""
                             mod_in = pickle.load(file)
                             if mod_in["version"] != constants.VERSION:
                                 raise LocalException
-                            self.main_cpl.codegen = mod_in["codegen"]
                             self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
+                            self.main_cpl.codegen = mod_in["codegen"]
                             self.typemgr = self.main_cpl.codegen.typemgr
                             file_size = os.fstat(file.fileno()).st_size
 
@@ -299,9 +298,8 @@ pyaki  :{constants.VERSION}"""
                         "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
                         "codegen": self.main_cpl.codegen,
                     }
-
                     try:
-                        pickle.dump(output, file)
+                        pickle.dump(output, file, 4)
                     except Exception:
                         raise LocalException
             except LocalException:
