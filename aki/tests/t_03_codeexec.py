@@ -198,9 +198,9 @@ class TestLexer(unittest.TestCase):
         )
 
     def test_inline_type_declarations(self):
-        self._e(((r"var x:i32=1 x==i32(1)", True),))
+        self._e(((r"var x:i32=1 x==1:i32", True),))
 
-        self._ex(AkiTypeErr, ((r"var x:i32=1 x==i64(1)", None),))
+        self._ex(AkiTypeErr, ((r"var x:i32=1 x==1:i64", None),))
 
     def test_type_comparison(self):
         self._e(

@@ -924,26 +924,16 @@ class AkiCodeGen:
                     raise LocalException
 
                 arg = node.arguments[0]
-
-                if isinstance(arg, Constant):
-                    # this check is in place until we have
-                    # methods for making ints from floats, etc.
-                    if arg.vartype.name != named_type.type_id:
-                        raise AkiTypeErr(
+                type_new_builtin = getattr(self, f"_builtins_{node.name}_init", None)
+                
+                if type_new_builtin:
+                    return type_new_builtin(arg)
+                else:
+                    raise AkiTypeErr(
                             arg,
                             self.text,
-                            f'Constant "{CMD}{arg.val}{REP}" is not type "{CMD}{named_type.type_id}{REP}" (type conversions not yet performed this way)',
+                            f'Can\'t use "{CMD}{arg.val}{REP}" as initializer for type "{CMD}{named_type.type_id}{REP}"',
                         )
-
-                    const = self._codegen(
-                        Constant(arg, arg.val, VarTypeName(arg, named_type.type_id))
-                    )
-                    return const
-
-                else:
-                    raise AkiOpError(
-                        node.arguments[0], self.text, f"Only constants allowed for now"
-                    )
 
             call_func = self._name(node, node.name)
             args = []
@@ -1651,6 +1641,19 @@ class AkiCodeGen:
         data_object.akinode = node
         return data_object
 
+    def _builtin_str_init(self, node):
+        pass
+        # if the node is a constant,
+        # codegen_string and return that
+        # if not,
+        # then we need to check the type of the input
+        # and use that
+        # e.g., an existing string we just point to the old one
+        # a number, we do number-to-string conversion by way of
+        # a library call
+        # meaning we need to have some way to loop in library calls
+        # by name from the stdlib
+
     #################################################################
     # Builtins
     #################################################################
@@ -1721,7 +1724,7 @@ class AkiCodeGen:
         c1 = self._codegen(node_ref)
         c2 = self._get_vartype(target_type)
 
-        target_data = self.typemgr.target_data
+        target_data = self.typemgr.target_data()
         c1_size = c1.type.get_abi_size(target_data)
         c2_size = c2.llvm_type.get_abi_size(target_data)
 
@@ -1792,7 +1795,7 @@ class AkiCodeGen:
         self._argcheck(node, 1)
         node_ref = node.arguments[0]
         item = self._codegen(node_ref)
-        byte_width = item.type.get_abi_size(self.typemgr.target_data)
+        byte_width = item.type.get_abi_size(self.typemgr.target_data())
         return self._codegen(Constant(node, byte_width, self.typemgr._default))
 
     def _builtins_c_size(self, node):
