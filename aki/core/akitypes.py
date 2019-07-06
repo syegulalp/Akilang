@@ -165,7 +165,7 @@ class AkiObject(AkiType):
             module.types["u_size"].llvm_type,
         ]
         # TODO: Have a dummy pointer at end that we use to calculate total size?
-        
+
         # self.llvm_type.packed=True
 
     def new(self):
@@ -211,7 +211,6 @@ class AkiIntBoolMathOps:
     """
 
     bin_ops = {
-
         "+": "add",
         "-": "sub",
         "*": "mul",
@@ -652,9 +651,11 @@ class AkiTypeMgr:
         self._byte_width = ir.PointerType(ir.IntType(bytesize)).get_abi_size(
             self.target_data()
         )
-        self._pointer_width = self._byte_width * bytesize        
+        self._pointer_width = self._byte_width * bytesize
 
         self.reset()
+
+        self.const_enum = 0
 
     # Do not move this, otherwise we can't serialize the type mgr
     def target_data(self):

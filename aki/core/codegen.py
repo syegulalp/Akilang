@@ -113,16 +113,14 @@ class AkiCodeGen:
 
         self.other_modules: list = []
 
-        self.const_enum = 0
-
         self.evaluator = None
 
         self.decorator_stack: list = []
         self.decorator_context: dict = {}
 
     def _const_counter(self):
-        self.const_enum += 1
-        return self.const_enum
+        self.typemgr.const_enum += 1
+        return self.typemgr.const_enum
 
     def init_func_handlers(self):
         """
@@ -141,8 +139,6 @@ class AkiCodeGen:
 
         for _ in ast:
             if not isinstance(_, TopLevel):
-                print (_.__class__)
-                print (_)
                 raise AkiSyntaxErr(_, self.text, f"Unknown top-level instruction")
             self._codegen(_)
 
@@ -151,7 +147,7 @@ class AkiCodeGen:
         Dispatch function for codegen based on AST classes.
         """
         if isinstance(node, VarTypeNode):
-            _=self._get_vartype(node)
+            _ = self._get_vartype(node)
             return self._codegen_Name(node)
         method = f"_codegen_{node.__class__.__name__}"
         result = getattr(self, method)(node)
@@ -925,15 +921,15 @@ class AkiCodeGen:
 
                 arg = node.arguments[0]
                 type_new_builtin = getattr(self, f"_builtins_{node.name}_init", None)
-                
+
                 if type_new_builtin:
                     return type_new_builtin(arg)
                 else:
                     raise AkiTypeErr(
-                            arg,
-                            self.text,
-                            f'Can\'t use "{CMD}{arg.val}{REP}" as initializer for type "{CMD}{named_type.type_id}{REP}"',
-                        )
+                        arg,
+                        self.text,
+                        f'Can\'t use "{CMD}{arg.val}{REP}" as initializer for type "{CMD}{named_type.type_id}{REP}"',
+                    )
 
             call_func = self._name(node, node.name)
             args = []
@@ -1338,10 +1334,10 @@ class AkiCodeGen:
 
         operand = self._codegen(node.lhs)
         instr = op(self, node, operand)
-        #instr.akitype = operand.akitype
+        # instr.akitype = operand.akitype
         instr.akinode = node
         instr.akinode.name = f'op "{node.op}"'
-        #instr.akinode.vartype = instr.akitype.type_id
+        # instr.akinode.vartype = instr.akitype.type_id
         return instr
 
     def _codegen_UnOp_Neg(self, node, operand):
@@ -1359,8 +1355,8 @@ class AkiCodeGen:
 
         instr = op(self, node, operand)
         instr.akitype = operand.akitype
-        #instr.akinode = node
-        #instr.akinode.name = f'op "{node.op}"'
+        # instr.akinode = node
+        # instr.akinode.name = f'op "{node.op}"'
         return instr
 
     def _codegen_UnOp_Not(self, node, operand):
@@ -1375,8 +1371,8 @@ class AkiCodeGen:
         )
 
         xor.akitype = self.types["bool"]
-        #xor.akinode = node
-        #xor.akinode.name = f'op "{node.op}"'
+        # xor.akinode = node
+        # xor.akinode.name = f'op "{node.op}"'
         return xor
 
     # TODO: move this to akitypes
