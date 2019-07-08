@@ -238,9 +238,19 @@ pyaki  :{constants.VERSION}"""
                             mod_in = pickle.load(file)
                             if mod_in["version"] != constants.VERSION:
                                 raise LocalException
-                            self.main_cpl.compiler.compile_bc(mod_in["bitcode"])
-                            self.main_cpl.codegen = mod_in["codegen"]
-                            self.typemgr = self.main_cpl.codegen.typemgr
+                            
+                            ast = mod_in["ast"]
+                            text = mod_in["text"]
+
+                            self.main_cpl.codegen.text = text
+
+                            try:
+                                self.main_cpl.codegen.eval(ast)
+                            except Exception as e:
+                                self.main_cpl.reset()
+                                raise e
+                            self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
+                            
                             file_size = os.fstat(file.fileno()).st_size
 
                     cp(
@@ -251,10 +261,6 @@ pyaki  :{constants.VERSION}"""
                     pass
                 except Exception:
                     cp(f"Error reading cached file")
-
-        # import cProfile, pstats, io
-        # pr = cProfile.Profile()
-        # pr.enable()
 
         with Timer() as t:
 
@@ -269,42 +275,36 @@ pyaki  :{constants.VERSION}"""
 
             ast = self.repl_cpl.parser.parse(text)
 
+            # Write cached AST to file
+
+            if not ignore_cache and self.settings["cache_compilation"] == True:
+
+                try:
+                    if not os.path.exists(cache_path):
+                        os.makedirs(cache_path)
+                    with open(full_cache_path, "wb") as file:
+                        output = {
+                            "version": constants.VERSION,
+                            "ast": ast,
+                            "text": text,
+                        }
+                        try:
+                            pickle.dump(output, file, 4)
+                        except Exception:
+                            raise LocalException
+                except LocalException:
+                    cp("Can't write cache file")
+                    os.remove(cache_path)
+
             self.main_cpl.codegen.text = text
+
             try:
                 self.main_cpl.codegen.eval(ast)
             except Exception as e:
                 self.main_cpl.reset()
                 raise e
+            
             self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
-
-        # pr.disable()
-        # s = io.StringIO()
-        # sortby = pstats.SortKey.CUMULATIVE
-        # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        # ps.print_stats()
-        # with open ('stats.txt','w') as file:
-        #     file.write(s.getvalue())
-
-        # Write cached compilation to file
-
-        if not ignore_cache and self.settings["cache_compilation"] == True:
-
-            try:
-                if not os.path.exists(cache_path):
-                    os.makedirs(cache_path)
-                with open(full_cache_path, "wb") as file:
-                    output = {
-                        "version": constants.VERSION,
-                        "bitcode": self.main_cpl.compiler.mod_ref.as_bitcode(),
-                        "codegen": self.main_cpl.codegen,
-                    }
-                    try:
-                        pickle.dump(output, file, 4)
-                    except Exception:
-                        raise LocalException
-            except LocalException:
-                cp("Can't write cache file")
-                os.remove(cache_path)
 
         cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({t.time:.3f} sec)")
 
