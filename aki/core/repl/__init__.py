@@ -233,8 +233,8 @@ pyaki  :{constants.VERSION}"""
 
             if not force_recompilation:
                 try:
-                    with Timer() as t:
-                        with open(full_cache_path, "rb") as file:
+                    with open(full_cache_path, "rb") as file:
+                        with Timer() as t:
                             mod_in = pickle.load(file)
                             if mod_in["version"] != constants.VERSION:
                                 raise LocalException
@@ -250,9 +250,7 @@ pyaki  :{constants.VERSION}"""
                                 self.main_cpl.reset()
                                 raise e
                             self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
-                            
-                            file_size = os.fstat(file.fileno()).st_size
-
+                        file_size = os.fstat(file.fileno()).st_size
                     cp(
                         f"Read {file_size} bytes from {CMD}{cache_file}{REP} ({t.time:.3f} sec)"
                     )
