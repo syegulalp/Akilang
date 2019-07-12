@@ -36,7 +36,7 @@ class AkiCompiler:
 
     def compile_bc(self, bc):
         """
-        Compile a module from  LLVM bitcode.
+        Compile a module from LLVM bitcode.
         """
         mod = llvm.parse_bitcode(bc)
         return self.finalize_compilation(mod)

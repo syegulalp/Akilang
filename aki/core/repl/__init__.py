@@ -29,10 +29,11 @@ def comment(self, txt):
     self._insert(ir.instructions.Comment(self.block, txt))
 
 
+import time
+
+
 class Timer:
     def __init__(self):
-        import time
-
         self.clock = time.clock
 
     def __enter__(self):
@@ -135,7 +136,6 @@ def cp(string):
 
 
 class Repl:
-
     import sys
 
     VERSION = f"""Python :{sys.version}
@@ -234,77 +234,97 @@ pyaki  :{constants.VERSION}"""
             if not force_recompilation:
                 try:
                     with open(full_cache_path, "rb") as file:
-                        with Timer() as t:
+
+                        with Timer() as t1:
                             mod_in = pickle.load(file)
                             if mod_in["version"] != constants.VERSION:
                                 raise LocalException
-                            
-                            ast = mod_in["ast"]
-                            text = mod_in["text"]
 
-                            self.main_cpl.codegen.text = text
+                        file_size = os.fstat(file.fileno()).st_size
 
+                        cp(
+                            f"Read {file_size} bytes from {CMD}{cache_file}{REP} ({t1.time:.3f} sec)"
+                        )
+
+                        ast = mod_in["ast"]
+                        text = mod_in["text"]
+
+                        self.main_cpl.codegen.text = text
+
+                        with Timer() as t2:
                             try:
                                 self.main_cpl.codegen.eval(ast)
                             except Exception as e:
                                 self.main_cpl.reset()
                                 raise e
-                            self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
-                        file_size = os.fstat(file.fileno()).st_size
-                    cp(
-                        f"Read {file_size} bytes from {CMD}{cache_file}{REP} ({t.time:.3f} sec)"
-                    )
+
+                        cp(f"Evaluated ({t2.time:.3f} sec)")
+
+                        with Timer() as t3:
+
+                            self.main_cpl.compiler.compile_module(
+                                self.main_cpl.module, file_to_load
+                            )
+
+                        cp(f"Compiled ({t3.time:.3f} sec)")
+
                     return
                 except LocalException:
                     pass
-                except Exception:
-                    cp(f"Error reading cached file")
+                except Exception as e:
+                    cp(f"Error reading cached file", e)
 
-        with Timer() as t:
+        # If no cache, or cache failed,
+        # load original file and compile from scratch
+        
+        try:
+            with open(filepath) as file:
+                text = file.read()
+                file_size = os.fstat(file.fileno()).st_size
+        except FileNotFoundError:
+            raise AkiBaseErr(
+                None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
+            )
 
-            try:
-                with open(filepath) as file:
-                    text = file.read()
-                    file_size = os.fstat(file.fileno()).st_size
-            except FileNotFoundError:
-                raise AkiBaseErr(
-                    None, file_to_load, f"File not found: {CMD}{filepath}{REP}"
-                )
-
+        with Timer() as t1:
             ast = self.repl_cpl.parser.parse(text)
 
-            # Write cached AST to file
+        cp(f"Parsed {file_size} bytes from {CMD}{filepath}{REP} ({t1.time:.3f} sec)")
 
-            if not ignore_cache and self.settings["cache_compilation"] == True:
+        # Write cached AST to file
 
-                try:
-                    if not os.path.exists(cache_path):
-                        os.makedirs(cache_path)
-                    with open(full_cache_path, "wb") as file:
-                        output = {
-                            "version": constants.VERSION,
-                            "ast": ast,
-                            "text": text,
-                        }
-                        try:
-                            pickle.dump(output, file, 4)
-                        except Exception:
-                            raise LocalException
-                except LocalException:
-                    cp("Can't write cache file")
-                    os.remove(cache_path)
+        if not ignore_cache and self.settings["cache_compilation"] == True:
 
-            self.main_cpl.codegen.text = text
+            try:
+                if not os.path.exists(cache_path):
+                    os.makedirs(cache_path)
+                with open(full_cache_path, "wb") as file:
+                    output = {"version": constants.VERSION, "ast": ast, "text": text}
+                    try:
+                        pickle.dump(output, file, 4)
+                    except Exception:
+                        raise LocalException
+            except LocalException:
+                cp("Can't write cache file")
+                os.remove(cache_path)
+
+        self.main_cpl.codegen.text = text
+
+        with Timer() as t2:
 
             try:
                 self.main_cpl.codegen.eval(ast)
             except Exception as e:
                 self.main_cpl.reset()
                 raise e
-            
+
+        cp(f"Evaluated ({t2.time:.3f} sec)")
+
+        with Timer() as t3:
+
             self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
 
-        cp(f"Read {file_size} bytes from {CMD}{filepath}{REP} ({t.time:.3f} sec)")
+        cp(f"Compiled ({t3.time:.3f} sec)")
 
     def interactive(self, text, immediate_mode=False):
         # Immediate mode processes everything in the repl compiler.
