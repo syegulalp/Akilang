@@ -276,7 +276,7 @@ pyaki  :{constants.VERSION}"""
 
         # If no cache, or cache failed,
         # load original file and compile from scratch
-        
+
         try:
             with open(filepath) as file:
                 text = file.read()
@@ -382,13 +382,15 @@ pyaki  :{constants.VERSION}"""
 
             yield return_type.format_result(res)
 
-    def anonymous_function(self, ast_stack, repl_file, immediate_mode=False):
+    def anonymous_function(
+        self, ast_stack, repl_file, immediate_mode=False, call_name_prefix="_ANONYMOUS_"
+    ):
 
         _ = ast_stack[-1]
 
         self.repl_cpl.anon_counter += 1
 
-        call_name = f"_ANONYMOUS_{self.repl_cpl.anon_counter}"
+        call_name = f"{call_name_prefix}{self.repl_cpl.anon_counter}"
         proto = Prototype(_.index, call_name, (), None)
         func = Function(_.index, proto, ExpressionBlock(_.index, ast_stack))
 

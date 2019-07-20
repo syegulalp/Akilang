@@ -36,6 +36,7 @@ from core.astree import (
     TopLevel,
     UniList,
     Decorator,
+    String,
 )
 from core.error import (
     AkiNameErr,
@@ -118,6 +119,10 @@ class AkiCodeGen:
         self.decorator_stack: list = []
         self.decorator_context: dict = {}
 
+        self.anon_counter = 0
+
+        self.repl = None
+
     def _const_counter(self):
         self.typemgr.const_enum += 1
         return self.typemgr.const_enum
@@ -153,7 +158,7 @@ class AkiCodeGen:
         result = getattr(self, method)(node)
         return result
 
-    def eval_to_result(self, node, ast):
+    def eval_to_result(self, node):
         # Not working yet
         """
         Takes an AST expression block, compiles it to an anonymous
@@ -165,13 +170,20 @@ class AkiCodeGen:
 
         self.anon_counter += 1
         call_name = f"_EVALRESULT_{self.anon_counter}"
-        proto = Prototype(node, call_name, (), None)
-        func = Function(node, proto, ExpressionBlock(node, ast))
 
-        result = self.eval([func])
-        result_type = self.module.globals[call_name].return_value.akitype
+        if not self.repl:
+            from core.repl import Repl
 
-        # how do we handle this with the likes of object types like strings?
+            self.repl = Repl(self.typemgr)
+            self.repl.main_cpl.codegen = self
+
+        result_value, result_type = self.repl.anonymous_function(
+            [node], None, call_name_prefix=call_name
+        )
+
+        return Constant(node, result_value, result_type)
+
+        # create a new AST object using the value and the type
 
     def _codegen_LLVMNode(self, node):
         return node.llvm_node
@@ -825,7 +837,6 @@ class AkiCodeGen:
                 # and no default vartype, then create the default
 
                 if _.vartype is None:
-                    # _.vartype = Name(_.index, self.types.default.type_id)
                     _.vartype = Name(_.index, self.typemgr._default.type_id)
 
                 _.akitype = self._get_vartype(_.vartype)
@@ -833,6 +844,12 @@ class AkiCodeGen:
                 value = _.val
 
             else:
+
+                # If the value is not a constant,
+                # generate the result by compiling a temp function
+
+                if is_const and not isinstance(_.val, (Constant, String)):
+                    _.val = self.eval_to_result(_.val)
 
                 # If there is a value ...
 
@@ -876,7 +893,7 @@ class AkiCodeGen:
                 self._codegen(
                     Assignment(
                         _.index, "=", ObjectRef(_.index, Name(_.index, _.name)), value
-                    )
+                   )
                 )
 
     #################################################################

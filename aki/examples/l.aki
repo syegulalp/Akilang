@@ -37,16 +37,13 @@ const {
     HEIGHT = 40,
     WIDTH = 80,
     GENESIS_FACTOR = 30,
-    MUTATION_FACTOR = 5
-    # DISPLAY_SIZE = ((WIDTH+1) * HEIGHT) + 1
-    # TODO: allow computed constants
+    MUTATION_FACTOR = 5,
+    DISPLAY_SIZE = ((WIDTH+1) * HEIGHT) + 1
 }
 
-uni {
-    
-    world:array(:u8)[2,HEIGHT,WIDTH],    
-    output:array(:u8)[3242],    
-
+uni {    
+    world:array(:u8)[2,HEIGHT,WIDTH],
+    output:array(:u8)[DISPLAY_SIZE],
     current_world = 0,
     population = 0,
     generation = 0
