@@ -242,9 +242,8 @@ pyaki  :{constants.VERSION}"""
 
                         file_size = os.fstat(file.fileno()).st_size
 
-                        cp(
-                            f"Read {file_size} bytes from {CMD}{cache_file}{REP} ({t1.time:.3f} sec)"
-                        )
+                        cp(f"Loaded {file_size} bytes from {CMD}{filepath}{REP}")
+                        cp(f"  Parse: {t1.time:.3f} sec")
 
                         ast = mod_in["ast"]
                         text = mod_in["text"]
@@ -258,7 +257,7 @@ pyaki  :{constants.VERSION}"""
                                 self.main_cpl.reset()
                                 raise e
 
-                        cp(f"Evaluated ({t2.time:.3f} sec)")
+                        cp(f"   Eval: {t2.time:.3f} sec")
 
                         with Timer() as t3:
 
@@ -266,7 +265,8 @@ pyaki  :{constants.VERSION}"""
                                 self.main_cpl.module, file_to_load
                             )
 
-                        cp(f"Compiled ({t3.time:.3f} sec)")
+                        cp(f"Compile: {t3.time:.3f} sec")
+                        cp(f"  Total: {t1.time+t2.time+t3.time:.3f} sec")
 
                     return
                 except LocalException:
@@ -289,7 +289,8 @@ pyaki  :{constants.VERSION}"""
         with Timer() as t1:
             ast = self.repl_cpl.parser.parse(text)
 
-        cp(f"Parsed {file_size} bytes from {CMD}{filepath}{REP} ({t1.time:.3f} sec)")
+        cp(f"Loaded {file_size} bytes from {CMD}{filepath}{REP}")
+        cp(f"  Parse: {t1.time:.3f} sec")
 
         # Write cached AST to file
 
@@ -318,13 +319,14 @@ pyaki  :{constants.VERSION}"""
                 self.main_cpl.reset()
                 raise e
 
-        cp(f"Evaluated ({t2.time:.3f} sec)")
+        cp(f"   Eval: {t2.time:.3f} sec")
 
         with Timer() as t3:
 
             self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
 
-        cp(f"Compiled ({t3.time:.3f} sec)")
+        cp(f"Compile: {t3.time:.3f} sec")
+        cp(f"  Total: {t1.time+t2.time+t3.time:.3f} sec")
 
     def interactive(self, text, immediate_mode=False):
         # Immediate mode processes everything in the repl compiler.
