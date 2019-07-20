@@ -242,7 +242,7 @@ pyaki  :{constants.VERSION}"""
 
                         file_size = os.fstat(file.fileno()).st_size
 
-                        cp(f"Loaded {file_size} bytes from {CMD}{filepath}{REP}")
+                        cp(f"Loaded {file_size} bytes from {CMD}{full_cache_path}{REP}")
                         cp(f"  Parse: {t1.time:.3f} sec")
 
                         ast = mod_in["ast"]
