@@ -159,7 +159,8 @@ class AkiCodeGen:
         return result
 
     def eval_to_result(self, node):
-        # Not working yet
+        # TODO: move this to AST phase,
+        # so constants can be cached
         """
         Takes an AST expression block, compiles it to an anonymous
         function in the current module,
@@ -893,7 +894,7 @@ class AkiCodeGen:
                 self._codegen(
                     Assignment(
                         _.index, "=", ObjectRef(_.index, Name(_.index, _.name)), value
-                   )
+                    )
                 )
 
     #################################################################
