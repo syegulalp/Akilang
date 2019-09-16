@@ -21,17 +21,11 @@ class TestLexer(unittest.TestCase):
         with self.assertRaises(err_type):
             [_ for _ in self.i(test, True)]
 
-    def test_constant_integer(self):
+    def test_constants(self):
         self.e(r"2", 2)
-
-    def test_constant_float(self):
         self.e(r"2.0", 2.0)
-
-    def test_constant_hex(self):
         self.e(r"0hff", -1)
         self.e(r"0xff", 255)
-
-    def test_constant_type(self):
         self.e(r"type(0x00:u64)", "<type:u64>")
 
     def test_math_integer(self):
@@ -42,15 +36,17 @@ class TestLexer(unittest.TestCase):
         self.e(r"2*-2", -4)
         self.e(r"8/4", 2)
 
-    def test_nested_math_integer(self):
-        self.e(r"(2+2)/2", 2)
-        self.e(r"(2+2)+(2*2)", 8)
-
     def test_math_float(self):
         self.e(r"2.0+3.0", 5)
         self.e(r"2.0-3.0", -1)
         self.e(r"2.0*3.0", 6)
         self.e(r"6.0/3.0", 2)
+
+    def test_nested_math(self):
+        self.e(r"(2+2)/2", 2)
+        self.e(r"(2+2)+(2*2)", 8)
+        self.e(r"(2.0+2.5)/2.0", 2.25)
+        self.e(r"(2.0+2.5)+(2.0*2.0)", 8.5)        
 
     def test_andor_ops(self):
         self.e(r"2 and 3", 3)
@@ -136,6 +132,7 @@ class TestLexer(unittest.TestCase):
         self.ex(AkiTypeErr, r"var x:f32=1")
         self.ex(AkiTypeErr, r"var x:i32=1.0")
         self.ex(AkiTypeErr, r"3+32.0")
+        self.ex(AkiTypeErr, r"3.0+32")
 
     def test_function_defs(self):
         self.e(r"def m0(){1} m0()", 1)
@@ -310,6 +307,7 @@ class TestLexer(unittest.TestCase):
 
     def test_decorator(self):
         self.e(r"@noinline def m1(){32} m1()", 32)
+        self.e(r"@inline def m1(){32} m1()", 32)
         self.ex(AkiSyntaxErr, r"@bogus def m1(){32} m1()")
 
     def test_select(self):
