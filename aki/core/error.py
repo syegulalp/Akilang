@@ -36,10 +36,11 @@ class AkiBaseErr(Exception):
         if txt is None:
             txt = ""
 
-        if not isinstance(index, int):
+        if index is None:
+            index = 1
+        elif not isinstance(index, int):
             index = index.index
-
-        if index == 0:
+        elif index == 0:
             index = 1
 
         last_newline = txt.rfind(f"\n", 0, index)
