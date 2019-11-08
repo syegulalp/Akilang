@@ -1,4 +1,4 @@
-llvmlite==0.28.0
-colorama==0.3.9
+llvmlite==0.29.0
+colorama==0.4.1
 termcolor==1.1.0
-sly==0.3
+lark-parser==0.7.8
