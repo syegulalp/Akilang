@@ -172,12 +172,10 @@ class AkiTransformer(Transformer):
         """
         Type definition for an array.
         """
-        pos = node[0]
-        vartype = node[2]
-        pos2 = node[4]
-        dimensions = node[5]
-        accessor = Accessor(pos2.pos_in_stream, dimensions)
-        return VarTypeAccessor(pos.pos_in_stream, vartype, accessor)
+        pos, vartype, pos2, dimensions, _ = node
+        return VarTypeAccessor(
+            pos.pos_in_stream, vartype, Accessor(pos2.pos_in_stream, dimensions)
+        )
 
     def func_call(self, node):
         """
@@ -440,14 +438,12 @@ class AkiTransformer(Transformer):
         Select expression.
         """
         caselist = []
-        default_case = None        
+        default_case = None
         for _ in node[3]:
             if isinstance(_, DefaultExpr):
                 if default_case is not None:
                     raise error.AkiSyntaxErr(
-                        _.index,
-                        self.text,
-                        'Multiple default cases specified in select'
+                        _.index, self.text, "Multiple default cases specified in select"
                     )
                 default_case = _
             else:
@@ -464,7 +460,7 @@ class AkiTransformer(Transformer):
         """
         Case expression.
         """
-        if node[0].value=='default':
+        if node[0].value == "default":
             return DefaultExpr(node[0].pos_in_stream, None, node[1])
         return CaseExpr(node[0].pos_in_stream, node[1], node[2])
 

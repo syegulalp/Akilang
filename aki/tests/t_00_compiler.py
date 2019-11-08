@@ -10,11 +10,12 @@ import unittest
 
 class TestLexer(unittest.TestCase):
     from core.repl import Repl
-    from core.akitypes import AkiTypeMgr
+    #from core.akitypes import AkiTypeMgr
 
-    mgr = AkiTypeMgr()
-    types = mgr.types
-    r = Repl(typemgr=mgr)
+    #mgr = AkiTypeMgr()
+    #types = mgr.types
+    #r = Repl(typemgr=mgr)
+    r = Repl()
     i = r.interactive
 
     def e(self, test, result):

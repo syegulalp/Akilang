@@ -8,7 +8,7 @@ if __name__ == "__main__":
         from core import repl
         from core.error import ReloadException, QuitException
         try:
-            repl.Repl().run()
+            repl.Repl().run(True)
         except ReloadException:
             for m in reversed(list(sys.modules.keys())):
                 if m not in init_modules:

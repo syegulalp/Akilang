@@ -95,7 +95,7 @@ vartype: ptr_list (NAME|functypedef|arraytypedef)
 ptr_list: PTR*
 functypedef: FUNC LPAREN vartypelist RPAREN opt_vartype
 vartypelist: opt_vartype ("," mandatory_vartype)*
-arraytypedef: ARRAY LPAREN mandatory_vartype RPAREN LBRACKET dimensions RBRACKET
+arraytypedef: ARRAY vartype LBRACKET dimensions RBRACKET
 dimensions: [dimension ("," dimension)*]
 dimension: expression
 
@@ -189,6 +189,7 @@ WHEN: "when"
 WHILE: "while"
 
 ASSIGN: "="
+STORE: "<-"
 
 OR: "or"
 AND: "and"

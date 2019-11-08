@@ -1,6 +1,8 @@
 from llvmlite import ir, binding
 import pickle
 
+pickle.DEFAULT_PROTOCOL = pickle.HIGHEST_PROTOCOL
+import sys
 import colorama
 
 colorama.init()
@@ -61,6 +63,7 @@ from core.astree import (
     TopLevel,
     Name,
     VarTypeName,
+    External,
 )
 from core.error import AkiBaseErr, ReloadException, QuitException, LocalException
 from core.akitypes import AkiTypeMgr, AkiObject
@@ -109,35 +112,11 @@ On the command line, the initial dot sign can be replaced with a double dash:
 """
 
 
-class JIT:
-    parser = AkiParser
-
-    def __init__(self, typemgr, module_name=None):
-        assert typemgr is not None
-        self.typemgr = typemgr
-        self.types = self.typemgr.types
-        self.anon_counter = 0
-        self.module_name = module_name
-        self.reset(self.typemgr)
-
-    def reset(self, typemgr=None):
-        if typemgr is None:
-            self.typemgr = AkiTypeMgr()
-        else:
-            self.typemgr = typemgr
-        self.compiler = AkiCompiler()
-        self.module = ir.Module(self.module_name)
-        self.module.triple = binding.Target.from_default_triple().triple
-        self.codegen = AkiCodeGen(self.module, self.typemgr)
-
-
 def cp(string):
     print(f"{REP}{string}")
 
 
 class Repl:
-    import sys
-
     VERSION = f"""Python :{sys.version}
 LLVM   :{".".join((str(n) for n in binding.llvm_version_info))}
 pyaki  :{constants.VERSION}"""
@@ -145,7 +124,51 @@ pyaki  :{constants.VERSION}"""
     def __init__(self, typemgr=None):
         self.reset(silent=True, typemgr=typemgr)
 
-    def run(self):
+    def make_module(self, name, typemgr=None):
+        if typemgr is None:
+            typemgr = self.typemgr
+        mod = ir.Module(name)
+        mod.triple = binding.Target.from_default_triple().triple
+        other_modules = []
+        if name != "stdlib":            
+            other_modules.append(self.stdlib_module)
+        mod.codegen = AkiCodeGen(mod, typemgr, name, other_modules)
+        return mod
+
+    def compile_stdlib(self):
+        stdlib_path = os.path.join(self.paths["stdlib"], "nt")
+        stdlib = []
+
+        for _ in ("0", "1"):
+            with open(os.path.join(stdlib_path, f"layer_{_}.aki")) as f:
+                stdlib.append(f.read())
+
+        text = "\n".join(stdlib)
+        ast = AkiParser.parse(text)
+
+        self.dump_ast(os.path.join(stdlib_path, "stdlib.akic"), ast, text)
+
+        return ast, text
+
+    def load_stdlib(self):
+        stdlib_path = os.path.join(self.paths["stdlib"], "nt")
+
+        if not os.path.exists(os.path.join(stdlib_path, "stdlib.akic")):
+            cp("Compiling stdlib")
+            ast, text = self.compile_stdlib()
+        else:
+            with open(os.path.join(stdlib_path, "stdlib.akic"), "rb") as file:
+                mod_in = pickle.load(file)
+            ast, text = mod_in["ast"], mod_in["text"]
+
+        self.stdlib_module = self.make_module("stdlib")
+
+        codegen = AkiCodeGen(self.stdlib_module, module_name="stdlib").eval(ast)
+        self.stdlib_module_ref = self.compiler.compile_module(self.stdlib_module, None)
+
+    def run(self, initial_load=False):
+        if initial_load:
+            self.compile_stdlib()
         import shutil
 
         cols = shutil.get_terminal_size()[0]
@@ -202,16 +225,22 @@ pyaki  :{constants.VERSION}"""
 
         return cmd_func(self, text, params=params)
 
+    def dump_ast(self, filename, ast, text):
+        with open(filename, "wb") as file:
+            output = {"version": constants.VERSION, "ast": ast, "text": text}
+            pickle.dump(output, file)
+
     def load_file(self, file_to_load, file_path=None, ignore_cache=False):
 
         if file_path is None:
             file_path = self.paths["source_dir"]
 
-        self.main_cpl.reset()
+        # reset
+        self.main_module = self.make_module(".main")
 
         filepath = os.path.join(file_path, f"{file_to_load}.aki")
-
         self.last_file_loaded = file_to_load
+        cache_path = f"{file_path}/__akic__/"
 
         # Attempt to load precomputed module from cache
 
@@ -221,9 +250,8 @@ pyaki  :{constants.VERSION}"""
         if not ignore_cache:
 
             force_recompilation = False
-
-            cache_path = f"{file_path}/__akic__/"
             cache_file = f"{file_to_load}.akic"
+            bitcode_file = f"{file_to_load}.akib"
             full_cache_path = cache_path + cache_file
 
             if not os.path.exists(full_cache_path):
@@ -242,31 +270,31 @@ pyaki  :{constants.VERSION}"""
 
                         file_size = os.fstat(file.fileno()).st_size
 
-                        cp(f"Loaded {file_size} bytes from {CMD}{full_cache_path}{REP}")
-                        cp(f"  Parse: {t1.time:.3f} sec")
+                    cp(f"Loaded {file_size} bytes from {CMD}{full_cache_path}{REP}")
+                    cp(f"  Parse: {t1.time:.3f} sec")
 
-                        ast = mod_in["ast"]
-                        text = mod_in["text"]
+                    ast = mod_in["ast"]
+                    text = mod_in["text"]
 
-                        self.main_cpl.codegen.text = text
+                    self.main_module.codegen.text = text
 
-                        with Timer() as t2:
-                            try:
-                                self.main_cpl.codegen.eval(ast)
-                            except Exception as e:
-                                self.main_cpl.reset()
-                                raise e
+                    with Timer() as t2:
+                        try:
+                            self.main_module.codegen.eval(ast)
+                        except Exception as e:
+                            self.main_module = self.make_module(".main")
+                            raise e
 
-                        cp(f"   Eval: {t2.time:.3f} sec")
+                    cp(f"   Eval: {t2.time:.3f} sec")
 
-                        with Timer() as t3:
+                    with Timer() as t3:
 
-                            self.main_cpl.compiler.compile_module(
-                                self.main_cpl.module, file_to_load
-                            )
+                        self.main_ref = self.compiler.compile_module(
+                            self.main_module, file_to_load
+                        )
 
-                        cp(f"Compile: {t3.time:.3f} sec")
-                        cp(f"  Total: {t1.time+t2.time+t3.time:.3f} sec")
+                    cp(f"Compile: {t3.time:.3f} sec")
+                    cp(f"  Total: {t1.time+t2.time+t3.time:.3f} sec")
 
                     return
                 except LocalException:
@@ -287,7 +315,7 @@ pyaki  :{constants.VERSION}"""
             )
 
         with Timer() as t1:
-            ast = self.repl_cpl.parser.parse(text)
+            ast = AkiParser.parse(text)
 
         cp(f"Loaded {file_size} bytes from {CMD}{filepath}{REP}")
         cp(f"  Parse: {t1.time:.3f} sec")
@@ -299,34 +327,39 @@ pyaki  :{constants.VERSION}"""
             try:
                 if not os.path.exists(cache_path):
                     os.makedirs(cache_path)
-                with open(full_cache_path, "wb") as file:
-                    output = {"version": constants.VERSION, "ast": ast, "text": text}
-                    try:
-                        pickle.dump(output, file, 4)
-                    except Exception:
-                        raise LocalException
+                self.dump_ast(full_cache_path, ast, text)
             except LocalException:
                 cp("Can't write cache file")
                 os.remove(cache_path)
 
-        self.main_cpl.codegen.text = text
+        self.main_module.codegen.text = text
 
         with Timer() as t2:
 
             try:
-                self.main_cpl.codegen.eval(ast)
+                self.main_module.codegen.eval(ast)
             except Exception as e:
-                self.main_cpl.reset()
+                # reset
+                self.main_module = self.make_module(".main")
                 raise e
 
         cp(f"   Eval: {t2.time:.3f} sec")
 
         with Timer() as t3:
 
-            self.main_cpl.compiler.compile_module(self.main_cpl.module, file_to_load)
+            self.main_ref = self.compiler.compile_module(self.main_module, file_to_load)
 
         cp(f"Compile: {t3.time:.3f} sec")
         cp(f"  Total: {t1.time+t2.time+t3.time:.3f} sec")
+
+        # write compiled bitcode and IR
+        # We will eventually reuse bitcode when it's appropriate
+
+        if not ignore_cache:
+            with open(cache_path + file_to_load + ".akil", "w") as file:
+                file.write(str(self.main_module))
+            with open(cache_path + file_to_load + ".akib", "wb") as file:
+                file.write(self.compiler.mod_ref.as_bitcode())
 
     def interactive(self, text, immediate_mode=False):
         # Immediate mode processes everything in the repl compiler.
@@ -335,23 +368,24 @@ pyaki  :{constants.VERSION}"""
         # But its typemgr is the same as the main repl.
 
         if immediate_mode:
-            main = self.repl_cpl
             main_file = None
             repl_file = None
-            main.reset()
+            self.typemgr = AkiTypeMgr()
+            self.main_module = self.make_module(".main")
+            self.repl_module = self.make_module(".repl")
+            main = self.repl_module
         else:
-            main = self.main_cpl
+            main = self.main_module
             main_file = "main"
             repl_file = "repl"
-            self.repl_cpl.reset()
+            self.repl_module = self.make_module(".repl")
 
         # Tokenize input
 
-        ast = self.repl_cpl.parser.parse(text)
+        ast = AkiParser.parse(text)
 
         # Iterate through tokens
 
-        self.repl_cpl.codegen.text = text
         main.codegen.text = text
 
         # Iterate through the AST nodes.
@@ -367,7 +401,7 @@ pyaki  :{constants.VERSION}"""
 
             if isinstance(_, TopLevel):
                 main.codegen.eval([_])
-                main.compiler.compile_module(main.module, main_file)
+                self.main_ref = self.compiler.compile_module(main, main_file)
                 continue
 
             ast_stack.append(_)
@@ -390,30 +424,29 @@ pyaki  :{constants.VERSION}"""
 
         _ = ast_stack[-1]
 
-        self.repl_cpl.anon_counter += 1
+        self.anon_counter += 1
 
-        call_name = f"{call_name_prefix}{self.repl_cpl.anon_counter}"
+        call_name = f"{call_name_prefix}{self.anon_counter}"
         proto = Prototype(_.index, call_name, (), None)
         func = Function(_.index, proto, ExpressionBlock(_.index, ast_stack))
 
         if not immediate_mode:
-            self.repl_cpl.codegen.other_modules.append(self.main_cpl.codegen)
-            # Note: This copies ALL global variables,
-            # whether or not they are constants.
-            # This may prove problematic later.
-            for k, v in self.main_cpl.codegen.module.globals.items():
+            for k, v in self.main_module.codegen.module.globals.items():
                 if isinstance(v, ir.GlobalVariable):
-                    self.repl_cpl.codegen.module.globals[k] = v
+                    self.repl_module.codegen.module.globals[k] = v
+                else:
+                    f_ = External(None, v.akinode, None)
+                    self.repl_module.codegen.eval([f_])
 
         try:
-            self.repl_cpl.codegen.eval([func])
+            self.repl_module.codegen.eval([func])
         except AkiBaseErr as e:
-            if not immediate_mode:
-                self.repl_cpl.codegen.other_modules.pop()
-            del self.repl_cpl.module.globals[call_name]
+            # if not immediate_mode:
+            # self.repl_cpl.codegen.other_modules.pop()
+            del self.repl_module.globals[call_name]
             raise e
 
-        first_result_type = self.repl_cpl.module.globals[call_name].return_value.akitype
+        first_result_type = self.repl_module.globals[call_name].return_value.akitype
 
         # If the result from the codegen is an object,
         # redo the codegen with an addition to the AST stack
@@ -435,41 +468,27 @@ pyaki  :{constants.VERSION}"""
             # but I'm keeping this anyway
 
             try:
-                self.repl_cpl.codegen.eval([func])
+                self.repl_module.codegen.eval([func])
             except AkiBaseErr as e:
-                del self.repl_cpl.module.globals[call_name]
+                del self.repl_module.module.globals[call_name]
                 raise e
 
-            final_result_type = self.repl_cpl.module.globals[
-                call_name
-            ].return_value.akitype
+            final_result_type = self.repl_module.globals[call_name].return_value.akitype
 
         else:
             final_result_type = first_result_type
 
-        # Link the main module into the REPL module.
-
-        if not immediate_mode:
-            if self.main_cpl.compiler.mod_ref:
-                self.repl_cpl.compiler.backing_mod.link_in(
-                    self.main_cpl.compiler.mod_ref, True
-                )
-
-        self.repl_cpl.compiler.compile_module(self.repl_cpl.module, repl_file)
-
-        if not immediate_mode:
-            self.repl_cpl.codegen.other_modules.pop()
+        self.repl_ref = self.compiler.compile_module(self.repl_module, None)
 
         # Retrieve a pointer to the function to execute
-        func_ptr = self.repl_cpl.compiler.get_addr(call_name)
+        func_ptr = self.compiler.get_addr(call_name)
 
         return_type = first_result_type
         return_type_ctype = final_result_type.c()
 
         # Get the function signature
         func_signature = [
-            _.aki.vartype.aki_type.c()
-            for _ in self.repl_cpl.module.globals[call_name].args
+            _.aki.vartype.aki_type.c() for _ in self.repl_module.globals[call_name].args
         ]
 
         # Generate a result
@@ -515,13 +534,20 @@ pyaki  :{constants.VERSION}"""
         self.settings_data = defaults["settings"]
         for k, v in self.settings_data.items():
             self.settings[k] = v[1]
+
         if typemgr is not None:
             self.typemgr = typemgr
         else:
             self.typemgr = AkiTypeMgr()
         self.types = self.typemgr.types
-        self.main_cpl = JIT(self.typemgr, module_name=".main")
-        self.repl_cpl = JIT(self.typemgr, module_name=".repl")
+
+        self.compiler = AkiCompiler()
+        self.load_stdlib()
+        self.main_module = self.make_module(".main")
+        self.repl_module = self.make_module(".repl")
+
+        self.anon_counter = 0
+
         self.last_file_loaded = None
         if not "silent" in ka:
             cp(f"{RED}Workspace reset")
@@ -536,9 +562,9 @@ pyaki  :{constants.VERSION}"""
             function = None
 
         if function:
-            to_print = self.main_cpl.codegen.module.globals.get(function, None)
+            to_print = self.main_module.globals.get(function, None)
         else:
-            to_print = self.main_cpl.codegen.module
+            to_print = self.main_module
 
         if not to_print:
             cp("Function not found")

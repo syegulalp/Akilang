@@ -42,8 +42,8 @@ const {
 }
 
 uni {    
-    world:array(:u8)[2,HEIGHT,WIDTH],
-    output:array(:u8)[DISPLAY_SIZE],
+    world:array u8[2,HEIGHT,WIDTH],
+    output:array u8[DISPLAY_SIZE],
     current_world = 0,
     population = 0,
     generation = 0

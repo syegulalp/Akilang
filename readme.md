@@ -6,13 +6,10 @@ This project is an attempt to create a compiler, language server, and REPL in Py
 
 Eventually, this might become something useful for real work. Right now, it's strictly proof-of-concept -- a fun toy for me to hack on and to learn about compiler theory and programming language construction in the process.
 
-* [The official blog](https://aki.genjipress.com) tracks development and discussion of the project.
-* [This document](whats-next.md) gives you an idea of what's being worked on right now and in the near future.
-* You can see a demo movie (now outdated) of the language in action [here.](https://www.youtube.com/watch?v=9vZ4oFCFOl8)
-
-<!-- 
 * [This document](language.md) is a work-in-progress tour of the language's syntax.
--->
+* [This document](whats-next.md) gives you an idea of what's being worked on right now and in the near future.
+* [The official blog](https://aki.genjipress.com) tracks development and discussion of the project. (Not updated often)
+* You can see a demo movie (now outdated) of the language in action [here.](https://www.youtube.com/watch?v=9vZ4oFCFOl8)
 
 **If you're a fan of Python, LLVM, compilers, or any combination of the above, [learn how to contribute.](CONTRIBUTING.md)**
 

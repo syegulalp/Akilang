@@ -19,6 +19,7 @@ def defaults():
             "output_dir": "output",
             "dump_dir": ".",
             "nt_compiler": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat",
+            "stdlib": "stdlib"
         },
         "settings": {
             "write_main_to_file": (

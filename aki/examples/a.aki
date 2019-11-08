@@ -1,10 +1,7 @@
-uni {
-    a:array(:i32)[20,20]
+def do(){
+    0
 }
-def main(){
-    var b=ref(a[0])
-    #type(b)
-    b[0]
-    # refs need to add to typemgr
-    #var c=deref(b)
+
+def main() {
+    do()
 }

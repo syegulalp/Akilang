@@ -47,7 +47,7 @@ from core.error import (
     LocalException,
 )
 from core.repl import CMD, REP
-from typing import Optional
+from typing import Optional, Any
 
 
 class FuncState:
@@ -86,10 +86,11 @@ class AkiCodeGen:
         module: Optional[ir.Module] = None,
         typemgr=None,
         module_name: Optional[str] = None,
+        other_modules: list = []
     ):
 
         # Create an LLVM module if we aren't passed one.
-
+        
         if module is None:
             self.module = ir.Module(name=module_name)
             self.module.triple = binding.Target.from_default_triple().triple
@@ -112,7 +113,7 @@ class AkiCodeGen:
         # Other codegen modules to check for namespaces.
         # Resolved top to bottom.
 
-        self.other_modules: list = []
+        self.other_modules = other_modules
 
         self.evaluator = None
 
@@ -176,10 +177,10 @@ class AkiCodeGen:
             from core.repl import Repl
 
             self.repl = Repl(self.typemgr)
-            self.repl.main_cpl.codegen = self
+            self.repl.main_module.codegen = self
 
         result_value, result_type = self.repl.anonymous_function(
-            [node], None, call_name_prefix=call_name
+            [node], None, False, call_name_prefix=call_name,
         )
 
         return Constant(node, result_value, result_type)
@@ -206,10 +207,15 @@ class AkiCodeGen:
         name = self.module.globals.get(name_to_find, None)
         if name is not None:
             return name
+        
+        # name = self.module.globals.get(self.module.name + '.' + name_to_find, None)
+        # if name is not None:
+        #     return name
 
         # Next, look in other modules:
         for _ in self.other_modules:
-            name = _.module.globals.get(name_to_find, None)
+            #name = _.module.globals.get(name_to_find, None)
+            name = _.globals.get(name_to_find, None)
             if name is not None:
 
                 # if this is just a regular variable,
@@ -222,6 +228,7 @@ class AkiCodeGen:
                 # otherwise, this is a function.
                 # emit function reference for this module
                 link = ir.Function(self.module, name.ftype, name.name)
+                
                 # copy aki data for function
                 link.akinode = name.akinode
                 link.akitype = name.akitype
@@ -612,6 +619,8 @@ class AkiCodeGen:
         """
         Generate an LLVM function from a `Function` AST node.
         """
+        # if self.module.name is not None and not self.module.name.startswith('.')and not isinstance(node, External):
+        #     node.prototype.name = self.module.name + '.' + node.prototype.name
 
         self.init_func_handlers()
 
@@ -831,7 +840,7 @@ class AkiCodeGen:
 
             # If no value ...
 
-            value = None
+            value: Any = None
 
             if _.val is None:
 

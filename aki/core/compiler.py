@@ -27,6 +27,7 @@ class AkiCompiler:
         # Not used yet
         # self.engine.set_object_cache(export,None)
 
+
     def compile_ir(self, llvm_ir):
         """
         Compile a module from an LLVM IR string.
@@ -55,6 +56,10 @@ class AkiCompiler:
         """
 
         llvm_ir = str(module)
+        mod = self.compile_ir(llvm_ir)
+
+        if not filename:
+            return mod
 
         # Write IR to file for debugging
         if filename:
@@ -65,11 +70,6 @@ class AkiCompiler:
                 file.write(f"; File written at {datetime.datetime.now()}\n")
                 file.write(llvm_ir)
 
-        # Compiler IR to assembly
-        mod = self.compile_ir(llvm_ir)
-
-        # Write assembly to file
-        if filename:
             with open(os.path.join("output", f"{filename}.llvmbc"), "wb") as file:
                 file.write(mod.as_bitcode())
 

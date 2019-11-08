@@ -229,7 +229,7 @@ class TestLexer(unittest.TestCase):
             32,
         )
         self.e(r"def b1(x:ptr i32){x} var q=ref(b1)", 0)
-        self.e(r"var x:array(:i32)[10] x[1]=10 var y=ref(x[1]) deref(y)", 10)
+        self.e(r"var x:array i32[10] x[1]=10 var y=ref(x[1]) deref(y)", 10)
 
         # `y()` is a pointer, not a callable
         self.ex(AkiTypeErr, r"def g1(){32} var x=g1 var y=ref(x) var z=deref(y) y()")
@@ -266,18 +266,18 @@ class TestLexer(unittest.TestCase):
 
     def test_array(self):
         self.e(
-            r"var x:array(:i32)[2,2] x[0,0]=32 x[0,1]=12 x[1,0]=8 x[0,1]+x[0,0]+x[1,0]",
+            r"var x:array i32[2,2] x[0,0]=32 x[0,1]=12 x[1,0]=8 x[0,1]+x[0,0]+x[1,0]",
             52,
         )
-        self.e(r"var x:array(:str)[20] x[1]='Hi' x[1]", '"Hi"')
+        self.e(r"var x:array str[20] x[1]='Hi' x[1]", '"Hi"')
         self.e(
-            r"def a(){30} def b(){64} var x:array(:func():i32)[2,2] x[1,2]=a x[2,1]=b var c=x[1,2] var d=x[2,1] d()-c()",
+            r"def a(){30} def b(){64} var x:array func():i32[2,2] x[1,2]=a x[2,1]=b var c=x[1,2] var d=x[2,1] d()-c()",
             34,
         )
 
     def test_array_trapping(self):
-        self.ex(AkiTypeErr, r"var x:array(:i32)[20]=0")
-        self.ex(AkiTypeErr, r"var x:array(:i32)[20]=0")
+        self.ex(AkiTypeErr, r"var x:array i32[20]=0")
+        self.ex(AkiTypeErr, r"var x:array i32[20]=0")
 
     def test_pointer_comparison(self):
         self.e(r"def a1(x:ptr i32){x} var x=32 var y=ref(x) var z=a1(y) z==y", True)
