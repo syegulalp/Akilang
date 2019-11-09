@@ -27,7 +27,6 @@ class AkiCompiler:
         # Not used yet
         # self.engine.set_object_cache(export,None)
 
-
     def compile_ir(self, llvm_ir):
         """
         Compile a module from an LLVM IR string.
@@ -56,21 +55,22 @@ class AkiCompiler:
         """
 
         llvm_ir = str(module)
-        mod = self.compile_ir(llvm_ir)
-
-        if not filename:
-            return mod
 
         # Write IR to file for debugging
+
         if filename:
             if not os.path.exists("output"):
                 os.mkdir("output")
-
-            with open(os.path.join("output", f"{filename}.llvm"), "w") as file:
+            with open(os.path.join("output", f"{filename}.src.llvm"), "w") as file:
                 file.write(f"; File written at {datetime.datetime.now()}\n")
                 file.write(llvm_ir)
 
-            with open(os.path.join("output", f"{filename}.llvmbc"), "wb") as file:
+        mod = self.compile_ir(llvm_ir)
+
+        # Write bitcode
+
+        if filename:
+            with open(os.path.join("output", f"{filename}.bitcode"), "wb") as file:
                 file.write(mod.as_bitcode())
 
     def get_addr(self, func_name="main"):

@@ -1,7 +1,10 @@
-def do(){
+def main(){
+    # Loops auto-increment by 1 if no incrementor is specified
+    loop (var x = 1, x < 101) {
+        if x % 15 == 0 print ("FizzBuzz")
+            else if x % 3 == 0  print ("Fizz")
+            else if x % 5 == 0  print ("Buzz")
+            else printf_s(c_data('%i\n'),x)
+    }
     0
-}
-
-def main() {
-    do()
 }

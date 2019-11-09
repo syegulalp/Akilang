@@ -40,3 +40,5 @@ extern _snprintf(
 # Etc
 
 extern Sleep(dwMilliseconds:i32):i32
+
+extern printf_s(_format:ptr u8, *args):i32

@@ -190,7 +190,7 @@ class AkiFunction(AkiObject):
                 self.return_type.llvm_type, [_.llvm_type for _ in self.arguments]
             )
         )
-        self.type_id = f'func({",".join([str(_.akitype) for _ in self.arguments])}){self.return_type}'
+        self.type_id = f'func({",".join([str(_.akitype)[1:] for _ in self.arguments])}){self.return_type}'
         self.name = self.type_id
 
     def c(self):

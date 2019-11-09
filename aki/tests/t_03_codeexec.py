@@ -46,7 +46,7 @@ class TestLexer(unittest.TestCase):
         self.e(r"(2+2)/2", 2)
         self.e(r"(2+2)+(2*2)", 8)
         self.e(r"(2.0+2.5)/2.0", 2.25)
-        self.e(r"(2.0+2.5)+(2.0*2.0)", 8.5)        
+        self.e(r"(2.0+2.5)+(2.0*2.0)", 8.5)
 
     def test_andor_ops(self):
         self.e(r"2 and 3", 3)
@@ -173,8 +173,8 @@ class TestLexer(unittest.TestCase):
         self.e(r"type(i32)", "<type:type>")
         self.e(r"i32", "<type:i32>")
         self.e(r"def x(){} type(x)", "<type:func():i32>")
-        self.e(r"def y(z:i32){z} type(y)", "<type:func(:i32):i32>")
-        self.e(r"def q(z:i64):i64{z} type(q)", "<type:func(:i64):i64>")
+        self.e(r"def y(z:i32){z} type(y)", "<type:func(i32):i32>")
+        self.e(r"def q(z:i64):i64{z} type(q)", "<type:func(i64):i64>")
 
         self.ex(AkiOpError, r"var x=1,y=2 type(x)<type(y)")
 
@@ -183,7 +183,8 @@ class TestLexer(unittest.TestCase):
 
     def test_function_pointer(self):
         self.e(r"var x:func():i32 x", "<function:func():i32 @ 0x0>")
-        self.e(r"var x:func(:i32):i32 x", "<function:func(:i32):i32 @ 0x0>")
+        self.e(r"var x:func(i32):i32 x", "<function:func(i32):i32 @ 0x0>")
+        self.e(r"var x:func(i32, i64):i32 x", "<function:func(i32,i64):i32 @ 0x0>")
         self.e(r"def g0(){32} var x=g0 x()", 32)
         self.e(r"def g1(){32} def g2(x){32+x} var x=g1,y=g2 x()+y(1)", 65)
         self.e(
@@ -274,6 +275,14 @@ class TestLexer(unittest.TestCase):
             r"def a(){30} def b(){64} var x:array func():i32[2,2] x[1,2]=a x[2,1]=b var c=x[1,2] var d=x[2,1] d()-c()",
             34,
         )
+
+        # NOT FUNCTIONAL YET. We don't have a repr for arrays
+
+        # self.e(r"var x: array i32[20] x", None)
+
+        # We also don't yet have a direct array assignment mechanism
+
+        # self.e(r"var x: array i32[2]=[8,16] x", None)
 
     def test_array_trapping(self):
         self.ex(AkiTypeErr, r"var x:array i32[20]=0")

@@ -90,11 +90,15 @@ assignment: atom_expr assignment_op expression
 assignment_op: ASSIGN|SM_PLUS|SM_MINUS|SM_TIMES|SM_DIV
 
 opt_vartype: [COLON vartype]
-mandatory_vartype: COLON vartype
+// mandatory_vartype: COLON vartype
+// opt_bare_vartype: [vartype]
+// mandatory_bare_vartype: vartype
+
 vartype: ptr_list (NAME|functypedef|arraytypedef)
 ptr_list: PTR*
 functypedef: FUNC LPAREN vartypelist RPAREN opt_vartype
-vartypelist: opt_vartype ("," mandatory_vartype)*
+//vartypelist: opt_vartype ("," mandatory_vartype)*
+vartypelist: [vartype ("," vartype)*]
 arraytypedef: ARRAY vartype LBRACKET dimensions RBRACKET
 dimensions: [dimension ("," dimension)*]
 dimension: expression

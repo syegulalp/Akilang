@@ -17,7 +17,7 @@ Expressions are the basic unit of computation in Aki. Each expression returns a 
 is an expression that returns the value `5`. (The type of this value is the default type for numerical values in Aki, which is a signed 32-bit integer.)
 
 ```
-print (if x==1 then 'Yes' else 'No')
+print (if x==1 'Yes' else 'No')
 ```
 
 Here, the argument to `print` is an expression that returns one of two compile-time strings depending on the variable `x`. (`print` itself is a wrapper for `printf` and so returns the number of bytes printed.)
@@ -50,7 +50,7 @@ To group together one or more expressions procedurally, for instance as a clause
 def main(){
     print ("Hello!")
     var x=invoke()
-    x=x+1
+    x+=1
     x
 }
 ```
@@ -61,7 +61,7 @@ With any expression block, the last expression is the one returned from the bloc
 def main(){
     print ("Hello!")
     var x=invoke()
-    x=x+1
+    x+=1
     return x
 }
 ```
@@ -95,25 +95,10 @@ A more complex function body example:
 
 ```
 def f1(x:i32):i32 {
-    x = (if x>0 then 1 else -1)
+    var x = (if x>0 1 else -1)
     x * 5
 }
 ```
-
-Multiple versions of a function can be written to accept different type signatures:
-
-```
-def f1(x:i32):i32 {
-    x = (if x>0 then 1 else -1)
-    x * 5
-}
-
-def f1(x:i8):i32 {
-    f1(cast(x,i32))
-}
-```
-
-The second `f1` takes an `i8`, `cast`s it to `i32`, and supplies that to the `f1` that takes an `i32`.
 
 Functions can also take optional arguments with defaults:
 
@@ -276,11 +261,12 @@ Defines an external function with a C calling interface to be linked in at compi
 An example, on Win32, that uses the `MessageBoxA` system call:
 
 ```
-extern MessageBoxA(hwnd:i32, msg:ptr i8, caption:ptr i8, type: i8):i32
+extern MessageBoxA(hwnd:i32, msg:ptr i8, caption:ptr i8, msg_type: i8):i32
 
 def main(){
-    MessageBoxA(0,c_data('Hi'),c_data('Yo there'),0B)
+    MessageBoxA(0,c_data('Hi'),c_data('Yo there'),0:byte)
 }
+
 ```
 
 ## `uni`
@@ -294,7 +280,7 @@ uni {
     x=32,
     # defines an i32, the default variable type
 
-    y=64U,
+    y=64:u64,
     # unsigned 64-bit integer
 
     z:byte=1B
@@ -315,10 +301,10 @@ Exit a `loop` manually.
 ```
 x=1
 loop {
-    x=x+1
-    if x>10 then break
+    x+=1
+    if x>10 break
 }
-print (x)
+x
 
 [output:]
 
@@ -329,17 +315,17 @@ print (x)
 
 See [`match`](#match).
 
-## `if` / `then` / `elif` / `else`
+## `if` /  `else`
 
 If a given expression yields `True`, then yield the value of one expression; if `False`, yield the value of another. Each `then` clause is an expression.
 
 ```
-y = 0
-t = {if y == 1 then 1 elif y > 1 then 2 else 3}
+var y = 0
+var t = {if y == 1 2 else 3}
 
 ```
 
-**Each branch of an `if` must yield the same type.** For operations where the types of each decision might mismatch, or where some possible decisions might not yield a result at all, use [`when/then/elif/else`](#when).
+**Each branch of an `if` must yield the same type.** For operations where the types of each decision might mismatch, or where some possible decisions might not yield a result at all, use [`when/then/else`](#when).
 
 `if` constructions can also be used for expressions where the value of the expression is to be discarded. 
 
@@ -348,17 +334,15 @@ t = {if y == 1 then 1 elif y > 1 then 2 else 3}
 
 def main(){
     # Loops auto-increment by 1 if no incrementor is specified
-    loop (x = 1, x < 101) {
-        if x mod 15 == 0 then print ("FizzBuzz")
-            elif x mod 3 == 0 then print ("Fizz")
-            elif x mod 5 == 0 then print ("Buzz")
-            else print (x)
+    loop (var x = 1, x < 101) {
+        if x % 15 == 0 print ("FizzBuzz")
+            else if x % 3 == 0  print ("Fizz")
+            else if x % 5 == 0  print ("Buzz")
+            else printf_s(c_data('%i\n'),x)
     }
-    return 0
+    0
 }
 ```
-
-Here, `print` yields the number of characters printed from the `loop` block, but that value is not actually used anywhere.
 
 Note that if we didn't have the `return 0` at the bottom of `main`, the last value yielded by the `if` would be the value returned from `main`.
 
@@ -370,7 +354,6 @@ Defines a loop operation. The default is a loop that is infinite and needs to be
 ```
 x=1
 loop {
-    print (x)
     x = x + 1
     if x>10: break
 }
@@ -380,7 +363,7 @@ A loop can also specify a counter variable and a while-true condition:
 
 ```
 loop (x = 1, x < 11){
-    print (x)
+    ...
 }
 ```
 
@@ -388,7 +371,7 @@ The default incrementor for a loop is +1, but you can make the increment operati
 
 ```
 loop (x = 100, x > 0, x - 5) {
-    print (x)
+    ...
 }
 ```
 
@@ -398,7 +381,7 @@ If you want to constrain the use of the loop variable to only the loop, use `wit
 
 ```
 with x loop (x = 1, x < 11) {
-    print (x)
+    ...
 } # x is not valid outside of this block
 ```
 
@@ -453,11 +436,11 @@ def main(){
     # implicit i32 variable and value
     # multiple variables are separated by commas
 
-    var y = 2B
+    var y = 2:byte
     # explicitly defined value: byte 2
     # variable type is set automatically by value type
 
-    var z:u64 = 4U
+    var z:u64 = 4:u64
     # explicitly defined variable: unsigned 64
     # with an explicitly defined value assigned to it
 }
@@ -472,7 +455,7 @@ Defines a loop condition that continues as long as a given condition is true.
 ```
 var x=0
 while x<100 {
-    x=x+1
+    x+=1
 }
 ```
 
@@ -484,8 +467,7 @@ Provides a context, or closure, for variable assignments.
 y=1 # y is valid from here on down
 
 with var x = 32 {
-    print (y)
-    print (x)
+    y+x
     # but use of x is only valid in this block
 }
 ```
@@ -506,10 +488,8 @@ If a given expression yields `True`, then use the value of one expression; if `F
 Differs from `if/then/else` in that the `else` clause is optional, and that the value yielded is that of the *deciding expression*, not the `then/else` expressions. This way, the values of the `then/else` expressions can be of entirely different types if needed.
 
 ```
-when x=1 then
-    do_something() # this function returns an u64
-elif x=2 then
-    do_something_else() # this function returns an i32
+when x=1 do_something() # this function returns an u64
+else if x=2 do_something_else() # this function returns an i32
 else do_yet_another_thing() # this function returns an i8
 ```
 

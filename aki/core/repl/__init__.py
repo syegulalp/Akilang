@@ -300,7 +300,7 @@ pyaki  :{constants.VERSION}"""
                 except LocalException:
                     pass
                 except Exception as e:
-                    cp(f"Error reading cached file", e)
+                    cp(f"Error reading cached file: {e}")
 
         # If no cache, or cache failed,
         # load original file and compile from scratch
@@ -322,16 +322,6 @@ pyaki  :{constants.VERSION}"""
 
         # Write cached AST to file
 
-        if not ignore_cache and self.settings["cache_compilation"] == True:
-
-            try:
-                if not os.path.exists(cache_path):
-                    os.makedirs(cache_path)
-                self.dump_ast(full_cache_path, ast, text)
-            except LocalException:
-                cp("Can't write cache file")
-                os.remove(cache_path)
-
         self.main_module.codegen.text = text
 
         with Timer() as t2:
@@ -344,6 +334,16 @@ pyaki  :{constants.VERSION}"""
                 raise e
 
         cp(f"   Eval: {t2.time:.3f} sec")
+
+        if not ignore_cache and self.settings["cache_compilation"] == True:
+
+            try:
+                if not os.path.exists(cache_path):
+                    os.makedirs(cache_path)
+                self.dump_ast(full_cache_path, ast, text)
+            except LocalException:
+                cp("Can't write cache file")
+                os.remove(cache_path)        
 
         with Timer() as t3:
 
@@ -452,6 +452,10 @@ pyaki  :{constants.VERSION}"""
         # redo the codegen with an addition to the AST stack
         # that extracts the c_data value.
 
+        # TODO: This should not be `c_data`, as it does not work
+        # for things like arrays. It should be some other method
+        # that extracts something appropriate. Maybe `repl_result`
+
         if isinstance(first_result_type, AkiObject):
             _ = ast_stack.pop()
             ast_stack = []
@@ -478,7 +482,7 @@ pyaki  :{constants.VERSION}"""
         else:
             final_result_type = first_result_type
 
-        self.repl_ref = self.compiler.compile_module(self.repl_module, None)
+        self.repl_ref = self.compiler.compile_module(self.repl_module, 'repl')
 
         # Retrieve a pointer to the function to execute
         func_ptr = self.compiler.get_addr(call_name)

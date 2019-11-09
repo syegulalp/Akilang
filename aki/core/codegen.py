@@ -400,7 +400,6 @@ class AkiCodeGen:
             )
 
         if name in self.types:
-            raise
             raise AkiNameErr(
                 node,
                 self.text,
