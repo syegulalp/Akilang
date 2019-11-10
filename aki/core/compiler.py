@@ -61,7 +61,7 @@ class AkiCompiler:
         if filename:
             if not os.path.exists("output"):
                 os.mkdir("output")
-            with open(os.path.join("output", f"{filename}.src.llvm"), "w") as file:
+            with open(os.path.join("output", f"{filename}.akil"), "w") as file:
                 file.write(f"; File written at {datetime.datetime.now()}\n")
                 file.write(llvm_ir)
 
@@ -70,7 +70,7 @@ class AkiCompiler:
         # Write bitcode
 
         if filename:
-            with open(os.path.join("output", f"{filename}.bitcode"), "wb") as file:
+            with open(os.path.join("output", f"{filename}.akib"), "wb") as file:
                 file.write(mod.as_bitcode())
 
     def get_addr(self, func_name="main"):

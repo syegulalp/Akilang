@@ -130,7 +130,7 @@ pyaki  :{constants.VERSION}"""
         mod = ir.Module(name)
         mod.triple = binding.Target.from_default_triple().triple
         other_modules = []
-        if name != "stdlib":            
+        if name != "stdlib":
             other_modules.append(self.stdlib_module)
         mod.codegen = AkiCodeGen(mod, typemgr, name, other_modules)
         return mod
@@ -164,7 +164,7 @@ pyaki  :{constants.VERSION}"""
         self.stdlib_module = self.make_module("stdlib")
 
         codegen = AkiCodeGen(self.stdlib_module, module_name="stdlib").eval(ast)
-        self.stdlib_module_ref = self.compiler.compile_module(self.stdlib_module, None)
+        self.stdlib_module_ref = self.compiler.compile_module(self.stdlib_module, 'stdlib')
 
     def run(self, initial_load=False):
         if initial_load:
@@ -236,7 +236,7 @@ pyaki  :{constants.VERSION}"""
             file_path = self.paths["source_dir"]
 
         # reset
-        self.main_module = self.make_module(".main")
+        self.main_module = self.make_module(None)
 
         filepath = os.path.join(file_path, f"{file_to_load}.aki")
         self.last_file_loaded = file_to_load
@@ -282,7 +282,11 @@ pyaki  :{constants.VERSION}"""
                         try:
                             self.main_module.codegen.eval(ast)
                         except Exception as e:
-                            self.main_module = self.make_module(".main")
+                            for _ in ('l','b'):
+                                del_path = cache_path + file_to_load + f".aki{_}"
+                                if os.path.exists(del_path):
+                                    os.remove(del_path)
+                            self.main_module = self.make_module(None)
                             raise e
 
                     cp(f"   Eval: {t2.time:.3f} sec")
@@ -324,17 +328,6 @@ pyaki  :{constants.VERSION}"""
 
         self.main_module.codegen.text = text
 
-        with Timer() as t2:
-
-            try:
-                self.main_module.codegen.eval(ast)
-            except Exception as e:
-                # reset
-                self.main_module = self.make_module(".main")
-                raise e
-
-        cp(f"   Eval: {t2.time:.3f} sec")
-
         if not ignore_cache and self.settings["cache_compilation"] == True:
 
             try:
@@ -345,9 +338,30 @@ pyaki  :{constants.VERSION}"""
                 cp("Can't write cache file")
                 os.remove(cache_path)        
 
+        with Timer() as t2:
+            try:
+                self.main_module.codegen.eval(ast)
+            except Exception as e:
+                for _ in ('l','b'):
+                    del_path = cache_path + file_to_load + f".aki{_}"
+                    if os.path.exists(del_path):
+                        os.remove(del_path)
+                self.main_module = self.make_module(None)
+                raise e
+
+        cp(f"   Eval: {t2.time:.3f} sec")
+
         with Timer() as t3:
 
-            self.main_ref = self.compiler.compile_module(self.main_module, file_to_load)
+            try:
+                self.main_ref = self.compiler.compile_module(self.main_module, file_to_load)
+            except Exception as e:                
+                for _ in ('l','b'):
+                    del_path = cache_path + file_to_load + f".aki{_}"
+                    if os.path.exists(del_path):
+                        os.remove(del_path)
+                self.main_module = self.make_module(None)
+                raise e
 
         cp(f"Compile: {t3.time:.3f} sec")
         cp(f"  Total: {t1.time+t2.time+t3.time:.3f} sec")
@@ -371,7 +385,7 @@ pyaki  :{constants.VERSION}"""
             main_file = None
             repl_file = None
             self.typemgr = AkiTypeMgr()
-            self.main_module = self.make_module(".main")
+            self.main_module = self.make_module(None)
             self.repl_module = self.make_module(".repl")
             main = self.repl_module
         else:
@@ -482,7 +496,7 @@ pyaki  :{constants.VERSION}"""
         else:
             final_result_type = first_result_type
 
-        self.repl_ref = self.compiler.compile_module(self.repl_module, 'repl')
+        self.repl_ref = self.compiler.compile_module(self.repl_module, "repl")
 
         # Retrieve a pointer to the function to execute
         func_ptr = self.compiler.get_addr(call_name)
@@ -547,7 +561,7 @@ pyaki  :{constants.VERSION}"""
 
         self.compiler = AkiCompiler()
         self.load_stdlib()
-        self.main_module = self.make_module(".main")
+        self.main_module = self.make_module(None)
         self.repl_module = self.make_module(".repl")
 
         self.anon_counter = 0
