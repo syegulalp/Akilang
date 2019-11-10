@@ -1,3 +1,50 @@
+- [Aki language basics](#aki-language-basics)
+- [Introduction](#introduction)
+  - [Expressions](#expressions)
+  - [Functions and function calls](#functions-and-function-calls)
+  - [Variables and variable typing](#variables-and-variable-typing)
+- [Symbols](#symbols)
+  - [Operators](#operators)
+    - [`=` Assignment](#-assignment)
+    - [`==` Equality test](#-equality-test)
+    - [`!=` Negative equality test](#-negative-equality-test)
+    - [`>`/`>=` Greater than / or equal to test](#-greater-than--or-equal-to-test)
+    - [`<`/`<=` Less than / or equal to test](#-less-than--or-equal-to-test)
+    - [`+` Addition operator](#-addition-operator)
+    - [`-` Subtraction operator](#--subtraction-operator)
+    - [`*` Multiplication operator](#-multiplication-operator)
+    - [`/` Division operator](#-division-operator)
+    - [`and`/`or`/`xor`/`not` operators](#andorxornot-operators)
+  - [Parentheses `()`](#parentheses-)
+  - [Curly braces `{}`](#curly-braces-)
+  - [Hash symbol `#`](#hash-symbol-)
+  - [Decorator symbol `@`](#decorator-symbol-)
+- [Top-level keywords](#top-level-keywords)
+  - [`const`](#const)
+  - [`def`](#def)
+  - [`extern`](#extern)
+  - [`uni`](#uni)
+- [Keywords](#keywords)
+  - [`break`](#break)
+  - [`default`](#default)
+  - [`if` / `else`](#if--else)
+  - [`loop`](#loop)
+  - [`not`](#not)
+  - [`select`/`case`](#selectcase)
+  - [`unsafe`](#unsafe)
+  - [`var`](#var)
+  - [`while`](#while)
+  - [`with`](#with)
+  - [`when`](#when)
+- [Types:](#types)
+  - [`bool (u1)`](#bool-u1)
+  - [`byte (u8)`](#byte-u8)
+  - [`i8/32/64`](#i83264)
+  - [`u8/32/64`](#u83264)
+  - [`f32/64`](#f3264)
+  - [`array`](#array)
+  - [`str`](#str)
+
 # Aki language basics
 
 This is a document of Aki syntax and usage.
@@ -494,3 +541,76 @@ else do_yet_another_thing() # this function returns an i8
 ```
 
 In all cases the above expression would return the value of whatever `x` was, not the value of any of the called functions.
+
+# Types:
+
+## `bool (u1)`
+
+An unsigned true or false value.
+
+Constant representation of 1: `1:bool`
+
+## `byte (u8)`
+
+An unsigned byte.
+
+Constant representation of 1: `1:byte`
+
+## `i8/32/64`
+
+Signed integers of 8, 32, or 64 bit widths.
+
+Constant representation of 1: `1:i8, 1:i32, 1:i64`
+
+The default variable type is a 32-bit signed integer (`1:i32`).
+
+## `u8/32/64`
+
+Unsigned integers of 8, 32, or 64 bit widths.
+
+Constant representation of 1: `1:u8, 1:u32, 1:u64`
+
+## `f32/64`
+
+Floats of 32 or 64 bit widths: `3.2:f32`/ `3.2:f64`.
+
+Constant representation of 1: `1.` or `1.0`.
+
+## `array`
+
+An array of scalar (integer or float) types.
+
+For a one-dimensional array of bytes:
+
+`var x:array byte[100]`
+
+For a multidimensional array of bytes:
+
+`var x:array byte[32,32]`
+
+> ⚠ There is as yet no way to define array members on creation. They have to be assigned individually.
+
+> ⚠ There is as yet no way to nest different scalars in different array dimensions.
+
+> ⚠ There is as yet no way to perform array slicing or concatenation.
+
+## `str`
+
+A string of characters, defined either at compile time or runtime.
+
+```
+hello = "Hello World!"
+hello_also = 'Hello world!'
+hello_again = 'Hello
+world!'
+```
+
+Linebreaks inside strings are permitted. Single or double quotes can be used as long as they match.
+
+String escaping functions are not yet robustly defined, but you can use `\n` in a string for a newline, and you can escape quotes as needed with a backslash as well:
+
+```
+hello = "Hello \"world\"! \n"
+```
+
+> ⚠ There is as yet no way to perform string slicing or concantenation.
