@@ -39,6 +39,7 @@ from core.astree import (
     External,
     AccessorExpr,
     UniList,
+    Return,
 )
 
 
@@ -399,6 +400,12 @@ class AkiTransformer(Transformer):
         if node[3] is None:
             return WhenExpr(node[0].pos_in_stream, node[1], node[2], None)
         return IfExpr(node[0].pos_in_stream, node[1], node[2], node[3])
+
+    def return_expr(self, node):
+        """
+        Return.
+        """
+        return Return(node[0].pos_in_stream, node[1])
 
     def when_expr(self, node):
         """

@@ -39,6 +39,7 @@ expression: test
     | break_expr
     | loop_expr | infinite_loop_expr
     | select_expr
+    | return_expr
 
 terminal: SEMI
 
@@ -133,6 +134,10 @@ case: (CASE expression expression)|(DEFAULT expression)
 
 break_expr: BREAK
 
+// return
+
+return_expr: RETURN expression
+
 // --------------------
 
 parenthetical: LPAREN test RPAREN
@@ -185,6 +190,7 @@ ELSE: "else"
 EXTERN: "extern"
 IF: "if"
 LOOP: "loop"
+RETURN: "return"
 SELECT: "select"
 UNI: "uni"
 UNSAFE: "unsafe"

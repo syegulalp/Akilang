@@ -30,6 +30,7 @@
   - [`if` / `else`](#if--else)
   - [`loop`](#loop)
   - [`not`](#not)
+  - [`return`](#return)
   - [`select`/`case`](#selectcase)
   - [`unsafe`](#unsafe)
   - [`var`](#var)
@@ -440,6 +441,39 @@ A built-in unary for negating values.
 x = 1
 y = not x # 0
 ```
+
+## `return`
+
+Exits from a function early and returns a value.
+
+```
+def f1(x):str {
+    if x == 1 return "Yes"
+    # else ...
+    "No"
+}
+```
+
+Note that the return value's type must match the function's overall type, and that all returns must have the same type. This is not permitted:
+
+```
+def f1(x) {
+    if x == 1 return "Yes"
+    # else ...
+    5
+}
+```
+
+This, however, is okay. Note how the function has no explicit return type, but all the returned values have matching types.
+
+```
+def f1(x) {
+    if x == 1 return "Yes"
+    # else ...
+    "No"
+}
+```
+
 
 ## `select`/`case`
 

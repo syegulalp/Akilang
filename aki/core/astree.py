@@ -316,6 +316,21 @@ class IfExpr(ASTNode):
 class WhenExpr(IfExpr):
     pass
 
+class Return(ASTNode):
+    def __init__(self, p, return_val):
+        super().__init__(p)
+        self.return_val = return_val
+    
+    def __eq__(self, other):
+        return (
+            self.return_val == other.return_val
+        )
+    
+    def flatten(self):
+        return [
+            self.__class__.__name__,
+            self.return_val.flatten()
+        ]
 
 class Prototype(ASTNode):
     """

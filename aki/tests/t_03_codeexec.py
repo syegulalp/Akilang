@@ -319,6 +319,15 @@ class TestLexer(unittest.TestCase):
         self.e(r"@inline def m1(){32} m1()", 32)
         self.ex(AkiSyntaxErr, r"@bogus def m1(){32} m1()")
 
+    def test_return(self):
+        self.e(r"def m1(){return 32} m1()",32)
+        self.e(r"def m1():u64{return 32:u64} m1()",32)
+        self.e(r"def m1(x){if x==1 return 32; 64} m1(1)",32)
+        self.e(r"def m1(x){if x==1 return 32; 64} m1(0)",64)
+        self.e(r"def m1(x){if x==1 return 32 else return 64} m1(1)",32)
+        self.e(r"def m1(x){if x==1 return 32 else return 64} m1(0)",64)
+        self.ex(AkiTypeErr, r"def m1():u64{return 32} m1()")
+
     def test_select(self):
         p0 = r"""
 def main(){

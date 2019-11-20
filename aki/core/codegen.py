@@ -75,6 +75,12 @@ class FuncState:
         # Allocations builder.
         self.allocator = None
 
+        # Exit block.
+        self.exit_block = None
+
+        # Early exit value.
+        self.early_exit = None
+
 
 class AkiCodeGen:
     """
@@ -86,11 +92,11 @@ class AkiCodeGen:
         module: Optional[ir.Module] = None,
         typemgr=None,
         module_name: Optional[str] = None,
-        other_modules: list = []
+        other_modules: list = [],
     ):
 
         # Create an LLVM module if we aren't passed one.
-        
+
         if module is None:
             self.module = ir.Module(name=module_name)
             self.module.triple = binding.Target.from_default_triple().triple
@@ -207,14 +213,14 @@ class AkiCodeGen:
         name = self.module.globals.get(name_to_find, None)
         if name is not None:
             return name
-        
+
         # name = self.module.globals.get(self.module.name + '.' + name_to_find, None)
         # if name is not None:
         #     return name
 
         # Next, look in other modules:
         for _ in self.other_modules:
-            #name = _.module.globals.get(name_to_find, None)
+            # name = _.module.globals.get(name_to_find, None)
             name = _.globals.get(name_to_find, None)
             if name is not None:
 
@@ -228,7 +234,7 @@ class AkiCodeGen:
                 # otherwise, this is a function.
                 # emit function reference for this module
                 link = ir.Function(self.module, name.ftype, name.name)
-                
+
                 # copy aki data for function
                 link.akinode = name.akinode
                 link.akitype = name.akitype
@@ -600,7 +606,7 @@ class AkiCodeGen:
         proto.akinode = node
         proto.akitype = function_type
 
-        # Add Aki type metadata
+        # Add Aki type metadata - not used yet, but eventually
 
         # aki_type_metadata = self.module.add_metadata([str(proto.akitype)])
         # proto.set_metadata("aki.type", aki_type_metadata)
@@ -614,10 +620,51 @@ class AkiCodeGen:
 
         return self._codegen_Function(node)
 
+    def _codegen_Return(self, node):
+        val = self._codegen(node.return_val)
+
+        try:
+
+            # If the return type for this function was set,
+            # make sure our return has the proper type
+
+            if not self.fn.fn.akinode.return_type_unset:
+                if val.akitype != self.fn.return_value.akitype:
+                    raise LocalException
+
+            # otherwise, if this is the first early exit,
+            # set the early exit flag
+
+            elif not self.fn.early_exit:
+                self.fn.early_exit = val
+
+            # otherwise, if this is not the first early exit,
+            # make sure the type matches the first defined early exit type
+
+            else:
+                if val.akitype != self.fn.early_exit.akitype:
+                    raise LocalException
+
+        except LocalException:
+            raise AkiTypeErr(
+                node,
+                self.text,
+                f"Return value type ({CMD}{val.akitype}{REP}) does not match function signature return type ({CMD}{self.fn.return_value.akitype}{REP})",
+            )
+
+        self.builder.store(val, self.fn.return_value)
+        self.builder.branch(self.fn.exit_block)
+        return val
+
+        # Technically, `return` returns a value, but this is included
+        # more for completeness on our end than because it's ever actually
+        # used in a program's flow.
+
     def _codegen_Function(self, node):
         """
         Generate an LLVM function from a `Function` AST node.
         """
+        # we may not use this, but I'm putting it here provisionally
         # if self.module.name is not None and not self.module.name.startswith('.')and not isinstance(node, External):
         #     node.prototype.name = self.module.name + '.' + node.prototype.name
 
@@ -644,9 +691,6 @@ class AkiCodeGen:
             for a, b in zip(func.args, node.prototype.arguments):
                 # make sure the variable name is not in use
                 self._check_var_name(b, b.name)
-                # set its Aki attributes
-                # var_alloc.akitype = b.vartype.akitype
-                # var_alloc.akinode = b
                 # set the akinode attribute for the original argument,
                 # so it can be referenced if we need to throw an error
                 a.akitype = b.vartype.akitype
@@ -656,7 +700,6 @@ class AkiCodeGen:
         # Generate entry block and function body.
 
         self.entry_block = func.append_basic_block("entry")
-        # self.fn.alloc_block = self.entry_block
         self.fn.allocator = ir.IRBuilder(self.entry_block)
 
         # Add prototype arguments to function symbol table
@@ -695,6 +738,8 @@ class AkiCodeGen:
 
         # Create actual starting function block and codegen instructions.
 
+        self.fn.exit_block = func.append_basic_block("exit")
+
         self.body_block = func.append_basic_block("body")
         self.builder = ir.IRBuilder(self.body_block)
         self.builder.position_at_start(self.body_block)
@@ -708,13 +753,22 @@ class AkiCodeGen:
         assert isinstance(result, ir.Instruction)
 
         if result is None:
-            result = self._codegen(
-                Constant(
-                    node.body.index,
-                    node.prototype.return_type.akitype.default(self, node),
-                    node.prototype.return_type,
+            if self.fn.early_exit:
+                result = self._codegen(
+                    Constant(
+                        node.body.index,
+                        self.fn.early_exit.akitype.default(self, node),
+                        self.fn.early_exit.akitype,
+                    )
                 )
-            )
+            else:
+                result = self._codegen(
+                    Constant(
+                        node.body.index,
+                        node.prototype.return_type.akitype.default(self, node),
+                        node.prototype.return_type,
+                    )
+                )
 
         # If we don't explicitly assign a return type on the function prototype,
         # we infer it from the return value of the body.
@@ -727,6 +781,7 @@ class AkiCodeGen:
             self.fn.return_value.akitype = r_type
 
             # Set the actual type for the function return value
+            # that we track locally in codegen
             func.return_value = r_type.llvm_type
 
             # Set the return value type as used by the REPL
@@ -756,28 +811,25 @@ class AkiCodeGen:
             )
 
         # Add return value for function in exit block.
-
         self.builder.store(result, self.fn.return_value)
 
         # branch to exit, return the return value.
-
-        exit_block = func.append_basic_block("exit")
-        self.builder.branch(exit_block)
-
-        self.builder.position_at_start(exit_block)
+        self.builder.branch(self.fn.exit_block)
+        self.builder.position_at_start(self.fn.exit_block)
         self.builder.ret(self.builder.load(self.fn.return_value, ".ret"))
 
+        # Add a branch from the allocator to the body block.
+        # We have to do this after generating the body to ensure
+        # it comes after all the other allocation instructions.
         self.fn.allocator.branch(self.body_block)
 
         # Reset function state handlers.
-
         self.fn = None
 
         # Add the function signature to the list of types for the module,
-        # using the function's name
+        # using the function's name.
         # We have to do this here because the signature may have mutated
         # during the construction process.
-
         _ = self.typemgr.add_type(func.akitype.type_id, func.akitype, self.module)
         if _ is None:
             raise AkiTypeErr(node, self.text, "Invalid name")
@@ -1255,6 +1307,7 @@ class AkiCodeGen:
         self.builder.position_at_start(then_block)
 
         then_result = self._codegen(node.then_expr)
+
         if is_when_expr:
             if_result = self._alloca(
                 node.if_expr, if_expr.akitype.llvm_type, ".when_result"
@@ -1709,13 +1762,14 @@ class AkiCodeGen:
         n.akinode = node
         return n
 
-    def _builtins_ord(self, node):
-        """
-        Get the character code for a single character.        
-        """
-        self._argcheck(node, 1)
-        arg = node.arguments[0]
-        # confirm this is a string of length 1
+    # def _builtins_ord(self, node):
+    #     """
+    #     Get the character code for a single character.
+    #     This will be moved into stdlib
+    #     """
+    #     self._argcheck(node, 1)
+    #     arg = node.arguments[0]
+    #     # confirm this is a string of length 1
 
     def _builtins_type(self, node):
         """
