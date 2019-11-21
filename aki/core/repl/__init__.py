@@ -164,7 +164,9 @@ pyaki  :{constants.VERSION}"""
         self.stdlib_module = self.make_module("stdlib")
 
         codegen = AkiCodeGen(self.stdlib_module, module_name="stdlib").eval(ast)
-        self.stdlib_module_ref = self.compiler.compile_module(self.stdlib_module, 'stdlib')
+        self.stdlib_module_ref = self.compiler.compile_module(
+            self.stdlib_module, "stdlib"
+        )
 
     def run(self, initial_load=False):
         if initial_load:
@@ -282,7 +284,7 @@ pyaki  :{constants.VERSION}"""
                         try:
                             self.main_module.codegen.eval(ast)
                         except Exception as e:
-                            for _ in ('l','b'):
+                            for _ in ("l", "b"):
                                 del_path = cache_path + file_to_load + f".aki{_}"
                                 if os.path.exists(del_path):
                                     os.remove(del_path)
@@ -336,13 +338,13 @@ pyaki  :{constants.VERSION}"""
                 self.dump_ast(full_cache_path, ast, text)
             except LocalException:
                 cp("Can't write cache file")
-                os.remove(cache_path)        
+                os.remove(cache_path)
 
         with Timer() as t2:
             try:
                 self.main_module.codegen.eval(ast)
             except Exception as e:
-                for _ in ('l','b'):
+                for _ in ("l", "b"):
                     del_path = cache_path + file_to_load + f".aki{_}"
                     if os.path.exists(del_path):
                         os.remove(del_path)
@@ -354,9 +356,11 @@ pyaki  :{constants.VERSION}"""
         with Timer() as t3:
 
             try:
-                self.main_ref = self.compiler.compile_module(self.main_module, file_to_load)
-            except Exception as e:                
-                for _ in ('l','b'):
+                self.main_ref = self.compiler.compile_module(
+                    self.main_module, file_to_load
+                )
+            except Exception as e:
+                for _ in ("l", "b"):
                     del_path = cache_path + file_to_load + f".aki{_}"
                     if os.path.exists(del_path):
                         os.remove(del_path)
@@ -397,12 +401,9 @@ pyaki  :{constants.VERSION}"""
         # Tokenize input
 
         ast = AkiParser.parse(text)
+        self.repl_module.codegen.text = text
 
-        # Iterate through tokens
-
-        main.codegen.text = text
-
-        # Iterate through the AST nodes.
+        # Iterate through AST tokens.
         # When we encounter an expression node,
         # we add it to a stack of expression nodes.
         # When we encounter a top-level command,
